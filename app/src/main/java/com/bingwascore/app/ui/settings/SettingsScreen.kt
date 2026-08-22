@@ -46,6 +46,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.bingwascore.app.ui.components.BingwaButton
 import com.bingwascore.app.ui.components.BingwaTextField
 import com.bingwascore.app.ui.theme.Emerald500
@@ -168,10 +169,7 @@ fun SettingsScreen(
                                 "SOFTWARE UPDATE",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                letterSpacing = androidx.compose.ui.unit.TextUnit(
-                                    1.5f,
-                                    androidx.compose.ui.unit.Sp
-                                )
+                                letterSpacing = 1.5.sp
                             )
                         }
                         Spacer(Modifier.height(8.dp))
@@ -283,7 +281,7 @@ fun SettingsScreen(
                     )
                     Spacer(Modifier.height(12.dp))
                     AboutRow("App version", "v${state.currentVersion}")
-                    AboutRow("Region", "🇰🇪 Kenya")
+                    AboutRow("Region", "🇪 Kenya")
                     AboutRow("Build", "Genesis Release")
                 }
             }
@@ -299,6 +297,7 @@ fun SettingsScreen(
         }
     }
 }
+
 @Composable
 private fun ThemeOption(
     label: String,
@@ -516,10 +515,7 @@ private fun UpdateAvailableCard(
                     "WHAT'S NEW",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    letterSpacing = androidx.compose.ui.unit.TextUnit(
-                        1.5f,
-                        androidx.compose.ui.unit.Sp
-                    )
+                    letterSpacing = 1.5.sp
                 )
                 Spacer(Modifier.height(6.dp))
                 info.changelog.forEach { entry ->
