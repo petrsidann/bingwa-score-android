@@ -7,10 +7,12 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -20,15 +22,20 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.bingwascore.app.ui.theme.Gray100
 import com.bingwascore.app.ui.theme.Gray200
-import com.bingwascore.app.ui.theme.Gray800
 import com.bingwascore.app.ui.theme.Orange500
 import com.bingwascore.app.ui.theme.Orange600
 import com.bingwascore.app.ui.theme.Purple500
@@ -41,10 +48,10 @@ fun BingwaButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    loading: Boolean = false,
-    isDarkTheme: Boolean = false
+    loading: Boolean = false
 ) {
-    val gradient = if (isDarkTheme) {
+    val isDark = isSystemInDarkTheme()
+    val gradient = if (isDark) {
         Brush.linearGradient(listOf(Purple500, Purple600))
     } else {
         Brush.linearGradient(listOf(Orange500, Orange600))
@@ -74,7 +81,7 @@ fun BingwaButton(
                     brush = if (enabled) gradient else Brush.linearGradient(listOf(Gray200, Gray200)),
                     shape = RoundedCornerShape(16.dp)
                 ),
-            contentAlignment = androidx.compose.ui.Alignment.Center
+            contentAlignment = Alignment.Center
         ) {
             if (loading) {
                 CircularProgressIndicator(
@@ -103,8 +110,12 @@ fun BingwaTextField(
     leadingIcon: @Composable (() -> Unit)? = null,
     isPassword: Boolean = false,
     isMono: Boolean = false,
-    isError: Boolean = false
+    isError: Boolean = false,
+    keyboardType: KeyboardType = KeyboardType.Text
 ) {
+    val isDark = isSystemInDarkTheme()
+    val accent = if (isDark) Purple500 else Orange500
+
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
@@ -113,15 +124,20 @@ fun BingwaTextField(
         leadingIcon = leadingIcon,
         singleLine = true,
         isError = isError,
-        textStyle = if (isMono) MaterialTheme.typography.bodyLarge.copy(
-            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
-        ) else MaterialTheme.typography.bodyLarge,
+        visualTransformation = if (isPassword) PasswordVisualTransformation() else VisualTransformation.None,
+        keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+        textStyle = if (isMono) {
+            MaterialTheme.typography.bodyLarge.copy(fontFamily = FontFamily.Monospace)
+        } else {
+            MaterialTheme.typography.bodyLarge
+        },
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = if (true) Orange500 else Purple500,
+            focusedBorderColor = accent,
             unfocusedBorderColor = Gray200,
-            focusedLabelColor = if (true) Orange500 else Purple500
+            focusedLabelColor = accent,
+            cursorColor = accent
         )
     )
 }
@@ -129,7 +145,7 @@ fun BingwaTextField(
 @Composable
 fun Skeleton(
     modifier: Modifier = Modifier,
-    height: androidx.compose.ui.unit.Dp = 16.dp
+    height: Dp = 16.dp
 ) {
     val transition = rememberInfiniteTransition(label = "skeleton")
     val translate by transition.animateFloat(
