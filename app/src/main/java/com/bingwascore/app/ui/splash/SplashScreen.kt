@@ -22,7 +22,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -30,21 +29,18 @@ import com.bingwascore.app.ui.theme.Orange500
 import com.bingwascore.app.ui.theme.Pink500
 import com.bingwascore.app.ui.theme.Purple600
 import com.bingwascore.app.ui.theme.White
+import kotlinx.coroutines.delay
 
 @Composable
-fun SplashScreen() {
+fun SplashScreen(onFinished: () -> Unit) {
     val scale = remember { Animatable(0.6f) }
     val alpha = remember { Animatable(0f) }
 
     LaunchedEffect(Unit) {
-        scale.animateTo(
-            targetValue = 1f,
-            animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing)
-        )
-        alpha.animateTo(
-            targetValue = 1f,
-            animationSpec = tween(durationMillis = 600)
-        )
+        scale.animateTo(1f, tween(800, easing = FastOutSlowInEasing))
+        alpha.animateTo(1f, tween(600))
+        delay(1200)
+        onFinished()
     }
 
     Box(
@@ -61,35 +57,25 @@ fun SplashScreen() {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
-            modifier = Modifier
-                .scale(scale.value)
-                .alpha(alpha.value)
+            modifier = Modifier.scale(scale.value).alpha(alpha.value)
         ) {
             Box(
                 modifier = Modifier
                     .size(96.dp)
-                    .background(
-                        color = Color.White.copy(alpha = 0.2f),
-                        shape = RoundedCornerShape(28.dp)
-                    ),
+                    .background(White.copy(alpha = 0.2f), RoundedCornerShape(28.dp)),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = "B",
-                    fontSize = 52.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = White
-                )
+                Text("B", fontSize = 52.sp, fontWeight = FontWeight.Bold, color = White)
             }
             Spacer(Modifier.height(20.dp))
             Text(
-                text = "Bingwa Score",
+                "Bingwa Score",
                 style = MaterialTheme.typography.displayMedium,
                 color = White,
                 fontWeight = FontWeight.Bold
             )
             Text(
-                text = "Bundles, delivered in seconds.",
+                "Bundles, delivered in seconds.",
                 style = MaterialTheme.typography.bodyLarge,
                 color = White.copy(alpha = 0.85f)
             )
