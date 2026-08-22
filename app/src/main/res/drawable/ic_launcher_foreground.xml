@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Gradient background circle -->
+    <path
+        android:fillColor="#F97316"
+        android:pathData="M54,54m-40,0a40,40 0,1 1,80 0a40,40 0,1 1,-80 0" />
+
+    <!-- Inner accent -->
+    <path
+        android:fillColor="#8B5CF6"
+        android:pathData="M54,54m-32,0a32,32 0,1 1,64 0a32,32 0,1 1,-64 0"
+        android:fillAlpha="0.3" />
+
+    <!-- Letter B -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M44,36 L44,72 L58,72 C62.4,72 66,68.4 66,64 C66,61 64.3,58.4 61.8,57 C63.7,55.6 65,53.2 65,50.5 C65,46.4 61.6,43 57.5,43 L58,43 L44,43 Z M50,48 L56.5,48 C58,48 59,49 59,50.5 C59,52 58,53 56.5,53 L50,53 L50,48 Z M50,58 L57.5,58 C59.4,58 61,59.6 61,61.5 C61,63.4 59.4,65 57.5,65 L50,65 L50,58 Z" />
+</vector>
