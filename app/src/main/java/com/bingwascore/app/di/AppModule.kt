@@ -3,7 +3,9 @@ package com.bingwascore.app.di
 import android.content.Context
 import com.bingwascore.app.BuildConfig
 import com.bingwascore.app.data.preferences.UserPreferences
+import com.bingwascore.app.data.remote.AdminApiService
 import com.bingwascore.app.data.remote.ApiService
+import com.bingwascore.app.data.repository.AdminRepository
 import com.bingwascore.app.data.repository.AuthRepository
 import com.bingwascore.app.data.repository.BundleRepository
 import com.squareup.moshi.Moshi
@@ -33,7 +35,10 @@ object AppModule {
     @Singleton
     fun provideOkHttpClient(): OkHttpClient {
         val logging = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
+            level = if (BuildConfig.DEBUG)
+                HttpLoggingInterceptor.Level.BODY
+            else
+                HttpLoggingInterceptor.Level.NONE
         }
         return OkHttpClient.Builder()
             .addInterceptor(logging)
@@ -63,6 +68,11 @@ object AppModule {
 
     @Provides
     @Singleton
+    fun provideAdminApiService(retrofit: Retrofit): AdminApiService =
+        retrofit.create(AdminApiService::class.java)
+
+    @Provides
+    @Singleton
     fun provideUserPreferences(@ApplicationContext context: Context): UserPreferences =
         UserPreferences(context)
 
@@ -75,5 +85,15 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideBundleRepository(api: ApiService): BundleRepository = BundleRepository(api)
+    fun provideBundleRepository(
+        api: ApiService,
+        preferences: UserPreferences
+    ): BundleRepository = BundleRepository(api, preferences)
+
+    @Provides
+    @Singleton
+    fun provideAdminRepository(
+        adminApi: AdminApiService,
+        preferences: UserPreferences
+    ): AdminRepository = AdminRepository(adminApi, preferences)
 }
