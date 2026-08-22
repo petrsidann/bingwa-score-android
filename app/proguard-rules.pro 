@@ -1,0 +1,7 @@
+-keep class com.squareup.moshi.** { *; }
+-keep class com.bingwascore.app.data.remote.** { *; }
+-keep class com.bingwascore.app.domain.model.** { *; }
+-keepattributes Signature, Exceptions
+-keepattributes *Annotation*
+-keepnames class kotlinx.coroutines.internal.MainDispatcherFactory {}
+-keepnames class kotlinx.coroutines.CoroutineExceptionHandler {}
