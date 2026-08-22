@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
@@ -39,10 +38,10 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bingwascore.app.ui.components.BingwaButton
+import com.bingwascore.app.ui.components.BingwaTextField
 import com.bingwascore.app.ui.theme.Orange500
 import com.bingwascore.app.ui.theme.Pink500
 import com.bingwascore.app.ui.theme.Purple600
@@ -51,29 +50,26 @@ import com.bingwascore.app.ui.theme.White
 @Composable
 fun LoginScreen(
     viewModel: AuthViewModel,
-    onLoginSuccess: () -> Unit,
+    onLoginSuccess: (com.bingwascore.app.domain.model.User) -> Unit,
     onNavigateToSignup: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
     val isDark = isSystemInDarkTheme()
-    var mode by remember { mutableIntStateOf(0) } // 0 = phone, 1 = email
+    var mode by remember { mutableIntStateOf(0) }
     var phone by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
     LaunchedEffect(state.user) {
-        if (state.user != null) onLoginSuccess()
+        state.user?.let { onLoginSuccess(it) }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // Left gradient panel (desktop-style branding)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(260.dp)
-                .background(
-                    Brush.linearGradient(listOf(Orange500, Pink500, Purple600))
-                )
+                .background(Brush.linearGradient(listOf(Orange500, Pink500, Purple600)))
         )
 
         Column(
@@ -86,7 +82,6 @@ fun LoginScreen(
                 .padding(28.dp),
             verticalArrangement = Arrangement.Top
         ) {
-            // Logo
             Box(
                 modifier = Modifier
                     .size(72.dp)
@@ -115,7 +110,6 @@ fun LoginScreen(
 
             Spacer(Modifier.height(24.dp))
 
-            // Mode toggle
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -171,16 +165,17 @@ fun LoginScreen(
             }
 
             if (mode == 0) {
-                com.bingwascore.app.ui.components.BingwaTextField(
+                BingwaTextField(
                     value = phone,
                     onValueChange = { phone = it },
                     label = "Phone number",
                     placeholder = "7XXXXXXXX",
                     leadingIcon = { Icon(Icons.Default.Phone, contentDescription = null) },
-                    isMono = true
+                    isMono = true,
+                    keyboardType = KeyboardType.Phone
                 )
             } else {
-                com.bingwascore.app.ui.components.BingwaTextField(
+                BingwaTextField(
                     value = email,
                     onValueChange = { email = it },
                     label = "Email",
@@ -192,16 +187,13 @@ fun LoginScreen(
 
             Spacer(Modifier.height(12.dp))
 
-            androidx.compose.material3.OutlinedTextField(
+            BingwaTextField(
                 value = password,
                 onValueChange = { password = it },
-                label = { Text("Password") },
+                label = "Password",
                 leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
-                singleLine = true,
-                visualTransformation = PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp)
+                isPassword = true,
+                keyboardType = KeyboardType.Password
             )
 
             Row(
@@ -229,8 +221,7 @@ fun LoginScreen(
                     )
                 },
                 loading = state.isLoading,
-                enabled = password.isNotEmpty() && (phone.isNotEmpty() || email.isNotEmpty()),
-                isDarkTheme = isDark
+                enabled = password.isNotEmpty() && (phone.isNotEmpty() || email.isNotEmpty())
             )
 
             Spacer(Modifier.height(24.dp))
@@ -253,27 +244,4 @@ fun LoginScreen(
             }
         }
     }
-}
-
-// Helper extension to allow keyboardType in BingwaTextField
-@Composable
-private fun com.bingwascore.app.ui.components.BingwaTextField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    label: String,
-    placeholder: String,
-    leadingIcon: @Composable (() -> Unit)?,
-    keyboardType: KeyboardType = KeyboardType.Text
-) {
-    androidx.compose.material3.OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        label = { Text(label) },
-        placeholder = { Text(placeholder) },
-        leadingIcon = leadingIcon,
-        singleLine = true,
-        keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp)
-    )
 }
