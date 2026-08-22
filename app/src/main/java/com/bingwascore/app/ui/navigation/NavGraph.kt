@@ -1,9 +1,6 @@
 package com.bingwascore.app.ui.navigation
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -11,11 +8,10 @@ import androidx.navigation.compose.rememberNavController
 import com.bingwascore.app.ui.auth.AuthViewModel
 import com.bingwascore.app.ui.auth.LoginScreen
 import com.bingwascore.app.ui.auth.SignupScreen
-import com.bingwascore.app.ui.home.HomeScreen
-import com.bingwascore.app.ui.home.HomeViewModel
-import com.bingwascore.app.ui.splash.SplashScreen
 import com.bingwascore.app.ui.checkout.CheckoutScreen
 import com.bingwascore.app.ui.checkout.CheckoutViewModel
+import com.bingwascore.app.ui.home.HomeScreen
+import com.bingwascore.app.ui.home.HomeViewModel
 import com.bingwascore.app.ui.orders.OrdersScreen
 import com.bingwascore.app.ui.orders.OrdersViewModel
 import com.bingwascore.app.ui.account.AccountScreen
@@ -24,6 +20,7 @@ import com.bingwascore.app.ui.settings.SettingsScreen
 import com.bingwascore.app.ui.settings.SettingsViewModel
 import com.bingwascore.app.ui.admin.AdminScreen
 import com.bingwascore.app.ui.admin.AdminViewModel
+import com.bingwascore.app.ui.splash.SplashScreen
 
 @Composable
 fun BingwaNavHost() {
