@@ -1,5 +1,6 @@
 package com.bingwascore.app.data.repository
 
+import com.bingwascore.app.data.preferences.UserPreferences
 import com.bingwascore.app.data.remote.ApiService
 import com.bingwascore.app.data.remote.dto.CheckoutRequest
 import com.bingwascore.app.domain.model.Bundle
@@ -10,10 +11,15 @@ import javax.inject.Inject
 
 class BundleRepository @Inject constructor(
     private val api: ApiService,
-    private val authRepository: AuthRepository
+    private val preferences: UserPreferences
 ) {
+    private suspend fun authHeader(): String {
+        val token = preferences.accessToken.first() ?: ""
+        return "Bearer $token"
+    }
+
     suspend fun getBundles(type: String? = null): Resource<List<Bundle>> = try {
-        val response = api.getBundles(authRepository.authHeader(), type)
+        val response = api.getBundles(authHeader(), type)
         if (response.isSuccessful && response.body() != null) {
             Resource.Success(response.body()!!.bundles)
         } else {
@@ -24,10 +30,7 @@ class BundleRepository @Inject constructor(
     }
 
     suspend fun checkout(bundleId: String, recipientPhone: String): Resource<Order> = try {
-        val response = api.checkout(
-            authRepository.authHeader(),
-            CheckoutRequest(bundleId, recipientPhone)
-        )
+        val response = api.checkout(authHeader(), CheckoutRequest(bundleId, recipientPhone))
         if (response.isSuccessful && response.body() != null) {
             Resource.Success(response.body()!!.order)
         } else {
@@ -38,7 +41,7 @@ class BundleRepository @Inject constructor(
     }
 
     suspend fun getOrder(orderId: String): Resource<Order> = try {
-        val response = api.getOrder(authRepository.authHeader(), orderId)
+        val response = api.getOrder(authHeader(), orderId)
         if (response.isSuccessful && response.body() != null) {
             Resource.Success(response.body()!!.order)
         } else {
@@ -49,7 +52,7 @@ class BundleRepository @Inject constructor(
     }
 
     suspend fun getOrders(type: String? = null): Resource<List<Order>> = try {
-        val response = api.getOrders(authRepository.authHeader(), type)
+        val response = api.getOrders(authHeader(), type)
         if (response.isSuccessful && response.body() != null) {
             Resource.Success(response.body()!!.orders)
         } else {
