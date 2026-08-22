@@ -52,15 +52,11 @@ fun BundleCard(
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(if (isPressed) 0.97f else 1f, label = "scale")
 
-    val (gradient, icon, tagBg, tagColor) = when (bundle.type) {
-        "data" -> listOf(Sky500, Sky500.copy(alpha = 0.15f)) to Icons.Default.Wifi to
-                Sky500.copy(alpha = 0.12f) to Sky500
-        "minutes" -> listOf(Emerald500, Emerald500.copy(alpha = 0.15f)) to Icons.Default.Call to
-                Emerald500.copy(alpha = 0.12f) to Emerald500
-        "sms" -> listOf(Purple500, Purple500.copy(alpha = 0.15f)) to Icons.Default.Sms to
-                Purple500.copy(alpha = 0.12f) to Purple500
-        else -> listOf(Sky500, Sky500.copy(alpha = 0.15f)) to Icons.Default.Wifi to
-                Sky500.copy(alpha = 0.12f) to Sky500
+    val (gradientColors, icon, tagBg, tagColor) = when (bundle.type) {
+        "data" -> Triple(listOf(Sky500, Sky500.copy(alpha = 0.15f)), Icons.Default.Wifi, Sky500.copy(alpha = 0.12f), Sky500)
+        "minutes" -> Triple(listOf(Emerald500, Emerald500.copy(alpha = 0.15f)), Icons.Default.Call, Emerald500.copy(alpha = 0.12f), Emerald500)
+        "sms" -> Triple(listOf(Purple500, Purple500.copy(alpha = 0.15f)), Icons.Default.Sms, Purple500.copy(alpha = 0.12f), Purple500)
+        else -> Triple(listOf(Sky500, Sky500.copy(alpha = 0.15f)), Icons.Default.Wifi, Sky500.copy(alpha = 0.12f), Sky500)
     }
 
     Box(
@@ -82,13 +78,13 @@ fun BundleCard(
                     modifier = Modifier
                         .size(48.dp)
                         .background(
-                            Brush.linearGradient(gradient.first),
+                            Brush.linearGradient(colors = gradientColors),
                             RoundedCornerShape(16.dp)
                         ),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        icon.second,
+                        icon,
                         contentDescription = null,
                         tint = White,
                         modifier = Modifier.size(24.dp)
@@ -96,14 +92,14 @@ fun BundleCard(
                 }
                 Box(
                     modifier = Modifier
-                        .background(tagBg.first, RoundedCornerShape(100.dp))
+                        .background(tagBg, RoundedCornerShape(100.dp))
                         .padding(horizontal = 10.dp, vertical = 4.dp)
                 ) {
                     Text(
                         text = bundle.type.uppercase(),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = tagColor.first,
+                        color = tagColor,
                         letterSpacing = 1.sp
                     )
                 }
@@ -185,7 +181,7 @@ fun BundleCard(
                 Box(
                     modifier = Modifier
                         .background(
-                            Brush.linearGradient(gradient.first),
+                            Brush.linearGradient(colors = gradientColors),
                             RoundedCornerShape(100.dp)
                         )
                         .padding(horizontal = 14.dp, vertical = 8.dp)
