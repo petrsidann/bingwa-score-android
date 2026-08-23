@@ -22,12 +22,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Receipt
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -42,9 +42,9 @@ import androidx.compose.ui.unit.dp
 import com.bingwascore.app.domain.model.Order
 import com.bingwascore.app.ui.components.Skeleton
 import com.bingwascore.app.ui.theme.Emerald500
+import com.bingwascore.app.ui.theme.Purple500
 import com.bingwascore.app.ui.theme.Rose500
 import com.bingwascore.app.ui.theme.Sky500
-import com.bingwascore.app.ui.theme.Purple500
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -68,7 +68,9 @@ fun OrdersScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background
+                )
             )
         }
     ) { padding ->
@@ -77,17 +79,16 @@ fun OrdersScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            // Filters
             LazyRow(
                 contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                listOf(
+                items(listOf(
                     "all" to "All",
                     "data" to "📶 Data",
                     "minutes" to "📞 Minutes",
                     "sms" to "💬 SMS"
-                ).forEach { (id, label) ->
+                )) { (id, label) ->
                     val isActive = state.filter == id
                     Box(
                         modifier = Modifier
@@ -113,25 +114,27 @@ fun OrdersScreen(
             }
 
             when {
-                state.isLoading -> LazyColumn(
-                    contentPadding = PaddingValues(24.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(4) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(20.dp))
-                                .background(MaterialTheme.colorScheme.surface)
-                                .padding(20.dp)
-                        ) {
-                            Skeleton(height = 20.dp, modifier = Modifier.width(200.dp))
-                            Spacer(Modifier.height(8.dp))
-                            Skeleton(height = 14.dp, modifier = Modifier.width(120.dp))
-                            Spacer(Modifier.height(16.dp))
-                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                Skeleton(height = 56.dp, modifier = Modifier.weight(1f))
-                                Skeleton(height = 56.dp, modifier = Modifier.weight(1f))
+                state.isLoading -> {
+                    LazyColumn(
+                        contentPadding = PaddingValues(24.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(4) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(20.dp))
+                                    .background(MaterialTheme.colorScheme.surface)
+                                    .padding(20.dp)
+                            ) {
+                                Skeleton(height = 20.dp, modifier = Modifier.width(200.dp))
+                                Spacer(Modifier.height(8.dp))
+                                Skeleton(height = 14.dp, modifier = Modifier.width(120.dp))
+                                Spacer(Modifier.height(16.dp))
+                                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    Skeleton(height = 56.dp, modifier = Modifier.weight(1f))
+                                    Skeleton(height = 56.dp, modifier = Modifier.weight(1f))
+                                }
                             }
                         }
                     }
@@ -164,11 +167,15 @@ fun OrdersScreen(
                         }
                     }
                 }
-                else -> LazyColumn(
-                    contentPadding = PaddingValues(24.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(state.orders) { order -> OrderCard(order) }
+                else -> {
+                    LazyColumn(
+                        contentPadding = PaddingValues(24.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(state.orders) { order ->
+                            OrderCard(order)
+                        }
+                    }
                 }
             }
         }
