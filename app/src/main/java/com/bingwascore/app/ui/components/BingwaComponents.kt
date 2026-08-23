@@ -170,3 +170,55 @@ fun Skeleton(
             .background(brush)
     )
 }
+@Composable
+fun PremiumButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    isLoading: Boolean = false
+) {
+    val isDark = isSystemInDarkTheme()
+    val scale = remember { Animatable(1f) }
+    
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(56.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(
+                brush = Brush.linearGradient(
+                    colors = if (isDark) 
+                        listOf(Purple500, Purple600)
+                    else 
+                        listOf(Orange500, Orange600)
+                )
+            )
+            .clickable(enabled = enabled && !isLoading) {
+                onClick()
+            }
+            .graphicsLayer {
+                scaleX = scale.value
+                scaleY = scale.value
+                shadowElevation = if (enabled && !isLoading) 12f else 0f
+                ambientShadowColor = if (isDark) Purple500 else Orange500
+                spotShadowColor = if (isDark) Purple500 else Orange500
+            },
+        contentAlignment = Alignment.Center
+    ) {
+        if (isLoading) {
+            CircularProgressIndicator(
+                color = White,
+                strokeWidth = 2.dp,
+                modifier = Modifier.size(24.dp)
+            )
+        } else {
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelLarge,
+                color = White,
+                fontWeight = FontWeight.Bold
+            )
+        }
+    }
+}
