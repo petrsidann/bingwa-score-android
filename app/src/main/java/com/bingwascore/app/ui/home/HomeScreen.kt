@@ -37,10 +37,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bingwascore.app.ui.components.Skeleton
+import com.bingwascore.app.ui.theme.Emerald500
 import com.bingwascore.app.ui.theme.Orange500
 import com.bingwascore.app.ui.theme.Purple500
 import com.bingwascore.app.ui.theme.Sky500
-import com.bingwascore.app.ui.theme.Emerald500
 import com.bingwascore.app.ui.theme.White
 
 @Composable
@@ -126,8 +126,8 @@ fun HomeScreen(
                         modifier = Modifier
                             .clip(RoundedCornerShape(16.dp))
                             .background(
-                                if (isActive) Brush.linearGradient(listOf(color, color.copy(alpha = 0.8f)))
-                                else MaterialTheme.colorScheme.surface
+                                color = if (isActive) color else MaterialTheme.colorScheme.surface,
+                                shape = RoundedCornerShape(16.dp)
                             )
                             .clickable { viewModel.setTab(id) }
                             .padding(horizontal = 20.dp, vertical = 12.dp)
