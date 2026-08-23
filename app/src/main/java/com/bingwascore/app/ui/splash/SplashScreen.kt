@@ -2,6 +2,9 @@ package com.bingwascore.app.ui.splash
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -22,6 +25,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -35,11 +40,34 @@ import kotlinx.coroutines.delay
 fun SplashScreen(onFinished: () -> Unit) {
     val scale = remember { Animatable(0.6f) }
     val alpha = remember { Animatable(0f) }
+    val rotation = remember { Animatable(0f) }
+    val glowAlpha = remember { Animatable(0.3f) }
 
     LaunchedEffect(Unit) {
-        scale.animateTo(1f, tween(800, easing = FastOutSlowInEasing))
-        alpha.animateTo(1f, tween(600))
-        delay(1200)
+        // Scale up
+        scale.animateTo(
+            targetValue = 1f,
+            animationSpec = tween(800, easing = FastOutSlowInEasing)
+        )
+        
+        // Fade in text
+        alpha.animateTo(
+            targetValue = 1f,
+            animationSpec = tween(600)
+        )
+        
+        // Infinite glow pulse
+        launch {
+            infiniteRepeatable(
+                animation = tween(2000, easing = LinearEasing),
+                repeatMode = RepeatMode.Reverse
+            ).let { spec ->
+                glowAlpha.animateTo(0.6f, spec)
+            }
+        }
+        
+        // Wait then finish
+        delay(2000)
         onFinished()
     }
 
@@ -57,27 +85,76 @@ fun SplashScreen(onFinished: () -> Unit) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
-            modifier = Modifier.scale(scale.value).alpha(alpha.value)
+            modifier = Modifier
+                .scale(scale.value)
+                .alpha(alpha.value)
         ) {
+            // Premium logo box with glow
             Box(
                 modifier = Modifier
-                    .size(96.dp)
-                    .background(White.copy(alpha = 0.2f), RoundedCornerShape(28.dp)),
+                    .size(120.dp)
+                    .graphicsLayer {
+                        alpha = glowAlpha.value
+                        shadowElevation = 20f
+                        ambientShadowColor = Color.White
+                        spotShadowColor = Color.White
+                    }
+                    .background(
+                        Brush.linearGradient(
+                            colors = listOf(
+                                Color.White.copy(alpha = 0.3f),
+                                Color.White.copy(alpha = 0.15f)
+                            )
+                        ),
+                        RoundedCornerShape(32.dp)
+                    ),
                 contentAlignment = Alignment.Center
             ) {
-                Text("B", fontSize = 52.sp, fontWeight = FontWeight.Bold, color = White)
+                Text(
+                    text = "B",
+                    fontSize = 72.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = White,
+                    modifier = Modifier.graphicsLayer {
+                        shadowElevation = 10f
+                    }
+                )
             }
-            Spacer(Modifier.height(20.dp))
+            
+            Spacer(Modifier.height(28.dp))
+            
+            // App name
             Text(
-                "Bingwa Score",
+                text = "Bingwa Score",
                 style = MaterialTheme.typography.displayMedium,
+                fontWeight = FontWeight.Bold,
                 color = White,
-                fontWeight = FontWeight.Bold
+                letterSpacing = 1.sp,
+                modifier = Modifier.graphicsLayer {
+                    shadowElevation = 8f
+                }
             )
+            
+            Spacer(Modifier.height(8.dp))
+            
+            // Tagline
             Text(
-                "Bundles, delivered in seconds.",
+                text = "Bundles, delivered in seconds.",
                 style = MaterialTheme.typography.bodyLarge,
-                color = White.copy(alpha = 0.85f)
+                color = White.copy(alpha = 0.9f),
+                letterSpacing = 0.5.sp
+            )
+            
+            Spacer(Modifier.height(40.dp))
+            
+            // Loading indicator
+            Box(
+                modifier = Modifier
+                    .size(4.dp)
+                    .background(
+                        color = White.copy(alpha = glowAlpha.value),
+                        shape = RoundedCornerShape(2.dp)
+                    )
             )
         }
     }
