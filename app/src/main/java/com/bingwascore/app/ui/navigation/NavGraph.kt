@@ -75,7 +75,7 @@ fun BingwaNavHost() {
                 onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
                 onNavigateToAccount = { navController.navigate(Screen.Account.route) },
                 onNavigateToOrders = { navController.navigate(Screen.Orders.route) },
-                onNavigateToCheckout = { bundleId ->
+                onNavigateToCheckout = { bundleId: String ->
                     navController.navigate(Screen.Checkout.createRoute(bundleId))
                 },
                 onLogout = {
