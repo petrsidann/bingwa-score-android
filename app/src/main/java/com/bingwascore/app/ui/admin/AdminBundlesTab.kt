@@ -48,7 +48,6 @@ fun AdminBundlesTab(state: AdminState, viewModel: AdminViewModel) {
     var deleteTarget by remember { mutableStateOf<Bundle?>(null) }
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        // Header + Add button
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -77,7 +76,6 @@ fun AdminBundlesTab(state: AdminState, viewModel: AdminViewModel) {
             }
         }
 
-        // Bundle form
         if (state.isBundleFormVisible) {
             BundleFormCard(
                 editing = state.editingBundle,
@@ -88,7 +86,6 @@ fun AdminBundlesTab(state: AdminState, viewModel: AdminViewModel) {
             )
         }
 
-        // List
         if (state.isLoading && state.bundles.isEmpty()) {
             repeat(3) {
                 Box(
@@ -118,7 +115,6 @@ fun AdminBundlesTab(state: AdminState, viewModel: AdminViewModel) {
         }
     }
 
-    // Delete confirmation
     deleteTarget?.let { bundle ->
         AlertDialog(
             onDismissRequest = { deleteTarget = null },
@@ -252,6 +248,7 @@ private fun BundleRow(
         }
     }
 }
+
 @Composable
 private fun BundleFormCard(
     editing: Bundle?,
@@ -279,7 +276,6 @@ private fun BundleFormCard(
                 fontWeight = FontWeight.Bold
             )
 
-            // Type selector
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf("data", "minutes", "sms").forEach { t ->
                     val isActive = type == t
