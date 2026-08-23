@@ -2,11 +2,10 @@ package com.bingwascore.app.data.repository
 
 import com.bingwascore.app.data.preferences.UserPreferences
 import com.bingwascore.app.data.remote.ApiService
-import com.bingwascore.app.data.remote.dto.LoginRequest
-import com.bingwascore.app.data.remote.dto.SignupRequest
 import com.bingwascore.app.domain.model.User
 import com.bingwascore.app.util.Resource
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 
 class AuthRepository @Inject constructor(
@@ -19,7 +18,6 @@ class AuthRepository @Inject constructor(
         email: String?,
         password: String
     ): Resource<User> {
-        // MOCK - Simulate signup
         delay(1500)
         
         if (fullName.isBlank() || phone.isBlank() || password.length < 6) {
@@ -41,7 +39,6 @@ class AuthRepository @Inject constructor(
     }
 
     suspend fun login(phone: String?, email: String?, password: String): Resource<User> {
-        // MOCK - Simulate login
         delay(1000)
         
         if (password.length < 6) {
