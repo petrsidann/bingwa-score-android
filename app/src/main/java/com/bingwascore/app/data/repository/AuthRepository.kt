@@ -6,7 +6,7 @@ import com.bingwascore.app.data.remote.dto.LoginRequest
 import com.bingwascore.app.data.remote.dto.SignupRequest
 import com.bingwascore.app.domain.model.User
 import com.bingwascore.app.util.Resource
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.delay
 import javax.inject.Inject
 
 class AuthRepository @Inject constructor(
@@ -18,32 +18,48 @@ class AuthRepository @Inject constructor(
         phone: String,
         email: String?,
         password: String
-    ): Resource<User> = try {
-        val response = api.signup(SignupRequest(fullName, phone, email, password))
-        if (response.isSuccessful && response.body() != null) {
-            val body = response.body()!!
-            preferences.saveTokens(body.accessToken, body.refreshToken)
-            preferences.saveUserId(body.user.id)
-            Resource.Success(body.user)
-        } else {
-            Resource.Error(response.errorBody()?.string() ?: "Signup failed")
+    ): Resource<User> {
+        // MOCK - Simulate signup
+        delay(1500)
+        
+        if (fullName.isBlank() || phone.isBlank() || password.length < 6) {
+            return Resource.Error("Invalid input data")
         }
-    } catch (e: Exception) {
-        Resource.Error(e.localizedMessage ?: "Network error")
+        
+        val mockUser = User(
+            id = "mock_user_${System.currentTimeMillis()}",
+            fullName = fullName,
+            phone = phone,
+            email = email,
+            role = "customer"
+        )
+        
+        preferences.saveTokens("mock_access_token", "mock_refresh_token")
+        preferences.saveUserId(mockUser.id)
+        
+        return Resource.Success(mockUser)
     }
 
-    suspend fun login(phone: String?, email: String?, password: String): Resource<User> = try {
-        val response = api.login(LoginRequest(phone, email, password))
-        if (response.isSuccessful && response.body() != null) {
-            val body = response.body()!!
-            preferences.saveTokens(body.accessToken, body.refreshToken)
-            preferences.saveUserId(body.user.id)
-            Resource.Success(body.user)
-        } else {
-            Resource.Error(response.errorBody()?.string() ?: "Login failed")
+    suspend fun login(phone: String?, email: String?, password: String): Resource<User> {
+        // MOCK - Simulate login
+        delay(1000)
+        
+        if (password.length < 6) {
+            return Resource.Error("Password must be at least 6 characters")
         }
-    } catch (e: Exception) {
-        Resource.Error(e.localizedMessage ?: "Network error")
+        
+        val mockUser = User(
+            id = "mock_user_123",
+            fullName = phone?.substring(0, 4)?.uppercase() + " USER" ?: "MOCK USER",
+            phone = phone ?: "0700000000",
+            email = email,
+            role = "customer"
+        )
+        
+        preferences.saveTokens("mock_access_token", "mock_refresh_token")
+        preferences.saveUserId(mockUser.id)
+        
+        return Resource.Success(mockUser)
     }
 
     suspend fun logout() {
@@ -56,6 +72,6 @@ class AuthRepository @Inject constructor(
 
     fun authHeader(): String {
         val token = kotlinx.coroutines.runBlocking { preferences.accessToken.first() }
-        return "Bearer $token"
+        return "Bearer ${token ?: "mock_token"}"
     }
 }
