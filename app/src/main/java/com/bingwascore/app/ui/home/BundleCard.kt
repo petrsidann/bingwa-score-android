@@ -31,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -42,6 +43,13 @@ import com.bingwascore.app.ui.theme.Purple500
 import com.bingwascore.app.ui.theme.Sky500
 import com.bingwascore.app.ui.theme.White
 
+private data class BundleTheme(
+    val gradientColors: List<Color>,
+    val icon: ImageVector,
+    val tagBg: Color,
+    val tagColor: Color
+)
+
 @Composable
 fun BundleCard(
     bundle: Bundle,
@@ -52,11 +60,31 @@ fun BundleCard(
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(if (isPressed) 0.97f else 1f, label = "scale")
 
-    val (gradientColors, icon, tagBg, tagColor) = when (bundle.type) {
-        "data" -> Triple(listOf(Sky500, Sky500.copy(alpha = 0.15f)), Icons.Default.Wifi, Sky500.copy(alpha = 0.12f), Sky500)
-        "minutes" -> Triple(listOf(Emerald500, Emerald500.copy(alpha = 0.15f)), Icons.Default.Call, Emerald500.copy(alpha = 0.12f), Emerald500)
-        "sms" -> Triple(listOf(Purple500, Purple500.copy(alpha = 0.15f)), Icons.Default.Sms, Purple500.copy(alpha = 0.12f), Purple500)
-        else -> Triple(listOf(Sky500, Sky500.copy(alpha = 0.15f)), Icons.Default.Wifi, Sky500.copy(alpha = 0.12f), Sky500)
+    val theme = when (bundle.type) {
+        "data" -> BundleTheme(
+            gradientColors = listOf(Sky500, Sky500.copy(alpha = 0.15f)),
+            icon = Icons.Default.Wifi,
+            tagBg = Sky500.copy(alpha = 0.12f),
+            tagColor = Sky500
+        )
+        "minutes" -> BundleTheme(
+            gradientColors = listOf(Emerald500, Emerald500.copy(alpha = 0.15f)),
+            icon = Icons.Default.Call,
+            tagBg = Emerald500.copy(alpha = 0.12f),
+            tagColor = Emerald500
+        )
+        "sms" -> BundleTheme(
+            gradientColors = listOf(Purple500, Purple500.copy(alpha = 0.15f)),
+            icon = Icons.Default.Sms,
+            tagBg = Purple500.copy(alpha = 0.12f),
+            tagColor = Purple500
+        )
+        else -> BundleTheme(
+            gradientColors = listOf(Sky500, Sky500.copy(alpha = 0.15f)),
+            icon = Icons.Default.Wifi,
+            tagBg = Sky500.copy(alpha = 0.12f),
+            tagColor = Sky500
+        )
     }
 
     Box(
@@ -68,7 +96,6 @@ fun BundleCard(
             .padding(20.dp)
     ) {
         Column {
-            // Icon + tag
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -78,13 +105,13 @@ fun BundleCard(
                     modifier = Modifier
                         .size(48.dp)
                         .background(
-                            Brush.linearGradient(colors = gradientColors),
+                            Brush.linearGradient(colors = theme.gradientColors),
                             RoundedCornerShape(16.dp)
                         ),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        icon,
+                        theme.icon,
                         contentDescription = null,
                         tint = White,
                         modifier = Modifier.size(24.dp)
@@ -92,14 +119,14 @@ fun BundleCard(
                 }
                 Box(
                     modifier = Modifier
-                        .background(tagBg, RoundedCornerShape(100.dp))
+                        .background(theme.tagBg, RoundedCornerShape(100.dp))
                         .padding(horizontal = 10.dp, vertical = 4.dp)
                 ) {
                     Text(
                         text = bundle.type.uppercase(),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = tagColor,
+                        color = theme.tagColor,
                         letterSpacing = 1.sp
                     )
                 }
@@ -121,7 +148,6 @@ fun BundleCard(
 
             Spacer(Modifier.height(16.dp))
 
-            // Size box
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -149,7 +175,6 @@ fun BundleCard(
 
             Spacer(Modifier.height(16.dp))
 
-            // Price + CTA
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -181,7 +206,7 @@ fun BundleCard(
                 Box(
                     modifier = Modifier
                         .background(
-                            Brush.linearGradient(colors = gradientColors),
+                            Brush.linearGradient(colors = theme.gradientColors),
                             RoundedCornerShape(100.dp)
                         )
                         .padding(horizontal = 14.dp, vertical = 8.dp)
