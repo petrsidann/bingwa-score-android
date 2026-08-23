@@ -1,6 +1,5 @@
 package com.bingwascore.app.ui.settings
 
-import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -18,19 +17,20 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DarkMode
-import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -48,7 +48,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bingwascore.app.ui.components.BingwaButton
-import com.bingwascore.app.ui.components.BingwaTextField
 import com.bingwascore.app.ui.theme.Emerald500
 import com.bingwascore.app.ui.theme.Orange500
 import com.bingwascore.app.ui.theme.Purple500
@@ -140,7 +139,6 @@ fun SettingsScreen(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(24.dp))
                     .background(MaterialTheme.colorScheme.surface)
-                    .animateContentSize()
             ) {
                 Column {
                     // Header
@@ -157,32 +155,34 @@ fun SettingsScreen(
                             )
                             .padding(20.dp)
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier
-                                    .size(8.dp)
-                                    .clip(CircleShape)
-                                    .background(Emerald500)
-                            )
-                            Spacer(Modifier.width(8.dp))
+                        Column {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(8.dp)
+                                        .clip(CircleShape)
+                                        .background(Emerald500)
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    "SOFTWARE UPDATE",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    letterSpacing = 1.5.sp
+                                )
+                            }
+                            Spacer(Modifier.height(8.dp))
                             Text(
-                                "SOFTWARE UPDATE",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                letterSpacing = 1.5.sp
+                                "Check for updates",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                "You're on version ${state.currentVersion}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                        Spacer(Modifier.height(8.dp))
-                        Text(
-                            "Check for updates",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            "You're on version ${state.currentVersion}",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
                     }
 
                     Column(
@@ -198,17 +198,22 @@ fun SettingsScreen(
                             )
                             Spacer(Modifier.height(6.dp))
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                BingwaTextField(
+                                OutlinedTextField(
                                     value = state.updateKey,
                                     onValueChange = { viewModel.setKey(it) },
-                                    label = "",
-                                    placeholder = "BINGWA-XXXXXXXX",
+                                    label = { },
+                                    placeholder = { Text("BINGWA-XXXXXXXX") },
                                     leadingIcon = {
                                         Icon(Icons.Default.Key, contentDescription = null)
                                     },
-                                    isMono = true,
-                                    keyboardType = KeyboardType.Text,
-                                    modifier = Modifier.weight(1f)
+                                    singleLine = true,
+                                    textStyle = MaterialTheme.typography.bodyLarge.copy(fontFamily = FontFamily.Monospace),
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(16.dp),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = if (systemDark) Purple500 else Orange500,
+                                        unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant
+                                    )
                                 )
                                 Box(
                                     modifier = Modifier
@@ -256,9 +261,9 @@ fun SettingsScreen(
                         // Result
                         state.versionInfo?.let { info ->
                             if (info.isOutdated) {
-                                UpdateAvailableCard(info, state, viewModel)
+                                Text("Update available", color = Orange500)
                             } else {
-                                UpToDateCard(info)
+                                Text("You're up to date", color = Emerald500)
                             }
                         }
                     }
@@ -280,9 +285,9 @@ fun SettingsScreen(
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(Modifier.height(12.dp))
-                    AboutRow("App version", "v${state.currentVersion}")
-                    AboutRow("Region", "🇪 Kenya")
-                    AboutRow("Build", "Genesis Release")
+                    Text("App version: v${state.currentVersion}")
+                    Text("Region: 🇪 Kenya")
+                    Text("Build: Genesis Release")
                 }
             }
 
@@ -370,242 +375,5 @@ private fun ThemeOption(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun UpToDateCard(info: com.bingwascore.app.ui.settings.VersionInfo) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(Emerald500.copy(alpha = 0.1f))
-            .padding(16.dp)
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(Emerald500),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(Icons.Default.Check, contentDescription = null, tint = White)
-            }
-            Spacer(Modifier.width(12.dp))
-            Column {
-                Text(
-                    "You're up to date",
-                    fontWeight = FontWeight.Bold,
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Text(
-                    "Running the latest stable release",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun UpdateAvailableCard(
-    info: com.bingwascore.app.ui.settings.VersionInfo,
-    state: SettingsState,
-    viewModel: SettingsViewModel
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
-            .background(
-                Brush.linearGradient(
-                    listOf(
-                        Orange500.copy(alpha = 0.12f),
-                        Purple500.copy(alpha = 0.12f)
-                    )
-                )
-            )
-            .padding(20.dp)
-    ) {
-        Column {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(44.dp)
-                            .clip(CircleShape)
-                            .background(Brush.linearGradient(listOf(Orange500, Purple500))),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(Icons.Default.Download, contentDescription = null, tint = White)
-                    }
-                    Spacer(Modifier.width(12.dp))
-                    Column {
-                        Text("Update available", fontWeight = FontWeight.Bold)
-                        Text(
-                            info.title,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-                Box(
-                    modifier = Modifier
-                        .background(
-                            MaterialTheme.colorScheme.surface,
-                            RoundedCornerShape(100.dp)
-                        )
-                        .padding(horizontal = 10.dp, vertical = 4.dp)
-                ) {
-                    Text(
-                        "NEW",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = Orange500
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(16.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column {
-                    Text(
-                        "Current",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        "v${info.currentVersion}",
-                        fontFamily = FontFamily.Monospace,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-                Text("→", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Column(horizontalAlignment = Alignment.End) {
-                    Text(
-                        "Latest",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        "v${info.latestVersion}",
-                        fontFamily = FontFamily.Monospace,
-                        fontWeight = FontWeight.Bold,
-                        color = Orange500
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(12.dp))
-            Text(info.summary, style = MaterialTheme.typography.bodyMedium)
-
-            if (info.changelog.isNotEmpty()) {
-                Spacer(Modifier.height(12.dp))
-                Text(
-                    "WHAT'S NEW",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    letterSpacing = 1.5.sp
-                )
-                Spacer(Modifier.height(6.dp))
-                info.changelog.forEach { entry ->
-                    Row(modifier = Modifier.padding(vertical = 2.dp)) {
-                        val (bg, fg) = when (entry.type) {
-                            "feature" -> Emerald500.copy(alpha = 0.15f) to Emerald500
-                            "fix" -> Orange500.copy(alpha = 0.15f) to Orange500
-                            else -> Purple500.copy(alpha = 0.15f) to Purple500
-                        }
-                        Box(
-                            modifier = Modifier
-                                .background(bg, RoundedCornerShape(4.dp))
-                                .padding(horizontal = 6.dp, vertical = 2.dp)
-                        ) {
-                            Text(
-                                entry.type.uppercase(),
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = fg
-                            )
-                        }
-                        Spacer(Modifier.width(8.dp))
-                        Text(entry.text, style = MaterialTheme.typography.bodyMedium)
-                    }
-                }
-            }
-
-            Spacer(Modifier.height(16.dp))
-
-            if (state.isInstalling) {
-                Column {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            "Installing update...",
-                            style = MaterialTheme.typography.labelMedium
-                        )
-                        Text(
-                            "${state.installProgress}%",
-                            fontFamily = FontFamily.Monospace,
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Spacer(Modifier.height(6.dp))
-                    LinearProgressIndicator(
-                        progress = { state.installProgress / 100f },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(6.dp)
-                            .clip(RoundedCornerShape(3.dp)),
-                        color = Orange500,
-                        trackColor = MaterialTheme.colorScheme.surfaceVariant
-                    )
-                }
-            } else {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp)
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(Brush.linearGradient(listOf(Orange500, Purple500)))
-                        .clickable { viewModel.installUpdate() },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("Install now", color = White, fontWeight = FontWeight.Bold)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun AboutRow(label: String, value: String) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 6.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(
-            label,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Text(
-            value,
-            fontWeight = FontWeight.SemiBold,
-            fontFamily = FontFamily.Monospace
-        )
     }
 }
