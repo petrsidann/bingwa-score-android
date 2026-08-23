@@ -29,9 +29,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.TextUnit
-import androidx.compose.ui.unit.Sp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.bingwascore.app.ui.theme.Purple500
 
 @Composable
@@ -49,7 +48,6 @@ fun AdminScreen(
             .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
-        // Header
         Column {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
@@ -63,7 +61,7 @@ fun AdminScreen(
                     "ADMIN CONSOLE",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    letterSpacing = TextUnit(1.5f, Sp)
+                    letterSpacing = 1.5.sp
                 )
             }
             Spacer(Modifier.height(8.dp))
@@ -74,7 +72,6 @@ fun AdminScreen(
             )
         }
 
-        // Success / error banners
         state.successMessage?.let {
             Banner(it, isError = false, onDismiss = { viewModel.clearMessages() })
         }
@@ -82,18 +79,16 @@ fun AdminScreen(
             Banner(it, isError = true, onDismiss = { viewModel.clearMessages() })
         }
 
-        // Tabs
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            AdminTab("dashboard", "📊", state.activeTab) { viewModel.setTab(it) }
-            AdminTab("bundles", "📦", state.activeTab) { viewModel.setTab(it) }
-            AdminTab("orders", "🧾", state.activeTab) { viewModel.setTab(it) }
+            AdminTab("dashboard", "", state.activeTab) { viewModel.setTab(it) }
+            AdminTab("bundles", "", state.activeTab) { viewModel.setTab(it) }
+            AdminTab("orders", "", state.activeTab) { viewModel.setTab(it) }
             AdminTab("users", "👥", state.activeTab) { viewModel.setTab(it) }
         }
 
-        // Content
         when (state.activeTab) {
             "dashboard" -> AdminDashboardTab(state)
             "bundles" -> AdminBundlesTab(state, viewModel)
@@ -101,7 +96,6 @@ fun AdminScreen(
             "users" -> AdminUsersTab(state)
         }
 
-        // Logout
         Box(
             modifier = Modifier
                 .fillMaxWidth()
