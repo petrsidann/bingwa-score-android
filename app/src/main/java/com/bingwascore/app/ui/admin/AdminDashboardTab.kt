@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -20,9 +19,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.TextUnit
-import androidx.compose.ui.unit.Sp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.bingwascore.app.data.remote.dto.PeriodStats
 import com.bingwascore.app.ui.components.Skeleton
 import com.bingwascore.app.ui.theme.Emerald500
@@ -79,7 +77,7 @@ private fun StatCard(label: String, stats: PeriodStats, colors: List<androidx.co
                 label.uppercase(),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                letterSpacing = TextUnit(1.5f, Sp)
+                letterSpacing = 1.5.sp
             )
             Spacer(Modifier.height(8.dp))
             Row(verticalAlignment = Alignment.Bottom) {
