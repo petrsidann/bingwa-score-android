@@ -39,6 +39,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.bingwascore.app.domain.model.User
 import com.bingwascore.app.ui.components.BingwaButton
 import com.bingwascore.app.ui.components.BingwaTextField
 import com.bingwascore.app.ui.theme.Orange500
@@ -48,7 +49,7 @@ import com.bingwascore.app.ui.theme.White
 @Composable
 fun SignupScreen(
     viewModel: AuthViewModel,
-    onSignupSuccess: (com.bingwascore.app.domain.model.User) -> Unit,
+    onSignupSuccess: (User) -> Unit,
     onNavigateBack: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
