@@ -19,6 +19,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,11 +41,10 @@ import kotlinx.coroutines.delay
 fun SplashScreen(onFinished: () -> Unit) {
     val scale = remember { Animatable(0.6f) }
     val alpha = remember { Animatable(0f) }
-    val rotation = remember { Animatable(0f) }
     val glowAlpha = remember { Animatable(0.3f) }
 
     LaunchedEffect(Unit) {
-        // Scale up
+        // Scale up animation
         scale.animateTo(
             targetValue = 1f,
             animationSpec = tween(800, easing = FastOutSlowInEasing)
@@ -56,15 +56,14 @@ fun SplashScreen(onFinished: () -> Unit) {
             animationSpec = tween(600)
         )
         
-        // Infinite glow pulse
-        launch {
-            infiniteRepeatable(
-                animation = tween(2000, easing = LinearEasing),
+        // Infinite glow pulse animation
+        glowAlpha.animateTo(
+            targetValue = 0.6f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(1000, easing = LinearEasing),
                 repeatMode = RepeatMode.Reverse
-            ).let { spec ->
-                glowAlpha.animateTo(0.6f, spec)
-            }
-        }
+            )
+        )
         
         // Wait then finish
         delay(2000)
@@ -94,11 +93,11 @@ fun SplashScreen(onFinished: () -> Unit) {
                 modifier = Modifier
                     .size(120.dp)
                     .graphicsLayer {
-                        alpha = glowAlpha.value
                         shadowElevation = 20f
                         ambientShadowColor = Color.White
                         spotShadowColor = Color.White
                     }
+                    .alpha(glowAlpha.value)
                     .background(
                         Brush.linearGradient(
                             colors = listOf(
