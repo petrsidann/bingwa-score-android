@@ -28,7 +28,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.input.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.Dp
@@ -110,8 +110,7 @@ fun BingwaTextField(
     trailingIcon: @Composable (() -> Unit)? = null,
     isPassword: Boolean = false,
     isMono: Boolean = false,
-    isError: Boolean = false,
-    keyboardType: androidx.compose.ui.text.input.KeyboardType = androidx.compose.ui.text.input.KeyboardType.Text
+    isError: Boolean = false
 ) {
     val isDark = isSystemInDarkTheme()
     val accent = if (isDark) Purple500 else Orange500
@@ -126,7 +125,6 @@ fun BingwaTextField(
         singleLine = true,
         isError = isError,
         visualTransformation = if (isPassword) PasswordVisualTransformation() else VisualTransformation.None,
-        keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
         textStyle = if (isMono) {
             MaterialTheme.typography.bodyLarge.copy(fontFamily = FontFamily.Monospace)
         } else {
