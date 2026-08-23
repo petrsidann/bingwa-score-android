@@ -112,12 +112,15 @@ fun HomeScreen(
 
         item {
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                val tabs = listOf(
-                    "data" to "📶 Data" to Sky500,
-                    "minutes" to "📞 Minutes" to Emerald500,
-                    "sms" to "💬 SMS" to Purple500
-                )
-                items(tabs) { ((id, label), color) ->
+                val dataTab = Triple("data", "📶 Data", Sky500)
+                val minutesTab = Triple("minutes", "📞 Minutes", Emerald500)
+                val smsTab = Triple("sms", "💬 SMS", Purple500)
+                val tabs = listOf(dataTab, minutesTab, smsTab)
+                
+                items(tabs) { tab ->
+                    val id = tab.first
+                    val label = tab.second
+                    val color = tab.third
                     val isActive = state.activeTab == id
                     Box(
                         modifier = Modifier
