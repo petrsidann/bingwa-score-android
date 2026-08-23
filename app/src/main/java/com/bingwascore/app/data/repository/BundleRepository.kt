@@ -6,6 +6,8 @@ import com.bingwascore.app.domain.model.Bundle
 import com.bingwascore.app.domain.model.Order
 import com.bingwascore.app.util.Resource
 import kotlinx.coroutines.delay
+import java.text.SimpleDateFormat
+import java.util.Locale
 import javax.inject.Inject
 
 class BundleRepository @Inject constructor(
@@ -13,7 +15,6 @@ class BundleRepository @Inject constructor(
     private val preferences: UserPreferences
 ) {
     suspend fun getBundles(type: String? = null): Resource<List<Bundle>> {
-        // MOCK - Return sample bundles
         delay(800)
         
         val mockBundles = listOf(
@@ -69,7 +70,6 @@ class BundleRepository @Inject constructor(
     }
 
     suspend fun checkout(bundleId: String, recipientPhone: String): Resource<Order> {
-        // MOCK - Simulate checkout
         delay(1000)
         
         val mockOrder = Order(
@@ -79,7 +79,7 @@ class BundleRepository @Inject constructor(
             amount = 50.0,
             status = "pending",
             mpesaReceiptNumber = null,
-            createdAt = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date()),
+            createdAt = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).format(java.util.Date()),
             bundle = null
         )
         
@@ -87,7 +87,6 @@ class BundleRepository @Inject constructor(
     }
 
     suspend fun getOrder(orderId: String): Resource<Order> {
-        // MOCK - Simulate order status progression
         delay(500)
         
         val mockOrder = Order(
@@ -97,7 +96,7 @@ class BundleRepository @Inject constructor(
             amount = 50.0,
             status = "delivered",
             mpesaReceiptNumber = "MPS${System.currentTimeMillis()}",
-            createdAt = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date()),
+            createdAt = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).format(java.util.Date()),
             bundle = Bundle(
                 id = "1",
                 type = "data",
@@ -114,7 +113,6 @@ class BundleRepository @Inject constructor(
     }
 
     suspend fun getOrders(type: String? = null): Resource<List<Order>> {
-        // MOCK - Return empty list
         delay(500)
         return Resource.Success(emptyList())
     }
