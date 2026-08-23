@@ -1,10 +1,7 @@
 package com.bingwascore.app.ui.checkout
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,6 +21,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -40,11 +38,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.bingwascore.app.domain.model.Order
 import com.bingwascore.app.ui.components.BingwaButton
 import com.bingwascore.app.ui.components.BingwaTextField
 import com.bingwascore.app.ui.theme.Emerald500
@@ -52,6 +50,7 @@ import com.bingwascore.app.ui.theme.Orange500
 import com.bingwascore.app.ui.theme.Purple500
 import com.bingwascore.app.ui.theme.Rose500
 import com.bingwascore.app.ui.theme.White
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -66,7 +65,7 @@ fun CheckoutScreen(
     LaunchedEffect(bundleId) { viewModel.init(bundleId) }
     LaunchedEffect(state.step) {
         if (state.step == CheckoutStep.DELIVERED) {
-            kotlinx.coroutines.delay(2000)
+            delay(2000)
             onSuccess()
         }
     }
@@ -101,18 +100,18 @@ fun CheckoutScreen(
         ) {
             val bundle = state.bundle
             if (bundle != null) {
-                // Bundle summary card
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(20.dp))
                         .background(
                             Brush.linearGradient(
-                                listOf(
+                                colors = listOf(
                                     MaterialTheme.colorScheme.surfaceVariant,
                                     MaterialTheme.colorScheme.surface
                                 )
-                            )
+                            ),
+                            shape = RoundedCornerShape(20.dp)
                         )
                         .padding(20.dp)
                 ) {
@@ -161,17 +160,14 @@ fun CheckoutScreen(
                     }
                 }
 
-                // Steps indicator
                 if (state.step != CheckoutStep.IDLE) {
                     StepsIndicator(currentStep = state.step)
                 }
 
-                // Success state
                 if (state.step == CheckoutStep.DELIVERED) {
                     SuccessCard(order = state.order)
                 }
 
-                // Error state
                 if (state.step == CheckoutStep.ERROR) {
                     Box(
                         modifier = Modifier
@@ -207,22 +203,19 @@ fun CheckoutScreen(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(10.dp))
                                     .background(Rose500)
+                                    .clickable(onClick = { viewModel.resetError() })
                                     .padding(horizontal = 16.dp, vertical = 8.dp)
                             ) {
                                 Text(
                                     "Try again",
                                     color = White,
-                                    fontWeight = FontWeight.SemiBold,
-                                    modifier = androidx.compose.ui.Modifier.clickable {
-                                        viewModel.resetError()
-                                    }
+                                    fontWeight = FontWeight.SemiBold
                                 )
                             }
                         }
                     }
                 }
 
-                // Recipient input (only in IDLE)
                 if (state.step == CheckoutStep.IDLE) {
                     BingwaTextField(
                         value = state.recipientPhone,
@@ -257,7 +250,7 @@ fun CheckoutScreen(
                 }
             } else if (state.isLoading) {
                 Box(Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
-                    androidx.compose.material3.CircularProgressIndicator()
+                    CircularProgressIndicator()
                 }
             } else {
                 Text(
@@ -358,15 +351,16 @@ private fun StepsIndicator(currentStep: CheckoutStep) {
 }
 
 @Composable
-private fun SuccessCard(order: com.bingwascore.app.domain.model.Order?) {
+private fun SuccessCard(order: Order?) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(20.dp))
             .background(
                 Brush.linearGradient(
-                    listOf(Emerald500.copy(alpha = 0.15f), Emerald500.copy(alpha = 0.05f))
-                )
+                    colors = listOf(Emerald500.copy(alpha = 0.15f), Emerald500.copy(alpha = 0.05f))
+                ),
+                shape = RoundedCornerShape(20.dp)
             )
             .padding(20.dp)
     ) {
@@ -419,6 +413,3 @@ private fun SuccessCard(order: com.bingwascore.app.domain.model.Order?) {
         }
     }
 }
-
-private fun Modifier.clickable(onClick: () -> Unit): Modifier =
-    this.then(androidx.compose.foundation.clickable { onClick() })
