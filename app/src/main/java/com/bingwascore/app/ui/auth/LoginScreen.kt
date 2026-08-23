@@ -35,11 +35,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.bingwascore.app.domain.model.User
 import com.bingwascore.app.ui.components.BingwaButton
 import com.bingwascore.app.ui.components.BingwaTextField
 import com.bingwascore.app.ui.theme.Orange500
@@ -50,7 +50,7 @@ import com.bingwascore.app.ui.theme.White
 @Composable
 fun LoginScreen(
     viewModel: AuthViewModel,
-    onLoginSuccess: (com.bingwascore.app.domain.model.User) -> Unit,
+    onLoginSuccess: (User) -> Unit,
     onNavigateToSignup: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
@@ -125,7 +125,7 @@ fun LoginScreen(
                             .weight(1f)
                             .clip(RoundedCornerShape(10.dp))
                             .background(
-                                if (mode == i) MaterialTheme.colorScheme.surface else Color.Transparent
+                                if (mode == i) MaterialTheme.colorScheme.surface else androidx.compose.ui.graphics.Color.Transparent
                             )
                             .padding(vertical = 10.dp),
                         contentAlignment = Alignment.Center
@@ -200,7 +200,7 @@ fun LoginScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End
             ) {
-                TextButton(onClick = { /* TODO: forgot password */ }) {
+                TextButton(onClick = { }) {
                     Text(
                         "Forgot?",
                         color = if (isDark) Purple600 else Orange500,
