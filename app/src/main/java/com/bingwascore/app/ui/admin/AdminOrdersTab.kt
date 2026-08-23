@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import com.bingwascore.app.data.remote.dto.AdminOrder
 import com.bingwascore.app.ui.components.Skeleton
 import com.bingwascore.app.ui.theme.Emerald500
+import com.bingwascore.app.ui.theme.Purple500
 import com.bingwascore.app.ui.theme.Rose500
 import com.bingwascore.app.ui.theme.Sky500
 import java.text.SimpleDateFormat
@@ -43,7 +44,6 @@ fun AdminOrdersTab(state: AdminState, viewModel: AdminViewModel) {
             fontWeight = FontWeight.Bold
         )
 
-        // Filters
         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             items(listOf("all", "pending", "paid", "delivered", "failed")) { filter ->
                 val isActive = state.orderFilter == filter
@@ -70,7 +70,6 @@ fun AdminOrdersTab(state: AdminState, viewModel: AdminViewModel) {
             }
         }
 
-        // List
         if (state.isLoading && state.orders.isEmpty()) {
             repeat(4) {
                 Box(
@@ -114,7 +113,7 @@ private fun OrderRow(order: AdminOrder) {
     val statusColor = when (order.status) {
         "delivered" -> Emerald500
         "paid", "delivering" -> Sky500
-        "pending" -> com.bingwascore.app.ui.theme.Purple500
+        "pending" -> Purple500
         "failed" -> Rose500
         else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
