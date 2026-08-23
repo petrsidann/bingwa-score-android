@@ -1,6 +1,7 @@
 package com.bingwascore.app.ui.auth
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,13 +15,18 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -37,11 +43,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bingwascore.app.domain.model.User
 import com.bingwascore.app.ui.components.BingwaButton
-import com.bingwascore.app.ui.components.BingwaTextField
 import com.bingwascore.app.ui.theme.Orange500
 import com.bingwascore.app.ui.theme.Pink500
 import com.bingwascore.app.ui.theme.Purple600
@@ -59,6 +66,7 @@ fun LoginScreen(
     var phone by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var passwordVisible by remember { mutableStateOf(false) }
 
     LaunchedEffect(state.user) {
         state.user?.let { onLoginSuccess(it) }
@@ -165,35 +173,51 @@ fun LoginScreen(
             }
 
             if (mode == 0) {
-                BingwaTextField(
+                OutlinedTextField(
                     value = phone,
                     onValueChange = { phone = it },
-                    label = "Phone number",
-                    placeholder = "7XXXXXXXX",
+                    label = { Text("Phone number") },
+                    placeholder = { Text("7XXXXXXXX") },
                     leadingIcon = { Icon(Icons.Default.Phone, contentDescription = null) },
-                    isMono = true,
-                    keyboardType = KeyboardType.Phone
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp)
                 )
             } else {
-                BingwaTextField(
+                OutlinedTextField(
                     value = email,
                     onValueChange = { email = it },
-                    label = "Email",
-                    placeholder = "you@example.com",
+                    label = { Text("Email") },
+                    placeholder = { Text("you@example.com") },
                     leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
-                    keyboardType = KeyboardType.Email
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp)
                 )
             }
 
             Spacer(Modifier.height(12.dp))
 
-            BingwaTextField(
+            OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
-                label = "Password",
+                label = { Text("Password") },
                 leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
-                isPassword = true,
-                keyboardType = KeyboardType.Password
+                trailingIcon = {
+                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                        Icon(
+                            imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                            contentDescription = if (passwordVisible) "Hide password" else "Show password"
+                        )
+                    }
+                },
+                singleLine = true,
+                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp)
             )
 
             Row(
