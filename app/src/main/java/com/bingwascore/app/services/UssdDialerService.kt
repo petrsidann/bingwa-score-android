@@ -5,7 +5,9 @@ import android.app.Service
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import android.telephony.TelephonyManager
 import android.telephony.TelephonyManager.UssdResponseCallback
 import androidx.core.content.ContextCompat
@@ -22,6 +24,7 @@ class UssdDialerService : Service() {
 
     private var telephonyManager: TelephonyManager? = null
     private var ussdCallback: UssdResponseCallback? = null
+    private val mainHandler = Handler(Looper.getMainLooper())
 
     override fun onCreate() {
         super.onCreate()
@@ -62,7 +65,9 @@ class UssdDialerService : Service() {
             ) {
                 super.onReceiveUssdResponse(telephonyManager, request, response)
                 Timber.d("USSD Response: $response")
-                // Handle USSD response (parse menu, select options, etc.)
+                mainHandler.post {
+                    // Handle USSD response (parse menu, select options, etc.)
+                }
             }
 
             override fun onReceiveUssdResponseFailed(
@@ -72,10 +77,13 @@ class UssdDialerService : Service() {
             ) {
                 super.onReceiveUssdResponseFailed(telephonyManager, request, failureCode)
                 Timber.e("USSD Failed with code: $failureCode")
-                // Handle failure (retry, mark as failed, etc.)
+                mainHandler.post {
+                    // Handle failure (retry, mark as failed, etc.)
+                }
             }
         }
 
-        telephonyManager?.sendUssdRequest(ussdCode, ussdCallback!!, mainExecutor)
+        // Use mainHandler (Handler) instead of executor
+        telephonyManager?.sendUssdRequest(ussdCode, ussdCallback!!, mainHandler)
     }
 }
