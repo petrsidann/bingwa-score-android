@@ -52,13 +52,14 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
     
-    kotlinOptions {
-        jvmTarget = "17"
-        freeCompilerArgs += listOf(
-            "-opt-in=androidx.compose.material3.ExperimentalMaterial3Api",
-            "-opt-in=androidx.compose.animation.ExperimentalAnimationApi",
-            "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi"
-        )
+    kotlin {
+        compilerOptions {
+            freeCompilerArgs.addAll(
+                "-opt-in=androidx.compose.material3.ExperimentalMaterial3Api",
+                "-opt-in=androidx.compose.animation.ExperimentalAnimationApi",
+                "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi"
+            )
+        }
     }
     
     buildFeatures {
@@ -122,10 +123,10 @@ dependencies {
     implementation(libs.kotlinx.coroutines.core)
     
     // Work Manager (Background tasks)
-    implementation("androidx.work:work-runtime-ktx:2.9.0")
+    implementation(libs.work.runtime.ktx)
     
     // Startup
-    implementation("androidx.startup:startup-runtime:1.1.1")
+    implementation(libs.startup.runtime)
     
     // Lottie Animations
     implementation(libs.lottie.compose)
@@ -134,29 +135,29 @@ dependencies {
     implementation(libs.coil.compose)
     
     // Accompanist (Compose utilities)
-    implementation("com.google.accompanist:accompanist-systemuicontroller:0.34.0")
-    implementation("com.google.accompanist:accompanist-permissions:0.34.0")
+    implementation(libs.accompanist.systemuicontroller)
+    implementation(libs.accompanist.permissions)
     
     // Timber (Logging)
-    implementation("com.jakewharton.timber:timber:5.0.1")
+    implementation(libs.timber)
     
     // Gson (JSON)
-    implementation("com.google.code.gson:gson:2.11.0")
+    implementation(libs.gson)
     
     // Encrypted SharedPreferences
-    implementation("androidx.security:security-crypto:1.1.0-alpha06")
+    implementation(libs.security.crypto)
     
     // Biometric Auth
-    implementation("androidx.biometric:biometric:1.1.0")
+    implementation(libs.biometric)
     
     // Testing
-    testImplementation("junit:junit:4.13.2")
-    testImplementation("org.mockito:mockito-core:5.11.0")
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")
-    testImplementation("com.google.truth:truth:1.4.2")
+    testImplementation(libs.junit)
+    testImplementation(libs.mockito.core)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.truth)
     
-    androidTestImplementation("androidx.test.ext:junit:1.2.1")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
+    androidTestImplementation(libs.androidx.test.ext.junit)
+    androidTestImplementation(libs.androidx.test.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.ui.test.junit4)
 }
