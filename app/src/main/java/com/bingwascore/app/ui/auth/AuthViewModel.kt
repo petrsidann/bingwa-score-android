@@ -20,16 +20,16 @@ data class AuthState(
 
 @HiltViewModel
 class AuthViewModel @Inject constructor(
-    private val repository: AuthRepository
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(AuthState())
     val state: StateFlow<AuthState> = _state.asStateFlow()
 
-    fun signup(fullName: String, phone: String, email: String?, password: String) {
+    fun login(phone: String?, email: String?, password: String) {
         viewModelScope.launch {
             _state.value = AuthState(isLoading = true)
-            when (val result = repository.signup(fullName, phone, email, password)) {
+            when (val result = authRepository.login(phone, email, password)) {
                 is Resource.Success -> _state.value = AuthState(user = result.data)
                 is Resource.Error -> _state.value = AuthState(error = result.message)
                 is Resource.Loading -> {}
@@ -37,10 +37,10 @@ class AuthViewModel @Inject constructor(
         }
     }
 
-    fun login(phone: String?, email: String?, password: String) {
+    fun signup(fullName: String, phone: String, email: String?, password: String) {
         viewModelScope.launch {
             _state.value = AuthState(isLoading = true)
-            when (val result = repository.login(phone, email, password)) {
+            when (val result = authRepository.signup(fullName, phone, email, password)) {
                 is Resource.Success -> _state.value = AuthState(user = result.data)
                 is Resource.Error -> _state.value = AuthState(error = result.message)
                 is Resource.Loading -> {}
