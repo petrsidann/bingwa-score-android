@@ -1,55 +1,44 @@
 package com.bingwascore.app.ui.home
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import com.bingwascore.app.data.repository.BundleRepository
-import com.bingwascore.app.domain.model.Bundle
-import com.bingwascore.app.util.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+data class DashboardStats(
+    val successfulCount: Int = 631,
+    val failedCount: Int = 0,
+    val tokensRemaining: String = "23h 50min",
+    val airtimeUsedToday: String = "Ksh 18,069.00",
+    val airtimeBalance: String = "Ksh 30,241.52",
+    val weeklyCommission: String = "Ksh 0.00"
+)
+
+data class TransactionItem(
+    val id: String,
+    val customerName: String,
+    val bundleName: String,
+    val timeAgo: String,
+    val amount: String,
+    val status: String // "SUCCESS", "PENDING", "FAILED"
+)
+
 data class HomeState(
-    val bundles: List<Bundle> = emptyList(),
-    val isLoading: Boolean = false,
-    val error: String? = null,
-    val activeTab: String = "data"
+    val stats: DashboardStats = DashboardStats(),
+    val recentTransactions: List<TransactionItem> = listOf(
+        TransactionItem("1", "HASSAN WARDERE NOOR", "250Mbs, 24hrs!", "2min ago", "Ksh 20", "SUCCESS"),
+        TransactionItem("2", "ABIGAEL CHEPNGENO", "250Mbs, 24hrs!", "2min ago", "Ksh 20", "PENDING"),
+        TransactionItem("3", "samuel thairu kariuki", "250MBS, 24Hrs Multiple", "3min ago", "Ksh 20", "SUCCESS"),
+        TransactionItem("4", "VALENTINE NJERI MWANGI", "250Mbs, 24hrs!", "4min ago", "Ksh 20", "SUCCESS"),
+        TransactionItem("5", "Katra Kassim Abdi", "250Mbs, 24hrs!", "5min ago", "Ksh 20", "SUCCESS"),
+        TransactionItem("6", "Evaline Achieng Obiero", "250Mbs, 24hrs!", "6min ago", "Ksh 20", "SUCCESS")
+    )
 )
 
 @HiltViewModel
-class HomeViewModel @Inject constructor(
-    private val bundleRepository: BundleRepository
-) : ViewModel() {
-
-    private val _state = MutableStateFlow(HomeState(isLoading = true))
+class HomeViewModel @Inject constructor() : ViewModel() {
+    private val _state = MutableStateFlow(HomeState())
     val state: StateFlow<HomeState> = _state.asStateFlow()
-
-    init {
-        loadBundles()
-    }
-
-    fun loadBundles() {
-        viewModelScope.launch {
-            _state.value = _state.value.copy(isLoading = true, error = null)
-            when (val result = bundleRepository.getBundles(_state.value.activeTab)) {
-                is Resource.Success -> _state.value = _state.value.copy(
-                    bundles = result.data,
-                    isLoading = false
-                )
-                is Resource.Error -> _state.value = _state.value.copy(
-                    error = result.message,
-                    isLoading = false
-                )
-                is Resource.Loading -> {}
-            }
-        }
-    }
-
-    fun setTab(tab: String) {
-        _state.value = _state.value.copy(activeTab = tab)
-        loadBundles()
-    }
 }
