@@ -55,4 +55,13 @@ interface TransactionDao {
     
     @Query("SELECT SUM(commission) FROM transactions WHERE status = 'SUCCESSFUL'")
     fun getTotalCommission(): Flow<Double?>
+    
+    @Query("UPDATE transactions SET mpesaReceipt = :receipt, amount = :amount, status = :newStatus, updatedAt = :time WHERE id = (SELECT id FROM transactions WHERE status = 'PENDING' ORDER BY createdAt DESC LIMIT 1)")
+    suspend fun updateLatestPendingWithMpesa(receipt: String, amount: Double, newStatus: TransactionStatus, time: Long = System.currentTimeMillis())
+
+    @Query("UPDATE transactions SET commission = :commission, status = :newStatus, updatedAt = :time WHERE id = (SELECT id FROM transactions WHERE status = 'PROCESSING' ORDER BY createdAt DESC LIMIT 1)")
+    suspend fun updateLatestProcessingWithCommission(commission: Double, newStatus: TransactionStatus, time: Long = System.currentTimeMillis())
+
+    @Query("UPDATE transactions SET status = :newStatus, updatedAt = :time WHERE id = (SELECT id FROM transactions WHERE status = 'PENDING' ORDER BY createdAt DESC LIMIT 1)")
+    suspend fun updateLatestPendingStatus(newStatus: TransactionStatus, time: Long = System.currentTimeMillis())
 }
