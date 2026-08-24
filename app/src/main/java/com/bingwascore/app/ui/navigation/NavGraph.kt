@@ -1,9 +1,6 @@
 package com.bingwascore.app.ui.navigation
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -37,12 +34,14 @@ fun BingwaNavHost() {
             val vm: AuthViewModel = hiltViewModel()
             LoginScreen(
                 viewModel = vm,
-                onLoginSuccess = { user ->
+                onLoginSuccess = { 
                     navController.navigate(Screen.Home.route) {
                         popUpTo(Screen.Login.route) { inclusive = true }
                     }
                 },
-                onNavigateToSignup = { navController.navigate(Screen.Signup.route) }
+                onNavigateToSignup = { 
+                    navController.navigate(Screen.Signup.route) 
+                }
             )
         }
 
@@ -50,12 +49,14 @@ fun BingwaNavHost() {
             val vm: AuthViewModel = hiltViewModel()
             SignupScreen(
                 viewModel = vm,
-                onSignupSuccess = { user ->
+                onSignupSuccess = { 
                     navController.navigate(Screen.Home.route) {
                         popUpTo(Screen.Login.route) { inclusive = true }
                     }
                 },
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { 
+                    navController.popBackStack() 
+                }
             )
         }
 
