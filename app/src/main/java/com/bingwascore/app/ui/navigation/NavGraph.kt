@@ -1,15 +1,10 @@
 package com.bingwascore.app.ui.navigation
 
-import android.content.Context
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.bingwascore.app.data.preferences.UserPreferences
 import com.bingwascore.app.ui.auth.AuthViewModel
 import com.bingwascore.app.ui.auth.LoginScreen
 import com.bingwascore.app.ui.auth.SignupScreen
@@ -18,8 +13,7 @@ import com.bingwascore.app.ui.home.HomeViewModel
 import com.bingwascore.app.ui.splash.SplashScreen
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
-import dagger.hilt.android.components.ApplicationComponent
-import dagger.hilt.android.qualifiers.ApplicationContext
+import dagger.hilt.android.components.SingletonComponent
 
 @Composable
 fun BingwaNavHost() {
@@ -84,7 +78,7 @@ fun BingwaNavHost() {
 }
 
 @EntryPoint
-@InstallIn(ApplicationComponent::class)
+@InstallIn(SingletonComponent::class)
 interface PreferencesEntryPoint {
-    fun userPreferences(): UserPreferences
+    fun userPreferences(): com.bingwascore.app.data.preferences.UserPreferences
 }
