@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -23,7 +22,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -39,19 +37,16 @@ fun SplashScreen(onFinished: () -> Unit) {
     val alpha = remember { Animatable(0f) }
 
     LaunchedEffect(Unit) {
-        // Scale up animation
         scale.animateTo(
             targetValue = 1f,
             animationSpec = tween(800, easing = FastOutSlowInEasing)
         )
         
-        // Fade in text
         alpha.animateTo(
             targetValue = 1f,
             animationSpec = tween(600)
         )
         
-        // Wait then finish
         delay(2000)
         onFinished()
     }
@@ -74,15 +69,14 @@ fun SplashScreen(onFinished: () -> Unit) {
                 .scale(scale.value)
                 .alpha(alpha.value)
         ) {
-            // Logo box
             Box(
                 modifier = Modifier
                     .size(120.dp)
                     .background(
                         Brush.linearGradient(
                             colors = listOf(
-                                Color.White.copy(alpha = 0.3f),
-                                Color.White.copy(alpha = 0.15f)
+                                White.copy(alpha = 0.3f),
+                                White.copy(alpha = 0.15f)
                             )
                         ),
                         RoundedCornerShape(32.dp)
@@ -99,7 +93,6 @@ fun SplashScreen(onFinished: () -> Unit) {
             
             Spacer(Modifier.height(28.dp))
             
-            // App name
             Text(
                 text = "Bingwa Score",
                 style = MaterialTheme.typography.displayMedium,
@@ -110,21 +103,11 @@ fun SplashScreen(onFinished: () -> Unit) {
             
             Spacer(Modifier.height(8.dp))
             
-            // Tagline
             Text(
                 text = "Bundles, delivered in seconds.",
                 style = MaterialTheme.typography.bodyLarge,
                 color = White.copy(alpha = 0.9f),
                 letterSpacing = 0.5.sp
-            )
-            
-            Spacer(Modifier.height(40.dp))
-            
-            // Loading indicator
-            CircularProgressIndicator(
-                color = White,
-                strokeWidth = 2.dp,
-                modifier = Modifier.size(24.dp)
             )
         }
     }
