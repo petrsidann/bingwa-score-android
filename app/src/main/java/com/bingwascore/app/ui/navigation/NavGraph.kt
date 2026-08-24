@@ -1,5 +1,6 @@
 package com.bingwascore.app.ui.navigation
 
+import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -15,29 +16,14 @@ import com.bingwascore.app.ui.auth.SignupScreen
 import com.bingwascore.app.ui.home.HomeScreen
 import com.bingwascore.app.ui.home.HomeViewModel
 import com.bingwascore.app.ui.splash.SplashScreen
-import dagger.hilt.android.EntryPointAccessors
-import androidx.compose.ui.platform.LocalContext
+import dagger.hilt.EntryPoint
+import dagger.hilt.InstallIn
+import dagger.hilt.android.components.ApplicationComponent
+import dagger.hilt.android.qualifiers.ApplicationContext
 
 @Composable
 fun BingwaNavHost() {
     val navController = rememberNavController()
-    val context = LocalContext.current
-    val preferences = remember {
-        EntryPointAccessors.fromApplication(
-            context.applicationContext,
-            PreferencesEntryPoint::class.java
-        ).userPreferences()
-    }
-    val isLoggedIn by preferences.isLoggedIn.collectAsState(initial = false)
-
-    LaunchedEffect(isLoggedIn) {
-        if (navController.currentDestination == null) {
-            val startRoute = if (isLoggedIn) Screen.Home.route else Screen.Login.route
-            navController.navigate(startRoute) {
-                popUpTo(Screen.Splash.route) { inclusive = true }
-            }
-        }
-    }
 
     NavHost(
         navController = navController,
@@ -46,8 +32,7 @@ fun BingwaNavHost() {
         composable(Screen.Splash.route) {
             SplashScreen(
                 onFinished = {
-                    val startRoute = if (isLoggedIn) Screen.Home.route else Screen.Login.route
-                    navController.navigate(startRoute) {
+                    navController.navigate(Screen.Home.route) {
                         popUpTo(Screen.Splash.route) { inclusive = true }
                     }
                 }
@@ -84,69 +69,10 @@ fun BingwaNavHost() {
             val vm: HomeViewModel = hiltViewModel()
             HomeScreen(
                 viewModel = vm,
-                onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
-                onNavigateToAccount = { navController.navigate(Screen.Account.route) },
-                onNavigateToOrders = { navController.navigate(Screen.Orders.route) },
-                onNavigateToCheckout = { bundleId ->
-                    navController.navigate(Screen.Checkout.createRoute(bundleId))
-                },
-                onLogout = {
-                    navController.navigate(Screen.Login.route) {
-                        popUpTo(0) { inclusive = true }
-                    }
-                }
-            )
-        }
-
-        composable(Screen.Checkout.route) { backStackEntry ->
-            val bundleId = backStackEntry.arguments?.getString("bundleId") ?: return@composable
-            val vm: CheckoutViewModel = hiltViewModel()
-            CheckoutScreen(
-                viewModel = vm,
-                bundleId = bundleId,
-                onNavigateBack = { navController.popBackStack() },
-                onSuccess = {
-                    navController.popBackStack(Screen.Home.route, false)
-                }
-            )
-        }
-
-        composable(Screen.Orders.route) {
-            val vm: OrdersViewModel = hiltViewModel()
-            OrdersScreen(
-                viewModel = vm,
-                onNavigateBack = { navController.popBackStack() }
-            )
-        }
-
-        composable(Screen.Account.route) {
-            val vm: AccountViewModel = hiltViewModel()
-            AccountScreen(
-                viewModel = vm,
-                onNavigateBack = { navController.popBackStack() },
-                onNavigateToSettings = {
-                    navController.navigate(Screen.Settings.route)
-                },
-                onLogout = {
-                    navController.navigate(Screen.Login.route) {
-                        popUpTo(0) { inclusive = true }
-                    }
-                }
-            )
-        }
-
-        composable(Screen.Settings.route) {
-            val vm: SettingsViewModel = hiltViewModel()
-            SettingsScreen(
-                viewModel = vm,
-                onNavigateBack = { navController.popBackStack() }
-            )
-        }
-
-        composable(Screen.Admin.route) {
-            val vm: AdminViewModel = hiltViewModel()
-            AdminScreen(
-                viewModel = vm,
+                onNavigateToSettings = { /* TODO */ },
+                onNavigateToAccount = { /* TODO */ },
+                onNavigateToOrders = { /* TODO */ },
+                onNavigateToCheckout = { /* TODO */ },
                 onLogout = {
                     navController.navigate(Screen.Login.route) {
                         popUpTo(0) { inclusive = true }
@@ -157,8 +83,8 @@ fun BingwaNavHost() {
     }
 }
 
-@dagger.hilt.EntryPoint
-@InstallIn(dagger.hilt.android.components.ApplicationComponent::class)
+@EntryPoint
+@InstallIn(ApplicationComponent::class)
 interface PreferencesEntryPoint {
     fun userPreferences(): UserPreferences
 }
