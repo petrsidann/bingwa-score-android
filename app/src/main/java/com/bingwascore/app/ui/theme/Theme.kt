@@ -8,69 +8,71 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
-private val LightColors = lightColorScheme(
+private val DarkColorScheme = darkColorScheme(
     primary = Orange500,
-    onPrimary = White,
-    primaryContainer = Orange100,
-    onPrimaryContainer = Orange600,
     secondary = Purple500,
-    onSecondary = White,
-    background = White,
-    onBackground = Gray900,
-    surface = White,
-    onSurface = Gray900,
-    surfaceVariant = Gray50,
-    onSurfaceVariant = Gray600,
-    outline = Gray200,
-    error = Rose500,
-    onError = White
+    tertiary = TealBlue,
+    background = DeepBlack,
+    surface = DarkSurface,
+    surfaceVariant = DarkCard,
+    onPrimary = TextPrimary,
+    onSecondary = TextPrimary,
+    onTertiary = TextPrimary,
+    onBackground = TextPrimary,
+    onSurface = TextPrimary,
+    onSurfaceVariant = TextSecondary,
+    outline = DarkBorder
 )
 
-private val DarkColors = darkColorScheme(
-    primary = Purple500,
-    onPrimary = White,
-    primaryContainer = Purple900,
-    onPrimaryContainer = Purple400,
-    secondary = Orange500,
-    onSecondary = White,
-    background = Black,
-    onBackground = Color(0xFFF5F5F5),
-    surface = DarkCard,
-    onSurface = Color(0xFFF5F5F5),
-    surfaceVariant = Color(0xFF161616),
-    onSurfaceVariant = Color(0xFF9CA3AF),
-    outline = DarkBorder,
-    error = Rose500,
-    onError = White
+private val LightColorScheme = lightColorScheme(
+    primary = Orange500,
+    secondary = Purple500,
+    tertiary = TealBlue,
+    background = LightBackground,
+    surface = LightSurface,
+    surfaceVariant = LightSurface,
+    onPrimary = TextPrimary,
+    onSecondary = TextPrimary,
+    onTertiary = TextPrimary,
+    onBackground = LightTextPrimary,
+    onSurface = LightTextPrimary,
+    onSurfaceVariant = LightTextSecondary,
+    outline = DarkBorder
 )
 
 @Composable
 fun BingwaTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    darkTheme: Boolean = true, // Default to Dark Mode for premium feel
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    val colors = if (darkTheme) DarkColors else LightColors
-    val view = LocalView.current
+    val colorScheme = when {
+        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+            val context = LocalView.current
+            if (context != null) {
+                // Dynamic color logic omitted for stability
+                DarkColorScheme
+            } else DarkColorScheme
+        }
+        darkTheme -> DarkColorScheme
+        else -> LightColorScheme
+    }
 
+    val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = Color.Transparent.toArgb()
-            window.navigationBarColor = Color.Transparent.toArgb()
-            WindowCompat.getInsetsController(window, view).apply {
-                isAppearanceLightStatusBars = !darkTheme
-                isAppearanceLightNavigationBars = !darkTheme
-            }
+            window.statusBarColor = DeepBlack.toArgb()
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = false
         }
     }
 
     MaterialTheme(
-        colorScheme = colors,
+        colorScheme = colorScheme,
         typography = BingwaTypography,
         content = content
     )
