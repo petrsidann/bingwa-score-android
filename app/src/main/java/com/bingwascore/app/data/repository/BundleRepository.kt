@@ -9,10 +9,12 @@ import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.Locale
 import javax.inject.Inject
+import javax.inject.Singleton
 
+@Singleton
 class BundleRepository @Inject constructor(
-    private val api: ApiService,
-    private val preferences: UserPreferences
+    private val apiService: ApiService,
+    private val userPreferences: UserPreferences
 ) {
     suspend fun getBundles(type: String? = null): Resource<List<Bundle>> {
         delay(800)
@@ -47,16 +49,6 @@ class BundleRepository @Inject constructor(
                 costPrice = 90.0,
                 salePrice = 100.0,
                 active = true
-            ),
-            Bundle(
-                id = "4",
-                type = "sms",
-                name = "200 SMS",
-                size = "200 SMS",
-                validity = "30 days",
-                costPrice = 45.0,
-                salePrice = 50.0,
-                active = true
             )
         )
         
@@ -68,7 +60,7 @@ class BundleRepository @Inject constructor(
         
         return Resource.Success(filtered)
     }
-
+    
     suspend fun checkout(bundleId: String, recipientPhone: String): Resource<Order> {
         delay(1000)
         
@@ -85,7 +77,7 @@ class BundleRepository @Inject constructor(
         
         return Resource.Success(mockOrder)
     }
-
+    
     suspend fun getOrder(orderId: String): Resource<Order> {
         delay(500)
         
@@ -111,7 +103,7 @@ class BundleRepository @Inject constructor(
         
         return Resource.Success(mockOrder)
     }
-
+    
     suspend fun getOrders(type: String? = null): Resource<List<Order>> {
         delay(500)
         return Resource.Success(emptyList())
