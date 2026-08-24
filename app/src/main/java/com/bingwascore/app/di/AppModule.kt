@@ -7,13 +7,14 @@ import com.bingwascore.app.data.local.CustomerDao
 import com.bingwascore.app.data.local.OfferDao
 import com.bingwascore.app.data.local.TransactionDao
 import com.bingwascore.app.data.preferences.UserPreferences
+import com.bingwascore.app.data.remote.AdminApiService
 import com.bingwascore.app.data.remote.ApiService
+import com.bingwascore.app.data.repository.AdminRepository
 import com.bingwascore.app.data.repository.AuthRepository
 import com.bingwascore.app.data.repository.BundleRepository
 import com.bingwascore.app.data.repository.CustomerRepository
 import com.bingwascore.app.data.repository.OfferRepository
 import com.bingwascore.app.data.repository.TransactionRepository
-import com.bingwascore.app.util.Constants
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -66,6 +67,12 @@ object AppModule {
     @Singleton
     fun provideApiService(retrofit: Retrofit): ApiService {
         return retrofit.create(ApiService::class.java)
+    }
+    
+    @Provides
+    @Singleton
+    fun provideAdminApiService(retrofit: Retrofit): AdminApiService {
+        return retrofit.create(AdminApiService::class.java)
     }
     
     @Provides
@@ -142,5 +149,14 @@ object AppModule {
     @Singleton
     fun provideCustomerRepository(customerDao: CustomerDao): CustomerRepository {
         return CustomerRepository(customerDao)
+    }
+    
+    @Provides
+    @Singleton
+    fun provideAdminRepository(
+        adminApiService: AdminApiService,
+        userPreferences: UserPreferences
+    ): AdminRepository {
+        return AdminRepository(adminApiService, userPreferences)
     }
 }
