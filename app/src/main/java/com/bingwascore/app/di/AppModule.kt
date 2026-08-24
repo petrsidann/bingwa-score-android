@@ -134,17 +134,13 @@ object AppModule {
     
     @Provides
     @Singleton
-    fun provideOfferRepository(
-        offerDao: OfferDao
-    ): OfferRepository {
+    fun provideOfferRepository(offerDao: OfferDao): OfferRepository {
         return OfferRepository(offerDao)
     }
     
     @Provides
     @Singleton
-    fun provideCustomerRepository(
-        customerDao: CustomerDao
-    ): CustomerRepository {
+    fun provideCustomerRepository(customerDao: CustomerDao): CustomerRepository {
         return CustomerRepository(customerDao)
     }
 }
