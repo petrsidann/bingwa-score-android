@@ -41,6 +41,15 @@ interface TransactionDao {
     @Query("UPDATE transactions SET status = :status, updatedAt = :updatedAt WHERE id = :id")
     suspend fun updateTransactionStatus(id: String, status: TransactionStatus, updatedAt: Long = System.currentTimeMillis())
     
+    @Query("UPDATE transactions SET mpesaReceipt = :receipt, amount = :amount, updatedAt = :updatedAt WHERE id = (SELECT id FROM transactions ORDER BY createdAt DESC LIMIT 1)")
+    suspend fun updateMpesaReceipt(receipt: String, amount: Double?, updatedAt: Long = System.currentTimeMillis())
+    
+    @Query("UPDATE transactions SET commission = :commission, updatedAt = :updatedAt WHERE id = (SELECT id FROM transactions ORDER BY createdAt DESC LIMIT 1)")
+    suspend fun updateCommission(commission: Double, updatedAt: Long = System.currentTimeMillis())
+    
+    @Query("UPDATE transactions SET status = :status, updatedAt = :updatedAt WHERE id = (SELECT id FROM transactions ORDER BY createdAt DESC LIMIT 1)")
+    suspend fun updateStatus(status: TransactionStatus, updatedAt: Long = System.currentTimeMillis())
+    
     @Query("SELECT COUNT(*) FROM transactions WHERE status = :status")
     fun getTransactionCountByStatus(status: TransactionStatus): Flow<Int>
     
