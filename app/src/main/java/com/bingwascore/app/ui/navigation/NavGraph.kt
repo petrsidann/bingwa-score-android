@@ -1,5 +1,6 @@
 package com.bingwascore.app.ui.navigation
 
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -35,7 +36,10 @@ fun BingwaNavHost() {
         drawerState = drawerState,
         drawerContent = {
             ModalDrawerSheet(modifier = Modifier.width(280.dp)) {
-                Text("Bingwa Score", modifier = Modifier.padding(16.dp))
+                Text(
+                    text = "Bingwa Score",
+                    modifier = Modifier.padding(16.dp)
+                )
                 NavigationDrawerItem(
                     label = { Text("Home") },
                     selected = true,
@@ -44,12 +48,12 @@ fun BingwaNavHost() {
                 NavigationDrawerItem(
                     label = { Text("Offers") },
                     selected = false,
-                    onClick = { /* TODO */ }
+                    onClick = { scope.launch { drawerState.close() } }
                 )
                 NavigationDrawerItem(
                     label = { Text("Settings") },
                     selected = false,
-                    onClick = { /* TODO */ }
+                    onClick = { scope.launch { drawerState.close() } }
                 )
             }
         }
@@ -72,7 +76,7 @@ fun BingwaNavHost() {
                 val vm: AuthViewModel = hiltViewModel()
                 LoginScreen(
                     viewModel = vm,
-                    onLoginSuccess = { 
+                    onLoginSuccess = {
                         navController.navigate(Screen.Home.route) {
                             popUpTo(Screen.Login.route) { inclusive = true }
                         }
@@ -85,7 +89,7 @@ fun BingwaNavHost() {
                 val vm: AuthViewModel = hiltViewModel()
                 SignupScreen(
                     viewModel = vm,
-                    onSignupSuccess = { 
+                    onSignupSuccess = {
                         navController.navigate(Screen.Home.route) {
                             popUpTo(Screen.Login.route) { inclusive = true }
                         }
@@ -98,10 +102,10 @@ fun BingwaNavHost() {
                 val vm: HomeViewModel = hiltViewModel()
                 HomeScreen(
                     viewModel = vm,
-                    onNavigateToSettings = { /* TODO */ },
-                    onNavigateToAccount = { /* TODO */ },
-                    onNavigateToOrders = { /* TODO */ },
-                    onNavigateToCheckout = { /* TODO */ },
+                    onNavigateToSettings = { },
+                    onNavigateToAccount = { },
+                    onNavigateToOrders = { },
+                    onNavigateToCheckout = { },
                     onLogout = {
                         navController.navigate(Screen.Login.route) {
                             popUpTo(0) { inclusive = true }
