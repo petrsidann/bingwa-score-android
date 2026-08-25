@@ -25,6 +25,9 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions WHERE phoneNumber = :phoneNumber ORDER BY createdAt DESC")
     fun getTransactionsByPhone(phoneNumber: String): Flow<List<Transaction>>
 
+    @Query("SELECT * FROM transactions WHERE createdAt >= :startTime AND createdAt <= :endTime ORDER BY createdAt DESC")
+    fun getTransactionsByDateRange(startTime: Long, endTime: Long): Flow<List<Transaction>>
+
     @Query("SELECT * FROM transactions WHERE scheduledAt IS NOT NULL AND status = :status")
     suspend fun getScheduledTransactions(status: TransactionStatus = TransactionStatus.SCHEDULED): List<Transaction>
 
