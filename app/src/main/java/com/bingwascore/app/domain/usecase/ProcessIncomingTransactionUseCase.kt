@@ -4,8 +4,6 @@ import com.bingwascore.app.data.local.OfferDao
 import com.bingwascore.app.data.local.TransactionDao
 import com.bingwascore.app.domain.model.Transaction
 import com.bingwascore.app.domain.model.TransactionStatus
-import com.bingwascore.app.domain.model.TransactionType
-import com.bingwascore.app.services.UssdAutomationService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import timber.log.Timber
@@ -20,10 +18,6 @@ class ProcessIncomingTransactionUseCase @Inject constructor(
     private val startUssdAutomation: StartUssdAutomationUseCase
 ) {
 
-    /**
-     * Called when M-Pesa confirmation is received.
-     * Finds the matching offer by price and triggers USSD automation.
-     */
     suspend fun execute(
         mpesaReceipt: String,
         amount: Double,
@@ -31,19 +25,17 @@ class ProcessIncomingTransactionUseCase @Inject constructor(
         customerName: String? = null
     ) = withContext(Dispatchers.IO) {
         try {
-            Timber.d("💰 Processing M-Pesa payment: $amount KES from $customerPhone")
+            Timber.d("Processing M-Pesa payment: KES $amount from $customerPhone")
 
-            // Find offer matching this price
             val matchingOffer = offerDao.getOfferByPrice(amount.toInt())
-            
+
             if (matchingOffer == null) {
-                Timber.e(" No offer found for price: $amount")
+                Timber.e("No offer found for price: $amount")
                 return@withContext
             }
 
-            Timber.d("✅ Matched offer: ${matchingOffer.name} (${matchingOffer.ussdCode})")
+            Timber.d("Matched offer: ${matchingOffer.name} (${matchingOffer.ussdCode})")
 
-            // Create transaction record
             val transaction = Transaction(
                 id = UUID.randomUUID().toString(),
                 phoneNumber = customerPhone,
@@ -52,7 +44,7 @@ class ProcessIncomingTransactionUseCase @Inject constructor(
                 offerName = matchingOffer.name,
                 ussdCode = matchingOffer.ussdCode,
                 amount = amount,
-                commission = 0.0, // Will be updated when commission SMS arrives
+                commission = 0.0,
                 status = TransactionStatus.PENDING,
                 mpesaReceipt = mpesaReceipt,
                 commissionMessage = null,
@@ -64,15 +56,13 @@ class ProcessIncomingTransactionUseCase @Inject constructor(
 
             transactionDao.insertTransaction(transaction)
 
-            // Trigger USSD automation immediately
             startUssdAutomation.execute(
                 offerId = matchingOffer.id,
                 transactionId = transaction.id,
                 customerPhone = customerPhone
             )
 
-            Timber.d("🚀 USSD automation started for transaction: ${transaction.id}")
-
+            Timber.d("Transaction created and USSD started: ${transaction.id}")
         } catch (e: Exception) {
             Timber.e(e, "Failed to process incoming transaction")
         }
