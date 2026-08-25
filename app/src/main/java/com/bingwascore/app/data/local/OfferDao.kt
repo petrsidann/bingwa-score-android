@@ -31,4 +31,25 @@ interface OfferDao {
     
     @Query("UPDATE offers SET isActive = :isActive WHERE id = :id")
     suspend fun toggleOfferActive(id: String, isActive: Boolean)
+
+    @Query("SELECT * FROM offers WHERE price = :price AND isActive = 1 LIMIT 1")
+    suspend fun getOfferByPrice(price: Int): Offer?
+
+    @Query("SELECT * FROM offers WHERE id = :id")
+    suspend fun getOfferById(id: String): Offer?
+
+    @Query("SELECT * FROM offers WHERE isActive = 1 ORDER BY name ASC")
+    fun getActiveOffersFlow(): Flow<List<Offer>>
+    
+    @Query("UPDATE offers SET isActive = :isActive, updatedAt = :time WHERE id = :id")
+    suspend fun toggleOfferActive(id: String, isActive: Boolean, time: Long = System.currentTimeMillis())
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertOffer(offer: Offer)
+
+    @Update
+    suspend fun updateOffer(offer: Offer)
+
+    @Delete
+    suspend fun deleteOffer(offer: Offer)
 }
