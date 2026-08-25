@@ -4,9 +4,8 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.provider.Telephony
-import android.telephony.SmsMessage
-import com.bingwascore.app.domain.usecase.ProcessIncomingTransactionUseCase
-import com.bingwascore.app.utils.SmsParser
+import com.bingwascore.app.domain.engine.TransactionPipeline
+import com.bingwascore.app.domain.sms.MpesaMessageExtractor
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -19,48 +18,44 @@ import javax.inject.Inject
 class SmsBroadcastReceiver : BroadcastReceiver() {
 
     @Inject
-    lateinit var processIncomingTransactionUseCase: ProcessIncomingTransactionUseCase
+    lateinit var pipeline: TransactionPipeline
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val commissionRegex = Regex("Ksh\\.?([\\d,]+\\.?\\d*)", RegexOption.IGNORE_CASE)
 
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != Telephony.Sms.Intents.SMS_RECEIVED_ACTION) return
 
-        val messages = getMessagesFromIntent(intent) ?: return
+        val messages = Telephony.Sms.Intents.getMessagesFromIntent(intent) ?: return
 
         for (message in messages) {
             val sender = message.displayOriginatingAddress ?: continue
             val body = message.messageBody ?: continue
 
-            Timber.d("SMS Received from: $sender")
+            Timber.d("SMS from $sender")
 
-            val parsed = SmsParser.parse(sender, body)
-
-            if (parsed.type == SmsParser.MessageType.MPESA_CONFIRMATION &&
-                parsed.receiptNumber != null &&
-                parsed.amount != null
-            ) {
-                Timber.d("M-Pesa detected: ${parsed.receiptNumber} - KES ${parsed.amount}")
-                scope.launch {
-                    processIncomingTransactionUseCase.execute(
-                        mpesaReceipt = parsed.receiptNumber!!,
-                        amount = parsed.amount!!,
-                        customerPhone = parsed.senderNumber ?: sender,
-                        customerName = null
-                    )
+            when {
+                sender.equals("MPESA", ignoreCase = true) -> {
+                    MpesaMessageExtractor.extract(body)?.let { mpesa ->
+                        scope.launch { pipeline.onMpesaReceived(mpesa) }
+                    }
                 }
-            } else if (parsed.type == SmsParser.MessageType.COMMISSION_RECEIVED) {
-                Timber.d("Commission detected: KES ${parsed.commissionAmount}")
+                sender.equals("Safaricom", ignoreCase = true) || sender == "334" -> {
+                    when {
+                        body.contains("commission", ignoreCase = true) -> {
+                            val amount = commissionRegex.find(body)
+                                ?.groupValues?.get(1)
+                                ?.replace(",", "")
+                                ?.toDoubleOrNull() ?: 0.0
+                            scope.launch { pipeline.onCommissionSms(amount) }
+                        }
+                        body.contains("successfully recommended", ignoreCase = true) ||
+                        body.contains("submitted successfully", ignoreCase = true) -> {
+                            scope.launch { pipeline.onCompletionSms() }
+                        }
+                    }
+                }
             }
-        }
-    }
-
-    private fun getMessagesFromIntent(intent: Intent): Array<SmsMessage>? {
-        return try {
-            Telephony.Sms.Intents.getMessagesFromIntent(intent)
-        } catch (e: Exception) {
-            Timber.e(e, "Failed to parse SMS intent")
-            null
         }
     }
 }
