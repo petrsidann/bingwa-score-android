@@ -1,44 +1,58 @@
 package com.bingwascore.app.ui.home
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.bingwascore.app.data.repository.TransactionRepository
+import com.bingwascore.app.domain.model.Transaction
+import com.bingwascore.app.domain.model.TransactionStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
+import java.util.Calendar
 import javax.inject.Inject
 
-data class DashboardStats(
-    val successfulCount: Int = 631,
-    val failedCount: Int = 0,
-    val tokensRemaining: String = "23h 50min",
-    val airtimeUsedToday: String = "Ksh 18,069.00",
-    val airtimeBalance: String = "Ksh 30,241.52",
-    val weeklyCommission: String = "Ksh 0.00"
-)
-
-data class TransactionItem(
-    val id: String,
-    val customerName: String,
-    val bundleName: String,
-    val timeAgo: String,
-    val amount: String,
-    val status: String // "SUCCESS", "PENDING", "FAILED"
-)
-
 data class HomeState(
-    val stats: DashboardStats = DashboardStats(),
-    val recentTransactions: List<TransactionItem> = listOf(
-        TransactionItem("1", "HASSAN WARDERE NOOR", "250Mbs, 24hrs!", "2min ago", "Ksh 20", "SUCCESS"),
-        TransactionItem("2", "ABIGAEL CHEPNGENO", "250Mbs, 24hrs!", "2min ago", "Ksh 20", "PENDING"),
-        TransactionItem("3", "samuel thairu kariuki", "250MBS, 24Hrs Multiple", "3min ago", "Ksh 20", "SUCCESS"),
-        TransactionItem("4", "VALENTINE NJERI MWANGI", "250Mbs, 24hrs!", "4min ago", "Ksh 20", "SUCCESS"),
-        TransactionItem("5", "Katra Kassim Abdi", "250Mbs, 24hrs!", "5min ago", "Ksh 20", "SUCCESS"),
-        TransactionItem("6", "Evaline Achieng Obiero", "250Mbs, 24hrs!", "6min ago", "Ksh 20", "SUCCESS")
-    )
+    val greeting: String = "",
+    val successfulCount: Int = 0,
+    val failedCount: Int = 0,
+    val pendingCount: Int = 0,
+    val totalCommission: Double = 0.0,
+    val recentTransactions: List<Transaction> = emptyList()
 )
 
 @HiltViewModel
-class HomeViewModel @Inject constructor() : ViewModel() {
-    private val _state = MutableStateFlow(HomeState())
-    val state: StateFlow<HomeState> = _state.asStateFlow()
+class HomeViewModel @Inject constructor(
+    private val transactionRepository: TransactionRepository
+) : ViewModel() {
+
+    val state: StateFlow<HomeState> = combine(
+        transactionRepository.getTransactionCountByStatus(TransactionStatus.SUCCESSFUL),
+        transactionRepository.getTransactionCountByStatus(TransactionStatus.FAILED),
+        transactionRepository.getTransactionCountByStatus(TransactionStatus.PROCESSING),
+        transactionRepository.getTotalCommission(),
+        transactionRepository.getAllTransactions()
+    ) { success, failed, pending, commission, all ->
+        HomeState(
+            greeting = greeting(),
+            successfulCount = success,
+            failedCount = failed,
+            pendingCount = pending,
+            totalCommission = commission ?: 0.0,
+            recentTransactions = all.take(8)
+        )
+    }.stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(5000),
+        HomeState(greeting = greeting())
+    )
+
+    private fun greeting(): String {
+        return when (Calendar.getInstance().get(Calendar.HOUR_OF_DAY)) {
+            in 5..11 -> "Good Morning"
+            in 12..16 -> "Good Afternoon"
+            else -> "Good Evening"
+        }
+    }
 }
