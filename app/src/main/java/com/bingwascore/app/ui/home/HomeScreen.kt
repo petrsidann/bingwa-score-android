@@ -255,10 +255,8 @@ private fun StatCard(
 @Composable
 private fun TransactionRow(transaction: Transaction) {
     val (icon, tint) = when (transaction.status) {
-        TransactionStatus.SUCCESSFUL, TransactionStatus.DELIVERED ->
-            Icons.Default.CheckCircle to EmeraldGreen
-        TransactionStatus.FAILED, TransactionStatus.CANCELLED ->
-            Icons.Default.Error to ErrorRed
+        TransactionStatus.SUCCESSFUL -> Icons.Default.CheckCircle to EmeraldGreen
+        TransactionStatus.FAILED, TransactionStatus.CANCELLED -> Icons.Default.Error to ErrorRed
         else -> Icons.Default.Schedule to TealBlue
     }
 
