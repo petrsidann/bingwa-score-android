@@ -12,7 +12,6 @@ import android.telephony.TelephonyManager
 import androidx.core.content.ContextCompat
 import com.bingwascore.app.data.local.OfferDao
 import com.bingwascore.app.data.local.TransactionDao
-import com.bingwascore.app.domain.model.Offer
 import com.bingwascore.app.domain.model.TransactionStatus
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
@@ -34,21 +33,10 @@ class UssdAutomationService : Service() {
     private var telephonyManager: TelephonyManager? = null
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val mainHandler = Handler(Looper.getMainLooper())
-    
-    companion object {
-        var isRunning = false
-            private set
-    }
 
     override fun onCreate() {
         super.onCreate()
         telephonyManager = getSystemService(TELEPHONY_SERVICE) as? TelephonyManager
-        isRunning = true
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        isRunning = false
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -58,36 +46,25 @@ class UssdAutomationService : Service() {
 
         if (offerId != null && transactionId != null && customerPhone != null) {
             scope.launch {
-                executeUssdFlow(offerId, transactionId, customerPhone)
+                executeUssdFlow(offerId, transactionId)
             }
         }
-
         return START_STICKY
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
-    private suspend fun executeUssdFlow(offerId: String, transactionId: String, customerPhone: String) {
+    private suspend fun executeUssdFlow(offerId: String, transactionId: String) {
         try {
             val offer = offerDao.getOfferById(offerId) ?: return
-            
-            Timber.d("🚀 Starting USSD flow for Offer: ${offer.name}, Code: ${offer.ussdCode}")
-            
-            // Update transaction status
-            transactionDao.updateTransactionStatus(
-                transactionId, 
-                TransactionStatus.PROCESSING
-            )
 
-            // Dial the USSD code
+            Timber.d("Starting USSD flow for Offer: ${offer.name}, Code: ${offer.ussdCode}")
+
+            transactionDao.updateTransactionStatus(transactionId, TransactionStatus.PROCESSING)
             dialUssdCode(offer.ussdCode, transactionId)
-            
         } catch (e: Exception) {
             Timber.e(e, "USSD flow failed")
-            transactionDao.updateTransactionStatus(
-                transactionId,
-                TransactionStatus.FAILED
-            )
+            transactionDao.updateTransactionStatus(transactionId, TransactionStatus.FAILED)
         }
     }
 
@@ -102,26 +79,20 @@ class UssdAutomationService : Service() {
             return
         }
 
-        Timber.d(" Dialing USSD: $ussdCode")
+        Timber.d("Dialing USSD: $ussdCode")
 
         val callback = object : TelephonyManager.UssdResponseCallback() {
             override fun onReceiveUssdResponse(tm: TelephonyManager, request: String, response: CharSequence) {
                 super.onReceiveUssdResponse(tm, request, response)
-                Timber.d("✅ USSD Response: $response")
-                
-                // Handle multi-step USSD (e.g., menu selections)
+                Timber.d("USSD Response: $response")
                 handleUssdResponse(response.toString(), transactionId)
             }
 
             override fun onReceiveUssdResponseFailed(tm: TelephonyManager, request: String, failureCode: Int) {
                 super.onReceiveUssdResponseFailed(tm, request, failureCode)
-                Timber.e("❌ USSD Failed: Code $failureCode")
-                
+                Timber.e("USSD Failed: Code $failureCode")
                 scope.launch {
-                    transactionDao.updateTransactionStatus(
-                        transactionId,
-                        TransactionStatus.FAILED
-                    )
+                    transactionDao.updateTransactionStatus(transactionId, TransactionStatus.FAILED)
                 }
             }
         }
@@ -132,31 +103,16 @@ class UssdAutomationService : Service() {
     }
 
     private fun handleUssdResponse(response: String, transactionId: String) {
-        // Parse USSD response and determine next action
-        // For multi-step USSD like "*180*5*2#", we might need to send additional codes
-        
         when {
-            response.contains("confirm", ignoreCase = true) -> {
-                // Auto-confirm if needed
-                Timber.d("Confirmation required - would auto-confirm here")
-            }
             response.contains("success", ignoreCase = true) -> {
-                Timber.d("USSD completed successfully")
                 scope.launch {
-                    transactionDao.updateTransactionStatus(
-                        transactionId,
-                        TransactionStatus.AWAITING_COMMISSION
-                    )
+                    transactionDao.updateTransactionStatus(transactionId, TransactionStatus.AWAITING_COMMISSION)
                 }
             }
-            response.contains("error", ignoreCase = true) || 
+            response.contains("error", ignoreCase = true) ||
             response.contains("failed", ignoreCase = true) -> {
-                Timber.d("USSD failed")
                 scope.launch {
-                    transactionDao.updateTransactionStatus(
-                        transactionId,
-                        TransactionStatus.FAILED
-                    )
+                    transactionDao.updateTransactionStatus(transactionId, TransactionStatus.FAILED)
                 }
             }
         }
