@@ -25,6 +25,9 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions WHERE status = 'SCHEDULED' AND scheduledAt <= :time ORDER BY scheduledAt ASC")
     suspend fun getDueScheduled(time: Long): List<Transaction>
 
+    @Query("SELECT * FROM transactions WHERE scheduledAt IS NOT NULL AND status = :status")
+    suspend fun getScheduledTransactions(status: TransactionStatus = TransactionStatus.SCHEDULED): List<Transaction>
+
     @Query("SELECT * FROM transactions WHERE id = :id")
     suspend fun getTransactionById(id: String): Transaction?
 
