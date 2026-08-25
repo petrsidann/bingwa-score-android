@@ -19,6 +19,9 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions WHERE status = :status ORDER BY createdAt DESC")
     fun getTransactionsByStatus(status: TransactionStatus): Flow<List<Transaction>>
 
+    @Query("SELECT * FROM transactions WHERE status = :status ORDER BY createdAt DESC LIMIT 1")
+    suspend fun getLatestByStatus(status: TransactionStatus): Transaction?
+
     @Query("SELECT * FROM transactions WHERE id = :id")
     suspend fun getTransactionById(id: String): Transaction?
 
@@ -52,14 +55,8 @@ interface TransactionDao {
     @Query("UPDATE transactions SET commission = :commission, status = :status, updatedAt = :updatedAt WHERE id = :id")
     suspend fun updateTransactionWithCommission(id: String, commission: Double, status: TransactionStatus, updatedAt: Long = System.currentTimeMillis())
 
-    @Query("UPDATE transactions SET mpesaReceipt = :receipt, amount = :amount, status = :newStatus, updatedAt = :time WHERE id = (SELECT id FROM transactions WHERE status = 'PENDING' ORDER BY createdAt DESC LIMIT 1)")
-    suspend fun updateLatestPendingWithMpesa(receipt: String, amount: Double, newStatus: TransactionStatus, time: Long = System.currentTimeMillis())
-
     @Query("UPDATE transactions SET commission = :commission, status = :newStatus, updatedAt = :time WHERE id = (SELECT id FROM transactions WHERE status = 'PROCESSING' ORDER BY createdAt DESC LIMIT 1)")
     suspend fun updateLatestProcessingWithCommission(commission: Double, newStatus: TransactionStatus, time: Long = System.currentTimeMillis())
-
-    @Query("UPDATE transactions SET status = :newStatus, updatedAt = :time WHERE id = (SELECT id FROM transactions WHERE status = 'PENDING' ORDER BY createdAt DESC LIMIT 1)")
-    suspend fun updateLatestPendingStatus(newStatus: TransactionStatus, time: Long = System.currentTimeMillis())
 
     @Query("SELECT COUNT(*) FROM transactions WHERE status = :status")
     fun getTransactionCountByStatus(status: TransactionStatus): Flow<Int>
