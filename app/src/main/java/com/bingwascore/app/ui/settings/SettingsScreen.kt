@@ -20,10 +20,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ChevronRight
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Key
+import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -41,7 +41,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -210,7 +209,7 @@ fun SettingsScreen(
                 }
             }
 
-            // About — professional
+            // About
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -228,22 +227,22 @@ fun SettingsScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { /* open terms url later */ }
+                            .clickable { }
                             .padding(vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text("Terms of Service", color = MaterialTheme.colorScheme.primary, fontSize = 14.sp, modifier = Modifier.weight(1f))
-                        Icon(Icons.AutoMirrored.Filled.ChevronRight, contentDescription = null, tint = onSurfaceVariant)
+                        Icon(Icons.Default.KeyboardArrowRight, contentDescription = null, tint = onSurfaceVariant)
                     }
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { /* open privacy url later */ }
+                            .clickable { }
                             .padding(vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text("Privacy Policy", color = MaterialTheme.colorScheme.primary, fontSize = 14.sp, modifier = Modifier.weight(1f))
-                        Icon(Icons.AutoMirrored.Filled.ChevronRight, contentDescription = null, tint = onSurfaceVariant)
+                        Icon(Icons.Default.KeyboardArrowRight, contentDescription = null, tint = onSurfaceVariant)
                     }
                 }
             }
