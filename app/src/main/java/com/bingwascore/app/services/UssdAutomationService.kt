@@ -12,6 +12,7 @@ import android.telephony.TelephonyManager
 import androidx.core.content.ContextCompat
 import com.bingwascore.app.data.local.OfferDao
 import com.bingwascore.app.data.local.TransactionDao
+import com.bingwascore.app.domain.engine.OfferSignature
 import com.bingwascore.app.domain.model.TransactionStatus
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
@@ -40,40 +41,22 @@ class UssdAutomationService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val offerId = intent?.getStringExtra("OFFER_ID")
+        val ussdCode = intent?.getStringExtra("USSD_CODE")
         val transactionId = intent?.getStringExtra("TRANSACTION_ID")
-        val customerPhone = intent?.getStringExtra("CUSTOMER_PHONE")
 
-        if (offerId != null && transactionId != null && customerPhone != null) {
-            scope.launch {
-                executeUssdFlow(offerId, transactionId)
-            }
+        if (ussdCode != null && transactionId != null) {
+            dialUssdCode(ussdCode, transactionId)
         }
         return START_STICKY
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
-    private suspend fun executeUssdFlow(offerId: String, transactionId: String) {
-        try {
-            val offer = offerDao.getOfferById(offerId) ?: return
-
-            Timber.d("Starting USSD flow for Offer: ${offer.name}, Code: ${offer.ussdCode}")
-
-            transactionDao.updateTransactionStatus(transactionId, TransactionStatus.PROCESSING)
-            dialUssdCode(offer.ussdCode, transactionId)
-        } catch (e: Exception) {
-            Timber.e(e, "USSD flow failed")
-            transactionDao.updateTransactionStatus(transactionId, TransactionStatus.FAILED)
-        }
-    }
-
     private fun dialUssdCode(ussdCode: String, transactionId: String) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
             Timber.e("USSD automation requires Android 8.0+")
             return
         }
-
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED) {
             Timber.e("Missing CALL_PHONE permission")
             return
@@ -85,12 +68,12 @@ class UssdAutomationService : Service() {
             override fun onReceiveUssdResponse(tm: TelephonyManager, request: String, response: CharSequence) {
                 super.onReceiveUssdResponse(tm, request, response)
                 Timber.d("USSD Response: $response")
-                handleUssdResponse(response.toString(), transactionId)
+                scope.launch { onUssdSuccess(transactionId) }
             }
 
             override fun onReceiveUssdResponseFailed(tm: TelephonyManager, request: String, failureCode: Int) {
                 super.onReceiveUssdResponseFailed(tm, request, failureCode)
-                Timber.e("USSD Failed: Code $failureCode")
+                Timber.e("USSD Failed: $failureCode")
                 scope.launch {
                     transactionDao.updateTransactionStatus(transactionId, TransactionStatus.FAILED)
                 }
@@ -102,19 +85,20 @@ class UssdAutomationService : Service() {
         }
     }
 
-    private fun handleUssdResponse(response: String, transactionId: String) {
-        when {
-            response.contains("success", ignoreCase = true) -> {
-                scope.launch {
-                    transactionDao.updateTransactionStatus(transactionId, TransactionStatus.AWAITING_COMMISSION)
-                }
-            }
-            response.contains("error", ignoreCase = true) ||
-            response.contains("failed", ignoreCase = true) -> {
-                scope.launch {
-                    transactionDao.updateTransactionStatus(transactionId, TransactionStatus.FAILED)
-                }
-            }
-        }
+    private suspend fun onUssdSuccess(transactionId: String) {
+        val tx = transactionDao.getTransactionById(transactionId) ?: return
+        val offer = offerDao.getOfferById(tx.offerId)
+
+        val awaiting = offer != null && OfferSignature.awaitingCompletionMessage(
+            code = offer.ussdCode,
+            strictMode = true,
+            completionMessage = offer.completionMessage
+        )
+
+        transactionDao.updateTransactionStatus(
+            transactionId,
+            if (awaiting) TransactionStatus.AWAITING_COMMISSION else TransactionStatus.SUCCESSFUL
+        )
+        Timber.d("Transaction $transactionId -> ${if (awaiting) "AWAITING_COMMISSION" else "SUCCESSFUL"}")
     }
 }
