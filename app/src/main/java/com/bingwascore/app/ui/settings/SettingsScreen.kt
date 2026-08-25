@@ -17,10 +17,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ChevronRight
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Key
@@ -44,7 +44,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bingwascore.app.ui.components.BingwaButton
@@ -62,15 +61,18 @@ fun SettingsScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val systemDark = isSystemInDarkTheme()
+    val onSurface = MaterialTheme.colorScheme.onSurface
+    val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
+    val surface = MaterialTheme.colorScheme.surface
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
-                title = { Text("Settings") },
+                title = { Text("Settings", color = onSurface, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = onSurface)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -84,264 +86,211 @@ fun SettingsScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Appearance card
+            // Appearance
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(24.dp))
-                    .background(MaterialTheme.colorScheme.surface)
+                    .background(surface)
                     .padding(20.dp)
             ) {
                 Column {
-                    Text(
-                        "Appearance",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        "Customize how Bingwa Score looks",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Text("Appearance", color = onSurface, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                    Text("Choose how Bingwa Score looks", color = onSurfaceVariant, fontSize = 13.sp)
                     Spacer(Modifier.height(16.dp))
-
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        ThemeOption(
+                        ThemeCard(
                             label = "Light",
-                            subtitle = "Clean & bright",
                             icon = Icons.Default.WbSunny,
                             iconTint = Orange500,
-                            isSelected = !systemDark && state.themeMode == 0,
+                            preview = White,
+                            selected = !systemDark && state.themeMode == 0,
                             accent = Orange500,
-                            modifier = Modifier.weight(1f),
-                            onClick = { viewModel.setTheme(0) }
+                            onClick = { viewModel.setTheme(0) },
+                            modifier = Modifier.weight(1f)
                         )
-                        ThemeOption(
+                        ThemeCard(
                             label = "Dark",
-                            subtitle = "Easy on the eyes",
                             icon = Icons.Default.DarkMode,
                             iconTint = Purple500,
-                            isSelected = systemDark || state.themeMode == 1,
+                            preview = androidx.compose.ui.graphics.Color(0xFF0B0B0F),
+                            selected = systemDark || state.themeMode == 1,
                             accent = Purple500,
-                            modifier = Modifier.weight(1f),
-                            onClick = { viewModel.setTheme(1) }
+                            onClick = { viewModel.setTheme(1) },
+                            modifier = Modifier.weight(1f)
                         )
                     }
                 }
             }
 
-            // Update checker card
+            // Software update
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(24.dp))
-                    .background(MaterialTheme.colorScheme.surface)
-            ) {
-                Column {
-                    // Header
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(
-                                Brush.linearGradient(
-                                    listOf(
-                                        Orange500.copy(alpha = 0.1f),
-                                        Purple500.copy(alpha = 0.1f)
-                                    )
-                                )
-                            )
-                            .padding(20.dp)
-                    ) {
-                        Column {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(8.dp)
-                                        .clip(CircleShape)
-                                        .background(Emerald500)
-                                )
-                                Spacer(Modifier.width(8.dp))
-                                Text(
-                                    "SOFTWARE UPDATE",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    letterSpacing = 1.5.sp
-                                )
-                            }
-                            Spacer(Modifier.height(8.dp))
-                            Text(
-                                "Check for updates",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                "You're on version ${state.currentVersion}",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-
-                    Column(
-                        modifier = Modifier.padding(20.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        // Update key
-                        Column {
-                            Text(
-                                "Update Key",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Spacer(Modifier.height(6.dp))
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                OutlinedTextField(
-                                    value = state.updateKey,
-                                    onValueChange = { viewModel.setKey(it) },
-                                    label = { },
-                                    placeholder = { Text("BINGWA-XXXXXXXX") },
-                                    leadingIcon = {
-                                        Icon(Icons.Default.Key, contentDescription = null)
-                                    },
-                                    singleLine = true,
-                                    textStyle = MaterialTheme.typography.bodyLarge.copy(fontFamily = FontFamily.Monospace),
-                                    modifier = Modifier.weight(1f),
-                                    shape = RoundedCornerShape(16.dp),
-                                    colors = OutlinedTextFieldDefaults.colors(
-                                        focusedBorderColor = if (systemDark) Purple500 else Orange500,
-                                        unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant
-                                    )
-                                )
-                                Box(
-                                    modifier = Modifier
-                                        .height(56.dp)
-                                        .clip(RoundedCornerShape(16.dp))
-                                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                                        .clickable { viewModel.generateKey() }
-                                        .padding(horizontal = 16.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        "Generate",
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                            }
-                        }
-
-                        // Error
-                        state.error?.let {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(Rose500.copy(alpha = 0.1f))
-                                    .padding(12.dp)
-                            ) {
-                                Text(
-                                    it,
-                                    color = Rose500,
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
-                            }
-                        }
-
-                        // Check button
-                        BingwaButton(
-                            text = if (state.isChecking) "Checking servers..." else "Check for updates",
-                            onClick = { viewModel.checkForUpdates() },
-                            loading = state.isChecking,
-                            enabled = state.updateKey.isNotBlank() && !state.isInstalling
-                        )
-
-                        // Result
-                        state.versionInfo?.let { info ->
-                            if (info.isOutdated) {
-                                Text("Update available", color = Orange500)
-                            } else {
-                                Text("You're up to date", color = Emerald500)
-                            }
-                        }
-                    }
-                }
-            }
-
-            // About card
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(MaterialTheme.colorScheme.surface)
+                    .background(surface)
                     .padding(20.dp)
             ) {
                 Column {
-                    Text(
-                        "About",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .clip(CircleShape)
+                                .background(Emerald500)
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            "SOFTWARE UPDATE",
+                            color = onSurfaceVariant,
+                            fontSize = 11.sp,
+                            letterSpacing = 1.5.sp
+                        )
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    Text("Check for updates", color = onSurface, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                    Text("Current version ${state.currentVersion}", color = onSurfaceVariant, fontSize = 13.sp)
+                    Spacer(Modifier.height(16.dp))
+
+                    Text("Update Key", color = onSurfaceVariant, fontSize = 12.sp)
+                    Spacer(Modifier.height(6.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedTextField(
+                            value = state.updateKey,
+                            onValueChange = { viewModel.setKey(it) },
+                            placeholder = { Text("BINGWA-XXXXXXXX") },
+                            leadingIcon = { Icon(Icons.Default.Key, contentDescription = null) },
+                            singleLine = true,
+                            textStyle = MaterialTheme.typography.bodyLarge.copy(fontFamily = FontFamily.Monospace),
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(14.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                            )
+                        )
+                        Box(
+                            modifier = Modifier
+                                .height(56.dp)
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
+                                .clickable { viewModel.generateKey() }
+                                .padding(horizontal = 16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("Generate", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+
+                    state.error?.let {
+                        Spacer(Modifier.height(12.dp))
+                        Text(it, color = Rose500, fontSize = 13.sp)
+                    }
+
+                    Spacer(Modifier.height(16.dp))
+                    BingwaButton(
+                        text = if (state.isChecking) "Checking..." else "Check for updates",
+                        onClick = { viewModel.checkForUpdates() },
+                        loading = state.isChecking,
+                        enabled = state.updateKey.isNotBlank()
                     )
+
+                    state.versionInfo?.let { info ->
+                        Spacer(Modifier.height(12.dp))
+                        Text(
+                            if (info.isOutdated) "Update available: v${info.latestVersion}" else "You're up to date",
+                            color = if (info.isOutdated) Orange500 else Emerald500,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 14.sp
+                        )
+                    }
+                }
+            }
+
+            // About — professional
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(surface)
+                    .padding(20.dp)
+            ) {
+                Column {
+                    Text("About", color = onSurface, fontWeight = FontWeight.Bold, fontSize = 17.sp)
                     Spacer(Modifier.height(12.dp))
-                    Text("App version: v${state.currentVersion}")
-                    Text("Region: 🇪 Kenya")
-                    Text("Build: Genesis Release")
+                    AboutRow("Version", "${state.currentVersion} (Build 1)")
+                    AboutRow("Platform", "Android")
+                    AboutRow("Release Channel", "Genesis")
+                    Spacer(Modifier.height(4.dp))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { /* open terms url later */ }
+                            .padding(vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Terms of Service", color = MaterialTheme.colorScheme.primary, fontSize = 14.sp, modifier = Modifier.weight(1f))
+                        Icon(Icons.AutoMirrored.Filled.ChevronRight, contentDescription = null, tint = onSurfaceVariant)
+                    }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { /* open privacy url later */ }
+                            .padding(vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Privacy Policy", color = MaterialTheme.colorScheme.primary, fontSize = 14.sp, modifier = Modifier.weight(1f))
+                        Icon(Icons.AutoMirrored.Filled.ChevronRight, contentDescription = null, tint = onSurfaceVariant)
+                    }
                 }
             }
 
             Text(
-                "Bingwa Score · Made with ❤️ in Nairobi",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                "© 2026 Bingwa Score. All rights reserved.",
+                color = onSurfaceVariant.copy(alpha = 0.7f),
+                fontSize = 12.sp,
                 modifier = Modifier
                     .align(Alignment.CenterHorizontally)
-                    .padding(top = 8.dp)
+                    .padding(top = 4.dp)
             )
         }
     }
 }
 
 @Composable
-private fun ThemeOption(
+private fun ThemeCard(
     label: String,
-    subtitle: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     iconTint: androidx.compose.ui.graphics.Color,
-    isSelected: Boolean,
+    preview: androidx.compose.ui.graphics.Color,
+    selected: Boolean,
     accent: androidx.compose.ui.graphics.Color,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(20.dp))
             .background(
-                if (isSelected) accent.copy(alpha = 0.1f)
+                if (selected) accent.copy(alpha = 0.1f)
                 else MaterialTheme.colorScheme.surfaceVariant
             )
             .clickable { onClick() }
-            .padding(16.dp)
+            .padding(14.dp)
     ) {
         Column {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(72.dp)
+                    .height(64.dp)
                     .clip(RoundedCornerShape(14.dp))
-                    .background(
-                        if (label == "Light") White
-                        else androidx.compose.ui.graphics.Color(0xFF0A0A0A)
-                    ),
+                    .background(preview),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    icon,
-                    contentDescription = null,
-                    tint = iconTint,
-                    modifier = Modifier.size(28.dp)
-                )
+                Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(26.dp))
             }
             Spacer(Modifier.height(10.dp))
             Row(
@@ -349,31 +298,32 @@ private fun ThemeOption(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
-                    Text(label, fontWeight = FontWeight.SemiBold)
-                    Text(
-                        subtitle,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                if (isSelected) {
+                Text(label, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                if (selected) {
                     Box(
                         modifier = Modifier
-                            .size(20.dp)
+                            .size(18.dp)
                             .clip(CircleShape)
                             .background(accent),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            Icons.Default.Check,
-                            contentDescription = null,
-                            tint = White,
-                            modifier = Modifier.size(12.dp)
-                        )
+                        Icon(Icons.Default.Check, contentDescription = null, tint = White, modifier = Modifier.size(11.dp))
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun AboutRow(label: String, value: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
+        Text(value, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, fontFamily = FontFamily.Monospace)
     }
 }
