@@ -18,11 +18,10 @@ class KeepAliveWorker @AssistedInject constructor(
 ) : CoroutineWorker(appContext, workerParams) {
 
     override suspend fun doWork(): Result {
-        Timber.d("⏰ KeepAliveWorker: Checking for stuck transactions...")
+        Timber.d(" KeepAliveWorker: Checking for stuck transactions...")
         
         try {
             // Check for transactions stuck in PROCESSING for too long
-            val stuckTransactions = transactionDao.getTransactionsByStatus(TransactionStatus.PROCESSING)
             // In a real app, we would retry these here
             
             Timber.d("KeepAliveWorker: System healthy.")
