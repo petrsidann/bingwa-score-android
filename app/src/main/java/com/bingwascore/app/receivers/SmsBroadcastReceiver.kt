@@ -5,7 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.provider.Telephony
 import android.telephony.SmsMessage
-import com.bingwascore.app.domain.usecase.ProcessSmsUseCase
+import com.bingwascore.app.domain.usecase.ProcessIncomingTransactionUseCase
 import com.bingwascore.app.utils.SmsParser
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
@@ -19,7 +19,7 @@ import javax.inject.Inject
 class SmsBroadcastReceiver : BroadcastReceiver() {
 
     @Inject
-    lateinit var processSmsUseCase: ProcessSmsUseCase
+    lateinit var processIncomingTransactionUseCase: ProcessIncomingTransactionUseCase
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -32,14 +32,28 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
             val sender = message.displayOriginatingAddress ?: continue
             val body = message.messageBody ?: continue
 
-            Timber.d(" SMS Received from: $sender")
+            Timber.d("📨 SMS Received from: $sender")
 
             val parsed = SmsParser.parse(sender, body)
             
-            if (parsed.type != SmsParser.MessageType.UNKNOWN) {
+            // Only process M-Pesa confirmations for transaction automation
+            if (parsed.type == SmsParser.MessageType.MPESA_CONFIRMATION && 
+                parsed.receiptNumber != null && 
+                parsed.amount != null) {
+                
+                Timber.d("💰 M-Pesa detected: ${parsed.receiptNumber} - KES ${parsed.amount}")
+                
                 scope.launch {
-                    processSmsUseCase.execute(parsed)
+                    processIncomingTransactionUseCase.execute(
+                        mpesaReceipt = parsed.receiptNumber!!,
+                        amount = parsed.amount!!,
+                        customerPhone = parsed.senderNumber ?: sender,
+                        customerName = null // Could extract from SMS if needed
+                    )
                 }
+            } else if (parsed.type == SmsParser.MessageType.COMMISSION_RECEIVED) {
+                Timber.d("💵 Commission detected: KES ${parsed.commissionAmount}")
+                // Commission processing will be handled separately
             }
         }
     }
