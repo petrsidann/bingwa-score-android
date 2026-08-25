@@ -5,6 +5,7 @@ import androidx.room.Room
 import com.bingwascore.app.data.local.AppDatabase
 import com.bingwascore.app.data.local.CustomerDao
 import com.bingwascore.app.data.local.OfferDao
+import com.bingwascore.app.data.local.OfferTransitionRuleDao
 import com.bingwascore.app.data.local.TransactionDao
 import com.bingwascore.app.data.preferences.UserPreferences
 import com.bingwascore.app.data.remote.AdminApiService
@@ -88,6 +89,10 @@ object AppModule {
     @Provides
     @Singleton
     fun provideCustomerDao(db: AppDatabase): CustomerDao = db.customerDao()
+
+    @Provides
+    @Singleton
+    fun provideOfferTransitionRuleDao(db: AppDatabase): OfferTransitionRuleDao = db.offerTransitionRuleDao()
 
     @Provides
     @Singleton
