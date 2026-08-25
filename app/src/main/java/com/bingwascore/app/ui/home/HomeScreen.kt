@@ -17,9 +17,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -37,8 +40,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -54,12 +55,14 @@ import com.bingwascore.app.ui.theme.TextSecondary
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel,
+    isDarkTheme: Boolean,
+    onToggleTheme: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToAccount: () -> Unit,
     onNavigateToOrders: () -> Unit,
     onNavigateToCheckout: (String) -> Unit,
     onLogout: () -> Unit,
-    onOpenDrawer: () -> Unit // New parameter for drawer
+    onOpenDrawer: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
     var balanceVisible by remember { mutableStateOf(true) }
@@ -76,9 +79,14 @@ fun HomeScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onOpenDrawer) {
+                        Icon(Icons.Default.Menu, contentDescription = "Menu", tint = TextPrimary)
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onToggleTheme) {
                         Icon(
-                            imageVector = Icons.Default.Schedule, // Placeholder for menu icon
-                            contentDescription = "Menu",
+                            imageVector = if (isDarkTheme) Icons.Default.WbSunny else Icons.Default.DarkMode,
+                            contentDescription = "Toggle theme",
                             tint = TextPrimary
                         )
                     }
@@ -96,7 +104,6 @@ fun HomeScreen(
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 1. Stats Cards Row
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -108,7 +115,6 @@ fun HomeScreen(
                 }
             }
 
-            // 2. Balance Card
             item {
                 BalanceCard(
                     airtimeUsed = state.stats.airtimeUsedToday,
@@ -118,12 +124,10 @@ fun HomeScreen(
                 )
             }
 
-            // 3. Commission Chart Placeholder
             item {
                 CommissionChartCard(weeklyCommission = state.stats.weeklyCommission)
             }
 
-            // 4. Recent Transactions Header
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -135,23 +139,22 @@ fun HomeScreen(
                 }
             }
 
-            // 5. Transaction List
             items(state.recentTransactions) { transaction ->
                 TransactionRow(transaction = transaction)
             }
-            
+
             item { Spacer(modifier = Modifier.height(80.dp)) }
         }
     }
 }
 
 @Composable
-private fun StatCard(title: String, value: String, color: Color, modifier: Modifier = Modifier) {
+private fun StatCard(title: String, value: String, color: androidx.compose.ui.graphics.Color, modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
             .height(100.dp)
             .clip(RoundedCornerShape(16.dp))
-            .background(color.copy(alpha = 0.2f)) // Tinted background
+            .background(color.copy(alpha = 0.2f))
             .padding(12.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -189,7 +192,7 @@ private fun BalanceCard(
                     IconButton(onClick = onToggleVisibility, modifier = Modifier.size(24.dp)) {
                         Icon(
                             if (isVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                            contentDescription = "Toggle Balance",
+                            contentDescription = "Toggle",
                             tint = TextSecondary,
                             modifier = Modifier.size(16.dp)
                         )
@@ -205,7 +208,7 @@ private fun BalanceCard(
                     IconButton(onClick = onToggleVisibility, modifier = Modifier.size(24.dp)) {
                         Icon(
                             if (isVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                            contentDescription = "Toggle Balance",
+                            contentDescription = "Toggle",
                             tint = TextSecondary,
                             modifier = Modifier.size(16.dp)
                         )
@@ -229,14 +232,11 @@ private fun CommissionChartCard(weeklyCommission: String) {
         Column {
             Text("This week's commission ($weeklyCommission)", color = EmeraldGreen, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
             Spacer(Modifier.height(16.dp))
-            // Visual placeholder for chart
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
-                    .background(Color.Transparent)
             ) {
-                // Draw a simple dashed line or grid here later
                 Text("Chart Visualization", color = TextMuted, modifier = Modifier.align(Alignment.Center))
             }
         }
@@ -251,23 +251,17 @@ private fun TransactionRow(transaction: TransactionItem) {
             .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Status Icon
         Icon(
             imageVector = if (transaction.status == "SUCCESS") Icons.Default.CheckCircle else Icons.Default.Schedule,
             contentDescription = null,
             tint = if (transaction.status == "SUCCESS") EmeraldGreen else TextSecondary,
             modifier = Modifier.size(24.dp)
         )
-        
         Spacer(Modifier.width(12.dp))
-        
-        // Details
         Column(modifier = Modifier.weight(1f)) {
             Text(transaction.customerName, color = TextPrimary, fontWeight = FontWeight.Medium, fontSize = 14.sp)
             Text(transaction.bundleName, color = EmeraldGreen, fontSize = 12.sp)
         }
-        
-        // Time & Amount
         Column(horizontalAlignment = Alignment.End) {
             Text(transaction.timeAgo, color = TextSecondary, fontSize = 12.sp)
             Text(transaction.amount, color = EmeraldGreen, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
