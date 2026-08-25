@@ -13,6 +13,7 @@ import androidx.core.content.ContextCompat
 import com.bingwascore.app.data.local.OfferDao
 import com.bingwascore.app.data.local.TransactionDao
 import com.bingwascore.app.domain.engine.OfferSignature
+import com.bingwascore.app.domain.engine.TransactionPipeline
 import com.bingwascore.app.domain.model.TransactionStatus
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
@@ -30,6 +31,9 @@ class UssdAutomationService : Service() {
 
     @Inject
     lateinit var transactionDao: TransactionDao
+
+    @Inject
+    lateinit var pipeline: TransactionPipeline
 
     private var telephonyManager: TelephonyManager? = null
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -68,7 +72,15 @@ class UssdAutomationService : Service() {
             override fun onReceiveUssdResponse(tm: TelephonyManager, request: String, response: CharSequence) {
                 super.onReceiveUssdResponse(tm, request, response)
                 Timber.d("USSD Response: $response")
-                scope.launch { onUssdSuccess(transactionId) }
+                val text = response.toString()
+
+                scope.launch {
+                    if (text.contains("already recommended", ignoreCase = true)) {
+                        pipeline.onUssdAlreadyRecommended(transactionId)
+                    } else {
+                        onUssdSuccess(transactionId)
+                    }
+                }
             }
 
             override fun onReceiveUssdResponseFailed(tm: TelephonyManager, request: String, failureCode: Int) {
