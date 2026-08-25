@@ -32,28 +32,25 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
             val sender = message.displayOriginatingAddress ?: continue
             val body = message.messageBody ?: continue
 
-            Timber.d("📨 SMS Received from: $sender")
+            Timber.d("SMS Received from: $sender")
 
             val parsed = SmsParser.parse(sender, body)
-            
-            // Only process M-Pesa confirmations for transaction automation
-            if (parsed.type == SmsParser.MessageType.MPESA_CONFIRMATION && 
-                parsed.receiptNumber != null && 
-                parsed.amount != null) {
-                
-                Timber.d("💰 M-Pesa detected: ${parsed.receiptNumber} - KES ${parsed.amount}")
-                
+
+            if (parsed.type == SmsParser.MessageType.MPESA_CONFIRMATION &&
+                parsed.receiptNumber != null &&
+                parsed.amount != null
+            ) {
+                Timber.d("M-Pesa detected: ${parsed.receiptNumber} - KES ${parsed.amount}")
                 scope.launch {
                     processIncomingTransactionUseCase.execute(
                         mpesaReceipt = parsed.receiptNumber!!,
                         amount = parsed.amount!!,
                         customerPhone = parsed.senderNumber ?: sender,
-                        customerName = null // Could extract from SMS if needed
+                        customerName = null
                     )
                 }
             } else if (parsed.type == SmsParser.MessageType.COMMISSION_RECEIVED) {
-                Timber.d("💵 Commission detected: KES ${parsed.commissionAmount}")
-                // Commission processing will be handled separately
+                Timber.d("Commission detected: KES ${parsed.commissionAmount}")
             }
         }
     }
