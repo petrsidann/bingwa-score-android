@@ -64,4 +64,19 @@ interface TransactionDao {
 
     @Query("UPDATE transactions SET status = :newStatus, updatedAt = :time WHERE id = (SELECT id FROM transactions WHERE status = 'PENDING' ORDER BY createdAt DESC LIMIT 1)")
     suspend fun updateLatestPendingStatus(newStatus: TransactionStatus, time: Long = System.currentTimeMillis())
+
+    @Query("UPDATE transactions SET status = :status, updatedAt = :time WHERE id = :id")
+    suspend fun updateTransactionStatus(id: String, status: TransactionStatus, time: Long = System.currentTimeMillis())
+
+    @Query("UPDATE transactions SET mpesaReceipt = :receipt, amount = :amount, status = :newStatus, updatedAt = :time WHERE id = :id")
+    suspend fun updateTransactionWithMpesa(id: String, receipt: String, amount: Double, newStatus: TransactionStatus, time: Long = System.currentTimeMillis())
+
+    @Query("UPDATE transactions SET commission = :commission, status = :newStatus, updatedAt = :time WHERE id = :id")
+    suspend fun updateTransactionWithCommission(id: String, commission: Double, newStatus: TransactionStatus, time: Long = System.currentTimeMillis())
+
+    @Query("SELECT * FROM transactions WHERE status = :status ORDER BY createdAt DESC")
+    fun getTransactionsByStatus(status: TransactionStatus): Flow<List<Transaction>>
+
+    @Query("SELECT * FROM transactions WHERE phoneNumber = :phone ORDER BY createdAt DESC")
+    fun getTransactionsByPhone(phone: String): Flow<List<Transaction>>
 }
