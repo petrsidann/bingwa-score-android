@@ -22,6 +22,9 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions WHERE status = :status ORDER BY createdAt DESC LIMIT 1")
     suspend fun getLatestByStatus(status: TransactionStatus): Transaction?
 
+    @Query("SELECT * FROM transactions WHERE status = 'SCHEDULED' AND scheduledAt <= :time ORDER BY scheduledAt ASC")
+    suspend fun getDueScheduled(time: Long): List<Transaction>
+
     @Query("SELECT * FROM transactions WHERE id = :id")
     suspend fun getTransactionById(id: String): Transaction?
 
@@ -30,9 +33,6 @@ interface TransactionDao {
 
     @Query("SELECT * FROM transactions WHERE createdAt >= :startTime AND createdAt <= :endTime ORDER BY createdAt DESC")
     fun getTransactionsByDateRange(startTime: Long, endTime: Long): Flow<List<Transaction>>
-
-    @Query("SELECT * FROM transactions WHERE scheduledAt IS NOT NULL AND status = :status")
-    suspend fun getScheduledTransactions(status: TransactionStatus = TransactionStatus.SCHEDULED): List<Transaction>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertTransaction(transaction: Transaction)
@@ -48,12 +48,6 @@ interface TransactionDao {
 
     @Query("UPDATE transactions SET status = :status, updatedAt = :updatedAt WHERE id = :id")
     suspend fun updateTransactionStatus(id: String, status: TransactionStatus, updatedAt: Long = System.currentTimeMillis())
-
-    @Query("UPDATE transactions SET mpesaReceipt = :receipt, amount = :amount, status = :status, updatedAt = :updatedAt WHERE id = :id")
-    suspend fun updateTransactionWithMpesa(id: String, receipt: String, amount: Double, status: TransactionStatus, updatedAt: Long = System.currentTimeMillis())
-
-    @Query("UPDATE transactions SET commission = :commission, status = :status, updatedAt = :updatedAt WHERE id = :id")
-    suspend fun updateTransactionWithCommission(id: String, commission: Double, status: TransactionStatus, updatedAt: Long = System.currentTimeMillis())
 
     @Query("UPDATE transactions SET commission = :commission, status = :newStatus, updatedAt = :time WHERE id = (SELECT id FROM transactions WHERE status = 'PROCESSING' ORDER BY createdAt DESC LIMIT 1)")
     suspend fun updateLatestProcessingWithCommission(commission: Double, newStatus: TransactionStatus, time: Long = System.currentTimeMillis())
