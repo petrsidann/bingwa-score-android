@@ -18,10 +18,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -34,22 +34,18 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.bingwascore.app.ui.theme.DarkCard
+import com.bingwascore.app.domain.model.Transaction
+import com.bingwascore.app.domain.model.TransactionStatus
 import com.bingwascore.app.ui.theme.EmeraldGreen
 import com.bingwascore.app.ui.theme.ErrorRed
 import com.bingwascore.app.ui.theme.TealBlue
-import com.bingwascore.app.ui.theme.TextMuted
-import com.bingwascore.app.ui.theme.TextPrimary
-import com.bingwascore.app.ui.theme.TextSecondary
+import java.util.concurrent.TimeUnit
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -65,7 +61,8 @@ fun HomeScreen(
     onOpenDrawer: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
-    var balanceVisible by remember { mutableStateOf(true) }
+    val onSurface = MaterialTheme.colorScheme.onSurface
+    val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -73,13 +70,22 @@ fun HomeScreen(
             TopAppBar(
                 title = {
                     Column {
-                        Text("Good Evening,", color = TextSecondary, fontSize = 14.sp)
-                        Text("Vibez", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                        Text(
+                            state.greeting,
+                            color = onSurfaceVariant,
+                            fontSize = 13.sp
+                        )
+                        Text(
+                            "Dashboard",
+                            color = onSurface,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 22.sp
+                        )
                     }
                 },
                 navigationIcon = {
                     IconButton(onClick = onOpenDrawer) {
-                        Icon(Icons.Default.Menu, contentDescription = "Menu", tint = TextPrimary)
+                        Icon(Icons.Default.Menu, contentDescription = "Menu", tint = onSurface)
                     }
                 },
                 actions = {
@@ -87,7 +93,7 @@ fun HomeScreen(
                         Icon(
                             imageVector = if (isDarkTheme) Icons.Default.WbSunny else Icons.Default.DarkMode,
                             contentDescription = "Toggle theme",
-                            tint = TextPrimary
+                            tint = onSurface
                         )
                     }
                 },
@@ -101,31 +107,61 @@ fun HomeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 16.dp),
+                .padding(horizontal = 20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    StatCard("Successful", state.stats.successfulCount.toString(), EmeraldGreen, Modifier.weight(1f))
-                    StatCard("Failed", state.stats.failedCount.toString(), ErrorRed, Modifier.weight(1f))
-                    StatCard("Tokens", state.stats.tokensRemaining, TealBlue, Modifier.weight(1f))
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    StatCard(
+                        value = state.successfulCount.toString(),
+                        label = "Successful",
+                        tint = EmeraldGreen,
+                        modifier = Modifier.weight(1f)
+                    )
+                    StatCard(
+                        value = state.failedCount.toString(),
+                        label = "Failed",
+                        tint = ErrorRed,
+                        modifier = Modifier.weight(1f)
+                    )
+                    StatCard(
+                        value = state.pendingCount.toString(),
+                        label = "Processing",
+                        tint = TealBlue,
+                        modifier = Modifier.weight(1f)
+                    )
                 }
             }
 
             item {
-                BalanceCard(
-                    airtimeUsed = state.stats.airtimeUsedToday,
-                    airtimeBalance = state.stats.airtimeBalance,
-                    isVisible = balanceVisible,
-                    onToggleVisibility = { balanceVisible = !balanceVisible }
-                )
-            }
-
-            item {
-                CommissionChartCard(weeklyCommission = state.stats.weeklyCommission)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .padding(20.dp)
+                ) {
+                    Column {
+                        Text(
+                            "This week's commission",
+                            color = onSurfaceVariant,
+                            fontSize = 13.sp
+                        )
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            String.format("Ksh %.2f", state.totalCommission),
+                            color = EmeraldGreen,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 28.sp
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            "Earned automatically on every successful sale",
+                            color = onSurfaceVariant,
+                            fontSize = 12.sp
+                        )
+                    }
+                }
             }
 
             item {
@@ -134,137 +170,142 @@ fun HomeScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Recent Transactions", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                    Text("All →", color = EmeraldGreen, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        "Recent Activity",
+                        color = onSurface,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 17.sp
+                    )
+                    Text(
+                        "View All",
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 13.sp
+                    )
                 }
             }
 
-            items(state.recentTransactions) { transaction ->
-                TransactionRow(transaction = transaction)
+            if (state.recentTransactions.isEmpty()) {
+                item {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 48.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(
+                            Icons.Default.Receipt,
+                            contentDescription = null,
+                            tint = onSurfaceVariant.copy(alpha = 0.4f),
+                            modifier = Modifier.size(56.dp)
+                        )
+                        Spacer(Modifier.height(16.dp))
+                        Text(
+                            "No transactions yet",
+                            color = onSurface,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 16.sp
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            "Your sales will appear here in real time",
+                            color = onSurfaceVariant,
+                            fontSize = 13.sp
+                        )
+                    }
+                }
+            } else {
+                items(state.recentTransactions) { transaction ->
+                    TransactionRow(transaction)
+                }
             }
 
-            item { Spacer(modifier = Modifier.height(80.dp)) }
+            item { Spacer(Modifier.height(80.dp)) }
         }
     }
 }
 
 @Composable
-private fun StatCard(title: String, value: String, color: androidx.compose.ui.graphics.Color, modifier: Modifier = Modifier) {
+private fun StatCard(
+    value: String,
+    label: String,
+    tint: androidx.compose.ui.graphics.Color,
+    modifier: Modifier = Modifier
+) {
     Box(
         modifier = modifier
-            .height(100.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .background(color.copy(alpha = 0.2f))
-            .padding(12.dp),
+            .height(96.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .background(tint.copy(alpha = 0.14f))
+            .padding(14.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(value, color = color, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+            Text(value, color = tint, fontWeight = FontWeight.Bold, fontSize = 24.sp)
             Spacer(Modifier.height(4.dp))
-            Text(title, color = TextSecondary, fontSize = 12.sp)
+            Text(
+                label,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 12.sp
+            )
         }
     }
 }
 
 @Composable
-private fun BalanceCard(
-    airtimeUsed: String,
-    airtimeBalance: String,
-    isVisible: Boolean,
-    onToggleVisibility: () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(DarkCard)
-            .padding(16.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text("Airtime Used Today", color = TextSecondary, fontSize = 12.sp)
-                Spacer(Modifier.height(4.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(if (isVisible) airtimeUsed else "Ksh ****", color = TextPrimary, fontWeight = FontWeight.SemiBold)
-                    IconButton(onClick = onToggleVisibility, modifier = Modifier.size(24.dp)) {
-                        Icon(
-                            if (isVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                            contentDescription = "Toggle",
-                            tint = TextSecondary,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-                }
-            }
-            Spacer(Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text("Airtime Balance", color = TextSecondary, fontSize = 12.sp)
-                Spacer(Modifier.height(4.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(if (isVisible) airtimeBalance else "Ksh ****", color = TextPrimary, fontWeight = FontWeight.SemiBold)
-                    IconButton(onClick = onToggleVisibility, modifier = Modifier.size(24.dp)) {
-                        Icon(
-                            if (isVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                            contentDescription = "Toggle",
-                            tint = TextSecondary,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-                }
-            }
-        }
+private fun TransactionRow(transaction: Transaction) {
+    val (icon, tint) = when (transaction.status) {
+        TransactionStatus.SUCCESSFUL, TransactionStatus.DELIVERED ->
+            Icons.Default.CheckCircle to EmeraldGreen
+        TransactionStatus.FAILED, TransactionStatus.CANCELLED ->
+            Icons.Default.Error to ErrorRed
+        else -> Icons.Default.Schedule to TealBlue
     }
-}
 
-@Composable
-private fun CommissionChartCard(weeklyCommission: String) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(180.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .background(DarkCard)
-            .padding(16.dp)
-    ) {
-        Column {
-            Text("This week's commission ($weeklyCommission)", color = EmeraldGreen, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-            Spacer(Modifier.height(16.dp))
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-            ) {
-                Text("Chart Visualization", color = TextMuted, modifier = Modifier.align(Alignment.Center))
-            }
-        }
-    }
-}
-
-@Composable
-private fun TransactionRow(transaction: TransactionItem) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp),
+            .padding(vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = if (transaction.status == "SUCCESS") Icons.Default.CheckCircle else Icons.Default.Schedule,
-            contentDescription = null,
-            tint = if (transaction.status == "SUCCESS") EmeraldGreen else TextSecondary,
-            modifier = Modifier.size(24.dp)
-        )
-        Spacer(Modifier.width(12.dp))
+        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(22.dp))
+        Spacer(Modifier.width(14.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(transaction.customerName, color = TextPrimary, fontWeight = FontWeight.Medium, fontSize = 14.sp)
-            Text(transaction.bundleName, color = EmeraldGreen, fontSize = 12.sp)
+            Text(
+                transaction.customerName ?: transaction.phoneNumber,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.Medium,
+                fontSize = 14.sp
+            )
+            Text(
+                transaction.offerName,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 12.sp
+            )
         }
         Column(horizontalAlignment = Alignment.End) {
-            Text(transaction.timeAgo, color = TextSecondary, fontSize = 12.sp)
-            Text(transaction.amount, color = EmeraldGreen, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+            Text(
+                timeAgo(transaction.createdAt),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 12.sp
+            )
+            Text(
+                String.format("Ksh %.0f", transaction.amount),
+                color = EmeraldGreen,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 14.sp
+            )
         }
+    }
+}
+
+private fun timeAgo(timestamp: Long): String {
+    val diff = System.currentTimeMillis() - timestamp
+    val minutes = TimeUnit.MILLISECONDS.toMinutes(diff)
+    return when {
+        minutes < 1 -> "Just now"
+        minutes < 60 -> "${minutes}min ago"
+        minutes < 1440 -> "${TimeUnit.MILLISECONDS.toHours(diff)}h ago"
+        else -> "${TimeUnit.MILLISECONDS.toDays(diff)}d ago"
     }
 }
