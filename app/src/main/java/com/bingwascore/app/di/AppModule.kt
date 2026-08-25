@@ -30,29 +30,21 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object AppModule {
-    
+
     @Provides
     @Singleton
     fun provideOkHttpClient(): OkHttpClient {
-        val loggingInterceptor = HttpLoggingInterceptor().apply {
+        val logging = HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.BODY
         }
-        
         return OkHttpClient.Builder()
-            .addInterceptor(loggingInterceptor)
-            .addInterceptor { chain ->
-                val request = chain.request().newBuilder()
-                    .addHeader("Content-Type", "application/json")
-                    .addHeader("Accept", "application/json")
-                    .build()
-                chain.proceed(request)
-            }
+            .addInterceptor(logging)
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)
             .build()
     }
-    
+
     @Provides
     @Singleton
     fun provideRetrofit(okHttpClient: OkHttpClient): Retrofit {
@@ -62,19 +54,19 @@ object AppModule {
             .addConverterFactory(MoshiConverterFactory.create())
             .build()
     }
-    
+
     @Provides
     @Singleton
     fun provideApiService(retrofit: Retrofit): ApiService {
         return retrofit.create(ApiService::class.java)
     }
-    
+
     @Provides
     @Singleton
     fun provideAdminApiService(retrofit: Retrofit): AdminApiService {
         return retrofit.create(AdminApiService::class.java)
     }
-    
+
     @Provides
     @Singleton
     fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase {
@@ -82,81 +74,64 @@ object AppModule {
             context,
             AppDatabase::class.java,
             AppDatabase.DATABASE_NAME
-        )
-            .fallbackToDestructiveMigration()
-            .build()
+        ).fallbackToDestructiveMigration().build()
     }
-    
+
     @Provides
     @Singleton
-    fun provideTransactionDao(database: AppDatabase): TransactionDao {
-        return database.transactionDao()
-    }
-    
+    fun provideTransactionDao(db: AppDatabase): TransactionDao = db.transactionDao()
+
     @Provides
     @Singleton
-    fun provideOfferDao(database: AppDatabase): OfferDao {
-        return database.offerDao()
-    }
-    
+    fun provideOfferDao(db: AppDatabase): OfferDao = db.offerDao()
+
     @Provides
     @Singleton
-    fun provideCustomerDao(database: AppDatabase): CustomerDao {
-        return database.customerDao()
-    }
-    
+    fun provideCustomerDao(db: AppDatabase): CustomerDao = db.customerDao()
+
     @Provides
     @Singleton
     fun provideUserPreferences(@ApplicationContext context: Context): UserPreferences {
         return UserPreferences(context)
     }
-    
+
     @Provides
     @Singleton
-    fun provideAuthRepository(
-        apiService: ApiService,
-        userPreferences: UserPreferences
-    ): AuthRepository {
-        return AuthRepository(apiService, userPreferences)
+    fun provideAuthRepository(api: ApiService, prefs: UserPreferences): AuthRepository {
+        return AuthRepository(api, prefs)
     }
-    
+
     @Provides
     @Singleton
-    fun provideBundleRepository(
-        apiService: ApiService,
-        userPreferences: UserPreferences
-    ): BundleRepository {
-        return BundleRepository(apiService, userPreferences)
+    fun provideBundleRepository(api: ApiService, prefs: UserPreferences): BundleRepository {
+        return BundleRepository(api, prefs)
     }
-    
+
     @Provides
     @Singleton
     fun provideTransactionRepository(
-        transactionDao: TransactionDao,
-        offerDao: OfferDao,
-        customerDao: CustomerDao
+        tDao: TransactionDao,
+        oDao: OfferDao,
+        cDao: CustomerDao
     ): TransactionRepository {
-        return TransactionRepository(transactionDao, offerDao, customerDao)
+        return TransactionRepository(tDao, oDao, cDao)
     }
-    
+
     @Provides
     @Singleton
-    fun provideOfferRepository(offerDao: OfferDao): OfferRepository {
-        return OfferRepository(offerDao)
+    fun provideOfferRepository(oDao: OfferDao): OfferRepository {
+        return OfferRepository(oDao)
     }
-    
+
     @Provides
     @Singleton
-    fun provideCustomerRepository(customerDao: CustomerDao): CustomerRepository {
-        return CustomerRepository(customerDao)
+    fun provideCustomerRepository(cDao: CustomerDao): CustomerRepository {
+        return CustomerRepository(cDao)
     }
-    
+
     @Provides
     @Singleton
-    fun provideAdminRepository(
-        adminApiService: AdminApiService,
-        userPreferences: UserPreferences
-    ): AdminRepository {
-        return AdminRepository(adminApiService, userPreferences)
+    fun provideAdminRepository(adminApi: AdminApiService, prefs: UserPreferences): AdminRepository {
+        return AdminRepository(adminApi, prefs)
     }
 }
