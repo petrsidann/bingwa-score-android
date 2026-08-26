@@ -3,10 +3,8 @@ package com.bingwascore.app.data.updates
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import android.os.Build
-import android.provider.Settings
-import com.bingwascore.app.data.settings.AppSetting
-import com.bingwascore.app.data.settings.SettingsRepository
+import androidx.core.content.FileProvider
+import com.bingwascore.app.BuildConfig
 import com.google.gson.Gson
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -23,17 +21,14 @@ import javax.inject.Singleton
 sealed class UpdateState {
     object Loading : UpdateState()
     object UpToDate : UpdateState()
-    data class UpdateRequired(
-        val latestVersion: String,
-        val message: String,
-        val apkUrl: String? = null
-    ) : UpdateState()
+    data class UpdateRequired(val latestVersion: String, val message: String, val apkUrl: String? = null) : UpdateState()
     data class Downloading(val progress: Int) : UpdateState()
     data class Error(val message: String) : UpdateState()
 }
 
-private data class LatestVersionResponse(
+private data class UpdateJson(
     val version: String? = null,
+    val versionCode: Int? = null,
     val apkUrl: String? = null,
     val message: String? = null
 )
@@ -41,106 +36,73 @@ private data class LatestVersionResponse(
 @Singleton
 class AppUpdateRepository @Inject constructor(
     private val okHttpClient: OkHttpClient,
-    private val settingsRepository: SettingsRepository,
     @ApplicationContext private val context: Context
 ) {
-
     private val gson = Gson()
     private val _updateState = MutableStateFlow<UpdateState>(UpdateState.UpToDate)
     val updateState: StateFlow<UpdateState> = _updateState.asStateFlow()
 
-    val currentAppVersion: String = "1.0.0"
+    val currentVersion: String = BuildConfig.VERSION_NAME
+
+    private val updateUrl =
+        "https://raw.githubusercontent.com/petrsidann/bingwa-score-android/main/update.json"
 
     suspend fun checkForUpdates() {
         _updateState.value = UpdateState.Loading
         try {
-            val request = Request.Builder()
-                .url("https://api.bingwascore.com/app/latest")
-                .get()
-                .build()
-
-            val response = okHttpClient.newCall(request).execute()
+            val response = okHttpClient.newCall(Request.Builder().url(updateUrl).get().build()).execute()
             val body = response.body?.string()
-
             if (response.isSuccessful && body != null) {
-                val latest = gson.fromJson(body, LatestVersionResponse::class.java)
-                val latestVersion = latest.version ?: currentAppVersion
-                if (compareVersionStrings(currentAppVersion, latestVersion) < 0) {
+                val json = gson.fromJson(body, UpdateJson::class.java)
+                val latestCode = json.versionCode ?: 0
+                if (latestCode > BuildConfig.VERSION_CODE) {
                     _updateState.value = UpdateState.UpdateRequired(
-                        latestVersion = latestVersion,
-                        message = latest.message ?: "A new version is available.",
-                        apkUrl = latest.apkUrl
+                        latestVersion = json.version ?: "unknown",
+                        message = json.message ?: "A new version is available.",
+                        apkUrl = json.apkUrl
                     )
                 } else {
                     _updateState.value = UpdateState.UpToDate
                 }
             } else {
-                _updateState.value = UpdateState.Error("Update check failed")
+                _updateState.value = UpdateState.Error("Update server unreachable")
             }
         } catch (e: Exception) {
-            val updateRequired = settingsRepository.getBoolean(AppSetting.APP_UPDATE_REQUIRED)
-            _updateState.value = if (updateRequired) {
-                UpdateState.UpdateRequired(
-                    latestVersion = "",
-                    message = "A new version is available. Please connect to the internet to download the update."
-                )
-            } else {
-                UpdateState.Error("Network error")
-            }
+            _updateState.value = UpdateState.Error("Network error")
         }
     }
 
-    fun compareVersionStrings(currentVersion: String, latestVersion: String): Int {
-        val c = currentVersion.split(".").mapNotNull { it.toIntOrNull() }
-        val l = latestVersion.split(".").mapNotNull { it.toIntOrNull() }
-        for (i in 0 until maxOf(c.size, l.size)) {
-            val cv = c.getOrElse(i) { 0 }
-            val lv = l.getOrElse(i) { 0 }
-            if (cv != lv) return cv.compareTo(lv)
-        }
-        return 0
-    }
-
-    suspend fun downloadApk(url: String): File? = withContext(Dispatchers.IO) {
+    suspend fun downloadAndInstall(url: String) = withContext(Dispatchers.IO) {
         try {
-            val request = Request.Builder().url(url).get().build()
-            val response = okHttpClient.newCall(request).execute()
-            if (!response.isSuccessful) return@withContext null
-
-            val body = response.body ?: return@withContext null
+            val response = okHttpClient.newCall(Request.Builder().url(url).get().build()).execute()
+            val body = response.body ?: return@withContext
             val file = File(context.cacheDir, "bingwa-score-update.apk")
-            val contentLength = body.contentLength()
+            val length = body.contentLength()
             var total = 0L
-
             body.byteStream().use { input ->
-                file.outputStream().use { output ->
-                    val buffer = ByteArray(8192)
+                file.outputStream().use { out ->
+                    val buf = ByteArray(8192)
                     var read: Int
-                    while (input.read(buffer).also { read = it } != -1) {
-                        output.write(buffer, 0, read)
+                    while (input.read(buf).also { read = it } != -1) {
+                        out.write(buf, 0, read)
                         total += read
-                        if (contentLength > 0) {
-                            _updateState.value = UpdateState.Downloading(
-                                ((total * 100) / contentLength).toInt()
-                            )
-                        }
+                        if (length > 0) _updateState.value = UpdateState.Downloading(((total * 100) / length).toInt())
                     }
                 }
             }
-            file
+            install(file)
         } catch (e: Exception) {
-            null
+            _updateState.value = UpdateState.Error("Download failed")
         }
     }
 
-    fun requestInstallPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val intent = Intent(
-                Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
-                Uri.parse("package:${context.packageName}")
-            )
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            context.startActivity(intent)
+    fun install(file: File) {
+        val uri = FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(uri, "application/vnd.android.package-archive")
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
+        context.startActivity(intent)
     }
 }
