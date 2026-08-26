@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -20,6 +21,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -48,15 +51,15 @@ import androidx.compose.ui.window.Dialog
 import com.bingwascore.app.domain.model.Offer
 import com.bingwascore.app.domain.model.OfferType
 import com.bingwascore.app.ui.theme.EmeraldGreen
-import com.bingwascore.app.ui.theme.TextPrimary
-import com.bingwascore.app.ui.theme.TextSecondary
 import java.util.UUID
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OffersScreen(
     viewModel: OffersViewModel,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onOpenOfferSettings: (String) -> Unit,
+    onOpenOfferActions: (String) -> Unit
 ) {
     val allOffers by viewModel.offers.collectAsState()
     val filter by viewModel.filter.collectAsState()
@@ -74,55 +77,36 @@ fun OffersScreen(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
-                title = { Text("My Offers") },
+                title = { Text("My Offers", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = MaterialTheme.colorScheme.onSurface)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
-                )
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         },
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = {
-                    editingOffer = null
-                    showAddDialog = true
-                },
-                containerColor = EmeraldGreen
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Add Offer")
+            FloatingActionButton(onClick = { editingOffer = null; showAddDialog = true }, containerColor = EmeraldGreen) {
+                Icon(Icons.Default.Add, null)
             }
         }
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-        ) {
+        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
             LazyRow(
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(listOf("all" to "All", "data" to "Data", "minutes" to "Minutes", "sms" to "SMS")) { (id, label) ->
-                    val isActive = filter == id
+                    val active = filter == id
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(12.dp))
-                            .background(
-                                if (isActive) EmeraldGreen.copy(alpha = 0.2f)
-                                else MaterialTheme.colorScheme.surfaceVariant
-                            )
+                            .background(if (active) EmeraldGreen.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant)
                             .clickable { viewModel.setFilter(id) }
                             .padding(horizontal = 20.dp, vertical = 10.dp)
                     ) {
-                        Text(
-                            label,
-                            color = if (isActive) EmeraldGreen else TextSecondary,
-                            fontWeight = FontWeight.SemiBold
-                        )
+                        Text(label, color = if (active) EmeraldGreen else MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
@@ -132,14 +116,41 @@ fun OffersScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(offers) { offer ->
-                    OfferCard(
-                        offer = offer,
-                        onToggle = { viewModel.toggleActive(offer) },
-                        onEdit = {
-                            editingOffer = offer
-                            showAddDialog = true
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(18.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .padding(16.dp)
+                    ) {
+                        Column {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.Language, null, tint = EmeraldGreen, modifier = Modifier.size(22.dp))
+                                Spacer(Modifier.width(12.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(offer.name, color = EmeraldGreen, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                                    Text("KES ${offer.price}", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                }
+                                Switch(checked = offer.isActive, onCheckedChange = { viewModel.toggleActive(offer) })
+                            }
+                            Spacer(Modifier.height(8.dp))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    offer.ussdCode,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontFamily = FontFamily.Monospace,
+                                    fontSize = 12.sp,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                IconButton(onClick = { onOpenOfferSettings(offer.id) }) {
+                                    Icon(Icons.Default.Settings, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
+                                }
+                                IconButton(onClick = { onOpenOfferActions(offer.id) }) {
+                                    Icon(Icons.Default.SwapHoriz, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
+                                }
+                            }
                         }
-                    )
+                    }
                 }
             }
         }
@@ -166,41 +177,6 @@ fun OffersScreen(
 }
 
 @Composable
-private fun OfferCard(
-    offer: Offer,
-    onToggle: () -> Unit,
-    onEdit: () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .clickable { onEdit() }
-            .padding(16.dp)
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.Language, contentDescription = null, tint = EmeraldGreen)
-            Spacer(Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(offer.name, color = EmeraldGreen, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    offer.ussdCode,
-                    color = TextSecondary,
-                    fontFamily = FontFamily.Monospace,
-                    fontSize = 12.sp
-                )
-            }
-            Column(horizontalAlignment = Alignment.End) {
-                Text("KES ${offer.price}", color = TextPrimary, fontWeight = FontWeight.Bold)
-                Switch(checked = offer.isActive, onCheckedChange = { onToggle() })
-            }
-        }
-    }
-}
-
-@Composable
 private fun OfferDialog(
     editing: Offer?,
     onDismiss: () -> Unit,
@@ -219,11 +195,7 @@ private fun OfferDialog(
                 .background(MaterialTheme.colorScheme.surface)
                 .padding(20.dp)
         ) {
-            Text(
-                if (editing != null) "Edit Offer" else "New Offer",
-                fontWeight = FontWeight.Bold,
-                fontSize = 18.sp
-            )
+            Text(if (editing != null) "Edit Offer" else "New Offer", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = MaterialTheme.colorScheme.onSurface)
             Spacer(Modifier.height(12.dp))
             OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Offer Name") }, modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.height(8.dp))
@@ -242,7 +214,7 @@ private fun OfferDialog(
                             .padding(vertical = 8.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(t.name, color = if (type == t) TextPrimary else TextSecondary, fontSize = 12.sp)
+                        Text(t.name, color = if (type == t) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                     }
                 }
             }
@@ -259,7 +231,7 @@ private fun OfferDialog(
                     .padding(12.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Text("Save Offer", color = TextPrimary, fontWeight = FontWeight.Bold)
+                Text("Save Offer", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
             }
         }
     }
