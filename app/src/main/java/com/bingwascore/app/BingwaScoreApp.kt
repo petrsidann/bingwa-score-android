@@ -1,6 +1,7 @@
 package com.bingwascore.app
 
 import android.app.Application
+import com.bingwascore.app.workers.SmsPollScheduler
 import dagger.hilt.android.HiltAndroidApp
 import timber.log.Timber
 
@@ -9,9 +10,12 @@ class BingwaScoreApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+
         if (BuildConfig.DEBUG) {
             Timber.plant(Timber.DebugTree())
         }
-        Timber.d("Bingwa Score App initialized")
+
+        SmsPollScheduler.schedule(this)
+        Timber.d("Bingwa Score initialized with triple-layer listening")
     }
 }
