@@ -14,11 +14,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cached
 import androidx.compose.material.icons.filled.Dialpad
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.LocalOffer
 import androidx.compose.material.icons.filled.Logout
+import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Subscriptions
 import androidx.compose.material.icons.filled.Update
@@ -48,14 +50,16 @@ import androidx.navigation.compose.rememberNavController
 import com.bingwascore.app.ui.auth.AuthViewModel
 import com.bingwascore.app.ui.auth.LoginScreen
 import com.bingwascore.app.ui.auth.SignupScreen
+import com.bingwascore.app.ui.customers.CustomersScreen
 import com.bingwascore.app.ui.home.HomeScreen
 import com.bingwascore.app.ui.home.HomeViewModel
 import com.bingwascore.app.ui.offers.OffersScreen
 import com.bingwascore.app.ui.offers.OffersViewModel
+import com.bingwascore.app.ui.quickdial.QuickDialScreen
+import com.bingwascore.app.ui.score.ScoreScreen
 import com.bingwascore.app.ui.screens.AutoRepliesScreen
 import com.bingwascore.app.ui.screens.AutoRenewalsScreen
 import com.bingwascore.app.ui.screens.CommunityScreen
-import com.bingwascore.app.ui.screens.QuickDialScreen
 import com.bingwascore.app.ui.screens.SubscriptionsScreen
 import com.bingwascore.app.ui.settings.SettingsScreen
 import com.bingwascore.app.ui.settings.SettingsViewModel
@@ -86,82 +90,42 @@ fun BingwaNavHost() {
                         Box(
                             modifier = Modifier
                                 .size(48.dp)
-                                .background(
-                                    Brush.linearGradient(listOf(Orange500, Purple500)),
-                                    RoundedCornerShape(14.dp)
-                                ),
+                                .background(Brush.linearGradient(listOf(Orange500, Purple500)), RoundedCornerShape(14.dp)),
                             contentAlignment = Alignment.Center
                         ) {
                             Text("B", color = White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
                         }
                         Spacer(Modifier.width(12.dp))
-                        Text(
-                            "Bingwa Score",
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Text("Bingwa Score", fontSize = 20.sp, fontWeight = FontWeight.Bold)
                     }
                     Spacer(Modifier.height(8.dp))
                 }
-                DrawerItem(Icons.Default.Home, "Home") {
-                    closeDrawer()
-                    navController.navigate(Screen.Home.route)
-                }
-                DrawerItem(Icons.Default.LocalOffer, "Offers") {
-                    closeDrawer()
-                    navController.navigate(Screen.Offers.route)
-                }
-                DrawerItem(Icons.Default.Dialpad, "Quick Dial") {
-                    closeDrawer()
-                    navController.navigate(Screen.QuickDial.route)
-                }
-                DrawerItem(Icons.Default.Cached, "Auto Renewals") {
-                    closeDrawer()
-                    navController.navigate(Screen.AutoRenewals.route)
-                }
-                DrawerItem(Icons.Default.Subscriptions, "Subscriptions") {
-                    closeDrawer()
-                    navController.navigate(Screen.Subscriptions.route)
-                }
-                DrawerItem(Icons.Default.Email, "Auto Replies") {
-                    closeDrawer()
-                    navController.navigate(Screen.AutoReplies.route)
-                }
-                DrawerItem(Icons.Default.Group, "Community") {
-                    closeDrawer()
-                    navController.navigate(Screen.Community.route)
-                }
-                DrawerItem(Icons.Default.Settings, "Settings") {
-                    closeDrawer()
-                    navController.navigate(Screen.Settings.route)
-                }
-                DrawerItem(Icons.Default.Update, "Check For Updates") {
-                    closeDrawer()
-                    navController.navigate(Screen.Settings.route)
-                }
+                DrawerItem(Icons.Default.Home, "Home") { closeDrawer(); navController.navigate(Screen.Home.route) }
+                DrawerItem(Icons.Default.EmojiEvents, "My Score") { closeDrawer(); navController.navigate(Screen.Score.route) }
+                DrawerItem(Icons.Default.People, "Customers") { closeDrawer(); navController.navigate(Screen.Customers.route) }
+                DrawerItem(Icons.Default.LocalOffer, "Offers") { closeDrawer(); navController.navigate(Screen.Offers.route) }
+                DrawerItem(Icons.Default.Dialpad, "Quick Dial") { closeDrawer(); navController.navigate(Screen.QuickDial.route) }
+                DrawerItem(Icons.Default.Cached, "Auto Renewals") { closeDrawer(); navController.navigate(Screen.AutoRenewals.route) }
+                DrawerItem(Icons.Default.Subscriptions, "Subscriptions") { closeDrawer(); navController.navigate(Screen.Subscriptions.route) }
+                DrawerItem(Icons.Default.Email, "Auto Replies") { closeDrawer(); navController.navigate(Screen.AutoReplies.route) }
+                DrawerItem(Icons.Default.Group, "Community") { closeDrawer(); navController.navigate(Screen.Community.route) }
+                DrawerItem(Icons.Default.Settings, "Settings") { closeDrawer(); navController.navigate(Screen.Settings.route) }
+                DrawerItem(Icons.Default.Update, "Check For Updates") { closeDrawer(); navController.navigate(Screen.Settings.route) }
                 DrawerItem(Icons.Default.Logout, "Logout") {
                     closeDrawer()
-                    navController.navigate(Screen.Login.route) {
-                        popUpTo(0) { inclusive = true }
-                    }
+                    navController.navigate(Screen.Login.route) { popUpTo(0) { inclusive = true } }
                 }
             }
         }
     ) {
-        NavHost(
-            navController = navController,
-            startDestination = Screen.Splash.route
-        ) {
+        NavHost(navController = navController, startDestination = Screen.Splash.route) {
             composable(Screen.Splash.route) {
-                SplashScreen(
-                    onFinished = {
-                        navController.navigate(Screen.Home.route) {
-                            popUpTo(Screen.Splash.route) { inclusive = true }
-                        }
+                SplashScreen(onFinished = {
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(Screen.Splash.route) { inclusive = true }
                     }
-                )
+                })
             }
-
             composable(Screen.Login.route) {
                 val vm: AuthViewModel = hiltViewModel()
                 LoginScreen(
@@ -174,7 +138,6 @@ fun BingwaNavHost() {
                     onNavigateToSignup = { navController.navigate(Screen.Signup.route) }
                 )
             }
-
             composable(Screen.Signup.route) {
                 val vm: AuthViewModel = hiltViewModel()
                 SignupScreen(
@@ -187,7 +150,6 @@ fun BingwaNavHost() {
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
-
             composable(Screen.Home.route) {
                 val vm: HomeViewModel = hiltViewModel()
                 HomeScreen(
@@ -199,55 +161,32 @@ fun BingwaNavHost() {
                     onNavigateToOrders = { },
                     onNavigateToCheckout = { },
                     onLogout = {
-                        navController.navigate(Screen.Login.route) {
-                            popUpTo(0) { inclusive = true }
-                        }
+                        navController.navigate(Screen.Login.route) { popUpTo(0) { inclusive = true } }
                     },
                     onOpenDrawer = { scope.launch { drawerState.open() } }
                 )
             }
-
+            composable(Screen.Score.route) { ScoreScreen(onNavigateBack = { navController.popBackStack() }) }
+            composable(Screen.Customers.route) { CustomersScreen(onNavigateBack = { navController.popBackStack() }) }
             composable(Screen.Offers.route) {
                 val vm: OffersViewModel = hiltViewModel()
-                OffersScreen(
-                    viewModel = vm,
-                    onNavigateBack = { navController.popBackStack() }
-                )
+                OffersScreen(viewModel = vm, onNavigateBack = { navController.popBackStack() })
             }
-
-            composable(Screen.QuickDial.route) {
-                QuickDialScreen(onNavigateBack = { navController.popBackStack() })
-            }
-            composable(Screen.AutoRenewals.route) {
-                AutoRenewalsScreen(onNavigateBack = { navController.popBackStack() })
-            }
-            composable(Screen.Subscriptions.route) {
-                SubscriptionsScreen(onNavigateBack = { navController.popBackStack() })
-            }
-            composable(Screen.AutoReplies.route) {
-                AutoRepliesScreen(onNavigateBack = { navController.popBackStack() })
-            }
-            composable(Screen.Community.route) {
-                CommunityScreen(onNavigateBack = { navController.popBackStack() })
-            }
-
+            composable(Screen.QuickDial.route) { QuickDialScreen(onNavigateBack = { navController.popBackStack() }) }
+            composable(Screen.AutoRenewals.route) { AutoRenewalsScreen(onNavigateBack = { navController.popBackStack() }) }
+            composable(Screen.Subscriptions.route) { SubscriptionsScreen(onNavigateBack = { navController.popBackStack() }) }
+            composable(Screen.AutoReplies.route) { AutoRepliesScreen(onNavigateBack = { navController.popBackStack() }) }
+            composable(Screen.Community.route) { CommunityScreen(onNavigateBack = { navController.popBackStack() }) }
             composable(Screen.Settings.route) {
                 val vm: SettingsViewModel = hiltViewModel()
-                SettingsScreen(
-                    viewModel = vm,
-                    onNavigateBack = { navController.popBackStack() }
-                )
+                SettingsScreen(viewModel = vm, onNavigateBack = { navController.popBackStack() })
             }
         }
     }
 }
 
 @Composable
-private fun DrawerItem(
-    icon: ImageVector,
-    label: String,
-    onClick: () -> Unit
-) {
+private fun DrawerItem(icon: ImageVector, label: String, onClick: () -> Unit) {
     NavigationDrawerItem(
         icon = { Icon(icon, contentDescription = null) },
         label = { Text(label) },
