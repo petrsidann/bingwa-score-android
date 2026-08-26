@@ -2,15 +2,15 @@ package com.bingwascore.app.ui.components
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -62,7 +62,12 @@ fun ScoreRing(score: Int, level: String, modifier: Modifier = Modifier, size: Dp
             )
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("$score", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+            Text(
+                "$score",
+                fontSize = 26.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
             Text(level, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
@@ -78,11 +83,13 @@ fun WeeklyBars(
     val max = points.maxOfOrNull { it.value } ?: 0.0
     Column(modifier = modifier) {
         Canvas(Modifier.fillMaxWidth().height(height)) {
-            val slot = size.width / points.size.coerceAtLeast(1)
+            val count = points.size.coerceAtLeast(1)
+            val slot = size.width / count
             val barW = slot * 0.55f
             points.forEachIndexed { i, p ->
-                val h = if (max <= 0) 6f else (p.value / max * (size.height - 6f)).coerceAtLeast(6f)
-                val x = i * slot + (slot - barW) / 2
+                val ratio = if (max <= 0.0) 0f else (p.value / max).toFloat()
+                val h = (ratio * (size.height - 6f)).coerceAtLeast(6f)
+                val x = i * slot + (slot - barW) / 2f
                 drawRoundRect(
                     color = tint,
                     topLeft = Offset(x, size.height - h),
