@@ -2,9 +2,11 @@ package com.bingwascore.app.domain.engine
 
 import android.content.Context
 import android.content.Intent
+import com.bingwascore.app.data.local.AutoReplyDao
 import com.bingwascore.app.data.local.OfferDao
 import com.bingwascore.app.data.local.OfferTransitionRuleDao
 import com.bingwascore.app.data.local.TransactionDao
+import com.bingwascore.app.domain.enums.AutoReplyType
 import com.bingwascore.app.domain.model.Offer
 import com.bingwascore.app.domain.model.Transaction
 import com.bingwascore.app.domain.model.TransactionStatus
@@ -25,6 +27,7 @@ class TransactionPipeline @Inject constructor(
     private val transactionDao: TransactionDao,
     private val offerDao: OfferDao,
     private val ruleDao: OfferTransitionRuleDao,
+    private val autoReplyDao: AutoReplyDao,
     private val formatUssd: FormatUssdUseCase,
     private val smsDispatcher: SmsDispatcher,
     @ApplicationContext private val context: Context
@@ -59,6 +62,13 @@ class TransactionPipeline @Inject constructor(
     }
 
     private suspend fun dial(transaction: Transaction, offer: Offer) {
+        val validation = Validators.validate(transaction, context)
+        if (validation != ValidationResult.OK) {
+            Timber.e("Validation failed: $validation for ${transaction.id}")
+            transactionDao.updateTransactionStatus(transaction.id, TransactionStatus.FAILED)
+            return
+        }
+
         val code = formatUssd.format(offer.ussdCode, transaction.phoneNumber)
         transactionDao.updateTransactionStatus(transaction.id, TransactionStatus.PROCESSING)
 
@@ -71,7 +81,6 @@ class TransactionPipeline @Inject constructor(
         Timber.d("Dialing $code for ${transaction.id}")
     }
 
-    // "Already recommended" detected -> fallback rule OR auto-reschedule to 01:00
     suspend fun onUssdAlreadyRecommended(transactionId: String) = withContext(Dispatchers.IO) {
         val tx = transactionDao.getTransactionById(transactionId) ?: return@withContext
         transactionDao.updateTransactionStatus(tx.id, TransactionStatus.FAILED_ALREADY_RECOMMENDED)
@@ -114,7 +123,6 @@ class TransactionPipeline @Inject constructor(
         }
     }
 
-    // Redial scheduled transactions whose time has come
     suspend fun processDueScheduled() = withContext(Dispatchers.IO) {
         val due = transactionDao.getDueScheduled(System.currentTimeMillis())
         due.forEach { tx ->
@@ -176,15 +184,20 @@ class TransactionPipeline @Inject constructor(
     }
 
     private suspend fun sendAutoReply(tx: Transaction) {
-        val offer = offerDao.getOfferById(tx.offerId) ?: return
-        val template = offer.completionMessage ?: return
+        val template = autoReplyDao.getActiveByType(AutoReplyType.SUCCESSFUL_RESPONSE.name)?.message
+            ?: offerDao.getOfferById(tx.offerId)?.completionMessage
+            ?: return
+
         if (!OfferSignature.hasPhonePlaceholder(template)) return
+
+        val firstName = tx.customerName?.split(" ")?.firstOrNull() ?: ""
 
         smsDispatcher.send(
             destination = tx.phoneNumber,
             template = template,
             values = mapOf(
                 "phone" to tx.phoneNumber,
+                "firstName" to firstName,
                 "amount" to tx.amount.toInt().toString(),
                 "offerName" to tx.offerName,
                 "mpesaCode" to (tx.mpesaReceipt ?: ""),
