@@ -28,7 +28,8 @@ class GetOrCreateCustomerUseCase @Inject constructor(
         val customer = Customer(
             id = UUID.randomUUID().toString(),
             phoneNumber = normalized,
-            name = name ?: "Unknown"
+            name = name ?: "Unknown",
+            email = null
         )
         customerDao.insertCustomer(customer)
         return customer
