@@ -15,34 +15,25 @@ android {
         applicationId = "com.bingwascore.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = (System.getenv("GITHUB_RUN_NUMBER") ?: "2").toInt()
+        versionName = "1.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // Build config fields
         buildConfigField("String", "API_BASE_URL", "\"https://api.bingwascore.com/\"")
-        buildConfigField("String", "APP_VERSION", "\"1.0.0\"")
-        
-        // Vector drawables
-        vectorDrawables {
-            useSupportLibrary = true
-        }
+        buildConfigField("String", "APP_VERSION", "\"1.1.0\"")
+
+        vectorDrawables { useSupportLibrary = true }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
-            buildConfigField("String", "API_BASE_URL", "\"https://api.bingwascore.com/\"")
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
         debug {
             isMinifyEnabled = false
-            buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:5000/\"")
             applicationIdSuffix = ".debug"
         }
     }
@@ -51,7 +42,7 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    
+
     kotlin {
         compilerOptions {
             freeCompilerArgs.addAll(
@@ -61,32 +52,26 @@ android {
             )
         }
     }
-    
+
     buildFeatures {
         compose = true
         buildConfig = true
     }
-    
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.14"
-    }
-    
+
+    composeOptions { kotlinCompilerExtensionVersion = "1.5.14" }
+
     packaging {
-        resources {
-            excludes += "/META-INF/{AL2.0,LGPL2.1}"
-        }
+        resources { excludes += "/META-INF/{AL2.0,LGPL2.1}" }
     }
 }
 
 dependencies {
-    // Core Android
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
-    
-    // Compose BOM
+
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
@@ -96,72 +81,41 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
-    
-    // Hilt Dependency Injection
+
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
     implementation(libs.hilt.navigation.compose)
-    
-    // Room Database
+
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
     ksp(libs.room.compiler)
-    
-    // DataStore (Preferences)
+
     implementation(libs.datastore.preferences)
-    
-    // Network - OkHttp + Retrofit
+
     implementation(libs.retrofit)
     implementation(libs.retrofit.moshi)
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging)
     implementation(libs.moshi)
     ksp(libs.moshi.codegen)
-    
-    // Coroutines
+
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.coroutines.core)
-    
-    // Work Manager (Background tasks)
-    implementation(libs.work.runtime.ktx)
-    
-    // Startup
-    implementation(libs.startup.runtime)
-    
-    // Lottie Animations
+
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
+    implementation("androidx.startup:startup-runtime:1.1.1")
     implementation(libs.lottie.compose)
-    
-    // Coil (Image Loading)
     implementation(libs.coil.compose)
-    
-    // Accompanist (Compose utilities)
-    implementation(libs.accompanist.systemuicontroller)
-    implementation(libs.accompanist.permissions)
-    
-    // Timber (Logging)
-    implementation(libs.timber)
-    
-    // Gson (JSON)
-    implementation(libs.gson)
-    
-    // Encrypted SharedPreferences
-    implementation(libs.security.crypto)
-    
-    // Biometric Auth
-    implementation(libs.biometric)
-    
-    // Testing
-    testImplementation(libs.junit)
-    testImplementation(libs.mockito.core)
-    testImplementation(libs.kotlinx.coroutines.test)
-    testImplementation(libs.truth)
-    
-    androidTestImplementation(libs.androidx.test.ext.junit)
-    androidTestImplementation(libs.androidx.test.espresso.core)
+    implementation("com.google.accompanist:accompanist-systemuicontroller:0.34.0")
+    implementation("com.google.accompanist:accompanist-permissions:0.34.0")
+    implementation("com.jakewharton.timber:timber:5.0.1")
+    implementation("com.google.code.gson:gson:2.11.0")
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
+    implementation("androidx.biometric:biometric:1.1.0")
+
+    testImplementation("junit:junit:4.13.2")
+    androidTestImplementation("androidx.test.ext:junit:1.2.1")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.ui.test.junit4)
-
-    // Add this to your existing dependencies in app/build.gradle.kts.
-    implementation("androidx.hilt:hilt-work:1.2.0")
-    ksp("androidx.hilt:hilt-compiler:1.2.0")
 }
