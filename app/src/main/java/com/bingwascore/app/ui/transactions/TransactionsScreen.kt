@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -24,7 +25,6 @@ import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -55,8 +55,10 @@ import com.bingwascore.app.ui.theme.EmeraldGreen
 import com.bingwascore.app.ui.theme.ErrorRed
 import com.bingwascore.app.ui.theme.TealBlue
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -70,7 +72,8 @@ class TransactionsViewModel @Inject constructor(
     private val pipeline: TransactionPipeline
 ) : ViewModel() {
 
-    private val filter = androidx.compose.runtime.MutableStateFlow("all")
+    private val filter = MutableStateFlow("all")
+    val currentFilter: StateFlow<String> = filter.asStateFlow()
 
     val transactions: StateFlow<List<Transaction>> =
         combine(transactionRepository.getAllTransactions(), filter) { list, f -> applyFilter(list, f) }
@@ -92,7 +95,8 @@ class TransactionsViewModel @Inject constructor(
     private fun applyFilter(list: List<Transaction>, f: String): List<Transaction> {
         val now = System.currentTimeMillis()
         val startToday = Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+            set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
         }.timeInMillis
 
         return when (f) {
@@ -101,7 +105,10 @@ class TransactionsViewModel @Inject constructor(
             "7d" -> list.filter { it.createdAt >= now - 7 * 86_400_000L }
             "30d" -> list.filter { it.createdAt >= now - 30 * 86_400_000L }
             "successful" -> list.filter { it.status == TransactionStatus.SUCCESSFUL }
-            "failed" -> list.filter { it.status == TransactionStatus.FAILED || it.status == TransactionStatus.FAILED_ALREADY_RECOMMENDED }
+            "failed" -> list.filter {
+                it.status == TransactionStatus.FAILED ||
+                it.status == TransactionStatus.FAILED_ALREADY_RECOMMENDED
+            }
             "scheduled" -> list.filter { it.status == TransactionStatus.SCHEDULED }
             else -> list
         }
@@ -113,6 +120,7 @@ class TransactionsViewModel @Inject constructor(
 fun TransactionsScreen(onNavigateBack: () -> Unit) {
     val vm: TransactionsViewModel = hiltViewModel()
     val transactions by vm.transactions.collectAsState()
+    val filter by vm.currentFilter.collectAsState()
     var selected by remember { mutableStateOf<Transaction?>(null) }
 
     Scaffold(
@@ -121,7 +129,7 @@ fun TransactionsScreen(onNavigateBack: () -> Unit) {
             TopAppBar(
                 title = { Text("Transactions", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
+                    androidx.compose.material3.IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = MaterialTheme.colorScheme.onSurface)
                     }
                 },
@@ -141,7 +149,24 @@ fun TransactionsScreen(onNavigateBack: () -> Unit) {
                         "successful" to "Successful", "failed" to "Failed", "scheduled" to "Scheduled"
                     )
                 ) { (id, label) ->
-                    FilterChipLocal(label, id, vm)
+                    val active = filter == id
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(
+                                if (active) EmeraldGreen.copy(alpha = 0.2f)
+                                else MaterialTheme.colorScheme.surfaceVariant
+                            )
+                            .clickable { vm.setFilter(id) }
+                            .padding(horizontal = 16.dp, vertical = 10.dp)
+                    ) {
+                        Text(
+                            label,
+                            color = if (active) EmeraldGreen else MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 13.sp
+                        )
+                    }
                 }
             }
 
@@ -164,13 +189,27 @@ fun TransactionsScreen(onNavigateBack: () -> Unit) {
                             .padding(14.dp)
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(icon, null, tint = tint, modifier = androidx.compose.ui.Modifier.size(22.dp))
+                            Icon(icon, null, tint = tint, modifier = Modifier.size(22.dp))
                             Spacer(Modifier.width(12.dp))
                             Column(modifier = Modifier.weight(1f)) {
-                                Text(tx.customerName ?: tx.phoneNumber, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Medium, fontSize = 14.sp)
-                                Text("${tx.offerName} - ${tx.status.name}", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
+                                Text(
+                                    tx.customerName ?: tx.phoneNumber,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    fontWeight = FontWeight.Medium,
+                                    fontSize = 14.sp
+                                )
+                                Text(
+                                    "${tx.offerName} - ${tx.status.name}",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontSize = 11.sp
+                                )
                             }
-                            Text("Ksh %.0f".format(tx.amount), color = EmeraldGreen, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                            Text(
+                                "Ksh %.0f".format(tx.amount),
+                                color = EmeraldGreen,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 14.sp
+                            )
                         }
                     }
                 }
@@ -207,35 +246,13 @@ fun TransactionsScreen(onNavigateBack: () -> Unit) {
                                 selected = null
                             }) { Text("Schedule") }
                         }
-                        TextButton(onClick = { vm.delete(tx.id); selected = null }) { Text("Delete", color = ErrorRed) }
+                        TextButton(onClick = { vm.delete(tx.id); selected = null }) {
+                            Text("Delete", color = ErrorRed)
+                        }
                     }
                 },
                 dismissButton = { TextButton(onClick = { selected = null }) { Text("Close") } }
             )
         }
-    }
-}
-
-@Composable
-private fun androidx.compose.foundation.lazy.LazyRowScope.FilterChipLocal(
-    label: String,
-    id: String,
-    vm: TransactionsViewModel
-) {
-    // rendered by caller below
-}
-
-@Composable
-private fun FilterChipLocal(label: String, id: String, vm: TransactionsViewModel) {
-    val selected by vm.transactions.collectAsState()
-    // simple chip; selection state kept in VM filter via setFilter
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .clickable { vm.setFilter(id) }
-            .padding(horizontal = 16.dp, vertical = 10.dp)
-    ) {
-        Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
     }
 }
