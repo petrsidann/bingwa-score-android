@@ -32,57 +32,38 @@ enum class AppSetting(val key: String) {
     AUTO_SAVE_CONTACTS("AUTO_SAVE_CONTACTS"),
     AUTO_SAVE_CONTACTS_SUFFIX("AUTO_SAVE_CONTACTS_SUFFIX"),
     HYBRID_PORTAL_ACTIVE("HYBRID_PORTAL_ACTIVE"),
-    ENGAGE_BOT_ACTIVE("ENGAGE_BOT_ACTIVE")
+    ENGAGE_BOT_ACTIVE("ENGAGE_BOT_ACTIVE"),
+    SUBSCRIPTION_ENDS_AT("SUBSCRIPTION_ENDS_AT"),
+    MESH_SERVER_URL("MESH_SERVER_URL"),
+    UPDATE_KEY("UPDATE_KEY")
 }
 
 @Singleton
 class SettingsRepository @Inject constructor(
     @ApplicationContext context: Context
 ) {
-
     private val prefs: SharedPreferences =
         context.getSharedPreferences("bingwa_settings", Context.MODE_PRIVATE)
 
     fun getString(setting: AppSetting): String? = prefs.getString(setting.key, null)
+    fun saveString(setting: AppSetting, value: String?) { prefs.edit().putString(setting.key, value).apply() }
+    fun getBoolean(setting: AppSetting, default: Boolean = false): Boolean = prefs.getBoolean(setting.key, default)
+    fun saveBoolean(setting: AppSetting, value: Boolean) { prefs.edit().putBoolean(setting.key, value).apply() }
+    fun getLong(setting: AppSetting, default: Long = 0L): Long = prefs.getLong(setting.key, default)
+    fun saveLong(setting: AppSetting, value: Long) { prefs.edit().putLong(setting.key, value).apply() }
 
-    fun saveString(setting: AppSetting, value: String?) {
-        prefs.edit().putString(setting.key, value).apply()
-    }
+    fun getProcessingMode(): ProcessingMode = try {
+        ProcessingMode.valueOf(getString(AppSetting.APP_PROCESSING_MODE) ?: ProcessingMode.EXPRESS.name)
+    } catch (e: Exception) { ProcessingMode.EXPRESS }
 
-    fun getBoolean(setting: AppSetting, default: Boolean = false): Boolean =
-        prefs.getBoolean(setting.key, default)
+    fun setProcessingMode(mode: ProcessingMode) = saveString(AppSetting.APP_PROCESSING_MODE, mode.name)
 
-    fun saveBoolean(setting: AppSetting, value: Boolean) {
-        prefs.edit().putBoolean(setting.key, value).apply()
-    }
+    fun getAppState(): AppState = try {
+        AppState.valueOf(getString(AppSetting.APP_STATE) ?: AppState.STATE_RUNNING.name)
+    } catch (e: Exception) { AppState.STATE_RUNNING }
 
-    fun getProcessingMode(): ProcessingMode {
-        return try {
-            ProcessingMode.valueOf(
-                getString(AppSetting.APP_PROCESSING_MODE) ?: ProcessingMode.EXPRESS.name
-            )
-        } catch (e: Exception) {
-            ProcessingMode.EXPRESS
-        }
-    }
-
-    fun setProcessingMode(mode: ProcessingMode) {
-        saveString(AppSetting.APP_PROCESSING_MODE, mode.name)
-    }
-
-    fun getAppState(): AppState {
-        return try {
-            AppState.valueOf(getString(AppSetting.APP_STATE) ?: AppState.STATE_RUNNING.name)
-        } catch (e: Exception) {
-            AppState.STATE_RUNNING
-        }
-    }
-
-    fun setAppState(state: AppState) {
-        saveString(AppSetting.APP_STATE, state.name)
-    }
+    fun setAppState(state: AppState) = saveString(AppSetting.APP_STATE, state.name)
 
     fun getConnectId(): String? = getString(AppSetting.APP_CONNECT_ID)
-
     fun saveConnectId(id: String) = saveString(AppSetting.APP_CONNECT_ID, id)
 }
