@@ -6,12 +6,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -40,6 +37,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -59,6 +57,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -82,16 +81,15 @@ class OfferActionsViewModel @Inject constructor(
 
     init { reload() }
 
-    fun setTab(t: String) { _tab.value = t; reload() }
+    fun setTab(t: String) {
+        _tab.value = t
+        reload()
+    }
 
     fun reload() {
         viewModelScope.launch {
             _rules.value = ruleDao.getRulesFor(offerId, _tab.value)
-            _offers.value = offerDao.getAllOffers().let { flow ->
-                var list = emptyList<Offer>()
-                flow.collect { list = it }
-                list
-            }
+            _offers.value = offerDao.getAllOffers().first()
         }
     }
 
@@ -110,7 +108,10 @@ class OfferActionsViewModel @Inject constructor(
     }
 
     fun deleteRule(id: String) {
-        viewModelScope.launch { ruleDao.deleteRule(id); reload() }
+        viewModelScope.launch {
+            ruleDao.deleteRule(id)
+            reload()
+        }
     }
 }
 
@@ -128,12 +129,18 @@ fun OfferActionsScreen(offerId: String, onNavigateBack: () -> Unit) {
         topBar = {
             TopAppBar(
                 title = { Text("Offer Actions", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold) },
-                navigationIcon = { IconButton(onClick = onNavigateBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = MaterialTheme.colorScheme.onSurface) } },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = MaterialTheme.colorScheme.onSurface)
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = { showAdd = true }, containerColor = EmeraldGreen) { Icon(Icons.Default.Add, null) }
+            FloatingActionButton(onClick = { showAdd = true }, containerColor = EmeraldGreen) {
+                Icon(Icons.Default.Add, null)
+            }
         }
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
@@ -153,14 +160,25 @@ fun OfferActionsScreen(offerId: String, onNavigateBack: () -> Unit) {
                 items(rules) { rule ->
                     val target = offers.firstOrNull { it.id == rule.nextOfferId }
                     Box(
-                        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(MaterialTheme.colorScheme.surfaceVariant).padding(14.dp)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .padding(14.dp)
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Column(modifier = Modifier.weight(1f)) {
-                                Text("Then run: ${target?.name ?: "unknown offer"}", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                                Text(
+                                    "Then run: ${target?.name ?: "unknown offer"}",
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 14.sp
+                                )
                                 Text("Priority ${rule.priority}", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
                             }
-                            IconButton(onClick = { vm.deleteRule(rule.id) }) { Icon(Icons.Default.Delete, null, tint = ErrorRed) }
+                            IconButton(onClick = { vm.deleteRule(rule.id) }) {
+                                Icon(Icons.Default.Delete, null, tint = ErrorRed)
+                            }
                         }
                     }
                 }
@@ -175,10 +193,18 @@ fun OfferActionsScreen(offerId: String, onNavigateBack: () -> Unit) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         offers.filter { it.id != offerId }.forEach { o ->
                             Box(
-                                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.surfaceVariant).clickable {
-                                    vm.addRule(o.id); showAdd = false
-                                }.padding(12.dp)
-                            ) { Text(o.name, color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp) }
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                                    .clickable {
+                                        vm.addRule(o.id)
+                                        showAdd = false
+                                    }
+                                    .padding(12.dp)
+                            ) {
+                                Text(o.name, color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp)
+                            }
                         }
                     }
                 },
@@ -189,18 +215,7 @@ fun OfferActionsScreen(offerId: String, onNavigateBack: () -> Unit) {
 }
 
 @Composable
-private fun androidx.compose.foundation.lazy.LazyListScope.TabChip(
-    label: String,
-    value: String,
-    current: String,
-    tint: androidx.compose.ui.graphics.Color,
-    onClick: (String) -> Unit
-) {
-    // no-op placeholder to keep structure; chips rendered below instead.
-}
-
-@Composable
-private fun TabChip(label: String, value: String, current: String, tint: androidx.compose.ui.graphics.Color, onClick: (String) -> Unit) {
+private fun TabChip(label: String, value: String, current: String, tint: Color, onClick: (String) -> Unit) {
     val selected = current == value
     Box(
         modifier = Modifier
@@ -209,6 +224,11 @@ private fun TabChip(label: String, value: String, current: String, tint: android
             .clickable { onClick(value) }
             .padding(horizontal = 16.dp, vertical = 10.dp)
     ) {
-        Text(label, color = if (selected) tint else MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+        Text(
+            label,
+            color = if (selected) tint else MaterialTheme.colorScheme.onSurfaceVariant,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 13.sp
+        )
     }
 }
