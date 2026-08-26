@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -31,8 +32,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -86,7 +89,7 @@ class QuickDialViewModel @Inject constructor(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun QuickDialScreen(onNavigateBack: () -> Unit) {
     val vm: QuickDialViewModel = hiltViewModel()
@@ -168,9 +171,9 @@ fun QuickDialScreen(onNavigateBack: () -> Unit) {
                             vm.dial(phone, offer) { feedback = it }
                         } ?: run { feedback = "Select an offer first" }
                     },
-                contentAlignment = androidx.compose.ui.Alignment.Center
+                contentAlignment = Alignment.Center
             ) {
-                Text("Dial Now", color = androidx.compose.ui.graphics.Color.White, fontWeight = FontWeight.Bold)
+                Text("Dial Now", color = Color.White, fontWeight = FontWeight.Bold)
             }
 
             if (feedback.isNotEmpty()) {
