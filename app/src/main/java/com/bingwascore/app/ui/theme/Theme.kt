@@ -11,23 +11,21 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
-// LIGHT: chrome grey + orange highlights (Apple-grade)
 private val LightColors = lightColorScheme(
     primary = Orange500,
     onPrimary = White,
-    primaryContainer = Orange100,
+    primaryContainer = Color(0xFFFFE3D0),
     onPrimaryContainer = Orange600,
-    secondary = Purple500,
-    background = Color(0xFFF5F5F7),
-    onBackground = Color(0xFF1C1C1E),
-    surface = White,
-    onSurface = Color(0xFF1C1C1E),
-    surfaceVariant = Color(0xFFE9E9EE),
-    onSurfaceVariant = Color(0xFF6E6E73),
-    outline = Color(0xFFD2D2D7)
+    secondary = Orange600,
+    background = Color(0xFFE4E4E9),
+    onBackground = Color(0xFF1A1A1E),
+    surface = Color(0xFFF2F2F5),
+    onSurface = Color(0xFF1A1A1E),
+    surfaceVariant = Color(0xFFDCDCE2),
+    onSurfaceVariant = Color(0xFF5C5C66),
+    outline = Color(0xFFC2C2CB)
 )
 
-// DARK: true black + purple highlights
 private val DarkColors = darkColorScheme(
     primary = Purple500,
     onPrimary = White,
@@ -59,9 +57,5 @@ fun BingwaTheme(
         }
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = BingwaTypography,
-        content = content
-    )
+    MaterialTheme(colorScheme = colorScheme, typography = BingwaTypography, content = content)
 }
