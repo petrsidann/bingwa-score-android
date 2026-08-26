@@ -3,9 +3,11 @@ package com.bingwascore.app.di
 import android.content.Context
 import androidx.room.Room
 import com.bingwascore.app.data.local.AppDatabase
+import com.bingwascore.app.data.local.AutoReplyDao
 import com.bingwascore.app.data.local.CustomerDao
 import com.bingwascore.app.data.local.OfferDao
 import com.bingwascore.app.data.local.OfferTransitionRuleDao
+import com.bingwascore.app.data.local.SiteLinkDao
 import com.bingwascore.app.data.local.TransactionDao
 import com.bingwascore.app.data.preferences.UserPreferences
 import com.bingwascore.app.data.remote.AdminApiService
@@ -93,6 +95,14 @@ object AppModule {
     @Provides
     @Singleton
     fun provideOfferTransitionRuleDao(db: AppDatabase): OfferTransitionRuleDao = db.offerTransitionRuleDao()
+
+    @Provides
+    @Singleton
+    fun provideAutoReplyDao(db: AppDatabase): AutoReplyDao = db.autoReplyDao()
+
+    @Provides
+    @Singleton
+    fun provideSiteLinkDao(db: AppDatabase): SiteLinkDao = db.siteLinkDao()
 
     @Provides
     @Singleton
