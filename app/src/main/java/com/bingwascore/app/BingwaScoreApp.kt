@@ -1,6 +1,7 @@
 package com.bingwascore.app
 
 import android.app.Application
+import com.bingwascore.app.workers.AutoRenewalScheduler
 import com.bingwascore.app.workers.SmsPollScheduler
 import dagger.hilt.android.HiltAndroidApp
 import timber.log.Timber
@@ -16,6 +17,7 @@ class BingwaScoreApp : Application() {
         }
 
         SmsPollScheduler.schedule(this)
-        Timber.d("Bingwa Score initialized with triple-layer listening")
+        AutoRenewalScheduler.schedule(this)
+        Timber.d("Bingwa Score engine online: triple listening + auto-renewals")
     }
 }
