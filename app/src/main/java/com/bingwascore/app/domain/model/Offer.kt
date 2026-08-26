@@ -24,7 +24,7 @@ data class Offer(
     val completionMessage: String? = null,
     val commissionMessage: String? = null,
     val autoRenewable: Boolean = false,
-    // Per-offer engine settings (blueprint §1)
+    val validityHours: Int = 24,
     val autoReschedule: Boolean = false,
     val autoRescheduleRunTime: String = "01:00",
     val isVerified: Boolean = false,
