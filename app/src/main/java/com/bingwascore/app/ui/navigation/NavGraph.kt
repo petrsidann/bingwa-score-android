@@ -14,7 +14,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cached
 import androidx.compose.material.icons.filled.Dialpad
 import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LocalOffer
@@ -72,6 +71,7 @@ import com.bingwascore.app.ui.settings.pages.UpdatesScreen
 import com.bingwascore.app.ui.subscriptions.SubscriptionsScreen
 import com.bingwascore.app.ui.transactions.TransactionsScreen
 import com.bingwascore.app.ui.splash.SplashScreen
+import com.bingwascore.app.ui.mystore.MyStoreScreen
 import com.bingwascore.app.ui.theme.Orange500
 import com.bingwascore.app.ui.theme.Purple500
 import com.bingwascore.app.ui.theme.ThemeViewModel
@@ -107,12 +107,12 @@ fun BingwaNavHost() {
                 DrawerItem(Icons.Default.Receipt, "Transactions") { closeDrawer(); navController.navigate(Screen.Transactions.route) }
                 DrawerItem(Icons.Default.People, "Customers") { closeDrawer(); navController.navigate(Screen.Customers.route) }
                 DrawerItem(Icons.Default.LocalOffer, "Offers") { closeDrawer(); navController.navigate(Screen.Offers.route) }
-                DrawerItem(Icons.Default.Dialpad, "Dialer") { closeDrawer(); navController.navigate(Screen.QuickDial.route) } // RENAMED
+                DrawerItem(Icons.Default.Dialpad, "Dialer") { closeDrawer(); navController.navigate(Screen.QuickDial.route) }
                 DrawerItem(Icons.Default.Cached, "Auto Renewals") { closeDrawer(); navController.navigate(Screen.AutoRenewals.route) }
                 DrawerItem(Icons.Default.Subscriptions, "Subscriptions") { closeDrawer(); navController.navigate(Screen.Subscriptions.route) }
-                DrawerItem(Icons.Default.Email, "Botted Replies") { closeDrawer(); navController.navigate(Screen.AutoReplies.route) } // RENAMED
-                DrawerItem(Icons.Default.Group, "Intelligent USSD") { closeDrawer(); navController.navigate(Screen.Community.route) } // RENAMED
-                DrawerItem(Icons.Default.Store, "My Store") { closeDrawer(); /* TODO: My Store Route */ } // NEW
+                DrawerItem(Icons.Default.Email, "Botted Replies") { closeDrawer(); navController.navigate(Screen.AutoReplies.route) }
+                DrawerItem(Icons.Default.Group, "Intelligent USSD") { closeDrawer(); navController.navigate(Screen.Community.route) }
+                DrawerItem(Icons.Default.Store, "My Store") { closeDrawer(); navController.navigate(Screen.MyStore.route) }
                 DrawerItem(Icons.Default.Settings, "Settings") { closeDrawer(); navController.navigate(Screen.Settings.route) }
                 DrawerItem(Icons.Default.Update, "Check For Updates") { closeDrawer(); navController.navigate(Screen.Updates.route) }
                 DrawerItem(Icons.Default.Logout, "Logout") {
@@ -141,6 +141,7 @@ fun BingwaNavHost() {
             composable(Screen.Subscriptions.route) { SubscriptionsScreen { navController.popBackStack() } }
             composable(Screen.AutoReplies.route) { AutoRepliesScreen { navController.popBackStack() } }
             composable(Screen.Community.route) { CommunityScreen { navController.popBackStack() } }
+            composable(Screen.MyStore.route) { MyStoreScreen { navController.popBackStack() } }
             composable(Screen.Settings.route) { SettingsScreen(navController) }
             composable(Screen.Appearance.route) { AppearanceScreen { navController.popBackStack() } }
             composable(Screen.Updates.route) { UpdatesScreen { navController.popBackStack() } }
