@@ -37,7 +37,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -57,7 +56,6 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -67,24 +65,17 @@ class OfferActionsViewModel @Inject constructor(
     private val offerDao: OfferDao,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
-
     private val offerId: String = savedStateHandle.get<String>("offerId") ?: ""
-
     private val _tab = MutableStateFlow(TransactionStatus.FAILED_ALREADY_RECOMMENDED.name)
     val tab: StateFlow<String> = _tab.asStateFlow()
-
     private val _rules = MutableStateFlow<List<OfferTransitionRule>>(emptyList())
     val rules: StateFlow<List<OfferTransitionRule>> = _rules.asStateFlow()
-
     private val _offers = MutableStateFlow<List<Offer>>(emptyList())
     val offers: StateFlow<List<Offer>> = _offers.asStateFlow()
 
     init { reload() }
 
-    fun setTab(t: String) {
-        _tab.value = t
-        reload()
-    }
+    fun setTab(t: String) { _tab.value = t; reload() }
 
     fun reload() {
         viewModelScope.launch {
@@ -95,23 +86,13 @@ class OfferActionsViewModel @Inject constructor(
 
     fun addRule(nextOfferId: String) {
         viewModelScope.launch {
-            ruleDao.insertRule(
-                OfferTransitionRule(
-                    sourceOfferId = offerId,
-                    sourceStatus = _tab.value,
-                    nextOfferId = nextOfferId,
-                    priority = _rules.value.size
-                )
-            )
+            ruleDao.insertRule(OfferTransitionRule(sourceOfferId = offerId, sourceStatus = _tab.value, nextOfferId = nextOfferId, priority = _rules.value.size))
             reload()
         }
     }
 
     fun deleteRule(id: String) {
-        viewModelScope.launch {
-            ruleDao.deleteRule(id)
-            reload()
-        }
+        viewModelScope.launch { ruleDao.deleteRule(id); reload() }
     }
 }
 
@@ -129,62 +110,33 @@ fun OfferActionsScreen(offerId: String, onNavigateBack: () -> Unit) {
         topBar = {
             TopAppBar(
                 title = { Text("Offer Actions", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = MaterialTheme.colorScheme.onSurface)
-                    }
-                },
+                navigationIcon = { IconButton(onClick = onNavigateBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = MaterialTheme.colorScheme.onSurface) } },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         },
-        floatingActionButton = {
-            FloatingActionButton(onClick = { showAdd = true }, containerColor = EmeraldGreen) {
-                Icon(Icons.Default.Add, null)
-            }
-        }
+        floatingActionButton = { FloatingActionButton(onClick = { showAdd = true }, containerColor = EmeraldGreen) { Icon(Icons.Default.Add, null) } }
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-            LazyRow(
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
+            LazyRow(contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 item { TabChip("Already Recommended", TransactionStatus.FAILED_ALREADY_RECOMMENDED.name, tab, Orange500) { vm.setTab(it) } }
                 item { TabChip("Failed", TransactionStatus.FAILED.name, tab, ErrorRed) { vm.setTab(it) } }
                 item { TabChip("Successful", TransactionStatus.SUCCESSFUL.name, tab, EmeraldGreen) { vm.setTab(it) } }
             }
-
-            LazyColumn(
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
+            LazyColumn(contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 items(rules) { rule ->
                     val target = offers.firstOrNull { it.id == rule.nextOfferId }
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant)
-                            .padding(14.dp)
-                    ) {
+                    Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(MaterialTheme.colorScheme.surfaceVariant).padding(14.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    "Then run: ${target?.name ?: "unknown offer"}",
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontSize = 14.sp
-                                )
+                                Text("Then run: ${target?.name ?: "unknown offer"}", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
                                 Text("Priority ${rule.priority}", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
                             }
-                            IconButton(onClick = { vm.deleteRule(rule.id) }) {
-                                Icon(Icons.Default.Delete, null, tint = ErrorRed)
-                            }
+                            IconButton(onClick = { vm.deleteRule(rule.id) }) { Icon(Icons.Default.Delete, null, tint = ErrorRed) }
                         }
                     }
                 }
             }
         }
-
         if (showAdd) {
             AlertDialog(
                 onDismissRequest = { showAdd = false },
@@ -192,17 +144,7 @@ fun OfferActionsScreen(offerId: String, onNavigateBack: () -> Unit) {
                 text = {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         offers.filter { it.id != offerId }.forEach { o ->
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                                    .clickable {
-                                        vm.addRule(o.id)
-                                        showAdd = false
-                                    }
-                                    .padding(12.dp)
-                            ) {
+                            Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.surfaceVariant).clickable { vm.addRule(o.id); showAdd = false }.padding(12.dp)) {
                                 Text(o.name, color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp)
                             }
                         }
@@ -215,20 +157,9 @@ fun OfferActionsScreen(offerId: String, onNavigateBack: () -> Unit) {
 }
 
 @Composable
-private fun TabChip(label: String, value: String, current: String, tint: Color, onClick: (String) -> Unit) {
+private fun TabChip(label: String, value: String, current: String, tint: androidx.compose.ui.graphics.Color, onClick: (String) -> Unit) {
     val selected = current == value
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(if (selected) tint.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant)
-            .clickable { onClick(value) }
-            .padding(horizontal = 16.dp, vertical = 10.dp)
-    ) {
-        Text(
-            label,
-            color = if (selected) tint else MaterialTheme.colorScheme.onSurfaceVariant,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = 13.sp
-        )
+    Box(modifier = Modifier.clip(RoundedCornerShape(12.dp)).background(if (selected) tint.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant).clickable { onClick(value) }.padding(horizontal = 16.dp, vertical = 10.dp)) {
+        Text(label, color = if (selected) tint else MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
     }
 }
