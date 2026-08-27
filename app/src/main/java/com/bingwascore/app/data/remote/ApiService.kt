@@ -1,56 +1,28 @@
 package com.bingwascore.app.data.remote
 
-import com.bingwascore.app.data.remote.dto.AuthResponse
-import com.bingwascore.app.data.remote.dto.BundlesResponse
-import com.bingwascore.app.data.remote.dto.CheckoutRequest
-import com.bingwascore.app.data.remote.dto.CheckoutResponse
-import com.bingwascore.app.data.remote.dto.LoginRequest
-import com.bingwascore.app.data.remote.dto.OrderResponse
-import com.bingwascore.app.data.remote.dto.OrdersResponse
-import com.bingwascore.app.data.remote.dto.SignupRequest
-import retrofit2.Response
-import retrofit2.http.Body
 import retrofit2.http.GET
-import retrofit2.http.Header
 import retrofit2.http.POST
+import retrofit2.http.Body
 import retrofit2.http.Path
-import retrofit2.http.Query
 
 interface ApiService {
+    @POST("auth/login")
+    suspend fun login(@Body request: LoginRequest): LoginResponse
 
-    @POST("api/auth/signup")
-    suspend fun signup(@Body request: SignupRequest): Response<AuthResponse>
+    @POST("auth/signup")
+    suspend fun signup(@Body request: SignupRequest): SignupResponse
 
-    @POST("api/auth/login")
-    suspend fun login(@Body request: LoginRequest): Response<AuthResponse>
+    @GET("offers")
+    suspend fun getOffers(): List<OfferDto>
 
-    @POST("api/auth/refresh")
-    suspend fun refresh(@Body body: Map<String, String>): Response<AuthResponse>
-
-    @GET("api/auth/me")
-    suspend fun me(@Header("Authorization") token: String): Response<AuthResponse>
-
-    @GET("api/checkout/bundles")
-    suspend fun getBundles(
-        @Header("Authorization") token: String,
-        @Query("type") type: String? = null
-    ): Response<BundlesResponse>
-
-    @POST("api/checkout/create")
-    suspend fun checkout(
-        @Header("Authorization") token: String,
-        @Body request: CheckoutRequest
-    ): Response<CheckoutResponse>
-
-    @GET("api/checkout/order/{orderId}")
-    suspend fun getOrder(
-        @Header("Authorization") token: String,
-        @Path("orderId") orderId: String
-    ): Response<OrderResponse>
-
-    @GET("api/checkout/orders")
-    suspend fun getOrders(
-        @Header("Authorization") token: String,
-        @Query("type") type: String? = null
-    ): Response<OrdersResponse>
+    @POST("transactions")
+    suspend fun createTransaction(@Body request: TransactionRequest): TransactionResponse
 }
+
+data class LoginRequest(val email: String, val password: String)
+data class LoginResponse(val token: String, val userId: String)
+data class SignupRequest(val email: String, val password: String)
+data class SignupResponse(val token: String, val userId: String)
+data class OfferDto(val id: String, val name: String, val ussdCode: String, val price: Int)
+data class TransactionRequest(val phoneNumber: String, val offerId: String, val amount: Double)
+data class TransactionResponse(val id: String, val status: String)
