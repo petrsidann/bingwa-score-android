@@ -51,15 +51,8 @@ import javax.inject.Inject
 class AutoRenewalsViewModel @Inject constructor(
     private val offerRepository: OfferRepository
 ) : ViewModel() {
-
-    val offers: StateFlow<List<Offer>> = offerRepository.getAllOffers()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
-    fun toggleRenewal(offer: Offer) {
-        viewModelScope.launch {
-            offerRepository.updateOffer(offer.copy(autoRenewable = !offer.autoRenewable))
-        }
-    }
+    val offers: StateFlow<List<Offer>> = offerRepository.getAllOffers().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    fun toggleRenewal(offer: Offer) { viewModelScope.launch { offerRepository.updateOffer(offer.copy(autoRenewable = !offer.autoRenewable)) } }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -73,38 +66,20 @@ fun AutoRenewalsScreen(onNavigateBack: () -> Unit) {
         topBar = {
             TopAppBar(
                 title = { Text("Auto Renewals", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = MaterialTheme.colorScheme.onSurface)
-                    }
-                },
+                navigationIcon = { IconButton(onClick = onNavigateBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = MaterialTheme.colorScheme.onSurface) } },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         }
     ) { padding ->
-        LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(padding),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
+        LazyColumn(modifier = Modifier.fillMaxSize().padding(padding), contentPadding = androidx.compose.foundation.layout.PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             items(offers) { offer ->
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(18.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .padding(16.dp)
-                ) {
+                Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(MaterialTheme.colorScheme.surfaceVariant).padding(16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.Cached, null, tint = EmeraldGreen)
                         Spacer(Modifier.width(12.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(offer.name, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                            Text(
-                                "Renews every ${offer.validityHours}h - KES ${offer.price}",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontSize = 12.sp
-                            )
+                            Text("Renews every ${offer.validityHours}h - KES ${offer.price}", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                         }
                         Switch(checked = offer.autoRenewable, onCheckedChange = { vm.toggleRenewal(offer) })
                     }
