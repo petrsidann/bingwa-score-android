@@ -1,53 +1,58 @@
 package com.bingwascore.app.ui.theme
 
 import android.app.Activity
+import android.os.Build
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
-private val LightColors = lightColorScheme(
-    primary = Orange500,
-    onPrimary = White,
-    primaryContainer = Color(0xFFFFE3D0),
-    onPrimaryContainer = Orange600,
-    secondary = Orange600,
-    background = Color(0xFFE4E4E9),
-    onBackground = Color(0xFF1A1A1E),
-    surface = Color(0xFFF2F2F5),
-    onSurface = Color(0xFF1A1A1E),
-    surfaceVariant = Color(0xFFDCDCE2),
-    onSurfaceVariant = Color(0xFF5C5C66),
-    outline = Color(0xFFC2C2CB)
+private val DarkColorScheme = darkColorScheme(
+    primary = Purple500,
+    secondary = Teal200,
+    background = DarkBackground,
+    surface = DarkSurface,
+    onPrimary = Color.White,
+    onSecondary = Color.Black,
+    onBackground = Color.White,
+    onSurface = Color.White,
+    error = ErrorRed
 )
 
-private val DarkColors = darkColorScheme(
-    primary = Purple500,
-    onPrimary = White,
-    primaryContainer = Purple900,
-    onPrimaryContainer = Purple400,
-    secondary = Orange500,
-    background = Color(0xFF0B0B0F),
-    onBackground = Color(0xFFF2F2F7),
-    surface = Color(0xFF15151A),
-    onSurface = Color(0xFFF2F2F7),
-    surfaceVariant = Color(0xFF1F1F27),
-    onSurfaceVariant = Color(0xFF98989D),
-    outline = Color(0xFF2C2C34)
+private val LightColorScheme = lightColorScheme(
+    primary = Orange500,
+    secondary = Teal200,
+    background = LightBackground,
+    surface = LightSurface,
+    onPrimary = Color.White,
+    onSecondary = Color.Black,
+    onBackground = Color.Black,
+    onSurface = Color.Black,
+    error = ErrorRed
 )
 
 @Composable
-fun BingwaTheme(
-    darkTheme: Boolean = true,
+fun BingwaScoreTheme(
+    darkTheme: Boolean = isSystemInDarkTheme(),
+    dynamicColor: Boolean = false, // Disable dynamic color to keep brand identity
     content: @Composable () -> Unit
 ) {
-    val colorScheme = if (darkTheme) DarkColors else LightColors
-
+    val colorScheme = when {
+        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+            val context = LocalContext.current
+            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+        }
+        darkTheme -> DarkColorScheme
+        else -> LightColorScheme
+    }
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
@@ -57,5 +62,9 @@ fun BingwaTheme(
         }
     }
 
-    MaterialTheme(colorScheme = colorScheme, typography = BingwaTypography, content = content)
+    MaterialTheme(
+        colorScheme = colorScheme,
+        typography = Typography, // Assuming standard typography for now
+        content = content
+    )
 }
