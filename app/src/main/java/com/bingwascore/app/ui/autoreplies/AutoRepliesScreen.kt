@@ -57,9 +57,7 @@ import javax.inject.Inject
 class AutoRepliesViewModel @Inject constructor(
     private val autoReplyDao: AutoReplyDao
 ) : ViewModel() {
-
-    val replies: StateFlow<List<AutoReplyEntity>> = autoReplyDao.getAll()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val replies: StateFlow<List<AutoReplyEntity>> = autoReplyDao.getAll().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     init {
         viewModelScope.launch {
@@ -81,13 +79,8 @@ class AutoRepliesViewModel @Inject constructor(
         }
     }
 
-    fun toggle(reply: AutoReplyEntity) {
-        viewModelScope.launch { autoReplyDao.update(reply.copy(isActive = !reply.isActive)) }
-    }
-
-    fun updateMessage(reply: AutoReplyEntity, message: String) {
-        viewModelScope.launch { autoReplyDao.update(reply.copy(message = message)) }
-    }
+    fun toggle(reply: AutoReplyEntity) { viewModelScope.launch { autoReplyDao.update(reply.copy(isActive = !reply.isActive)) } }
+    fun updateMessage(reply: AutoReplyEntity, message: String) { viewModelScope.launch { autoReplyDao.update(reply.copy(message = message)) } }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -102,30 +95,15 @@ fun AutoRepliesScreen(onNavigateBack: () -> Unit) {
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
-                title = { Text("Auto Replies", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = MaterialTheme.colorScheme.onSurface)
-                    }
-                },
+                title = { Text("Botted Replies", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold) },
+                navigationIcon = { IconButton(onClick = onNavigateBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = MaterialTheme.colorScheme.onSurface) } },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         }
     ) { padding ->
-        LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(padding),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
+        LazyColumn(modifier = Modifier.fillMaxSize().padding(padding), contentPadding = androidx.compose.foundation.layout.PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             items(replies) { reply ->
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(18.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .clickable { editing = reply; draft = reply.message }
-                        .padding(16.dp)
-                ) {
+                Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(MaterialTheme.colorScheme.surfaceVariant).clickable { editing = reply; draft = reply.message }.padding(16.dp)) {
                     Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(reply.title, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, modifier = Modifier.weight(1f))
@@ -137,29 +115,14 @@ fun AutoRepliesScreen(onNavigateBack: () -> Unit) {
                 }
             }
         }
-
         editing?.let { reply ->
             Dialog(onDismissRequest = { editing = null }) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(MaterialTheme.colorScheme.surface)
-                        .padding(20.dp)
-                ) {
+                Column(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(MaterialTheme.colorScheme.surface).padding(20.dp)) {
                     Text(reply.title, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                     Spacer(Modifier.height(12.dp))
                     OutlinedTextField(value = draft, onValueChange = { draft = it }, label = { Text("Message") }, modifier = Modifier.fillMaxWidth())
                     Spacer(Modifier.height(16.dp))
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(MaterialTheme.colorScheme.primary)
-                            .clickable { vm.updateMessage(reply, draft); editing = null }
-                            .padding(12.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
+                    Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.primary).clickable { vm.updateMessage(reply, draft); editing = null }.padding(12.dp), contentAlignment = Alignment.Center) {
                         Text("Save", color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold)
                     }
                 }
