@@ -58,7 +58,6 @@ class OfferSettingsViewModel @Inject constructor(
     private val offerDao: OfferDao,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
-
     private val offerId: String = savedStateHandle.get<String>("offerId") ?: ""
     private val _offer = MutableStateFlow<Offer?>(null)
     val offer: StateFlow<Offer?> = _offer.asStateFlow()
@@ -104,40 +103,15 @@ fun OfferSettingsScreen(offerId: String, onNavigateBack: () -> Unit) {
                 Text(o.name, color = EmeraldGreen, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                 Text(o.ussdCode, color = MaterialTheme.colorScheme.onSurfaceVariant, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace, fontSize = 13.sp)
 
-                ToggleRow("Auto Reschedule", "Re-run at ${o.autoRescheduleRunTime} next day if already recommended", o.autoReschedule) {
-                    vm.update { it.copy(autoReschedule = it.autoReschedule.not()) }
-                }
-
-                StepperRow("USSD Timeout", "${o.ussdTimeoutMillis / 1000}s", {
-                    vm.update { it.copy(ussdTimeoutMillis = (it.ussdTimeoutMillis - 5000).coerceAtLeast(10000)) }
-                }, {
-                    vm.update { it.copy(ussdTimeoutMillis = (it.ussdTimeoutMillis + 5000).coerceAtMost(120000)) }
-                })
-
-                ToggleRow("Auto Retry", "Retry failed requests automatically", o.autoRetry) {
-                    vm.update { it.copy(autoRetry = it.autoRetry.not()) }
-                }
-
-                StepperRow("Retries", "${o.numberOfRetries}", {
-                    vm.update { it.copy(numberOfRetries = (it.numberOfRetries - 1).coerceAtLeast(0)) }
-                }, {
-                    vm.update { it.copy(numberOfRetries = (it.numberOfRetries + 1).coerceAtMost(5)) }
-                })
-
-                StepperRow("Retry Interval", "${o.retryIntervalMins}min", {
-                    vm.update { it.copy(retryIntervalMins = (it.retryIntervalMins - 1).coerceAtLeast(1)) }
-                }, {
-                    vm.update { it.copy(retryIntervalMins = (it.retryIntervalMins + 1).coerceAtMost(30)) }
-                })
-
-                ToggleRow("Auto Retry Connection Problems", "Retry when network drops", o.autoRetryConnectionProblems) {
-                    vm.update { it.copy(autoRetryConnectionProblems = it.autoRetryConnectionProblems.not()) }
-                }
-
+                ToggleRow("Auto Reschedule", "Re-run at ${o.autoRescheduleRunTime} next day if already recommended", o.autoReschedule) { vm.update { it.copy(autoReschedule = it.autoReschedule.not()) } }
+                StepperRow("USSD Timeout", "${o.ussdTimeoutMillis / 1000}s", { vm.update { it.copy(ussdTimeoutMillis = (it.ussdTimeoutMillis - 5000).coerceAtLeast(10000)) } }, { vm.update { it.copy(ussdTimeoutMillis = (it.ussdTimeoutMillis + 5000).coerceAtMost(120000)) } })
+                ToggleRow("Auto Retry", "Retry failed requests automatically", o.autoRetry) { vm.update { it.copy(autoRetry = it.autoRetry.not()) } }
+                StepperRow("Retries", "${o.numberOfRetries}", { vm.update { it.copy(numberOfRetries = (it.numberOfRetries - 1).coerceAtLeast(0)) } }, { vm.update { it.copy(numberOfRetries = (it.numberOfRetries + 1).coerceAtMost(5)) } })
+                StepperRow("Retry Interval", "${o.retryIntervalMins}min", { vm.update { it.copy(retryIntervalMins = (it.retryIntervalMins - 1).coerceAtLeast(1)) } }, { vm.update { it.copy(retryIntervalMins = (it.retryIntervalMins + 1).coerceAtMost(30)) } })
+                ToggleRow("Auto Retry Connection Problems", "Retry when network drops", o.autoRetryConnectionProblems) { vm.update { it.copy(autoRetryConnectionProblems = it.autoRetryConnectionProblems.not()) } }
+                
                 val canStrict = OfferSignature.canEnableStrictMode(o.completionMessage) || OfferSignature.isBingwaOffer(o.ussdCode)
-                ToggleRow("Strict Mode", if (canStrict) "Wait for completion message before success" else "Requires a completion message with @phone", o.strictMode && canStrict) {
-                    if (canStrict) vm.update { it.copy(strictMode = it.strictMode.not()) }
-                }
+                ToggleRow("Strict Mode", if (canStrict) "Wait for completion message before success" else "Requires a completion message with @phone", o.strictMode && canStrict) { if (canStrict) vm.update { it.copy(strictMode = it.strictMode.not()) } }
 
                 OutlinedTextField(
                     value = o.completionMessage ?: "",
@@ -153,9 +127,7 @@ fun OfferSettingsScreen(offerId: String, onNavigateBack: () -> Unit) {
 
 @Composable
 private fun ToggleRow(title: String, subtitle: String, checked: Boolean, onToggle: () -> Unit) {
-    Box(
-        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(MaterialTheme.colorScheme.surfaceVariant).padding(14.dp)
-    ) {
+    Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(MaterialTheme.colorScheme.surfaceVariant).padding(14.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(title, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
@@ -168,9 +140,7 @@ private fun ToggleRow(title: String, subtitle: String, checked: Boolean, onToggl
 
 @Composable
 private fun StepperRow(title: String, value: String, onMinus: () -> Unit, onPlus: () -> Unit) {
-    Box(
-        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(MaterialTheme.colorScheme.surfaceVariant).padding(14.dp)
-    ) {
+    Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(MaterialTheme.colorScheme.surfaceVariant).padding(14.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(title, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, modifier = Modifier.weight(1f))
             IconButton(onClick = onMinus) { Icon(Icons.Default.Remove, null, tint = EmeraldGreen) }
