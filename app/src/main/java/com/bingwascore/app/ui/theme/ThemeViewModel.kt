@@ -15,24 +15,15 @@ import javax.inject.Inject
 class ThemeViewModel @Inject constructor(
     private val userPreferences: UserPreferences
 ) : ViewModel() {
-
-    // 0 = Light, 1 = Dark
-    val themeMode: StateFlow<Int> = userPreferences.themeMode
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 1)
-
-    val isDark: StateFlow<Boolean> = userPreferences.themeMode
-        .map { it == 1 }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+    val isDark: StateFlow<Boolean> = userPreferences.themeMode.map { it == 1 }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
     fun setTheme(mode: Int) {
-        viewModelScope.launch {
-            userPreferences.setThemeMode(mode)
-        }
+        viewModelScope.launch { userPreferences.setThemeMode(mode) }
     }
 
     fun toggle() {
         viewModelScope.launch {
-            val current = themeMode.value
+            val current = userPreferences.themeMode.value
             userPreferences.setThemeMode(if (current == 1) 0 else 1)
         }
     }
