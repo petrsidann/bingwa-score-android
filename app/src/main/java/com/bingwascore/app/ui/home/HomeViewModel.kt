@@ -1,58 +1,58 @@
 package com.bingwascore.app.ui.home
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bingwascore.app.data.repository.TransactionRepository
-import com.bingwascore.app.domain.model.TransactionStatus
+import com.bingwascore.app.domain.stats.AgentScore
+import com.bingwascore.app.domain.stats.DayPoint
+import com.bingwascore.app.domain.stats.EngineHealth
+import com.bingwascore.app.domain.stats.HealthCheck
+import com.bingwascore.app.domain.stats.StatisticsEngine
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import java.util.Calendar
 import javax.inject.Inject
 
-data class HomeUiState(
-    val score: Int = 0,
-    val totalCommission: Double = 0.0,
-    val successfulCount: Int = 0,
-    val failedCount: Int = 0,
-    val isLoading: Boolean = true
+data class HomeState(
+    val greeting: String = "",
+    val score: AgentScore = AgentScore(0, "Rookie", 0, 0.0, 0.0, 0.0, 0, 0),
+    val weekCommission: List<DayPoint> = emptyList(),
+    val healthIssues: List<HealthCheck> = emptyList(),
+    val recent: List<com.bingwascore.app.domain.model.Transaction> = emptyList()
 )
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    private val transactionRepository: TransactionRepository
+    private val transactionRepository: TransactionRepository,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
+    private val health = MutableStateFlow(EngineHealth.checks(context))
 
-    private val _uiState = MutableStateFlow(HomeUiState())
-    val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
+    val state: StateFlow<HomeState> = transactionRepository.getAllTransactions()
+        .map { txs ->
+            HomeState(
+                greeting = greeting(),
+                score = StatisticsEngine.compute(txs),
+                weekCommission = StatisticsEngine.last7DaysCommission(txs),
+                healthIssues = health.value.filter { !it.ok },
+                recent = txs.take(8)
+            )
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HomeState())
 
-    init {
-        loadDashboardData()
-    }
+    fun refreshHealth() { health.value = EngineHealth.checks(context) }
 
-    private fun loadDashboardData() {
-        viewModelScope.launch {
-            transactionRepository.getAllTransactions().collect { transactions ->
-                val successful = transactions.filter { it.status == TransactionStatus.SUCCESSFUL }
-                val failed = transactions.filter { it.status == TransactionStatus.FAILED || it.status == TransactionStatus.FAILED_ALREADY_RECOMMENDED }
-                
-                // Score Logic: 
-                // Base: 10 points per success
-                // Bonus: 50 points per 1000 KES commission
-                // Penalty: -5 per failure
-                val commission = successful.sumOf { it.commission }
-                val rawScore = (successful.size * 10) + (commission / 1000 * 50).toInt() - (failed.size * 5)
-                val finalScore = rawScore.coerceIn(0, 1000)
-
-                _uiState.value = HomeUiState(
-                    score = finalScore,
-                    totalCommission = commission,
-                    successfulCount = successful.size,
-                    failedCount = failed.size,
-                    isLoading = false
-                )
-            }
+    private fun greeting(): String {
+        return when (Calendar.getInstance().get(Calendar.HOUR_OF_DAY)) {
+            in 5..11 -> "Good Morning"
+            in 12..16 -> "Good Afternoon"
+            else -> "Good Evening"
         }
     }
 }
