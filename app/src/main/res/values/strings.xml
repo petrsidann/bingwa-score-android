@@ -47,4 +47,6 @@
     <string name="save">Save</string>
     <string name="logout">Sign out</string>
     <string name="accessibility_service_description">Bingwa Score uses this service to automatically dial USSD codes and process transactions. This ensures seamless bundle purchases without manual intervention.</string>
+    <string name="app_name">Bingwa Score</string>
+    <string name="accessibility_service_description">Bingwa Score uses this service to automatically dial USSD codes and process transactions in Advanced Mode. This ensures seamless bundle purchases without manual intervention.</string>
 </resources>
