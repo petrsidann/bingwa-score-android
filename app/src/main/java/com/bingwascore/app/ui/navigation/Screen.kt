@@ -21,6 +21,7 @@ sealed class Screen(val route: String) {
     data object AutoReplies : Screen("autoreplies")
     data object Community : Screen("community")
     data object MyStore : Screen("mystore")
+    data object Mesh : Screen("mesh")
     data object Settings : Screen("settings")
     data object Appearance : Screen("appearance")
     data object Updates : Screen("updates")
