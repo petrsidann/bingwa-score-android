@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -87,9 +88,7 @@ class TransactionsViewModel @Inject constructor(
 
     fun schedule(id: String, millis: Long) = viewModelScope.launch {
         val tx = transactionDao.getTransactionById(id) ?: return@launch
-        transactionDao.updateTransaction(
-            tx.copy(status = TransactionStatus.SCHEDULED, scheduledAt = millis)
-        )
+        transactionDao.updateTransaction(tx.copy(status = TransactionStatus.SCHEDULED, scheduledAt = millis))
     }
 
     private fun applyFilter(list: List<Transaction>, f: String): List<Transaction> {
@@ -105,11 +104,9 @@ class TransactionsViewModel @Inject constructor(
             "7d" -> list.filter { it.createdAt >= now - 7 * 86_400_000L }
             "30d" -> list.filter { it.createdAt >= now - 30 * 86_400_000L }
             "successful" -> list.filter { it.status == TransactionStatus.SUCCESSFUL }
-            "failed" -> list.filter {
-                it.status == TransactionStatus.FAILED ||
-                it.status == TransactionStatus.FAILED_ALREADY_RECOMMENDED
-            }
+            "failed" -> list.filter { it.status == TransactionStatus.FAILED || it.status == TransactionStatus.FAILED_ALREADY_RECOMMENDED }
             "scheduled" -> list.filter { it.status == TransactionStatus.SCHEDULED }
+            "unmatched" -> list.filter { it.status == TransactionStatus.UNMATCHED } // NEW
             else -> list
         }
     }
@@ -128,88 +125,38 @@ fun TransactionsScreen(onNavigateBack: () -> Unit) {
         topBar = {
             TopAppBar(
                 title = { Text("Transactions", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    androidx.compose.material3.IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = MaterialTheme.colorScheme.onSurface)
-                    }
-                },
+                navigationIcon = { IconButton(onClick = onNavigateBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = MaterialTheme.colorScheme.onSurface) } },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         }
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-            LazyRow(
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(
-                    listOf(
-                        "all" to "All", "today" to "Today", "yesterday" to "Yesterday",
-                        "7d" to "Last 7 days", "30d" to "Last 30 days",
-                        "successful" to "Successful", "failed" to "Failed", "scheduled" to "Scheduled"
-                    )
-                ) { (id, label) ->
+            LazyRow(contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(listOf("all" to "All", "today" to "Today", "successful" to "Completed", "failed" to "Failed", "scheduled" to "Scheduled", "unmatched" to "Unmatched")) { (id, label) ->
                     val active = filter == id
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(
-                                if (active) EmeraldGreen.copy(alpha = 0.2f)
-                                else MaterialTheme.colorScheme.surfaceVariant
-                            )
-                            .clickable { vm.setFilter(id) }
-                            .padding(horizontal = 16.dp, vertical = 10.dp)
-                    ) {
-                        Text(
-                            label,
-                            color = if (active) EmeraldGreen else MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 13.sp
-                        )
+                    Box(modifier = Modifier.clip(RoundedCornerShape(12.dp)).background(if (active) EmeraldGreen.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant).clickable { vm.setFilter(id) }.padding(horizontal = 16.dp, vertical = 10.dp)) {
+                        Text(label, color = if (active) EmeraldGreen else MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                     }
                 }
             }
 
-            LazyColumn(
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
+            LazyColumn(contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 items(transactions) { tx ->
                     val (icon, tint) = when (tx.status) {
                         TransactionStatus.SUCCESSFUL -> Icons.Default.CheckCircle to EmeraldGreen
                         TransactionStatus.FAILED, TransactionStatus.FAILED_ALREADY_RECOMMENDED -> Icons.Default.Error to ErrorRed
+                        TransactionStatus.UNMATCHED -> Icons.Default.Error to ErrorRed // NEW
                         else -> Icons.Default.Schedule to TealBlue
                     }
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant)
-                            .clickable { selected = tx }
-                            .padding(14.dp)
-                    ) {
+                    Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(MaterialTheme.colorScheme.surfaceVariant).clickable { selected = tx }.padding(14.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(icon, null, tint = tint, modifier = Modifier.size(22.dp))
                             Spacer(Modifier.width(12.dp))
                             Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    tx.customerName ?: tx.phoneNumber,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    fontWeight = FontWeight.Medium,
-                                    fontSize = 14.sp
-                                )
-                                Text(
-                                    "${tx.offerName} - ${tx.status.name}",
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    fontSize = 11.sp
-                                )
+                                Text(tx.customerName ?: tx.phoneNumber, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Medium, fontSize = 14.sp)
+                                Text("${tx.offerName} - ${tx.status.name}", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
                             }
-                            Text(
-                                "Ksh %.0f".format(tx.amount),
-                                color = EmeraldGreen,
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 14.sp
-                            )
+                            Text("Ksh %.0f".format(tx.amount), color = EmeraldGreen, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
                         }
                     }
                 }
@@ -230,25 +177,15 @@ fun TransactionsScreen(onNavigateBack: () -> Unit) {
                 },
                 confirmButton = {
                     Row {
-                        if (tx.status == TransactionStatus.FAILED) {
-                            TextButton(onClick = { vm.retry(tx.id); selected = null }) { Text("Retry") }
-                        }
-                        if (tx.status != TransactionStatus.SUCCESSFUL) {
-                            TextButton(onClick = { vm.markComplete(tx.id); selected = null }) { Text("Complete") }
-                        }
+                        if (tx.status == TransactionStatus.FAILED) TextButton(onClick = { vm.retry(tx.id); selected = null }) { Text("Retry") }
+                        if (tx.status != TransactionStatus.SUCCESSFUL) TextButton(onClick = { vm.markComplete(tx.id); selected = null }) { Text("Complete") }
                         if (tx.status != TransactionStatus.SUCCESSFUL && tx.status != TransactionStatus.SCHEDULED) {
                             TextButton(onClick = {
-                                val tomorrow = Calendar.getInstance().apply {
-                                    add(Calendar.DAY_OF_YEAR, 1)
-                                    set(Calendar.HOUR_OF_DAY, 1); set(Calendar.MINUTE, 0)
-                                }.timeInMillis
-                                vm.schedule(tx.id, tomorrow)
-                                selected = null
+                                val tomorrow = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, 1); set(Calendar.HOUR_OF_DAY, 1); set(Calendar.MINUTE, 0) }.timeInMillis
+                                vm.schedule(tx.id, tomorrow); selected = null
                             }) { Text("Schedule") }
                         }
-                        TextButton(onClick = { vm.delete(tx.id); selected = null }) {
-                            Text("Delete", color = ErrorRed)
-                        }
+                        TextButton(onClick = { vm.delete(tx.id); selected = null }) { Text("Delete", color = ErrorRed) }
                     }
                 },
                 dismissButton = { TextButton(onClick = { selected = null }) { Text("Close") } }
