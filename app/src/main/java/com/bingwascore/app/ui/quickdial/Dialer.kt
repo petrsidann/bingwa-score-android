@@ -44,11 +44,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bingwascore.app.data.repository.OfferRepository
 import com.bingwascore.app.data.repository.TransactionRepository
-import com.bingwascore.app.domain.engine.TransactionPipeline
+import com.bingwascore.app.domain.usecase.StartUssdAutomationUseCase
 import com.bingwascore.app.domain.model.Offer
 import com.bingwascore.app.domain.model.Transaction
 import com.bingwascore.app.domain.model.TransactionStatus
-import com.bingwascore.app.domain.sms.MpesaMessage
 import com.bingwascore.app.ui.theme.EmeraldGreen
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
@@ -62,32 +61,17 @@ import javax.inject.Inject
 class QuickDialViewModel @Inject constructor(
     offerRepository: OfferRepository,
     private val transactionRepository: TransactionRepository,
-    private val pipeline: TransactionPipeline
+    private val startUssd: StartUssdAutomationUseCase
 ) : ViewModel() {
-
-    val offers: StateFlow<List<Offer>> = offerRepository.getActiveOffers()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val offers: StateFlow<List<Offer>> = offerRepository.getActiveOffers().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun dial(phone: String, offer: Offer, onResult: (String) -> Unit) {
         viewModelScope.launch {
-            if (phone.length < 10) {
-                onResult("Enter a valid customer phone number")
-                return@launch
-            }
-            
-            // Create a mock M-Pesa message to trigger the pipeline manually for Quick Dial
-            // This simulates a payment received for this specific offer
-            val mockMpesa = MpesaMessage(
-                receiptCode = "QD${System.currentTimeMillis()}",
-                phoneNumber = phone,
-                senderName = "Quick Dial",
-                amountInt = offer.price,
-                timestamp = System.currentTimeMillis()
-            )
-            
-            // Trigger the pipeline
-            pipeline.onMpesaReceived(mockMpesa)
-            onResult("Processing ${offer.name} for $phone...")
+            if (phone.length < 10) { onResult("Enter a valid customer phone number"); return@launch }
+            val tx = Transaction(id = UUID.randomUUID().toString(), phoneNumber = phone, offerId = offer.id, offerName = offer.name, ussdCode = offer.ussdCode, amount = offer.price.toDouble(), status = TransactionStatus.PENDING)
+            transactionRepository.insertTransaction(tx)
+            startUssd.execute(offer.id, tx.id, phone)
+            onResult("Dialing ${offer.name} for $phone")
         }
     }
 }
@@ -106,7 +90,7 @@ fun QuickDialScreen(onNavigateBack: () -> Unit) {
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
-                title = { Text("Dialer", color = onSurface, fontWeight = FontWeight.Bold) }, // RENAMED
+                title = { Text("Dialer", color = onSurface, fontWeight = FontWeight.Bold) },
                 navigationIcon = { IconButton(onClick = onNavigateBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = onSurface) } },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
@@ -124,7 +108,9 @@ fun QuickDialScreen(onNavigateBack: () -> Unit) {
                 }
             }
             Spacer(Modifier.height(8.dp))
-            Box(modifier = Modifier.fillMaxWidth().height(56.dp).clip(RoundedCornerShape(16.dp)).background(EmeraldGreen).clickable { selectedOffer?.let { offer -> vm.dial(phone, offer) { feedback = it } } ?: run { feedback = "Select an offer first" } }, contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier.fillMaxWidth().height(56.dp).clip(RoundedCornerShape(16.dp)).background(EmeraldGreen).clickable {
+                selectedOffer?.let { offer -> vm.dial(phone, offer) { feedback = it } } ?: run { feedback = "Select an offer first" }
+            }, contentAlignment = Alignment.Center) {
                 Text("Dial Now", color = Color.White, fontWeight = FontWeight.Bold)
             }
             if (feedback.isNotEmpty()) Text(feedback, color = EmeraldGreen, fontSize = 13.sp)
