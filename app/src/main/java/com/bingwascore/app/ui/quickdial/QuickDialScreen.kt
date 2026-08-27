@@ -44,10 +44,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bingwascore.app.data.repository.OfferRepository
 import com.bingwascore.app.data.repository.TransactionRepository
+import com.bingwascore.app.domain.engine.TransactionPipeline
 import com.bingwascore.app.domain.model.Offer
 import com.bingwascore.app.domain.model.Transaction
 import com.bingwascore.app.domain.model.TransactionStatus
-import com.bingwascore.app.domain.usecase.StartUssdAutomationUseCase
+import com.bingwascore.app.domain.sms.MpesaMessage
 import com.bingwascore.app.ui.theme.EmeraldGreen
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
@@ -61,7 +62,7 @@ import javax.inject.Inject
 class QuickDialViewModel @Inject constructor(
     offerRepository: OfferRepository,
     private val transactionRepository: TransactionRepository,
-    private val startUssd: StartUssdAutomationUseCase
+    private val pipeline: TransactionPipeline
 ) : ViewModel() {
 
     val offers: StateFlow<List<Offer>> = offerRepository.getActiveOffers()
@@ -73,18 +74,20 @@ class QuickDialViewModel @Inject constructor(
                 onResult("Enter a valid customer phone number")
                 return@launch
             }
-            val tx = Transaction(
-                id = UUID.randomUUID().toString(),
+            
+            // Create a mock M-Pesa message to trigger the pipeline manually for Quick Dial
+            // In a real scenario, Quick Dial might just dial directly, but to keep it in the pipeline:
+            val mockMpesa = MpesaMessage(
+                receiptCode = "QD${System.currentTimeMillis()}",
                 phoneNumber = phone,
-                offerId = offer.id,
-                offerName = offer.name,
-                ussdCode = offer.ussdCode,
-                amount = offer.price.toDouble(),
-                status = TransactionStatus.PENDING
+                senderName = "Quick Dial",
+                amountInt = offer.price,
+                timestamp = System.currentTimeMillis()
             )
-            transactionRepository.insertTransaction(tx)
-            startUssd.execute(offer.id, tx.id, phone)
-            onResult("Dialing ${offer.name} for $phone")
+            
+            // Trigger the pipeline
+            pipeline.onMpesaReceived(mockMpesa)
+            onResult("Processing ${offer.name} for $phone...")
         }
     }
 }
@@ -103,82 +106,28 @@ fun QuickDialScreen(onNavigateBack: () -> Unit) {
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
-                title = { Text("Quick Dial", color = onSurface, fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = onSurface)
-                    }
-                },
+                title = { Text("Dialer", color = onSurface, fontWeight = FontWeight.Bold) }, // RENAMED
+                navigationIcon = { IconButton(onClick = onNavigateBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = onSurface) } },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         }
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            OutlinedTextField(
-                value = phone,
-                onValueChange = { phone = it.filter { c -> c.isDigit() } },
-                label = { Text("Customer phone") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp)
-            )
-
+        Column(modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            OutlinedTextField(value = phone, onValueChange = { phone = it.filter { c -> c.isDigit() } }, label = { Text("Customer phone") }, singleLine = true, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp))
             Text("Select offer", color = onSurface, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 offers.forEach { offer ->
                     val isSelected = selectedOffer?.id == offer.id
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(
-                                if (isSelected) EmeraldGreen.copy(alpha = 0.2f)
-                                else MaterialTheme.colorScheme.surfaceVariant
-                            )
-                            .clickable { selectedOffer = offer }
-                            .padding(horizontal = 14.dp, vertical = 10.dp)
-                    ) {
-                        Text(
-                            "${offer.name} - K${offer.price}",
-                            color = if (isSelected) EmeraldGreen else MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
+                    Box(modifier = Modifier.clip(RoundedCornerShape(12.dp)).background(if (isSelected) EmeraldGreen.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant).clickable { selectedOffer = offer }.padding(horizontal = 14.dp, vertical = 10.dp)) {
+                        Text("${offer.name} - K${offer.price}", color = if (isSelected) EmeraldGreen else MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
-
             Spacer(Modifier.height(8.dp))
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(EmeraldGreen)
-                    .clickable {
-                        selectedOffer?.let { offer ->
-                            vm.dial(phone, offer) { feedback = it }
-                        } ?: run { feedback = "Select an offer first" }
-                    },
-                contentAlignment = Alignment.Center
-            ) {
+            Box(modifier = Modifier.fillMaxWidth().height(56.dp).clip(RoundedCornerShape(16.dp)).background(EmeraldGreen).clickable { selectedOffer?.let { offer -> vm.dial(phone, offer) { feedback = it } } ?: run { feedback = "Select an offer first" } }, contentAlignment = Alignment.Center) {
                 Text("Dial Now", color = Color.White, fontWeight = FontWeight.Bold)
             }
-
-            if (feedback.isNotEmpty()) {
-                Text(feedback, color = EmeraldGreen, fontSize = 13.sp)
-            }
+            if (feedback.isNotEmpty()) Text(feedback, color = EmeraldGreen, fontSize = 13.sp)
         }
     }
 }
