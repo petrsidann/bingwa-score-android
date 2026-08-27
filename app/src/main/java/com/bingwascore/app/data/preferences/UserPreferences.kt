@@ -28,7 +28,7 @@ class UserPreferences(private val context: Context) {
     val accessToken: Flow<String?> = context.dataStore.data.map { it[accessTokenKey] }
     val refreshToken: Flow<String?> = context.dataStore.data.map { it[refreshTokenKey] }
     val userId: Flow<String?> = context.dataStore.data.map { it[userIdKey] }
-    val themeMode: Flow<Int> = context.dataStore.data.map { it[themeModeKey] ?: 1 }
+    val themeMode: Flow<Int> = context.dataStore.data.map { it[themeModeKey] ?: 1 } // Default Dark (1)
     val isLoggedIn: Flow<Boolean> = context.dataStore.data.map { it[isLoggedInKey] ?: false }
     val userPhone: Flow<String?> = context.dataStore.data.map { it[userPhoneKey] }
     val userName: Flow<String?> = context.dataStore.data.map { it[userNameKey] }
