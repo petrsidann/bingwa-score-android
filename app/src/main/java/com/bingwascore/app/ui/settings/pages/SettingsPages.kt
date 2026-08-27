@@ -31,6 +31,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -57,6 +58,7 @@ import com.bingwascore.app.data.settings.AppSetting
 import com.bingwascore.app.data.settings.SettingsRepository
 import com.bingwascore.app.data.updates.AppUpdateRepository
 import com.bingwascore.app.data.updates.UpdateState
+import com.bingwascore.app.domain.enums.ProcessingMode
 import com.bingwascore.app.ui.theme.EmeraldGreen
 import com.bingwascore.app.ui.theme.Orange500
 import com.bingwascore.app.ui.theme.Purple500
@@ -87,6 +89,14 @@ class UpdatesViewModel @Inject constructor(
     fun install(url: String) {
         viewModelScope.launch { updateRepository.downloadAndInstall(url) }
     }
+}
+
+@HiltViewModel
+class ProcessingModeViewModel @Inject constructor(
+    private val settingsRepository: SettingsRepository
+) : ViewModel() {
+    val mode: ProcessingMode get() = settingsRepository.getProcessingMode()
+    fun setMode(mode: ProcessingMode) = settingsRepository.setProcessingMode(mode)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -128,6 +138,33 @@ fun AppearanceScreen(onBack: () -> Unit) {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             ThemeCard("Light", Icons.Default.WbSunny, Orange500, White, !isDark, Orange500, { themeViewModel.setTheme(0) }, Modifier.weight(1f))
             ThemeCard("Dark", Icons.Default.DarkMode, Purple500, Color(0xFF0B0B0F), isDark, Purple500, { themeViewModel.setTheme(1) }, Modifier.weight(1f))
+        }
+        
+        Spacer(Modifier.height(24.dp))
+        Text("Processing Mode", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+        Spacer(Modifier.height(12.dp))
+        
+        val modeVm: ProcessingModeViewModel = hiltViewModel()
+        val currentMode = modeVm.mode
+        
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().clickable { modeVm.setMode(ProcessingMode.EXPRESS) }) {
+            RadioButton(selected = currentMode == ProcessingMode.EXPRESS, onClick = { modeVm.setMode(ProcessingMode.EXPRESS) })
+            Spacer(Modifier.width(8.dp))
+            Column {
+                Text("Direct Mode (Express)", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
+                Text("Fast single-step USSD dialing", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+            }
+        }
+        
+        Spacer(Modifier.height(8.dp))
+        
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().clickable { modeVm.setMode(ProcessingMode.ADVANCED) }) {
+            RadioButton(selected = currentMode == ProcessingMode.ADVANCED, onClick = { modeVm.setMode(ProcessingMode.ADVANCED) })
+            Spacer(Modifier.width(8.dp))
+            Column {
+                Text("Advanced Mode", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
+                Text("Multi-step USSD with Accessibility Service", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+            }
         }
     }
 }
