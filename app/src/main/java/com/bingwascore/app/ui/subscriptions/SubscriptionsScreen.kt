@@ -52,7 +52,6 @@ import javax.inject.Inject
 class SubscriptionsViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository
 ) : ViewModel() {
-
     private val _endsAt = MutableStateFlow(settingsRepository.getLong(AppSetting.SUBSCRIPTION_ENDS_AT))
     val endsAt: StateFlow<Long> = _endsAt.asStateFlow()
 
@@ -63,14 +62,6 @@ class SubscriptionsViewModel @Inject constructor(
             settingsRepository.saveLong(AppSetting.SUBSCRIPTION_ENDS_AT, next)
             _endsAt.value = next
         }
-    }
-
-    fun remaining(): String {
-        val diff = _endsAt.value - System.currentTimeMillis()
-        if (diff <= 0) return "Expired"
-        val days = diff / 86_400_000
-        val hours = (diff % 86_400_000) / 3_600_000
-        return "${days}d ${hours}h remaining"
     }
 }
 
@@ -85,42 +76,19 @@ fun SubscriptionsScreen(onNavigateBack: () -> Unit) {
         topBar = {
             TopAppBar(
                 title = { Text("Subscriptions", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = MaterialTheme.colorScheme.onSurface)
-                    }
-                },
+                navigationIcon = { IconButton(onClick = onNavigateBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = MaterialTheme.colorScheme.onSurface) } },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         }
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(18.dp))
-                    .background(TealBlue.copy(alpha = 0.14f))
-                    .padding(16.dp)
-            ) {
+        Column(modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(TealBlue.copy(alpha = 0.14f)).padding(16.dp)) {
                 Column {
                     Text("Engine Subscription", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     Spacer(Modifier.height(4.dp))
-                    Text(
-                        if (endsAt > System.currentTimeMillis()) vm.remaining() else "No active subscription",
-                        color = TealBlue,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 13.sp
-                    )
+                    Text(if (endsAt > System.currentTimeMillis()) "${(endsAt - System.currentTimeMillis()) / 86400000}d remaining" else "No active subscription", color = TealBlue, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                 }
             }
-
             PlanCard("Daily Subscription", "KES 30", "Unlimited processing for 1 day") { vm.activate(86_400_000L) }
             PlanCard("1 Week Subscription", "KES 200", "Unlimited processing for 1 week") { vm.activate(7 * 86_400_000L) }
             PlanCard("1 Month Subscription", "KES 900", "Unlimited processing for 1 month") { vm.activate(30 * 86_400_000L) }
@@ -131,14 +99,7 @@ fun SubscriptionsScreen(onNavigateBack: () -> Unit) {
 
 @Composable
 private fun PlanCard(title: String, price: String, subtitle: String, onActivate: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .clickable { onActivate() }
-            .padding(16.dp)
-    ) {
+    Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(MaterialTheme.colorScheme.surfaceVariant).clickable { onActivate() }.padding(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(title, color = EmeraldGreen, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
