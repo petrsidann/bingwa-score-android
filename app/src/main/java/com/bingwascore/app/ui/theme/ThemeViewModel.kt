@@ -16,7 +16,7 @@ class ThemeViewModel @Inject constructor(
     private val userPreferences: UserPreferences
 ) : ViewModel() {
 
-    // 0 = Light, 1 = Dark (default Dark)
+    // 0 = Light, 1 = Dark
     val themeMode: StateFlow<Int> = userPreferences.themeMode
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 1)
 
@@ -25,12 +25,15 @@ class ThemeViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
     fun setTheme(mode: Int) {
-        viewModelScope.launch { userPreferences.setThemeMode(mode) }
+        viewModelScope.launch {
+            userPreferences.setThemeMode(mode)
+        }
     }
 
     fun toggle() {
         viewModelScope.launch {
-            userPreferences.setThemeMode(if (themeMode.value == 1) 0 else 1)
+            val current = themeMode.value
+            userPreferences.setThemeMode(if (current == 1) 0 else 1)
         }
     }
 }
