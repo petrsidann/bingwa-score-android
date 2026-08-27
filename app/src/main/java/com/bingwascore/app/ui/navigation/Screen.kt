@@ -20,6 +20,7 @@ sealed class Screen(val route: String) {
     data object Subscriptions : Screen("subscriptions")
     data object AutoReplies : Screen("autoreplies")
     data object Community : Screen("community")
+    data object MyStore : Screen("mystore")
     data object Settings : Screen("settings")
     data object Appearance : Screen("appearance")
     data object Updates : Screen("updates")
