@@ -31,7 +31,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -58,7 +57,6 @@ import com.bingwascore.app.data.settings.AppSetting
 import com.bingwascore.app.data.settings.SettingsRepository
 import com.bingwascore.app.data.updates.AppUpdateRepository
 import com.bingwascore.app.data.updates.UpdateState
-import com.bingwascore.app.domain.enums.ProcessingMode
 import com.bingwascore.app.ui.theme.EmeraldGreen
 import com.bingwascore.app.ui.theme.Orange500
 import com.bingwascore.app.ui.theme.Purple500
@@ -73,30 +71,14 @@ class UpdatesViewModel @Inject constructor(
     val updateRepository: AppUpdateRepository,
     private val settingsRepository: SettingsRepository
 ) : ViewModel() {
-
     val updateKey: String get() = settingsRepository.getString(AppSetting.UPDATE_KEY) ?: ""
-
     fun generateKey() {
         val chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
         val key = "BINGWA-" + (1..8).map { chars.random() }.joinToString("")
         settingsRepository.saveString(AppSetting.UPDATE_KEY, key)
     }
-
-    fun check() {
-        viewModelScope.launch { updateRepository.checkForUpdates() }
-    }
-
-    fun install(url: String) {
-        viewModelScope.launch { updateRepository.downloadAndInstall(url) }
-    }
-}
-
-@HiltViewModel
-class ProcessingModeViewModel @Inject constructor(
-    private val settingsRepository: SettingsRepository
-) : ViewModel() {
-    val mode: ProcessingMode get() = settingsRepository.getProcessingMode()
-    fun setMode(mode: ProcessingMode) = settingsRepository.setProcessingMode(mode)
+    fun check() { viewModelScope.launch { updateRepository.checkForUpdates() } }
+    fun install(url: String) { viewModelScope.launch { updateRepository.downloadAndInstall(url) } }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -107,24 +89,12 @@ private fun PageScaffold(title: String, onBack: () -> Unit, content: @Composable
         topBar = {
             TopAppBar(
                 title = { Text(title, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = MaterialTheme.colorScheme.onSurface)
-                    }
-                },
+                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = MaterialTheme.colorScheme.onSurface) } },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         }
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(20.dp)
-        ) {
-            content()
-        }
+        Column(modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(20.dp)) { content() }
     }
 }
 
@@ -133,38 +103,10 @@ private fun PageScaffold(title: String, onBack: () -> Unit, content: @Composable
 fun AppearanceScreen(onBack: () -> Unit) {
     val themeViewModel: ThemeViewModel = hiltViewModel()
     val isDark by themeViewModel.isDark.collectAsState()
-
     PageScaffold("Appearance", onBack) {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             ThemeCard("Light", Icons.Default.WbSunny, Orange500, White, !isDark, Orange500, { themeViewModel.setTheme(0) }, Modifier.weight(1f))
             ThemeCard("Dark", Icons.Default.DarkMode, Purple500, Color(0xFF0B0B0F), isDark, Purple500, { themeViewModel.setTheme(1) }, Modifier.weight(1f))
-        }
-        
-        Spacer(Modifier.height(24.dp))
-        Text("Processing Mode", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-        Spacer(Modifier.height(12.dp))
-        
-        val modeVm: ProcessingModeViewModel = hiltViewModel()
-        val currentMode = modeVm.mode
-        
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().clickable { modeVm.setMode(ProcessingMode.EXPRESS) }) {
-            RadioButton(selected = currentMode == ProcessingMode.EXPRESS, onClick = { modeVm.setMode(ProcessingMode.EXPRESS) })
-            Spacer(Modifier.width(8.dp))
-            Column {
-                Text("Direct Mode (Express)", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
-                Text("Fast single-step USSD dialing", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
-            }
-        }
-        
-        Spacer(Modifier.height(8.dp))
-        
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().clickable { modeVm.setMode(ProcessingMode.ADVANCED) }) {
-            RadioButton(selected = currentMode == ProcessingMode.ADVANCED, onClick = { modeVm.setMode(ProcessingMode.ADVANCED) })
-            Spacer(Modifier.width(8.dp))
-            Column {
-                Text("Advanced Mode", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
-                Text("Multi-step USSD with Accessibility Service", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
-            }
         }
     }
 }
@@ -175,33 +117,14 @@ fun UpdatesScreen(onBack: () -> Unit) {
     val vm: UpdatesViewModel = hiltViewModel()
     val state by vm.updateRepository.updateState.collectAsState()
     var key by remember { mutableStateOf(vm.updateKey) }
-
     PageScaffold("Software Update", onBack) {
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Text("Current version", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
             Text("1.1.0", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 20.sp)
-
-            OutlinedTextField(
-                value = key,
-                onValueChange = { },
-                readOnly = true,
-                label = { Text("Update Key") },
-                leadingIcon = { Icon(Icons.Default.Key, null) },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp)
-            )
-
-            Button(
-                onClick = { vm.check() },
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-            ) {
-                if (state is UpdateState.Loading) {
-                    CircularProgressIndicator(Modifier.size(18.dp), color = White, strokeWidth = 2.dp)
-                } else {
-                    Text("Check for updates")
-                }
+            OutlinedTextField(value = key, onValueChange = { }, readOnly = true, label = { Text("Update Key") }, leadingIcon = { Icon(Icons.Default.Key, null) }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp))
+            Button(onClick = { vm.check() }, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)) {
+                if (state is UpdateState.Loading) CircularProgressIndicator(Modifier.size(18.dp), color = White, strokeWidth = 2.dp) else Text("Check for updates")
             }
-
             when (val s = state) {
                 is UpdateState.UpToDate -> Text("You're up to date", color = EmeraldGreen)
                 is UpdateState.Error -> Text(s.message, color = MaterialTheme.colorScheme.error)
@@ -209,14 +132,7 @@ fun UpdatesScreen(onBack: () -> Unit) {
                 is UpdateState.UpdateRequired -> {
                     Text("Update available: v${s.latestVersion}", color = Orange500, fontWeight = FontWeight.SemiBold)
                     Text(s.message, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
-                    if (s.apkUrl != null) {
-                        Button(
-                            onClick = { vm.install(s.apkUrl!!) },
-                            colors = ButtonDefaults.buttonColors(containerColor = EmeraldGreen)
-                        ) {
-                            Text("Install Update")
-                        }
-                    }
+                    if (s.apkUrl != null) Button(onClick = { vm.install(s.apkUrl!!) }, colors = ButtonDefaults.buttonColors(containerColor = EmeraldGreen)) { Text("Install Update") }
                 }
                 else -> {}
             }
@@ -274,49 +190,14 @@ private fun AboutRow(label: String, value: String) {
 }
 
 @Composable
-private fun ThemeCard(
-    label: String,
-    icon: ImageVector,
-    iconTint: Color,
-    preview: Color,
-    selected: Boolean,
-    accent: Color,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(20.dp))
-            .background(if (selected) accent.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surfaceVariant)
-            .clickable { onClick() }
-            .padding(14.dp)
-    ) {
+private fun ThemeCard(label: String, icon: ImageVector, iconTint: Color, preview: Color, selected: Boolean, accent: Color, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Box(modifier = modifier.clip(RoundedCornerShape(20.dp)).background(if (selected) accent.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surfaceVariant).clickable { onClick() }.padding(14.dp)) {
         Column {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(64.dp)
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(preview),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(icon, null, tint = iconTint, modifier = Modifier.size(26.dp))
-            }
+            Box(modifier = Modifier.fillMaxWidth().height(64.dp).clip(RoundedCornerShape(14.dp)).background(preview), contentAlignment = Alignment.Center) { Icon(icon, null, tint = iconTint, modifier = Modifier.size(26.dp)) }
             Spacer(Modifier.height(10.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text(label, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                if (selected) {
-                    Box(
-                        modifier = Modifier.size(18.dp).clip(CircleShape).background(accent),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(Icons.Default.Check, null, tint = White, modifier = Modifier.size(11.dp))
-                    }
-                }
+                if (selected) Box(modifier = Modifier.size(18.dp).clip(CircleShape).background(accent), contentAlignment = Alignment.Center) { Icon(Icons.Default.Check, null, tint = White, modifier = Modifier.size(11.dp)) }
             }
         }
     }
