@@ -70,30 +70,15 @@ class CustomersViewModel @Inject constructor(
     private val offerRepository: OfferRepository,
     private val smsDispatcher: SmsDispatcher
 ) : ViewModel() {
+    val profiles: StateFlow<List<CustomerProfile>> = combine(customerRepository.getAllCustomers(), transactionRepository.getAllTransactions()) { customers, txs ->
+        customers.map { IntelligenceEngine.profile(it, txs) }.sortedByDescending { it.churnRisk.ordinal }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val profiles: StateFlow<List<CustomerProfile>> =
-        combine(
-            customerRepository.getAllCustomers(),
-            transactionRepository.getAllTransactions()
-        ) { customers, txs ->
-            customers
-                .map { IntelligenceEngine.profile(it, txs) }
-                .sortedByDescending { it.churnRisk.ordinal }
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
-    val offers: StateFlow<List<Offer>> = offerRepository.getActiveOffers()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val offers: StateFlow<List<Offer>> = offerRepository.getActiveOffers().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun sendReminder(profile: CustomerProfile, offerName: String) {
         viewModelScope.launch {
-            smsDispatcher.send(
-                destination = profile.phone,
-                template = "Hi <firstName>, your <offerName> bundle is due for renewal. We've got you covered. - Bingwa Score",
-                values = mapOf(
-                    "firstName" to (profile.name?.split(" ")?.firstOrNull() ?: "customer"),
-                    "offerName" to offerName
-                )
-            )
+            smsDispatcher.send(destination = profile.phone, template = "Hi <firstName>, your <offerName> bundle is due for renewal. We've got you covered. - Bingwa Score", values = mapOf("firstName" to (profile.name?.split(" ")?.firstOrNull() ?: "customer"), "offerName" to offerName))
         }
     }
 }
@@ -111,65 +96,36 @@ fun CustomersScreen(onNavigateBack: () -> Unit) {
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
-                title = { Text("My Customers", color = onSurface, fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = onSurface)
-                    }
-                },
+                title = { Text("Customers", color = onSurface, fontWeight = FontWeight.Bold) },
+                navigationIcon = { IconButton(onClick = onNavigateBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = onSurface) } },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         }
     ) { padding ->
-        LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(padding),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
+        LazyColumn(modifier = Modifier.fillMaxSize().padding(padding), contentPadding = androidx.compose.foundation.layout.PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             items(profiles) { profile ->
                 val (badge, tint) = when (profile.churnRisk) {
                     ChurnRisk.HIGH -> "High churn" to ErrorRed
                     ChurnRisk.LOW -> "At risk" to Orange500
                     else -> "Active" to EmeraldGreen
                 }
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(18.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .clickable { selected = profile }
-                        .padding(16.dp)
-                ) {
+                Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(MaterialTheme.colorScheme.surfaceVariant).clickable { selected = profile }.padding(16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier.size(40.dp).clip(CircleShape).background(tint.copy(alpha = 0.2f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                (profile.name ?: profile.phone).take(1).uppercase(),
-                                color = tint,
-                                fontWeight = FontWeight.Bold
-                            )
+                        Box(modifier = Modifier.size(40.dp).clip(CircleShape).background(tint.copy(alpha = 0.2f)), contentAlignment = Alignment.Center) {
+                            Text((profile.name ?: profile.phone).take(1).uppercase(), color = tint, fontWeight = FontWeight.Bold)
                         }
                         Spacer(Modifier.width(12.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(profile.name ?: profile.phone, color = onSurface, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                            Text(
-                                "${profile.purchases} buys - Ksh %.0f".format(profile.totalSpent),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontSize = 12.sp
-                            )
+                            Text("${profile.purchases} buys - Ksh %.0f".format(profile.totalSpent), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                         }
-                        Box(
-                            modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(tint.copy(alpha = 0.15f)).padding(horizontal = 8.dp, vertical = 4.dp)
-                        ) {
+                        Box(modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(tint.copy(alpha = 0.15f)).padding(horizontal = 8.dp, vertical = 4.dp)) {
                             Text(badge, color = tint, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
                         }
                     }
                 }
             }
         }
-
         selected?.let { profile ->
             val recommended = IntelligenceEngine.recommend(profile, offers)
             AlertDialog(
@@ -183,15 +139,8 @@ fun CustomersScreen(onNavigateBack: () -> Unit) {
                         Text(recommended.firstOrNull()?.name ?: "-", color = EmeraldGreen, fontWeight = FontWeight.Bold)
                     }
                 },
-                confirmButton = {
-                    TextButton(onClick = {
-                        vm.sendReminder(profile, recommended.firstOrNull()?.name ?: profile.favoriteOffer ?: "bundle")
-                        selected = null
-                    }) { Text("Send reminder") }
-                },
-                dismissButton = {
-                    TextButton(onClick = { selected = null }) { Text("Close") }
-                }
+                confirmButton = { TextButton(onClick = { vm.sendReminder(profile, recommended.firstOrNull()?.name ?: profile.favoriteOffer ?: "bundle"); selected = null }) { Text("Send reminder") } },
+                dismissButton = { TextButton(onClick = { selected = null }) { Text("Close") } }
             )
         }
     }
