@@ -76,7 +76,7 @@ class QuickDialViewModel @Inject constructor(
             }
             
             // Create a mock M-Pesa message to trigger the pipeline manually for Quick Dial
-            // In a real scenario, Quick Dial might just dial directly, but to keep it in the pipeline:
+            // This simulates a payment received for this specific offer
             val mockMpesa = MpesaMessage(
                 receiptCode = "QD${System.currentTimeMillis()}",
                 phoneNumber = phone,
