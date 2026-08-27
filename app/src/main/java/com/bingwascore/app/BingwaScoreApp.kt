@@ -2,6 +2,7 @@ package com.bingwascore.app
 
 import android.app.Application
 import com.bingwascore.app.workers.AutoRenewalScheduler
+import com.bingwascore.app.workers.DailyArchiveScheduler
 import com.bingwascore.app.workers.SmsPollScheduler
 import dagger.hilt.android.HiltAndroidApp
 import timber.log.Timber
@@ -16,10 +17,10 @@ class BingwaScoreApp : Application() {
             Timber.plant(Timber.DebugTree())
         }
         
-        // Schedule background workers
         SmsPollScheduler.schedule(this)
         AutoRenewalScheduler.schedule(this)
+        DailyArchiveScheduler.schedule(this) // NEW
         
-        Timber.d("Bingwa Score engine online: triple listening + auto-renewals")
+        Timber.d("Bingwa Score engine online: triple listening + auto-renewals + daily archive")
     }
 }
