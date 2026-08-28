@@ -15,13 +15,16 @@ sealed class Screen(val route: String) {
     data object OfferActions : Screen("offeractions/{offerId}") {
         fun createRoute(offerId: String) = "offeractions/$offerId"
     }
-    data object QuickDial : Screen("quickdial")
+    data object Dialer : Screen("dialer")
     data object AutoRenewals : Screen("autorenewals")
     data object Subscriptions : Screen("subscriptions")
     data object AutoReplies : Screen("autoreplies")
     data object Community : Screen("community")
     data object MyStore : Screen("mystore")
     data object Mesh : Screen("mesh")
+    data object Blacklist : Screen("blacklist")
+    data object AuthorizedSenders : Screen("authorized-senders")
+    data object EngageBot : Screen("engagebot")
     data object Settings : Screen("settings")
     data object Appearance : Screen("appearance")
     data object Updates : Screen("updates")
