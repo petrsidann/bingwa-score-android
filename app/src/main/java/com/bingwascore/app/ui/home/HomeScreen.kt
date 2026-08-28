@@ -1,6 +1,7 @@
 package com.bingwascore.app.ui.home
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,6 +21,8 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -61,15 +64,18 @@ fun HomeScreen(
     viewModel: HomeViewModel,
     isDarkTheme: Boolean,
     onToggleTheme: () -> Unit,
-    onOpenDrawer: () -> Unit,
-    onNavigateToTransactions: () -> Unit,
-    onNavigateToSettings: () -> Unit
+    onNavigateToSettings: () -> Unit,
+    onNavigateToAccount: () -> Unit,
+    onNavigateToOrders: () -> Unit,
+    onNavigateToCheckout: (String) -> Unit,
+    onLogout: () -> Unit,
+    onOpenDrawer: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
-    val advanced by viewModel.advanced.collectAsState()
     val balance by viewModel.balance.collectAsState()
     val balanceLoading by viewModel.balanceLoading.collectAsState()
-    val health by viewModel.health.collectAsState()
+    val paused by viewModel.paused.collectAsState()
+    val advanced by viewModel.advanced.collectAsState()
     var showBalance by remember { mutableStateOf(true) }
     val onSurface = MaterialTheme.colorScheme.onSurface
     val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
@@ -80,7 +86,7 @@ fun HomeScreen(
             TopAppBar(
                 title = {
                     Column {
-                        Text("Good Morning,", color = onSurfaceVariant, fontSize = 13.sp)
+                        Text("${state.greeting},", color = onSurfaceVariant, fontSize = 13.sp)
                         Text("Dashboard", color = onSurface, fontWeight = FontWeight.Bold, fontSize = 22.sp)
                     }
                 },
@@ -103,17 +109,21 @@ fun HomeScreen(
                         onCheckedChange = { viewModel.toggleAdvanced() },
                         colors = SwitchDefaults.colors(checkedTrackColor = EmeraldGreen)
                     )
+                    Spacer(Modifier.width(16.dp))
+                    IconButton(onClick = { viewModel.togglePause() }) {
+                        Icon(if (paused) Icons.Default.PlayArrow else Icons.Default.Pause, null, tint = if (paused) EmeraldGreen else Orange500)
+                    }
                 }
             }
 
-            if (health.any { !it.ok }) {
+            if (state.healthIssues.isNotEmpty()) {
                 item {
                     Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(ErrorRed.copy(alpha = 0.12f)).padding(14.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.Warning, null, tint = ErrorRed, modifier = Modifier.size(20.dp))
                             Spacer(Modifier.width(10.dp))
-                            Text(health.first { !it.ok }.advice, color = onSurface, fontSize = 12.sp, modifier = Modifier.weight(1f))
-                            IconButton(onClick = { viewModel.openSystemSettings() }) { Text("Fix", color = ErrorRed, fontWeight = FontWeight.SemiBold, fontSize = 12.sp) }
+                            Text(state.healthIssues.first().advice, color = onSurface, fontSize = 12.sp, modifier = Modifier.weight(1f))
+                            Text("Fix", color = ErrorRed, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, modifier = Modifier.clickable { viewModel.openSystemSettings() })
                         }
                     }
                 }
@@ -125,10 +135,11 @@ fun HomeScreen(
                     StatCard("${state.failed}", "Failed", ErrorRed, Modifier.weight(1f))
                 }
             }
+
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     StatCard("Ksh %.0f".format(state.airtimeUsedToday), "Airtime Used Today", TealBlue, Modifier.weight(1f))
-                    StatCard("Ksh %.2f".format(state.weekCommission), "Weekly Commission", Orange500, Modifier.weight(1f))
+                    StatCard("Ksh %.2f".format(state.weeklyCommission), "Weekly Commission", Orange500, Modifier.weight(1f))
                 }
             }
 
@@ -137,19 +148,17 @@ fun HomeScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text("Airtime Balance", color = onSurfaceVariant, fontSize = 13.sp)
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    if (showBalance) (balance ?: "Ksh --") else "Ksh ••••",
-                                    color = onSurface, fontWeight = FontWeight.Bold, fontSize = 18.sp
-                                )
-                                IconButton(onClick = { showBalance = !showBalance }, modifier = Modifier.size(28.dp)) {
-                                    Icon(if (showBalance) Icons.Default.Visibility else Icons.Default.VisibilityOff, null, tint = onSurfaceVariant, modifier = Modifier.size(18.dp))
-                                }
-                            }
+                            Text(
+                                if (showBalance) (balance?.let { "Ksh $it" } ?: "Ksh --") else "Ksh ••••",
+                                color = onSurface, fontWeight = FontWeight.Bold, fontSize = 18.sp
+                            )
+                        }
+                        IconButton(onClick = { showBalance = !showBalance }) {
+                            Icon(if (showBalance) Icons.Default.Visibility else Icons.Default.VisibilityOff, null, tint = onSurfaceVariant, modifier = Modifier.size(20.dp))
                         }
                         IconButton(onClick = { viewModel.refreshBalance() }) {
-                            if (balanceLoading) CircularProgressIndicator(modifier = Modifier.size(22.dp), color = EmeraldGreen, strokeWidth = 2.dp)
-                            else Icon(Icons.Default.Refresh, null, tint = EmeraldGreen, modifier = Modifier.size(22.dp))
+                            if (balanceLoading) CircularProgressIndicator(modifier = Modifier.size(20.dp), color = EmeraldGreen, strokeWidth = 2.dp)
+                            else Icon(Icons.Default.Refresh, null, tint = EmeraldGreen, modifier = Modifier.size(20.dp))
                         }
                     }
                 }
@@ -158,24 +167,33 @@ fun HomeScreen(
             item {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Text("Recent Activity", color = onSurface, fontWeight = FontWeight.Bold, fontSize = 17.sp)
-                    Text("View All", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, modifier = Modifier.clickable { onNavigateToTransactions() })
+                    Text("View All", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, modifier = Modifier.clickable { onNavigateToOrders() })
                 }
             }
 
-            items(state.recent) { tx ->
-                val (icon, tint) = when (tx.status) {
-                    TransactionStatus.SUCCESSFUL -> Icons.Default.CheckCircle to EmeraldGreen
-                    TransactionStatus.FAILED, TransactionStatus.FAILED_ALREADY_RECOMMENDED -> Icons.Default.Error to ErrorRed
-                    else -> Icons.Default.Refresh to TealBlue
-                }
-                Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(icon, null, tint = tint, modifier = Modifier.size(22.dp))
-                    Spacer(Modifier.width(14.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(tx.customerName ?: tx.phoneNumber, color = onSurface, fontWeight = FontWeight.Medium, fontSize = 14.sp)
-                        Text(tx.offerName, color = onSurfaceVariant, fontSize = 12.sp)
+            if (state.recent.isEmpty()) {
+                item {
+                    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 40.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("No transactions yet", color = onSurface, fontWeight = FontWeight.SemiBold)
+                        Text("Payments received via M-Pesa will appear here", color = onSurfaceVariant, fontSize = 12.sp)
                     }
-                    Text("Ksh %.0f".format(tx.amount), color = EmeraldGreen, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                }
+            } else {
+                items(state.recent) { tx ->
+                    val (icon, tint) = when (tx.status) {
+                        TransactionStatus.SUCCESSFUL -> Icons.Default.CheckCircle to EmeraldGreen
+                        TransactionStatus.FAILED, TransactionStatus.FAILED_ALREADY_RECOMMENDED -> Icons.Default.Error to ErrorRed
+                        else -> Icons.Default.Refresh to TealBlue
+                    }
+                    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(icon, null, tint = tint, modifier = Modifier.size(22.dp))
+                        Spacer(Modifier.width(14.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(tx.customerName ?: tx.phoneNumber, color = onSurface, fontWeight = FontWeight.Medium, fontSize = 14.sp)
+                            Text(tx.offerName, color = onSurfaceVariant, fontSize = 12.sp)
+                        }
+                        Text("Ksh %.0f".format(tx.amount), color = EmeraldGreen, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                    }
                 }
             }
             item { Spacer(Modifier.height(80.dp)) }
