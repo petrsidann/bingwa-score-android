@@ -17,7 +17,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -44,7 +43,6 @@ import com.bingwascore.app.ui.theme.ErrorRed
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -54,25 +52,18 @@ class BlacklistViewModel @Inject constructor(
     private val customerRepository: CustomerRepository
 ) : ViewModel() {
 
-    val blacklisted: StateFlow<List<Customer>> = customerRepository.getAllCustomers()
-        .map { list -> list.filter { it.isBlacklisted } }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
-    val allCustomers: StateFlow<List<Customer>> = customerRepository.getAllCustomers()
+    val customers: StateFlow<List<Customer>> = customerRepository.getAllCustomers()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun setBlacklisted(customer: Customer, blocked: Boolean) {
-        viewModelScope.launch {
-            customerRepository.updateCustomer(customer.copy(isBlacklisted = blocked))
-        }
+        viewModelScope.launch { customerRepository.updateCustomer(customer.copy(isBlacklisted = blocked)) }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BlacklistScreen(onNavigateBack: () -> Unit) {
     val vm: BlacklistViewModel = hiltViewModel()
-    val customers by vm.allCustomers.collectAsState()
+    val customers by vm.customers.collectAsState()
     val onSurface = MaterialTheme.colorScheme.onSurface
 
     Scaffold(
@@ -80,11 +71,7 @@ fun BlacklistScreen(onNavigateBack: () -> Unit) {
         topBar = {
             TopAppBar(
                 title = { Text("Blacklist Customers", color = onSurface, fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = onSurface)
-                    }
-                },
+                navigationIcon = { IconButton(onClick = onNavigateBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = onSurface) } },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         }
@@ -95,33 +82,17 @@ fun BlacklistScreen(onNavigateBack: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             items(customers) { customer ->
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(18.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .padding(16.dp)
-                ) {
+                Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(MaterialTheme.colorScheme.surfaceVariant).padding(16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier.size(40.dp).clip(CircleShape).background(ErrorRed.copy(alpha = 0.15f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                (customer.name ?: customer.phoneNumber).take(1).uppercase(),
-                                color = ErrorRed,
-                                fontWeight = FontWeight.Bold
-                            )
+                        Box(modifier = Modifier.size(40.dp).clip(CircleShape).background(ErrorRed.copy(alpha = 0.15f)), contentAlignment = Alignment.Center) {
+                            Text((customer.name ?: customer.phoneNumber).take(1).uppercase(), color = ErrorRed, fontWeight = FontWeight.Bold)
                         }
                         Spacer(Modifier.width(12.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(customer.name ?: customer.phoneNumber, color = onSurface, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
                             Text(customer.phoneNumber, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                         }
-                        Switch(
-                            checked = customer.isBlacklisted,
-                            onCheckedChange = { vm.setBlacklisted(customer, it) }
-                        )
+                        Switch(checked = customer.isBlacklisted, onCheckedChange = { vm.setBlacklisted(customer, it) })
                     }
                 }
             }
