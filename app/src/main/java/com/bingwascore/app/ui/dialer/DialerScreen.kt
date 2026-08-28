@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -71,11 +72,10 @@ class DialerViewModel @Inject constructor(
     fun dial(context: Context, phone: String, offer: Offer, onResult: (String) -> Unit) {
         viewModelScope.launch {
             if (phone.length < 10) { onResult("Enter a valid customer phone number"); return@launch }
-            val code = offer.ussdCode.replace("ph", phone).replace("BH", phone, ignoreCase = true)
+            val code = offer.ussdCode.replace("BH", phone, ignoreCase = true).replace("ph", phone)
             val tx = Transaction(
                 id = UUID.randomUUID().toString(),
                 phoneNumber = phone,
-                customerName = null,
                 offerId = offer.id,
                 offerName = offer.name,
                 ussdCode = code,
@@ -88,12 +88,12 @@ class DialerViewModel @Inject constructor(
                 putExtra("TRANSACTION_ID", tx.id)
                 putExtra("CUSTOMER_PHONE", phone)
             })
-            onResult("Dialing ${offer.name} for $phone (SIM 1)")
+            onResult("Dialing ${offer.name} for $phone")
         }
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun DialerScreen(onNavigateBack: () -> Unit) {
     val vm: DialerViewModel = hiltViewModel()
@@ -118,38 +118,20 @@ fun DialerScreen(onNavigateBack: () -> Unit) {
             modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            OutlinedTextField(
-                value = phone,
-                onValueChange = { phone = it.filter { c -> c.isDigit() } },
-                label = { Text("Customer phone") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp)
-            )
+            OutlinedTextField(value = phone, onValueChange = { phone = it.filter { c -> c.isDigit() } }, label = { Text("Customer phone") }, singleLine = true, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp))
             Text("Select offer", color = onSurface, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 offers.forEach { offer ->
                     val isSelected = selectedOffer?.id == offer.id
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(if (isSelected) EmeraldGreen.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant)
-                            .clickable { selectedOffer = offer }
-                            .padding(horizontal = 14.dp, vertical = 10.dp)
-                    ) {
+                    Box(modifier = Modifier.clip(RoundedCornerShape(12.dp)).background(if (isSelected) EmeraldGreen.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant).clickable { selectedOffer = offer }.padding(horizontal = 14.dp, vertical = 10.dp)) {
                         Text("${offer.name} - K${offer.price}", color = if (isSelected) EmeraldGreen else MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
             Spacer(Modifier.height(8.dp))
-            Box(
-                modifier = Modifier.fillMaxWidth().height(56.dp).clip(RoundedCornerShape(16.dp)).background(EmeraldGreen)
-                    .clickable {
-                        selectedOffer?.let { o -> vm.dial(context, phone, o) { feedback = it } }
-                            ?: run { feedback = "Select an offer first" }
-                    },
-                contentAlignment = Alignment.Center
-            ) { Text("Dial Now", color = Color.White, fontWeight = FontWeight.Bold) }
+            Box(modifier = Modifier.fillMaxWidth().height(56.dp).clip(RoundedCornerShape(16.dp)).background(EmeraldGreen).clickable { selectedOffer?.let { o -> vm.dial(context, phone, o) { feedback = it } } ?: run { feedback = "Select an offer first" } }, contentAlignment = Alignment.Center) {
+                Text("Dial Now", color = Color.White, fontWeight = FontWeight.Bold)
+            }
             if (feedback.isNotEmpty()) Text(feedback, color = EmeraldGreen, fontSize = 13.sp)
         }
     }
