@@ -22,7 +22,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Error
-import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -57,7 +57,6 @@ import com.bingwascore.app.domain.model.TransactionStatus
 import com.bingwascore.app.ui.theme.EmeraldGreen
 import com.bingwascore.app.ui.theme.ErrorRed
 import com.bingwascore.app.ui.theme.TealBlue
-import com.bingwascore.app.util.CsvExporter
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -68,12 +67,16 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.io.File
+import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 import javax.inject.Inject
 
 @HiltViewModel
 class TransactionsViewModel @Inject constructor(
-    transactionRepository: TransactionRepository,
+    private val transactionRepository: TransactionRepository,
     private val transactionDao: TransactionDao,
     private val pipeline: TransactionPipeline,
     @ApplicationContext private val context: Context
@@ -82,15 +85,14 @@ class TransactionsViewModel @Inject constructor(
     private val filter = MutableStateFlow("all")
     val currentFilter: StateFlow<String> = filter.asStateFlow()
 
-    private val _exportResult = MutableStateFlow<String?>(null)
-    val exportResult: StateFlow<String?> = _exportResult.asStateFlow()
+    private val _exportMsg = MutableStateFlow<String?>(null)
+    val exportMsg: StateFlow<String?> = _exportMsg.asStateFlow()
 
     val transactions: StateFlow<List<Transaction>> =
         combine(transactionRepository.getAllTransactions(), filter) { list, f -> applyFilter(list, f) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun setFilter(f: String) { filter.value = f }
-
     fun delete(id: String) = viewModelScope.launch { transactionDao.deleteTransactionById(id) }
     fun retry(id: String) = viewModelScope.launch { pipeline.retry(id) }
     fun markComplete(id: String) = viewModelScope.launch { pipeline.markComplete(id) }
@@ -102,9 +104,20 @@ class TransactionsViewModel @Inject constructor(
 
     fun exportCsv() {
         viewModelScope.launch {
-            val all = transactionRepository.getAllTransactions().first()
-            val file = CsvExporter.export(context, all)
-            _exportResult.value = file?.let { "Exported: ${it.name}" } ?: "Export failed"
+            try {
+                val all = transactionRepository.getAllTransactions().first()
+                val dir = File(context.getExternalFilesDir(null), "exports").apply { mkdirs() }
+                val stamp = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.getDefault()).format(Date())
+                val csv = File(dir, "transactions-$stamp.csv")
+                val sb = StringBuilder("id,phone,customer,offer,amount,commission,status,date\n")
+                all.forEach { t ->
+                    sb.append("${t.id},${t.phoneNumber},${(t.customerName ?: "").replace(",", " ")},${t.offerName.replace(",", " ")},${t.amount},${t.commission},${t.status.name},${Date(t.createdAt)}\n")
+                }
+                csv.writeText(sb.toString())
+                _exportMsg.value = "Exported ${all.size} transactions"
+            } catch (e: Exception) {
+                _exportMsg.value = "Export failed"
+            }
         }
     }
 
@@ -114,16 +127,13 @@ class TransactionsViewModel @Inject constructor(
             set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
             set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
         }.timeInMillis
-
         return when (f) {
             "today" -> list.filter { it.createdAt >= startToday }
             "yesterday" -> list.filter { it.createdAt >= startToday - 86_400_000 && it.createdAt < startToday }
             "7d" -> list.filter { it.createdAt >= now - 7 * 86_400_000L }
             "30d" -> list.filter { it.createdAt >= now - 30 * 86_400_000L }
             "successful" -> list.filter { it.status == TransactionStatus.SUCCESSFUL }
-            "failed" -> list.filter {
-                it.status == TransactionStatus.FAILED || it.status == TransactionStatus.FAILED_ALREADY_RECOMMENDED
-            }
+            "failed" -> list.filter { it.status == TransactionStatus.FAILED || it.status == TransactionStatus.FAILED_ALREADY_RECOMMENDED }
             "scheduled" -> list.filter { it.status == TransactionStatus.SCHEDULED }
             "unmatched" -> list.filter { it.status == TransactionStatus.UNMATCHED }
             else -> list
@@ -137,9 +147,8 @@ fun TransactionsScreen(onNavigateBack: () -> Unit) {
     val vm: TransactionsViewModel = hiltViewModel()
     val transactions by vm.transactions.collectAsState()
     val filter by vm.currentFilter.collectAsState()
-    val exportResult by vm.exportResult.collectAsState()
+    val exportMsg by vm.exportMsg.collectAsState()
     var selected by remember { mutableStateOf<Transaction?>(null) }
-    val context = LocalContext.current
     val onSurface = MaterialTheme.colorScheme.onSurface
 
     Scaffold(
@@ -147,81 +156,33 @@ fun TransactionsScreen(onNavigateBack: () -> Unit) {
         topBar = {
             TopAppBar(
                 title = { Text("Transactions", color = onSurface, fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = onSurface)
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { vm.exportCsv() }) {
-                        Icon(Icons.Default.Download, null, tint = onSurface)
-                    }
-                },
+                navigationIcon = { IconButton(onClick = onNavigateBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = onSurface) } },
+                actions = { IconButton(onClick = { vm.exportCsv() }) { Icon(Icons.Default.Download, null, tint = onSurface) } },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         }
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-            exportResult?.let {
-                Text(
-                    it,
-                    color = EmeraldGreen,
-                    fontSize = 12.sp,
-                    modifier = Modifier.padding(horizontal = 16.dp)
-                )
-            }
+            exportMsg?.let { Text(it, color = EmeraldGreen, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 16.dp)) }
 
-            LazyRow(
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(
-                    listOf(
-                        "all" to "All", "today" to "Today", "yesterday" to "Yesterday",
-                        "7d" to "7 Days", "30d" to "30 Days",
-                        "successful" to "Completed", "failed" to "Failed",
-                        "scheduled" to "Scheduled", "unmatched" to "Unmatched"
-                    )
-                ) { (id, label) ->
+            LazyRow(contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(listOf("all" to "All", "today" to "Today", "yesterday" to "Yesterday", "7d" to "7 Days", "30d" to "30 Days", "successful" to "Completed", "failed" to "Failed", "scheduled" to "Scheduled", "unmatched" to "Unmatched")) { (id, label) ->
                     val active = filter == id
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(
-                                if (active) EmeraldGreen.copy(alpha = 0.2f)
-                                else MaterialTheme.colorScheme.surfaceVariant
-                            )
-                            .clickable { vm.setFilter(id) }
-                            .padding(horizontal = 16.dp, vertical = 10.dp)
-                    ) {
-                        Text(
-                            label,
-                            color = if (active) EmeraldGreen else MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 13.sp
-                        )
+                    Box(modifier = Modifier.clip(RoundedCornerShape(12.dp)).background(if (active) EmeraldGreen.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant).clickable { vm.setFilter(id) }.padding(horizontal = 16.dp, vertical = 10.dp)) {
+                        Text(label, color = if (active) EmeraldGreen else MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                     }
                 }
             }
 
-            LazyColumn(
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
+            LazyColumn(contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 items(transactions) { tx ->
                     val (icon, tint) = when (tx.status) {
                         TransactionStatus.SUCCESSFUL -> Icons.Default.CheckCircle to EmeraldGreen
                         TransactionStatus.FAILED, TransactionStatus.FAILED_ALREADY_RECOMMENDED -> Icons.Default.Error to ErrorRed
-                        else -> Icons.Default.Schedule to TealBlue
+                        TransactionStatus.UNMATCHED -> Icons.Default.Error to TealBlue
+                        else -> Icons.Default.Refresh to TealBlue
                     }
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant)
-                            .clickable { selected = tx }
-                            .padding(14.dp)
-                    ) {
+                    Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(MaterialTheme.colorScheme.surfaceVariant).clickable { selected = tx }.padding(14.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(icon, null, tint = tint, modifier = Modifier.size(22.dp))
                             Spacer(Modifier.width(12.dp))
@@ -250,20 +211,12 @@ fun TransactionsScreen(onNavigateBack: () -> Unit) {
                 },
                 confirmButton = {
                     Row {
-                        if (tx.status == TransactionStatus.FAILED) {
-                            TextButton(onClick = { vm.retry(tx.id); selected = null }) { Text("Retry") }
-                        }
-                        if (tx.status != TransactionStatus.SUCCESSFUL) {
-                            TextButton(onClick = { vm.markComplete(tx.id); selected = null }) { Text("Complete") }
-                        }
+                        if (tx.status == TransactionStatus.FAILED) TextButton(onClick = { vm.retry(tx.id); selected = null }) { Text("Retry") }
+                        if (tx.status != TransactionStatus.SUCCESSFUL) TextButton(onClick = { vm.markComplete(tx.id); selected = null }) { Text("Complete") }
                         if (tx.status != TransactionStatus.SUCCESSFUL && tx.status != TransactionStatus.SCHEDULED) {
                             TextButton(onClick = {
-                                val tomorrow = Calendar.getInstance().apply {
-                                    add(Calendar.DAY_OF_YEAR, 1)
-                                    set(Calendar.HOUR_OF_DAY, 1); set(Calendar.MINUTE, 0)
-                                }.timeInMillis
-                                vm.schedule(tx.id, tomorrow)
-                                selected = null
+                                val tomorrow = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, 1); set(Calendar.HOUR_OF_DAY, 1); set(Calendar.MINUTE, 0) }.timeInMillis
+                                vm.schedule(tx.id, tomorrow); selected = null
                             }) { Text("Schedule") }
                         }
                         TextButton(onClick = { vm.delete(tx.id); selected = null }) { Text("Delete", color = ErrorRed) }
