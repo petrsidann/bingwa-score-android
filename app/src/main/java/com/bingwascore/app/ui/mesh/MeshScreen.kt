@@ -18,6 +18,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Wifi
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -56,7 +57,6 @@ import javax.inject.Inject
 class MeshViewModel @Inject constructor(
     private val settings: SettingsRepository
 ) : ViewModel() {
-
     private val _connectId = MutableStateFlow(settings.getConnectId() ?: "")
     val connectId: StateFlow<String> = _connectId.asStateFlow()
 
@@ -76,11 +76,10 @@ class MeshViewModel @Inject constructor(
         _connected.value = true
     }
 
-    fun disconnect() {
-        _connected.value = false
-    }
+    fun disconnect() { _connected.value = false }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MeshScreen(onNavigateBack: () -> Unit) {
     val vm: MeshViewModel = hiltViewModel()
@@ -116,12 +115,9 @@ fun MeshScreen(onNavigateBack: () -> Unit) {
                 }
             }
             OutlinedTextField(value = url, onValueChange = { url = it }, label = { Text("Mesh server URL") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp))
-            Box(
-                modifier = Modifier.fillMaxWidth().height(56.dp).clip(RoundedCornerShape(16.dp))
-                    .background(if (connected) ErrorRed else Purple500)
-                    .clickable { if (connected) vm.disconnect() else vm.connect(url) },
-                contentAlignment = Alignment.Center
-            ) { Text(if (connected) "Disconnect" else "Connect to Mesh", color = Color.White, fontWeight = FontWeight.Bold) }
+            Box(modifier = Modifier.fillMaxWidth().height(56.dp).clip(RoundedCornerShape(16.dp)).background(if (connected) ErrorRed else Purple500).clickable { if (connected) vm.disconnect() else vm.connect(url) }, contentAlignment = Alignment.Center) {
+                Text(if (connected) "Disconnect" else "Connect to Mesh", color = Color.White, fontWeight = FontWeight.Bold)
+            }
         }
     }
 }
