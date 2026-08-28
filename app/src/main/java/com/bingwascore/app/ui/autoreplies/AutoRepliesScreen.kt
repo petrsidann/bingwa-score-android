@@ -23,6 +23,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -44,25 +45,51 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bingwascore.app.data.local.AutoReplyDao
 import com.bingwascore.app.data.local.entity.AutoReplyEntity
+import com.bingwascore.app.data.settings.AppSetting
+import com.bingwascore.app.data.settings.SettingsRepository
+import com.bingwascore.app.domain.engagebot.EngageBotSessionLifecycle
 import com.bingwascore.app.domain.enums.AutoReplyType
+import com.bingwascore.app.ui.theme.EmeraldGreen
+import com.bingwascore.app.ui.theme.Orange500
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import javax.inject.Inject
 
 @HiltViewModel
 class AutoRepliesViewModel @Inject constructor(
-    private val autoReplyDao: AutoReplyDao
+    private val autoReplyDao: AutoReplyDao,
+    private val settingsRepository: SettingsRepository,
+    val engageBot: EngageBotSessionLifecycle
 ) : ViewModel() {
-    val replies: StateFlow<List<AutoReplyEntity>> = autoReplyDao.getAll().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val replies: StateFlow<List<AutoReplyEntity>> = autoReplyDao.getAll()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    private val _botEnabled = MutableStateFlow(settingsRepository.getBoolean(AppSetting.ENGAGE_BOT_ACTIVE, false))
+    val botEnabled: StateFlow<Boolean> = _botEnabled.asStateFlow()
 
     init {
-        viewModelScope.launch {
-            if (autoReplyDao.getAll().first().isEmpty()) seed()
-        }
+        viewModelScope.launch { if (autoReplyDao.getAll().first().isEmpty()) seed() }
+    }
+
+    fun toggleBot(enabled: Boolean) {
+        _botEnabled.value = enabled
+        settingsRepository.saveBoolean(AppSetting.ENGAGE_BOT_ACTIVE, enabled)
+    }
+
+    fun toggle(reply: AutoReplyEntity) {
+        viewModelScope.launch { autoReplyDao.update(reply.copy(isActive = !reply.isActive)) }
+    }
+
+    fun updateMessage(reply: AutoReplyEntity, message: String) {
+        viewModelScope.launch { autoReplyDao.update(reply.copy(message = message)) }
     }
 
     private suspend fun seed() {
@@ -78,9 +105,16 @@ class AutoRepliesViewModel @Inject constructor(
             autoReplyDao.insert(AutoReplyEntity(title = title, message = message, type = type.name, isActive = type == AutoReplyType.SUCCESSFUL_RESPONSE))
         }
     }
+}
 
-    fun toggle(reply: AutoReplyEntity) { viewModelScope.launch { autoReplyDao.update(reply.copy(isActive = !reply.isActive)) } }
-    fun updateMessage(reply: AutoReplyEntity, message: String) { viewModelScope.launch { autoReplyDao.update(reply.copy(message = message)) } }
+private fun triggerFor(type: String): String = when (type) {
+    AutoReplyType.SUCCESSFUL_RESPONSE.name -> "Sent when a transaction completes"
+    AutoReplyType.OFFER_ALREADY_RECOMMENDED.name -> "When customer pays again for same offer (bot off)"
+    AutoReplyType.FAILED_REQUEST.name -> "When USSD dial fails"
+    AutoReplyType.UNAVAILABLE_OFFER.name -> "When payment matches no offer"
+    AutoReplyType.APP_PAUSED.name -> "When payment arrives while app paused"
+    AutoReplyType.CUSTOMER_BLACKLISTED.name -> "When blacklisted customer pays"
+    else -> "Manual"
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -88,8 +122,11 @@ class AutoRepliesViewModel @Inject constructor(
 fun AutoRepliesScreen(onNavigateBack: () -> Unit) {
     val vm: AutoRepliesViewModel = hiltViewModel()
     val replies by vm.replies.collectAsState()
+    val botEnabled by vm.botEnabled.collectAsState()
+    val logs by vm.engageBot.logs.collectAsState()
     var editing by remember { mutableStateOf<AutoReplyEntity?>(null) }
     var draft by remember { mutableStateOf("") }
+    val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -101,20 +138,61 @@ fun AutoRepliesScreen(onNavigateBack: () -> Unit) {
             )
         }
     ) { padding ->
-        LazyColumn(modifier = Modifier.fillMaxSize().padding(padding), contentPadding = androidx.compose.foundation.layout.PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().padding(padding),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            item {
+                Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(MaterialTheme.colorScheme.surfaceVariant).padding(16.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Engage Bot", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                            Text("When a customer pays twice, bot asks for an alternative number and redirects the offer. Sessions last 10 minutes.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
+                        }
+                        Switch(checked = botEnabled, onCheckedChange = { vm.toggleBot(it) }, colors = SwitchDefaults.colors(checkedTrackColor = EmeraldGreen))
+                    }
+                }
+            }
+
+            item { Text("Reply Templates", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 16.sp) }
+
             items(replies) { reply ->
                 Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(MaterialTheme.colorScheme.surfaceVariant).clickable { editing = reply; draft = reply.message }.padding(16.dp)) {
                     Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(reply.title, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, modifier = Modifier.weight(1f))
+                            Text(reply.title, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, modifier = Modifier.weight(1f))
                             Switch(checked = reply.isActive, onCheckedChange = { vm.toggle(reply) })
                         }
-                        Spacer(Modifier.height(6.dp))
+                        Spacer(Modifier.height(4.dp))
+                        Text(triggerFor(reply.type), color = Orange500, fontSize = 11.sp)
+                        Spacer(Modifier.height(4.dp))
                         Text(reply.message, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                     }
                 }
             }
+
+            item { Text("Bot Activity", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 16.sp) }
+
+            if (logs.isEmpty()) {
+                item { Text("No bot conversations yet.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp) }
+            }
+
+            items(logs) { log ->
+                Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(MaterialTheme.colorScheme.surfaceVariant).padding(12.dp)) {
+                    Column {
+                        Row {
+                            Text(log.customerName ?: log.phone, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, modifier = Modifier.weight(1f))
+                            Text(timeFormat.format(Date(log.time)), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
+                        }
+                        log.received?.let { Text("Customer: $it", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp) }
+                        Text("Bot sent: ${log.sent}", color = EmeraldGreen, fontSize = 12.sp)
+                    }
+                }
+            }
+            item { Spacer(Modifier.height(60.dp)) }
         }
+
         editing?.let { reply ->
             Dialog(onDismissRequest = { editing = null }) {
                 Column(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(MaterialTheme.colorScheme.surface).padding(20.dp)) {
