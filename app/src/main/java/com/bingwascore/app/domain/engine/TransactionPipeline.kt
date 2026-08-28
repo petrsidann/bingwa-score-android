@@ -8,7 +8,6 @@ import com.bingwascore.app.data.local.OfferDao
 import com.bingwascore.app.data.local.OfferTransitionRuleDao
 import com.bingwascore.app.data.local.TransactionDao
 import com.bingwascore.app.data.settings.SettingsRepository
-import com.bingwascore.app.data.settings.AppSetting
 import com.bingwascore.app.domain.engagebot.EngageBotSessionLifecycle
 import com.bingwascore.app.domain.enums.AppState
 import com.bingwascore.app.domain.enums.AutoReplyType
@@ -39,6 +38,7 @@ class TransactionPipeline @Inject constructor(
     private val engageBot: EngageBotSessionLifecycle,
     @ApplicationContext private val context: Context
 ) {
+    companion object { const val MAX_RETRIES = 2 }
 
     suspend fun onMpesaReceived(msg: MpesaMessage) = withContext(Dispatchers.IO) {
         val phone = normalize(msg.phoneNumber)
@@ -49,7 +49,6 @@ class TransactionPipeline @Inject constructor(
             sendReply(tx, AutoReplyType.CUSTOMER_BLACKLISTED)
             return@withContext
         }
-
         if (settingsRepository.getAppState() == AppState.STATE_PAUSED) {
             val tx = createTx(msg, null, TransactionStatus.PAUSED)
             sendReply(tx, AutoReplyType.APP_PAUSED)
@@ -67,7 +66,7 @@ class TransactionPipeline @Inject constructor(
         val duplicate = transactionDao.getRecentSuccessful(phone, msg.amountInt.toDouble(), System.currentTimeMillis() - 5 * 60 * 1000)
         if (duplicate != null) {
             val tx = createTx(msg, offer, TransactionStatus.FAILED_ALREADY_RECOMMENDED)
-            handleAlreadyRecommended(tx, offer, msg)
+            handleAlreadyRecommended(tx, offer)
             return@withContext
         }
 
@@ -78,13 +77,11 @@ class TransactionPipeline @Inject constructor(
     suspend fun onUssdSuccess(transactionId: String) = withContext(Dispatchers.IO) {
         val tx = transactionDao.getTransactionById(transactionId) ?: return@withContext
         val offer = offerDao.getOfferById(tx.offerId)
-        val awaiting = offer?.strictMode == true &&
-                (OfferSignature.canEnableStrictMode(offer.completionMessage) || OfferSignature.isBingwaOffer(offer.ussdCode))
-        if (awaiting) {
+        if (awaitingCompletion(offer)) {
             transactionDao.updateTransactionStatus(transactionId, TransactionStatus.AWAITING_COMMISSION)
             Timber.d("$transactionId awaiting commission SMS (strict mode)")
         } else {
-            transactionDao.completeTransaction(transactionId, 0.0, TransactionStatus.SUCCESSFUL, System.currentTimeMillis())
+            transactionDao.completeTransaction(transactionId, tx.commission, TransactionStatus.SUCCESSFUL, System.currentTimeMillis())
             sendReply(tx, AutoReplyType.SUCCESSFUL_RESPONSE)
             Timber.d("$transactionId SUCCESSFUL")
         }
@@ -113,7 +110,7 @@ class TransactionPipeline @Inject constructor(
         val tx = transactionDao.getTransactionById(transactionId) ?: return@withContext
         transactionDao.updateTransactionStatus(transactionId, TransactionStatus.FAILED_ALREADY_RECOMMENDED)
         val offer = offerDao.getOfferById(tx.offerId)
-        if (offer != null) handleAlreadyRecommended(tx, offer, null)
+        if (offer != null) handleAlreadyRecommended(tx, offer)
     }
 
     suspend fun onCommissionSms(commission: Double) = withContext(Dispatchers.IO) {
@@ -152,7 +149,7 @@ class TransactionPipeline @Inject constructor(
         transactionDao.completeTransaction(transactionId, tx.commission, TransactionStatus.SUCCESSFUL, System.currentTimeMillis())
     }
 
-    private suspend fun handleAlreadyRecommended(tx: Transaction, offer: Offer, msg: MpesaMessage?) {
+    private suspend fun handleAlreadyRecommended(tx: Transaction, offer: Offer) {
         if (engageBot.isEnabled()) {
             engageBot.engageForTransaction(tx.phoneNumber, tx.customerName, tx.amount.toInt(), tx.id)
         } else {
@@ -237,6 +234,13 @@ class TransactionPipeline @Inject constructor(
                 "mpesaCode" to (tx.mpesaReceipt ?: "")
             )
         )
+    }
+
+    private fun awaitingCompletion(offer: Offer?): Boolean {
+        if (offer == null || !offer.strictMode) return false
+        val msg = offer.completionMessage
+        val hasPlaceholder = !msg.isNullOrBlank() && (msg.contains("@phone", true) || msg.contains("<phone>", true))
+        return hasPlaceholder || offer.ussdCode.contains("*180*5")
     }
 
     private fun nextRunTime(timeStr: String): Long {
