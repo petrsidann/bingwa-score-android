@@ -12,15 +12,10 @@ class BingwaScoreApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
-
-        if (BuildConfig.DEBUG) {
-            Timber.plant(Timber.DebugTree())
-        }
-
+        if (BuildConfig.DEBUG) Timber.plant(Timber.DebugTree())
         SmsPollScheduler.schedule(this)
         AutoRenewalScheduler.schedule(this)
         DailyArchiveScheduler.schedule(this)
-
-        Timber.d("Bingwa Score engine online: triple listening + auto-renewals + daily archive")
+        Timber.d("Bingwa Score engine online")
     }
 }
