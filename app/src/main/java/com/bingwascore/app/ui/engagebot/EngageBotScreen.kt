@@ -15,7 +15,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -61,7 +60,6 @@ class EngageBotViewModel @Inject constructor(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EngageBotScreen(onNavigateBack: () -> Unit) {
     val vm: EngageBotViewModel = hiltViewModel()
@@ -86,7 +84,10 @@ fun EngageBotScreen(onNavigateBack: () -> Unit) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text("Engage Bot", color = onSurface, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                        Text("When a customer who already bought today pays again, the bot asks for an alternative number and redirects the offer.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+                        Text(
+                            "When a customer who already bought today pays again, the bot asks for an alternative Safaricom number and redirects the offer.",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp
+                        )
                     }
                     Spacer(Modifier.width(12.dp))
                     Switch(checked = enabled, onCheckedChange = { vm.setEnabled(it) }, colors = SwitchDefaults.colors(checkedTrackColor = EmeraldGreen))
