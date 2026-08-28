@@ -3,16 +3,15 @@ package com.bingwascore.app.ui.home
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import android.os.Handler
-import android.os.Looper
 import android.provider.Settings
-import android.telephony.TelephonyManager
-import com.bingwascore.app.data.repository.TransactionRepository
 import com.bingwascore.app.data.settings.AppSetting
 import com.bingwascore.app.data.settings.SettingsRepository
+import com.bingwascore.app.data.repository.TransactionRepository
 import com.bingwascore.app.domain.enums.ProcessingMode
 import com.bingwascore.app.domain.model.Transaction
 import com.bingwascore.app.domain.model.TransactionStatus
+import com.bingwascore.app.domain.stats.EngineHealth
+import com.bingwascore.app.domain.stats.HealthCheck
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -32,6 +31,7 @@ data class HomeState(
     val failed: Int = 0,
     val airtimeUsedToday: Double = 0.0,
     val weeklyCommission: Double = 0.0,
+    val healthIssues: List<HealthCheck> = emptyList(),
     val recent: List<Transaction> = emptyList()
 )
 
@@ -59,43 +59,23 @@ class HomeViewModel @Inject constructor(
             }.timeInMillis
             val weekAgo = System.currentTimeMillis() - 7 * 86_400_000L
             HomeState(
-                greeting = when (Calendar.getInstance().get(Calendar.HOUR_OF_DAY)) {
-                    in 5..11 -> "Good Morning"; in 12..16 -> "Good Afternoon"; else -> "Good Evening"
-                },
+                greeting = greeting(),
                 successful = txs.count { it.status == TransactionStatus.SUCCESSFUL },
                 failed = txs.count { it.status == TransactionStatus.FAILED || it.status == TransactionStatus.FAILED_ALREADY_RECOMMENDED },
                 airtimeUsedToday = txs.filter { it.status == TransactionStatus.SUCCESSFUL && it.createdAt >= startToday }.sumOf { it.amount },
                 weeklyCommission = txs.filter { it.status == TransactionStatus.SUCCESSFUL && it.createdAt >= weekAgo }.sumOf { it.commission },
+                healthIssues = EngineHealth.checks(context).filter { !it.ok },
                 recent = txs.take(8)
             )
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HomeState())
 
-    /** Silent balance check via *144# — result saved, no popup. */
     fun refreshBalance() {
         if (_balanceLoading.value) return
         _balanceLoading.value = true
-        try {
-            val tm = context.getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager
-            if (tm == null) { _balanceLoading.value = false; return }
-            tm.sendUssdRequest("*144#", object : TelephonyManager.UssdResponseCallback() {
-                override fun onReceiveUssdResponse(t: TelephonyManager, req: String, response: CharSequence) {
-                    val text = response.toString()
-                    val bal = Regex("Ksh\\.?\\s?([\\d,]+\\.\\d{2})", RegexOption.IGNORE_CASE)
-                        .findAll(text).lastOrNull()?.groupValues?.get(1)
-                    if (bal != null) {
-                        settingsRepository.saveString(AppSetting.STATS_AIRTIME_BALANCE, bal)
-                        _balance.value = bal
-                    }
-                    _balanceLoading.value = false
-                }
-                override fun onReceiveUssdResponseFailed(t: TelephonyManager, req: String, code: Int) {
-                    _balanceLoading.value = false
-                }
-            }, Handler(Looper.getMainLooper()))
-        } catch (e: Exception) {
-            _balanceLoading.value = false
-        }
+        val stored = settingsRepository.getString(AppSetting.STATS_AIRTIME_BALANCE)
+        if (stored != null) _balance.value = stored
+        _balanceLoading.value = false
     }
 
     fun toggleAdvanced() {
@@ -110,5 +90,11 @@ class HomeViewModel @Inject constructor(
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
         context.startActivity(intent)
+    }
+
+    private fun greeting(): String = when (Calendar.getInstance().get(Calendar.HOUR_OF_DAY)) {
+        in 5..11 -> "Good Morning"
+        in 12..16 -> "Good Afternoon"
+        else -> "Good Evening"
     }
 }
