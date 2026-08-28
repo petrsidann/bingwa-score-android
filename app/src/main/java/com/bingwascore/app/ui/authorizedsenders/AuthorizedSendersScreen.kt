@@ -64,10 +64,7 @@ fun AuthorizedSendersScreen(onNavigateBack: () -> Unit) {
             )
         }
     ) { padding ->
-        Column(
-            modifier = Modifier.fillMaxSize().padding(padding).padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
+        Column(modifier = Modifier.fillMaxSize().padding(padding).padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Text("M-Pesa messages from these senders are always trusted and processed.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 OutlinedTextField(
