@@ -94,48 +94,71 @@ fun BingwaNavHost() {
     val themeViewModel: ThemeViewModel = hiltViewModel()
     val isDark by themeViewModel.isDark.collectAsState()
 
-    fun closeDrawer() { scope.launch { drawerState.close() } }
-    fun go(route: String) { closeDrawer(); navController.navigate(route) }
-
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
             ModalDrawerSheet {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(modifier = Modifier.size(48.dp).background(Brush.linearGradient(listOf(Orange500, Purple500)), RoundedCornerShape(14.dp)), contentAlignment = Alignment.Center) {
-                            Text("B", color = White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
-                        }
+                        Box(
+                            modifier = Modifier
+                                .size(48.dp)
+                                .background(Brush.linearGradient(listOf(Orange500, Purple500)), RoundedCornerShape(14.dp)),
+                            contentAlignment = Alignment.Center
+                        ) { Text("B", color = White, fontSize = 24.sp, fontWeight = FontWeight.Bold) }
                         Spacer(Modifier.width(12.dp))
                         Text("Bingwa Score", fontSize = 20.sp, fontWeight = FontWeight.Bold)
                     }
                     Spacer(Modifier.height(8.dp))
                 }
-                DrawerItem(Icons.Default.Home, "Home") { go(Screen.Home.route) }
-                DrawerItem(Icons.Default.EmojiEvents, "My Score") { go(Screen.Score.route) }
-                DrawerItem(Icons.Default.Receipt, "Transactions") { go(Screen.Transactions.route) }
-                DrawerItem(Icons.Default.People, "Customers") { go(Screen.Customers.route) }
-                DrawerItem(Icons.Default.LocalOffer, "Offers") { go(Screen.Offers.route) }
-                DrawerItem(Icons.Default.Dialpad, "Dialer") { go(Screen.Dialer.route) }
-                DrawerItem(Icons.Default.Cached, "Auto Renewals") { go(Screen.AutoRenewals.route) }
-                DrawerItem(Icons.Default.Subscriptions, "Subscriptions") { go(Screen.Subscriptions.route) }
-                DrawerItem(Icons.Default.Email, "Botted Replies") { go(Screen.AutoReplies.route) }
-                DrawerItem(Icons.Default.SmartToy, "Engage Bot") { go(Screen.EngageBot.route) }
-                DrawerItem(Icons.Default.Group, "Intelligent USSD") { go(Screen.Community.route) }
-                DrawerItem(Icons.Default.Store, "My Store") { go(Screen.MyStore.route) }
-                DrawerItem(Icons.Default.Wifi, "Bingwa Mesh") { go(Screen.Mesh.route) }
-                DrawerItem(Icons.Default.Block, "Blacklist") { go(Screen.Blacklist.route) }
-                DrawerItem(Icons.Default.Security, "Authorized Senders") { go(Screen.AuthorizedSenders.route) }
-                DrawerItem(Icons.Default.Settings, "Settings") { go(Screen.Settings.route) }
-                DrawerItem(Icons.Default.Update, "Check For Updates") { go(Screen.Updates.route) }
-                DrawerItem(Icons.Default.Logout, "Logout") { closeDrawer(); navController.navigate(Screen.Login.route) { popUpTo(0) { inclusive = true } } }
+                DrawerItem(Icons.Default.Home, "Home") { scope.launch { drawerState.close() }; navController.navigate(Screen.Home.route) }
+                DrawerItem(Icons.Default.EmojiEvents, "My Score") { scope.launch { drawerState.close() }; navController.navigate(Screen.Score.route) }
+                DrawerItem(Icons.Default.Receipt, "Transactions") { scope.launch { drawerState.close() }; navController.navigate(Screen.Transactions.route) }
+                DrawerItem(Icons.Default.People, "Customers") { scope.launch { drawerState.close() }; navController.navigate(Screen.Customers.route) }
+                DrawerItem(Icons.Default.LocalOffer, "Offers") { scope.launch { drawerState.close() }; navController.navigate(Screen.Offers.route) }
+                DrawerItem(Icons.Default.Dialpad, "Dialer") { scope.launch { drawerState.close() }; navController.navigate(Screen.Dialer.route) }
+                DrawerItem(Icons.Default.Cached, "Auto Renewals") { scope.launch { drawerState.close() }; navController.navigate(Screen.AutoRenewals.route) }
+                DrawerItem(Icons.Default.Subscriptions, "Subscriptions") { scope.launch { drawerState.close() }; navController.navigate(Screen.Subscriptions.route) }
+                DrawerItem(Icons.Default.Email, "Botted Replies") { scope.launch { drawerState.close() }; navController.navigate(Screen.AutoReplies.route) }
+                DrawerItem(Icons.Default.SmartToy, "Engage Bot") { scope.launch { drawerState.close() }; navController.navigate(Screen.EngageBot.route) }
+                DrawerItem(Icons.Default.Group, "Intelligent USSD") { scope.launch { drawerState.close() }; navController.navigate(Screen.Community.route) }
+                DrawerItem(Icons.Default.Store, "My Store") { scope.launch { drawerState.close() }; navController.navigate(Screen.MyStore.route) }
+                DrawerItem(Icons.Default.Wifi, "Bingwa Mesh") { scope.launch { drawerState.close() }; navController.navigate(Screen.Mesh.route) }
+                DrawerItem(Icons.Default.Block, "Blacklist") { scope.launch { drawerState.close() }; navController.navigate(Screen.Blacklist.route) }
+                DrawerItem(Icons.Default.Security, "Authorized Senders") { scope.launch { drawerState.close() }; navController.navigate(Screen.AuthorizedSenders.route) }
+                DrawerItem(Icons.Default.Settings, "Settings") { scope.launch { drawerState.close() }; navController.navigate(Screen.Settings.route) }
+                DrawerItem(Icons.Default.Update, "Check For Updates") { scope.launch { drawerState.close() }; navController.navigate(Screen.Updates.route) }
+                DrawerItem(Icons.Default.Logout, "Logout") {
+                    scope.launch { drawerState.close() }
+                    navController.navigate(Screen.Login.route) { popUpTo(0) { inclusive = true } }
+                }
             }
         }
     ) {
         NavHost(navController = navController, startDestination = Screen.Splash.route) {
-            composable(Screen.Splash.route) { SplashScreen(onFinished = { navController.navigate(Screen.Home.route) { popUpTo(Screen.Splash.route) { inclusive = true } } }) }
-            composable(Screen.Login.route) { val vm: AuthViewModel = hiltViewModel(); LoginScreen(vm, onLoginSuccess = { navController.navigate(Screen.Home.route) { popUpTo(Screen.Login.route) { inclusive = true } } }, onNavigateToSignup = { navController.navigate(Screen.Signup.route) }) }
-            composable(Screen.Signup.route) { val vm: AuthViewModel = hiltViewModel(); SignupScreen(vm, onSignupSuccess = { navController.navigate(Screen.Home.route) { popUpTo(Screen.Login.route) { inclusive = true } } }, onNavigateBack = { navController.popBackStack() }) }
+            composable(Screen.Splash.route) {
+                SplashScreen(onFinished = {
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(Screen.Splash.route) { inclusive = true }
+                    }
+                })
+            }
+            composable(Screen.Login.route) {
+                val vm: AuthViewModel = hiltViewModel()
+                LoginScreen(
+                    viewModel = vm,
+                    onLoginSuccess = { navController.navigate(Screen.Home.route) { popUpTo(Screen.Login.route) { inclusive = true } } },
+                    onNavigateToSignup = { navController.navigate(Screen.Signup.route) }
+                )
+            }
+            composable(Screen.Signup.route) {
+                val vm: AuthViewModel = hiltViewModel()
+                SignupScreen(
+                    viewModel = vm,
+                    onSignupSuccess = { navController.navigate(Screen.Home.route) { popUpTo(Screen.Login.route) { inclusive = true } } },
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
             composable(Screen.Home.route) {
                 val vm: HomeViewModel = hiltViewModel()
                 HomeScreen(
@@ -150,9 +173,23 @@ fun BingwaNavHost() {
             composable(Screen.Score.route) { ScoreScreen(onNavigateBack = { navController.popBackStack() }) }
             composable(Screen.Transactions.route) { TransactionsScreen(onNavigateBack = { navController.popBackStack() }) }
             composable(Screen.Customers.route) { CustomersScreen(onNavigateBack = { navController.popBackStack() }) }
-            composable(Screen.Offers.route) { val vm: OffersViewModel = hiltViewModel(); OffersScreen(vm, { navController.popBackStack() }, { id -> navController.navigate(Screen.OfferSettings.createRoute(id)) }, { id -> navController.navigate(Screen.OfferActions.createRoute(id)) }) }
-            composable(Screen.OfferSettings.route) { backStack -> val id = backStack.arguments?.getString("offerId") ?: return@composable; OfferSettingsScreen(id, onNavigateBack = { navController.popBackStack() }) }
-            composable(Screen.OfferActions.route) { backStack -> val id = backStack.arguments?.getString("offerId") ?: return@composable; OfferActionsScreen(id, onNavigateBack = { navController.popBackStack() }) }
+            composable(Screen.Offers.route) {
+                val vm: OffersViewModel = hiltViewModel()
+                OffersScreen(
+                    viewModel = vm,
+                    onNavigateBack = { navController.popBackStack() },
+                    onOpenOfferSettings = { id -> navController.navigate(Screen.OfferSettings.createRoute(id)) },
+                    onOpenOfferActions = { id -> navController.navigate(Screen.OfferActions.createRoute(id)) }
+                )
+            }
+            composable(Screen.OfferSettings.route) { backStack ->
+                val id = backStack.arguments?.getString("offerId") ?: return@composable
+                OfferSettingsScreen(offerId = id, onNavigateBack = { navController.popBackStack() })
+            }
+            composable(Screen.OfferActions.route) { backStack ->
+                val id = backStack.arguments?.getString("offerId") ?: return@composable
+                OfferActionsScreen(offerId = id, onNavigateBack = { navController.popBackStack() })
+            }
             composable(Screen.Dialer.route) { DialerScreen(onNavigateBack = { navController.popBackStack() }) }
             composable(Screen.AutoRenewals.route) { AutoRenewalsScreen(onNavigateBack = { navController.popBackStack() }) }
             composable(Screen.Subscriptions.route) { SubscriptionsScreen(onNavigateBack = { navController.popBackStack() }) }
@@ -175,5 +212,10 @@ fun BingwaNavHost() {
 
 @Composable
 private fun DrawerItem(icon: ImageVector, label: String, onClick: () -> Unit) {
-    NavigationDrawerItem(icon = { Icon(icon, null) }, label = { Text(label) }, selected = false, onClick = onClick)
+    NavigationDrawerItem(
+        icon = { Icon(icon, contentDescription = null) },
+        label = { Text(label) },
+        selected = false,
+        onClick = onClick
+    )
 }
