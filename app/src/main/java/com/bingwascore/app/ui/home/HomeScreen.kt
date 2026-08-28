@@ -54,7 +54,17 @@ import java.util.concurrent.TimeUnit
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(viewModel: HomeViewModel, isDarkTheme: Boolean, onToggleTheme: () -> Unit, onNavigateToSettings: () -> Unit, onNavigateToAccount: () -> Unit, onNavigateToOrders: () -> Unit, onNavigateToCheckout: (String) -> Unit, onLogout: () -> Unit, onOpenDrawer: () -> Unit) {
+fun HomeScreen(
+    viewModel: HomeViewModel,
+    isDarkTheme: Boolean,
+    onToggleTheme: () -> Unit,
+    onNavigateToSettings: () -> Unit,
+    onNavigateToAccount: () -> Unit,
+    onNavigateToOrders: () -> Unit,
+    onNavigateToCheckout: (String) -> Unit,
+    onLogout: () -> Unit,
+    onOpenDrawer: () -> Unit
+) {
     val state by viewModel.state.collectAsState()
     val onSurface = MaterialTheme.colorScheme.onSurface
     val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
@@ -69,16 +79,34 @@ fun HomeScreen(viewModel: HomeViewModel, isDarkTheme: Boolean, onToggleTheme: ()
                         Text("Dashboard", color = onSurface, fontWeight = FontWeight.Bold, fontSize = 22.sp)
                     }
                 },
-                navigationIcon = { IconButton(onClick = onOpenDrawer) { Icon(Icons.Default.Menu, contentDescription = "Menu", tint = onSurface) } },
-                actions = { IconButton(onClick = onToggleTheme) { Icon(if (isDarkTheme) Icons.Default.WbSunny else Icons.Default.DarkMode, contentDescription = "Toggle theme", tint = onSurface) } },
+                navigationIcon = {
+                    IconButton(onClick = onOpenDrawer) {
+                        Icon(Icons.Default.Menu, contentDescription = "Menu", tint = onSurface)
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onToggleTheme) {
+                        Icon(
+                            if (isDarkTheme) Icons.Default.WbSunny else Icons.Default.DarkMode,
+                            contentDescription = "Toggle theme",
+                            tint = onSurface
+                        )
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         }
     ) { padding ->
-        LazyColumn(modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Box(modifier = Modifier.weight(1.1f).clip(RoundedCornerShape(20.dp)).background(MaterialTheme.colorScheme.surfaceVariant).padding(12.dp), contentAlignment = Alignment.Center) {
+                    Box(
+                        modifier = Modifier.weight(1.1f).clip(RoundedCornerShape(20.dp)).background(MaterialTheme.colorScheme.surfaceVariant).padding(12.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
                         ScoreRing(state.score.score, state.score.level)
                     }
                     Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -101,18 +129,27 @@ fun HomeScreen(viewModel: HomeViewModel, isDarkTheme: Boolean, onToggleTheme: ()
                     }
                 }
             }
+
             if (state.healthIssues.isNotEmpty()) {
                 item {
                     Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(ErrorRed.copy(alpha = 0.12f)).padding(14.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.Warning, null, tint = ErrorRed, modifier = Modifier.size(20.dp))
                             Spacer(Modifier.width(10.dp))
-                            Text(state.healthIssues.first().advice, color = onSurface, fontSize = 12.sp, modifier = Modifier.weight(1f))
-                            IconButton(onClick = onNavigateToSettings) { Text("Fix", color = ErrorRed, fontWeight = FontWeight.SemiBold, fontSize = 12.sp) }
+                            Text(
+                                state.healthIssues.first().advice,
+                                color = onSurface,
+                                fontSize = 12.sp,
+                                modifier = Modifier.weight(1f)
+                            )
+                            IconButton(onClick = { viewModel.openSystemSettings() }) {
+                                Text("Fix", color = ErrorRed, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                            }
                         }
                     }
                 }
             }
+
             item {
                 Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(MaterialTheme.colorScheme.surfaceVariant).padding(16.dp)) {
                     Column {
@@ -125,12 +162,14 @@ fun HomeScreen(viewModel: HomeViewModel, isDarkTheme: Boolean, onToggleTheme: ()
                     }
                 }
             }
+
             item {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Text("Recent Activity", color = onSurface, fontWeight = FontWeight.Bold, fontSize = 17.sp)
                     Text("View All", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                 }
             }
+
             if (state.recent.isEmpty()) {
                 item {
                     Column(modifier = Modifier.fillMaxWidth().padding(vertical = 48.dp), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -144,6 +183,7 @@ fun HomeScreen(viewModel: HomeViewModel, isDarkTheme: Boolean, onToggleTheme: ()
             } else {
                 items(state.recent) { tx -> TransactionRow(tx) }
             }
+
             item { Spacer(Modifier.height(80.dp)) }
         }
     }
@@ -171,11 +211,12 @@ private fun TransactionRow(transaction: Transaction) {
 }
 
 private fun timeAgo(timestamp: Long): String {
-    val minutes = TimeUnit.MILLISECONDS.toMinutes(System.currentTimeMillis() - timestamp)
+    val diff = System.currentTimeMillis() - timestamp
+    val minutes = TimeUnit.MILLISECONDS.toMinutes(diff)
     return when {
         minutes < 1 -> "Just now"
         minutes < 60 -> "${minutes}min ago"
-        minutes < 1440 -> "${TimeUnit.MILLISECONDS.toHours(System.currentTimeMillis() - timestamp)}h ago"
-        else -> "${TimeUnit.MILLISECONDS.toDays(System.currentTimeMillis() - timestamp)}d ago"
+        minutes < 1440 -> "${TimeUnit.MILLISECONDS.toHours(diff)}h ago"
+        else -> "${TimeUnit.MILLISECONDS.toDays(diff)}d ago"
     }
 }
