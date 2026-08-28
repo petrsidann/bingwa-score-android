@@ -28,17 +28,20 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions WHERE status = 'SCHEDULED' AND scheduledAt <= :time ORDER BY scheduledAt ASC")
     suspend fun getDueScheduled(time: Long): List<Transaction>
 
-    @Query("SELECT * FROM transactions WHERE createdAt < :before ORDER BY createdAt ASC")
-    suspend fun getOlderThan(before: Long): List<Transaction>
-
     @Query("SELECT * FROM transactions WHERE phoneNumber = :phone ORDER BY createdAt DESC")
     fun getTransactionsByPhone(phone: String): Flow<List<Transaction>>
 
+    @Query("SELECT * FROM transactions WHERE phoneNumber = :phone AND amount = :amount AND status = 'SUCCESSFUL' AND createdAt > :since LIMIT 1")
+    suspend fun getRecentSuccessful(phone: String, amount: Double, since: Long): Transaction?
+
+    @Query("SELECT * FROM transactions WHERE createdAt < :before ORDER BY createdAt ASC")
+    suspend fun getOlderThan(before: Long): List<Transaction>
+
+    @Query("SELECT * FROM transactions WHERE isAutoRenewal = 0 AND status = 'SUCCESSFUL' ORDER BY createdAt DESC")
+    suspend fun getAutoRenewalParentTransactions(): List<Transaction>
+
     @Query("SELECT * FROM transactions WHERE createdAt >= :start AND createdAt <= :end ORDER BY createdAt DESC")
     fun getTransactionsByDateRange(start: Long, end: Long): Flow<List<Transaction>>
-
-    @Query("SELECT * FROM transactions WHERE status = 'SUCCESSFUL' AND isAutoRenewal = 0 ORDER BY createdAt DESC")
-    suspend fun getAutoRenewalParentTransactions(): List<Transaction>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertTransaction(transaction: Transaction)
