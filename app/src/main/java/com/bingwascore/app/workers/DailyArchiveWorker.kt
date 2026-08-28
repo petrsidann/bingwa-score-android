@@ -8,7 +8,6 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.bingwascore.app.data.local.TransactionDao
-import com.bingwascore.app.domain.model.TransactionStatus
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import timber.log.Timber
@@ -28,24 +27,22 @@ class DailyArchiveWorker @AssistedInject constructor(
 
     override suspend fun doWork(): Result {
         return try {
-            val startToday = Calendar.getInstance().apply {
+            val startOfToday = Calendar.getInstance().apply {
                 set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
                 set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
             }.timeInMillis
 
-            val all = transactionDao.getAllTransactions().first()
-            val old = all.filter { it.createdAt < startToday }
+            val old = transactionDao.getOlderThan(startOfToday)
             if (old.isNotEmpty()) {
-                // Save data to CSV first, then remove from active table
                 val dir = File(applicationContext.getExternalFilesDir(null), "archives").apply { mkdirs() }
                 val stamp = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.getDefault()).format(Date())
-                val csv = File(dir, "archive-$stamp.csv")
-                val sb = StringBuilder("id,phone,offer,amount,status,date\n")
+                val csv = File(dir, "transactions-$stamp.csv")
+                val sb = StringBuilder("id,phone,customer,offer,amount,commission,status,date\n")
                 old.forEach { t ->
-                    sb.append("${t.id},${t.phoneNumber},${t.offerName},${t.amount},${t.status.name},${Date(t.createdAt)}\n")
+                    sb.append("${t.id},${t.phoneNumber},${(t.customerName ?: "").replace(",", " ")},${t.offerName.replace(",", " ")},${t.amount},${t.commission},${t.status.name},${Date(t.createdAt)}\n")
                 }
                 csv.writeText(sb.toString())
-                old.forEach { t -> transactionDao.deleteTransactionById(t.id) }
+                transactionDao.deleteOlderThan(startOfToday)
                 Timber.d("DailyArchive: archived ${old.size} transactions to ${csv.name}")
             }
             Result.success()
@@ -68,6 +65,8 @@ object DailyArchiveScheduler {
         val request = PeriodicWorkRequestBuilder<DailyArchiveWorker>(24, TimeUnit.HOURS)
             .setInitialDelay(delay, TimeUnit.MILLISECONDS)
             .build()
-        WorkManager.getInstance(context).enqueueUniquePeriodicWork("daily_archive", ExistingPeriodicWorkPolicy.KEEP, request)
+        WorkManager.getInstance(context).enqueueUniquePeriodicWork(
+            "daily_archive", ExistingPeriodicWorkPolicy.KEEP, request
+        )
     }
 }
