@@ -19,7 +19,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -72,11 +71,11 @@ class DialerViewModel @Inject constructor(
     fun dial(context: Context, phone: String, offer: Offer, onResult: (String) -> Unit) {
         viewModelScope.launch {
             if (phone.length < 10) { onResult("Enter a valid customer phone number"); return@launch }
-            // Substitute our placeholders: ph / BH with the customer phone
             val code = offer.ussdCode.replace("ph", phone).replace("BH", phone, ignoreCase = true)
             val tx = Transaction(
                 id = UUID.randomUUID().toString(),
                 phoneNumber = phone,
+                customerName = null,
                 offerId = offer.id,
                 offerName = offer.name,
                 ussdCode = code,
@@ -84,7 +83,6 @@ class DialerViewModel @Inject constructor(
                 status = TransactionStatus.PENDING
             )
             transactionRepository.insertTransaction(tx)
-            // Dial via SIM 1 (default voice subscription) through the automation service
             context.startService(Intent(context, UssdAutomationService::class.java).apply {
                 putExtra("USSD_CODE", code)
                 putExtra("TRANSACTION_ID", tx.id)
@@ -95,7 +93,7 @@ class DialerViewModel @Inject constructor(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun DialerScreen(onNavigateBack: () -> Unit) {
     val vm: DialerViewModel = hiltViewModel()
@@ -146,7 +144,10 @@ fun DialerScreen(onNavigateBack: () -> Unit) {
             Spacer(Modifier.height(8.dp))
             Box(
                 modifier = Modifier.fillMaxWidth().height(56.dp).clip(RoundedCornerShape(16.dp)).background(EmeraldGreen)
-                    .clickable { selectedOffer?.let { o -> vm.dial(context, phone, o) { feedback = it } } ?: run { feedback = "Select an offer first" } },
+                    .clickable {
+                        selectedOffer?.let { o -> vm.dial(context, phone, o) { feedback = it } }
+                            ?: run { feedback = "Select an offer first" }
+                    },
                 contentAlignment = Alignment.Center
             ) { Text("Dial Now", color = Color.White, fontWeight = FontWeight.Bold) }
             if (feedback.isNotEmpty()) Text(feedback, color = EmeraldGreen, fontSize = 13.sp)
