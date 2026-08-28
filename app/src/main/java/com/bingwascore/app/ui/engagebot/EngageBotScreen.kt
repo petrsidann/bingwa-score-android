@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -27,6 +28,9 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,7 +52,6 @@ import javax.inject.Inject
 class EngageBotViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository
 ) : ViewModel() {
-
     private val _enabled = MutableStateFlow(settingsRepository.getBoolean(AppSetting.ENGAGE_BOT_ACTIVE, false))
     val enabled: StateFlow<Boolean> = _enabled.asStateFlow()
 
@@ -58,6 +61,7 @@ class EngageBotViewModel @Inject constructor(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EngageBotScreen(onNavigateBack: () -> Unit) {
     val vm: EngageBotViewModel = hiltViewModel()
@@ -82,7 +86,7 @@ fun EngageBotScreen(onNavigateBack: () -> Unit) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text("Engage Bot", color = onSurface, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                        Text("When a customer who already bought today pays again, the bot engages them and redirects the offer to an alternative number.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+                        Text("When a customer who already bought today pays again, the bot asks for an alternative number and redirects the offer.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                     }
                     Spacer(Modifier.width(12.dp))
                     Switch(checked = enabled, onCheckedChange = { vm.setEnabled(it) }, colors = SwitchDefaults.colors(checkedTrackColor = EmeraldGreen))
