@@ -39,13 +39,11 @@ import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -53,12 +51,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.bingwascore.app.data.settings.SettingsRepository
 import com.bingwascore.app.ui.auth.AuthViewModel
 import com.bingwascore.app.ui.auth.LoginScreen
 import com.bingwascore.app.ui.auth.SignupScreen
 import com.bingwascore.app.ui.authorizedsenders.AuthorizedSendersScreen
-import com.bingwascore.app.ui.authorizedsenders.AuthorizedSendersStore
 import com.bingwascore.app.ui.autoreplies.AutoRepliesScreen
 import com.bingwascore.app.ui.autorenewals.AutoRenewalsScreen
 import com.bingwascore.app.ui.blacklist.BlacklistScreen
@@ -88,17 +84,7 @@ import com.bingwascore.app.ui.theme.Orange500
 import com.bingwascore.app.ui.theme.Purple500
 import com.bingwascore.app.ui.theme.ThemeViewModel
 import com.bingwascore.app.ui.theme.White
-import dagger.hilt.EntryPoint
-import dagger.hilt.InstallIn
-import dagger.hilt.android.EntryPointAccessors
-import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.launch
-
-@EntryPoint
-@InstallIn(SingletonComponent::class)
-interface RepoEntryPoint {
-    fun settingsRepository(): SettingsRepository
-}
 
 @Composable
 fun BingwaNavHost() {
@@ -107,11 +93,6 @@ fun BingwaNavHost() {
     val scope = rememberCoroutineScope()
     val themeViewModel: ThemeViewModel = hiltViewModel()
     val isDark by themeViewModel.isDark.collectAsState()
-    val context = LocalContext.current
-    val settingsRepo = remember {
-        EntryPointAccessors.fromApplication(context.applicationContext, RepoEntryPoint::class.java).settingsRepository()
-    }
-    val authorizedStore = remember { AuthorizedSendersStore(context) }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -120,13 +101,9 @@ fun BingwaNavHost() {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(
-                            modifier = Modifier
-                                .size(48.dp)
-                                .background(Brush.linearGradient(listOf(Orange500, Purple500)), RoundedCornerShape(14.dp)),
+                            modifier = Modifier.size(48.dp).background(Brush.linearGradient(listOf(Orange500, Purple500)), RoundedCornerShape(14.dp)),
                             contentAlignment = Alignment.Center
-                        ) {
-                            Text("B", color = White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
-                        }
+                        ) { Text("B", color = White, fontSize = 24.sp, fontWeight = FontWeight.Bold) }
                         Spacer(Modifier.width(12.dp))
                         Text("Bingwa Score", fontSize = 20.sp, fontWeight = FontWeight.Bold)
                     }
@@ -159,20 +136,14 @@ fun BingwaNavHost() {
         NavHost(navController = navController, startDestination = Screen.Splash.route) {
             composable(Screen.Splash.route) {
                 SplashScreen(onFinished = {
-                    navController.navigate(Screen.Home.route) {
-                        popUpTo(Screen.Splash.route) { inclusive = true }
-                    }
+                    navController.navigate(Screen.Home.route) { popUpTo(Screen.Splash.route) { inclusive = true } }
                 })
             }
             composable(Screen.Login.route) {
                 val vm: AuthViewModel = hiltViewModel()
                 LoginScreen(
                     viewModel = vm,
-                    onLoginSuccess = {
-                        navController.navigate(Screen.Home.route) {
-                            popUpTo(Screen.Login.route) { inclusive = true }
-                        }
-                    },
+                    onLoginSuccess = { navController.navigate(Screen.Home.route) { popUpTo(Screen.Login.route) { inclusive = true } } },
                     onNavigateToSignup = { navController.navigate(Screen.Signup.route) }
                 )
             }
@@ -180,11 +151,7 @@ fun BingwaNavHost() {
                 val vm: AuthViewModel = hiltViewModel()
                 SignupScreen(
                     viewModel = vm,
-                    onSignupSuccess = {
-                        navController.navigate(Screen.Home.route) {
-                            popUpTo(Screen.Login.route) { inclusive = true }
-                        }
-                    },
+                    onSignupSuccess = { navController.navigate(Screen.Home.route) { popUpTo(Screen.Login.route) { inclusive = true } } },
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
@@ -195,19 +162,12 @@ fun BingwaNavHost() {
                     isDarkTheme = isDark,
                     onToggleTheme = { themeViewModel.toggle() },
                     onOpenDrawer = { scope.launch { drawerState.open() } },
-                    onNavigateToTransactions = { navController.navigate(Screen.Transactions.route) },
-                    onNavigateToSettings = { navController.navigate(Screen.Settings.route) }
+                    onNavigateToTransactions = { navController.navigate(Screen.Transactions.route) }
                 )
             }
-            composable(Screen.Score.route) {
-                ScoreScreen(onNavigateBack = { navController.popBackStack() })
-            }
-            composable(Screen.Transactions.route) {
-                TransactionsScreen(onNavigateBack = { navController.popBackStack() })
-            }
-            composable(Screen.Customers.route) {
-                CustomersScreen(onNavigateBack = { navController.popBackStack() })
-            }
+            composable(Screen.Score.route) { ScoreScreen(onNavigateBack = { navController.popBackStack() }) }
+            composable(Screen.Transactions.route) { TransactionsScreen(onNavigateBack = { navController.popBackStack() }) }
+            composable(Screen.Customers.route) { CustomersScreen(onNavigateBack = { navController.popBackStack() }) }
             composable(Screen.Offers.route) {
                 val vm: OffersViewModel = hiltViewModel()
                 OffersScreen(
@@ -225,64 +185,27 @@ fun BingwaNavHost() {
                 val id = backStack.arguments?.getString("offerId") ?: return@composable
                 OfferActionsScreen(offerId = id, onNavigateBack = { navController.popBackStack() })
             }
-            composable(Screen.Dialer.route) {
-                DialerScreen(onNavigateBack = { navController.popBackStack() })
-            }
-            composable(Screen.AutoRenewals.route) {
-                AutoRenewalsScreen(onNavigateBack = { navController.popBackStack() })
-            }
-            composable(Screen.Subscriptions.route) {
-                SubscriptionsScreen(onNavigateBack = { navController.popBackStack() })
-            }
-            composable(Screen.AutoReplies.route) {
-                AutoRepliesScreen(onNavigateBack = { navController.popBackStack() })
-            }
-            composable(Screen.EngageBot.route) {
-                EngageBotScreen(onNavigateBack = { navController.popBackStack() }, settings = settingsRepo)
-            }
-            composable(Screen.Community.route) {
-                CommunityScreen(onNavigateBack = { navController.popBackStack() })
-            }
-            composable(Screen.MyStore.route) {
-                MyStoreScreen(onNavigateBack = { navController.popBackStack() })
-            }
-            composable(Screen.Mesh.route) {
-                MeshScreen(onNavigateBack = { navController.popBackStack() })
-            }
-            composable(Screen.Blacklist.route) {
-                BlacklistScreen(onNavigateBack = { navController.popBackStack() })
-            }
-            composable(Screen.AuthorizedSenders.route) {
-                AuthorizedSendersScreen(onNavigateBack = { navController.popBackStack() }, store = authorizedStore)
-            }
-            composable(Screen.Settings.route) {
-                SettingsScreen(navController)
-            }
-            composable(Screen.Appearance.route) {
-                AppearanceScreen(onBack = { navController.popBackStack() })
-            }
-            composable(Screen.Updates.route) {
-                UpdatesScreen(onBack = { navController.popBackStack() })
-            }
-            composable(Screen.About.route) {
-                AboutScreen(onBack = { navController.popBackStack() })
-            }
-            composable(Screen.Terms.route) {
-                TermsScreen(onBack = { navController.popBackStack() })
-            }
-            composable(Screen.Privacy.route) {
-                PrivacyScreen(onBack = { navController.popBackStack() })
-            }
+            composable(Screen.Dialer.route) { DialerScreen(onNavigateBack = { navController.popBackStack() }) }
+            composable(Screen.AutoRenewals.route) { AutoRenewalsScreen(onNavigateBack = { navController.popBackStack() }) }
+            composable(Screen.Subscriptions.route) { SubscriptionsScreen(onNavigateBack = { navController.popBackStack() }) }
+            composable(Screen.AutoReplies.route) { AutoRepliesScreen(onNavigateBack = { navController.popBackStack() }) }
+            composable(Screen.EngageBot.route) { EngageBotScreen(onNavigateBack = { navController.popBackStack() }) }
+            composable(Screen.Community.route) { CommunityScreen(onNavigateBack = { navController.popBackStack() }) }
+            composable(Screen.MyStore.route) { MyStoreScreen(onNavigateBack = { navController.popBackStack() }) }
+            composable(Screen.Mesh.route) { MeshScreen(onNavigateBack = { navController.popBackStack() }) }
+            composable(Screen.Blacklist.route) { BlacklistScreen(onNavigateBack = { navController.popBackStack() }) }
+            composable(Screen.AuthorizedSenders.route) { AuthorizedSendersScreen(onNavigateBack = { navController.popBackStack() }) }
+            composable(Screen.Settings.route) { SettingsScreen(navController) }
+            composable(Screen.Appearance.route) { AppearanceScreen(onBack = { navController.popBackStack() }) }
+            composable(Screen.Updates.route) { UpdatesScreen(onBack = { navController.popBackStack() }) }
+            composable(Screen.About.route) { AboutScreen(onBack = { navController.popBackStack() }) }
+            composable(Screen.Terms.route) { TermsScreen(onBack = { navController.popBackStack() }) }
+            composable(Screen.Privacy.route) { PrivacyScreen(onBack = { navController.popBackStack() }) }
         }
     }
 }
 
 @Composable
 private fun DrawerItem(icon: ImageVector, label: String, onClick: () -> Unit) {
-    NavigationDrawerItem(
-        icon = { Icon(icon, contentDescription = null) },
-        label = { Text(label) },
-        selected = false,
-        onClick = onClick
-    )
+    NavigationDrawerItem(icon = { Icon(icon, null) }, label = { Text(label) }, selected = false, onClick = onClick)
 }
