@@ -24,8 +24,10 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -54,13 +56,15 @@ import com.bingwascore.app.ui.theme.ErrorRed
 import com.bingwascore.app.ui.theme.Orange500
 import com.bingwascore.app.ui.theme.TealBlue
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel,
     isDarkTheme: Boolean,
     onToggleTheme: () -> Unit,
     onOpenDrawer: () -> Unit,
-    onNavigateToTransactions: () -> Unit
+    onNavigateToTransactions: () -> Unit,
+    onNavigateToSettings: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
     val balance by viewModel.balance.collectAsState()
@@ -97,6 +101,18 @@ fun HomeScreen(
                     Switch(checked = advanced, onCheckedChange = { viewModel.toggleAdvanced() }, colors = SwitchDefaults.colors(checkedTrackColor = EmeraldGreen))
                 }
             }
+            if (state.healthIssues.isNotEmpty()) {
+                item {
+                    Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(ErrorRed.copy(alpha = 0.12f)).padding(14.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Warning, null, tint = ErrorRed, modifier = Modifier.size(20.dp))
+                            Spacer(Modifier.width(10.dp))
+                            Text(state.healthIssues.first().advice, color = onSurface, fontSize = 12.sp, modifier = Modifier.weight(1f))
+                            Text("Fix", color = ErrorRed, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, modifier = Modifier.clickable { viewModel.openSystemSettings() })
+                        }
+                    }
+                }
+            }
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     StatCard("${state.successful}", "Completed", EmeraldGreen, Modifier.weight(1f))
@@ -114,17 +130,14 @@ fun HomeScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text("Airtime Balance", color = onSurfaceVariant, fontSize = 13.sp)
-                            Text(
-                                if (showBalance) (balance?.let { "Ksh $it" } ?: "Ksh --") else "Ksh ••••",
-                                color = onSurface, fontWeight = FontWeight.Bold, fontSize = 18.sp
-                            )
+                            Text(if (showBalance) (balance ?: "Ksh --") else "Ksh ••••", color = onSurface, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                         }
                         IconButton(onClick = { showBalance = !showBalance }) {
                             Icon(if (showBalance) Icons.Default.Visibility else Icons.Default.VisibilityOff, null, tint = onSurfaceVariant, modifier = Modifier.size(20.dp))
                         }
                         IconButton(onClick = { viewModel.refreshBalance() }) {
-                            if (balanceLoading) CircularProgressIndicator(modifier = Modifier.size(22.dp), color = EmeraldGreen, strokeWidth = 2.dp)
-                            else Icon(Icons.Default.Refresh, null, tint = EmeraldGreen, modifier = Modifier.size(22.dp))
+                            if (balanceLoading) CircularProgressIndicator(modifier = Modifier.size(20.dp), color = EmeraldGreen, strokeWidth = 2.dp)
+                            else Icon(Icons.Default.Refresh, null, tint = EmeraldGreen, modifier = Modifier.size(20.dp))
                         }
                     }
                 }
