@@ -1,5 +1,7 @@
 package com.bingwascore.app.ui.dialer
 
+import android.content.Context
+import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -36,6 +38,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -47,7 +50,7 @@ import com.bingwascore.app.data.repository.TransactionRepository
 import com.bingwascore.app.domain.model.Offer
 import com.bingwascore.app.domain.model.Transaction
 import com.bingwascore.app.domain.model.TransactionStatus
-import com.bingwascore.app.domain.usecase.StartUssdAutomationUseCase
+import com.bingwascore.app.services.UssdAutomationService
 import com.bingwascore.app.ui.theme.EmeraldGreen
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
@@ -60,31 +63,34 @@ import javax.inject.Inject
 @HiltViewModel
 class DialerViewModel @Inject constructor(
     offerRepository: OfferRepository,
-    private val transactionRepository: TransactionRepository,
-    private val startUssd: StartUssdAutomationUseCase
+    private val transactionRepository: TransactionRepository
 ) : ViewModel() {
 
     val offers: StateFlow<List<Offer>> = offerRepository.getActiveOffers()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    fun dial(phone: String, offer: Offer, onResult: (String) -> Unit) {
+    fun dial(context: Context, phone: String, offer: Offer, onResult: (String) -> Unit) {
         viewModelScope.launch {
-            if (phone.length < 10) {
-                onResult("Enter a valid customer phone number")
-                return@launch
-            }
+            if (phone.length < 10) { onResult("Enter a valid customer phone number"); return@launch }
+            // Substitute our placeholders: ph / BH with the customer phone
+            val code = offer.ussdCode.replace("ph", phone).replace("BH", phone, ignoreCase = true)
             val tx = Transaction(
                 id = UUID.randomUUID().toString(),
                 phoneNumber = phone,
                 offerId = offer.id,
                 offerName = offer.name,
-                ussdCode = offer.ussdCode,
+                ussdCode = code,
                 amount = offer.price.toDouble(),
                 status = TransactionStatus.PENDING
             )
             transactionRepository.insertTransaction(tx)
-            startUssd.execute(offer.id, tx.id, phone)
-            onResult("Dialing ${offer.name} for $phone")
+            // Dial via SIM 1 (default voice subscription) through the automation service
+            context.startService(Intent(context, UssdAutomationService::class.java).apply {
+                putExtra("USSD_CODE", code)
+                putExtra("TRANSACTION_ID", tx.id)
+                putExtra("CUSTOMER_PHONE", phone)
+            })
+            onResult("Dialing ${offer.name} for $phone (SIM 1)")
         }
     }
 }
@@ -93,6 +99,7 @@ class DialerViewModel @Inject constructor(
 @Composable
 fun DialerScreen(onNavigateBack: () -> Unit) {
     val vm: DialerViewModel = hiltViewModel()
+    val context = LocalContext.current
     val offers by vm.offers.collectAsState()
     var phone by remember { mutableStateOf("") }
     var selectedOffer by remember { mutableStateOf<Offer?>(null) }
@@ -104,21 +111,13 @@ fun DialerScreen(onNavigateBack: () -> Unit) {
         topBar = {
             TopAppBar(
                 title = { Text("Dialer", color = onSurface, fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = onSurface)
-                    }
-                },
+                navigationIcon = { IconButton(onClick = onNavigateBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = onSurface) } },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         }
     ) { padding ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(20.dp),
+            modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             OutlinedTextField(
@@ -129,56 +128,28 @@ fun DialerScreen(onNavigateBack: () -> Unit) {
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp)
             )
-
             Text("Select offer", color = onSurface, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 offers.forEach { offer ->
                     val isSelected = selectedOffer?.id == offer.id
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(12.dp))
-                            .background(
-                                if (isSelected) EmeraldGreen.copy(alpha = 0.2f)
-                                else MaterialTheme.colorScheme.surfaceVariant
-                            )
+                            .background(if (isSelected) EmeraldGreen.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant)
                             .clickable { selectedOffer = offer }
                             .padding(horizontal = 14.dp, vertical = 10.dp)
                     ) {
-                        Text(
-                            "${offer.name} - K${offer.price}",
-                            color = if (isSelected) EmeraldGreen else MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
+                        Text("${offer.name} - K${offer.price}", color = if (isSelected) EmeraldGreen else MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
-
             Spacer(Modifier.height(8.dp))
-
             Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(EmeraldGreen)
-                    .clickable {
-                        selectedOffer?.let { offer ->
-                            vm.dial(phone, offer) { feedback = it }
-                        } ?: run { feedback = "Select an offer first" }
-                    },
+                modifier = Modifier.fillMaxWidth().height(56.dp).clip(RoundedCornerShape(16.dp)).background(EmeraldGreen)
+                    .clickable { selectedOffer?.let { o -> vm.dial(context, phone, o) { feedback = it } } ?: run { feedback = "Select an offer first" } },
                 contentAlignment = Alignment.Center
-            ) {
-                Text("Dial Now", color = Color.White, fontWeight = FontWeight.Bold)
-            }
-
-            if (feedback.isNotEmpty()) {
-                Text(feedback, color = EmeraldGreen, fontSize = 13.sp)
-            }
+            ) { Text("Dial Now", color = Color.White, fontWeight = FontWeight.Bold) }
+            if (feedback.isNotEmpty()) Text(feedback, color = EmeraldGreen, fontSize = 13.sp)
         }
     }
 }
