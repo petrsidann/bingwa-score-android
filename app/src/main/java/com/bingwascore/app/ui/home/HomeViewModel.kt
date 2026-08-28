@@ -7,15 +7,12 @@ import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
 import android.telephony.TelephonyManager
+import com.bingwascore.app.data.repository.TransactionRepository
 import com.bingwascore.app.data.settings.AppSetting
 import com.bingwascore.app.data.settings.SettingsRepository
-import com.bingwascore.app.data.repository.TransactionRepository
+import com.bingwascore.app.domain.enums.ProcessingMode
 import com.bingwascore.app.domain.model.Transaction
 import com.bingwascore.app.domain.model.TransactionStatus
-import com.bingwascore.app.domain.stats.DayPoint
-import com.bingwascore.app.domain.stats.EngineHealth
-import com.bingwascore.app.domain.stats.HealthCheck
-import com.bingwascore.app.domain.stats.StatisticsEngine
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -35,8 +32,6 @@ data class HomeState(
     val failed: Int = 0,
     val airtimeUsedToday: Double = 0.0,
     val weeklyCommission: Double = 0.0,
-    val weekCommission: List<DayPoint> = emptyList(),
-    val healthIssues: List<HealthCheck> = emptyList(),
     val recent: List<Transaction> = emptyList()
 )
 
@@ -53,9 +48,7 @@ class HomeViewModel @Inject constructor(
     private val _balanceLoading = MutableStateFlow(false)
     val balanceLoading: StateFlow<Boolean> = _balanceLoading.asStateFlow()
 
-    private val _advanced = MutableStateFlow(
-        settingsRepository.getProcessingMode() == com.bingwascore.app.domain.enums.ProcessingMode.ADVANCED
-    )
+    private val _advanced = MutableStateFlow(settingsRepository.getProcessingMode() == ProcessingMode.ADVANCED)
     val advanced: StateFlow<Boolean> = _advanced.asStateFlow()
 
     val state: StateFlow<HomeState> = transactionRepository.getAllTransactions()
@@ -66,19 +59,19 @@ class HomeViewModel @Inject constructor(
             }.timeInMillis
             val weekAgo = System.currentTimeMillis() - 7 * 86_400_000L
             HomeState(
-                greeting = greeting(),
+                greeting = when (Calendar.getInstance().get(Calendar.HOUR_OF_DAY)) {
+                    in 5..11 -> "Good Morning"; in 12..16 -> "Good Afternoon"; else -> "Good Evening"
+                },
                 successful = txs.count { it.status == TransactionStatus.SUCCESSFUL },
                 failed = txs.count { it.status == TransactionStatus.FAILED || it.status == TransactionStatus.FAILED_ALREADY_RECOMMENDED },
                 airtimeUsedToday = txs.filter { it.status == TransactionStatus.SUCCESSFUL && it.createdAt >= startToday }.sumOf { it.amount },
                 weeklyCommission = txs.filter { it.status == TransactionStatus.SUCCESSFUL && it.createdAt >= weekAgo }.sumOf { it.commission },
-                weekCommission = StatisticsEngine.last7DaysCommission(txs),
-                healthIssues = EngineHealth.checks(context).filter { !it.ok },
                 recent = txs.take(8)
             )
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HomeState())
 
-    /** Silent balance check: dials *144#, parses the response, saves it. No popup from our side. */
+    /** Silent balance check via *144# — result saved, no popup. */
     fun refreshBalance() {
         if (_balanceLoading.value) return
         _balanceLoading.value = true
@@ -86,18 +79,17 @@ class HomeViewModel @Inject constructor(
             val tm = context.getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager
             if (tm == null) { _balanceLoading.value = false; return }
             tm.sendUssdRequest("*144#", object : TelephonyManager.UssdResponseCallback() {
-                override fun onReceiveUssdResponse(tm: TelephonyManager, request: String, response: CharSequence) {
+                override fun onReceiveUssdResponse(t: TelephonyManager, req: String, response: CharSequence) {
                     val text = response.toString()
-                    val match = Regex("Ksh\\.?\\s?([\\d,]+\\.\\d{2})", RegexOption.IGNORE_CASE)
-                        .findAll(text).lastOrNull()
-                    val bal = match?.groupValues?.get(1)
+                    val bal = Regex("Ksh\\.?\\s?([\\d,]+\\.\\d{2})", RegexOption.IGNORE_CASE)
+                        .findAll(text).lastOrNull()?.groupValues?.get(1)
                     if (bal != null) {
                         settingsRepository.saveString(AppSetting.STATS_AIRTIME_BALANCE, bal)
                         _balance.value = bal
                     }
                     _balanceLoading.value = false
                 }
-                override fun onReceiveUssdResponseFailed(tm: TelephonyManager, request: String, failureCode: Int) {
+                override fun onReceiveUssdResponseFailed(t: TelephonyManager, req: String, code: Int) {
                     _balanceLoading.value = false
                 }
             }, Handler(Looper.getMainLooper()))
@@ -109,24 +101,14 @@ class HomeViewModel @Inject constructor(
     fun toggleAdvanced() {
         val next = !_advanced.value
         _advanced.value = next
-        settingsRepository.setProcessingMode(
-            if (next) com.bingwascore.app.domain.enums.ProcessingMode.ADVANCED
-            else com.bingwascore.app.domain.enums.ProcessingMode.EXPRESS
-        )
+        settingsRepository.setProcessingMode(if (next) ProcessingMode.ADVANCED else ProcessingMode.EXPRESS)
     }
 
-    /** Opens the PHONE app-info settings (permissions), not the in-app settings. */
     fun openSystemSettings() {
         val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
             data = Uri.fromParts("package", context.packageName, null)
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
         context.startActivity(intent)
-    }
-
-    private fun greeting(): String = when (Calendar.getInstance().get(Calendar.HOUR_OF_DAY)) {
-        in 5..11 -> "Good Morning"
-        in 12..16 -> "Good Afternoon"
-        else -> "Good Evening"
     }
 }
