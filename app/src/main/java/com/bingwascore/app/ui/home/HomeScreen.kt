@@ -21,9 +21,8 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Warning
@@ -53,6 +52,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bingwascore.app.domain.model.Transaction
 import com.bingwascore.app.domain.model.TransactionStatus
+import com.bingwascore.app.ui.components.WeeklyBars
 import com.bingwascore.app.ui.theme.EmeraldGreen
 import com.bingwascore.app.ui.theme.ErrorRed
 import com.bingwascore.app.ui.theme.Orange500
@@ -74,7 +74,6 @@ fun HomeScreen(
     val state by viewModel.state.collectAsState()
     val balance by viewModel.balance.collectAsState()
     val balanceLoading by viewModel.balanceLoading.collectAsState()
-    val paused by viewModel.paused.collectAsState()
     val advanced by viewModel.advanced.collectAsState()
     var showBalance by remember { mutableStateOf(true) }
     val onSurface = MaterialTheme.colorScheme.onSurface
@@ -109,10 +108,6 @@ fun HomeScreen(
                         onCheckedChange = { viewModel.toggleAdvanced() },
                         colors = SwitchDefaults.colors(checkedTrackColor = EmeraldGreen)
                     )
-                    Spacer(Modifier.width(16.dp))
-                    IconButton(onClick = { viewModel.togglePause() }) {
-                        Icon(if (paused) Icons.Default.PlayArrow else Icons.Default.Pause, null, tint = if (paused) EmeraldGreen else Orange500)
-                    }
                 }
             }
 
@@ -157,8 +152,8 @@ fun HomeScreen(
                             Icon(if (showBalance) Icons.Default.Visibility else Icons.Default.VisibilityOff, null, tint = onSurfaceVariant, modifier = Modifier.size(20.dp))
                         }
                         IconButton(onClick = { viewModel.refreshBalance() }) {
-                            if (balanceLoading) CircularProgressIndicator(modifier = Modifier.size(20.dp), color = EmeraldGreen, strokeWidth = 2.dp)
-                            else Icon(Icons.Default.Refresh, null, tint = EmeraldGreen, modifier = Modifier.size(20.dp))
+                            if (balanceLoading) CircularProgressIndicator(modifier = Modifier.size(22.dp), color = EmeraldGreen, strokeWidth = 2.dp)
+                            else Icon(Icons.Default.Refresh, null, tint = EmeraldGreen, modifier = Modifier.size(22.dp))
                         }
                     }
                 }
@@ -175,7 +170,7 @@ fun HomeScreen(
                 item {
                     Column(modifier = Modifier.fillMaxWidth().padding(vertical = 40.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("No transactions yet", color = onSurface, fontWeight = FontWeight.SemiBold)
-                        Text("Payments received via M-Pesa will appear here", color = onSurfaceVariant, fontSize = 12.sp)
+                        Text("M-Pesa payments will appear here automatically", color = onSurfaceVariant, fontSize = 12.sp)
                     }
                 }
             } else {
@@ -183,7 +178,7 @@ fun HomeScreen(
                     val (icon, tint) = when (tx.status) {
                         TransactionStatus.SUCCESSFUL -> Icons.Default.CheckCircle to EmeraldGreen
                         TransactionStatus.FAILED, TransactionStatus.FAILED_ALREADY_RECOMMENDED -> Icons.Default.Error to ErrorRed
-                        else -> Icons.Default.Refresh to TealBlue
+                        else -> Icons.Default.Schedule to TealBlue
                     }
                     Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(icon, null, tint = tint, modifier = Modifier.size(22.dp))
