@@ -2,17 +2,16 @@ package com.bingwascore.app.services
 
 import android.Manifest
 import android.app.Service
-import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import android.telephony.TelephonyManager
 import androidx.core.content.ContextCompat
+import com.bingwascore.app.data.local.OfferDao
 import com.bingwascore.app.data.local.TransactionDao
-import com.bingwascore.app.data.settings.AppSetting
-import com.bingwascore.app.data.settings.SettingsRepository
 import com.bingwascore.app.domain.engine.TransactionPipeline
+import com.bingwascore.app.domain.model.Offer
 import com.bingwascore.app.domain.model.TransactionStatus
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
@@ -27,21 +26,19 @@ import javax.inject.Inject
 class UssdAutomationService : Service() {
 
     @Inject lateinit var pipeline: TransactionPipeline
-    @Inject lateinit var settingsRepository: SettingsRepository
     @Inject lateinit var transactionDao: TransactionDao
+    @Inject lateinit var offerDao: OfferDao
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val handler = Handler(Looper.getMainLooper())
-    private val balanceRegex = Regex("Ksh\\.?\\s?([\\d,]+\\.\\d{2})", RegexOption.IGNORE_CASE)
 
-    override fun onBind(intent: Intent?): IBinder? = null
+    override fun onBind(intent: android.content.Intent?): IBinder? = null
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+    override fun onStartCommand(intent: android.content.Intent?, flags: Int, startId: Int): Int {
         val code = intent?.getStringExtra("USSD_CODE")
         val txId = intent?.getStringExtra("TRANSACTION_ID")
         val timeout = intent?.getLongExtra("TIMEOUT_MS", 40000L) ?: 40000L
         val balanceCheck = intent?.getBooleanExtra("BALANCE_CHECK", false) ?: false
-
         if (code != null) dial(code, txId, timeout, balanceCheck)
         return START_NOT_STICKY
     }
@@ -55,19 +52,14 @@ class UssdAutomationService : Service() {
         val tm = getSystemService(TELEPHONY_SERVICE) as? TelephonyManager ?: return
 
         val callback = object : TelephonyManager.UssdResponseCallback() {
-            override fun onReceiveUssdResponse(tm: TelephonyManager, request: String, response: CharSequence) {
+            override fun onReceiveUssdResponse(t: TelephonyManager, request: String, response: CharSequence) {
                 val text = response.toString()
                 Timber.d("USSD response: $text")
                 scope.launch {
-                    when {
-                        balanceCheck -> {
-                            val bal = balanceRegex.findAll(text).lastOrNull()?.groupValues?.get(1)
-                            if (bal != null) {
-                                settingsRepository.saveString(AppSetting.STATS_AIRTIME_BALANCE, bal)
-                                Timber.d("Airtime balance saved: $bal")
-                            }
-                        }
-                        txId != null -> when {
+                    if (balanceCheck) {
+                        // handled by BalanceRepository path; ignore here
+                    } else if (txId != null) {
+                        when {
                             text.contains("already recommended", true) -> pipeline.onUssdAlreadyRecommended(txId)
                             text.contains("failed", true) || text.contains("error", true) ||
                             text.contains("invalid", true) || text.contains("not allowed", true) ->
@@ -77,8 +69,7 @@ class UssdAutomationService : Service() {
                     }
                 }
             }
-
-            override fun onReceiveUssdResponseFailed(tm: TelephonyManager, request: String, failureCode: Int) {
+            override fun onReceiveUssdResponseFailed(t: TelephonyManager, request: String, failureCode: Int) {
                 Timber.e("USSD failed code $failureCode")
                 if (txId != null) scope.launch { pipeline.onUssdFailed(txId, "USSD failed ($failureCode)") }
             }
@@ -101,5 +92,12 @@ class UssdAutomationService : Service() {
                 }
             }
         }
+    }
+
+    private fun awaitingCompletion(offer: Offer?): Boolean {
+        if (offer == null || !offer.strictMode) return false
+        val msg = offer.completionMessage
+        val hasPlaceholder = !msg.isNullOrBlank() && (msg.contains("@phone", true) || msg.contains("<phone>", true))
+        return hasPlaceholder || offer.ussdCode.contains("*180*5")
     }
 }
