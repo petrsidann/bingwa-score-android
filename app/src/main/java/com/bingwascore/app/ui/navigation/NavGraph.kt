@@ -54,10 +54,10 @@ import androidx.navigation.compose.rememberNavController
 import com.bingwascore.app.ui.auth.AuthViewModel
 import com.bingwascore.app.ui.auth.LoginScreen
 import com.bingwascore.app.ui.auth.SignupScreen
-import com.bingwascore.app.ui.authorizedsenders.AuthorizedSendersScreen
 import com.bingwascore.app.ui.autoreplies.AutoRepliesScreen
 import com.bingwascore.app.ui.autorenewals.AutoRenewalsScreen
 import com.bingwascore.app.ui.blacklist.BlacklistScreen
+import com.bingwascore.app.ui.authorizedsenders.AuthorizedSendersScreen
 import com.bingwascore.app.ui.community.CommunityScreen
 import com.bingwascore.app.ui.customers.CustomersScreen
 import com.bingwascore.app.ui.dialer.DialerScreen
@@ -94,6 +94,11 @@ fun BingwaNavHost() {
     val themeViewModel: ThemeViewModel = hiltViewModel()
     val isDark by themeViewModel.isDark.collectAsState()
 
+    fun closeAndNavigate(route: String) {
+        scope.launch { drawerState.close() }
+        navController.navigate(route)
+    }
+
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
@@ -105,33 +110,42 @@ fun BingwaNavHost() {
                                 .size(48.dp)
                                 .background(Brush.linearGradient(listOf(Orange500, Purple500)), RoundedCornerShape(14.dp)),
                             contentAlignment = Alignment.Center
-                        ) { Text("B", color = White, fontSize = 24.sp, fontWeight = FontWeight.Bold) }
+                        ) {
+                            Text("B", color = White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                        }
                         Spacer(Modifier.width(12.dp))
                         Text("Bingwa Score", fontSize = 20.sp, fontWeight = FontWeight.Bold)
                     }
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(16.dp))
                 }
-                DrawerItem(Icons.Default.Home, "Home") { scope.launch { drawerState.close() }; navController.navigate(Screen.Home.route) }
-                DrawerItem(Icons.Default.EmojiEvents, "My Score") { scope.launch { drawerState.close() }; navController.navigate(Screen.Score.route) }
-                DrawerItem(Icons.Default.Receipt, "Transactions") { scope.launch { drawerState.close() }; navController.navigate(Screen.Transactions.route) }
-                DrawerItem(Icons.Default.People, "Customers") { scope.launch { drawerState.close() }; navController.navigate(Screen.Customers.route) }
-                DrawerItem(Icons.Default.LocalOffer, "Offers") { scope.launch { drawerState.close() }; navController.navigate(Screen.Offers.route) }
-                DrawerItem(Icons.Default.Dialpad, "Dialer") { scope.launch { drawerState.close() }; navController.navigate(Screen.Dialer.route) }
-                DrawerItem(Icons.Default.Cached, "Auto Renewals") { scope.launch { drawerState.close() }; navController.navigate(Screen.AutoRenewals.route) }
-                DrawerItem(Icons.Default.Subscriptions, "Subscriptions") { scope.launch { drawerState.close() }; navController.navigate(Screen.Subscriptions.route) }
-                DrawerItem(Icons.Default.Email, "Botted Replies") { scope.launch { drawerState.close() }; navController.navigate(Screen.AutoReplies.route) }
-                DrawerItem(Icons.Default.SmartToy, "Engage Bot") { scope.launch { drawerState.close() }; navController.navigate(Screen.EngageBot.route) }
-                DrawerItem(Icons.Default.Group, "Intelligent USSD") { scope.launch { drawerState.close() }; navController.navigate(Screen.Community.route) }
-                DrawerItem(Icons.Default.Store, "My Store") { scope.launch { drawerState.close() }; navController.navigate(Screen.MyStore.route) }
-                DrawerItem(Icons.Default.Wifi, "Bingwa Mesh") { scope.launch { drawerState.close() }; navController.navigate(Screen.Mesh.route) }
-                DrawerItem(Icons.Default.Block, "Blacklist") { scope.launch { drawerState.close() }; navController.navigate(Screen.Blacklist.route) }
-                DrawerItem(Icons.Default.Security, "Authorized Senders") { scope.launch { drawerState.close() }; navController.navigate(Screen.AuthorizedSenders.route) }
-                DrawerItem(Icons.Default.Settings, "Settings") { scope.launch { drawerState.close() }; navController.navigate(Screen.Settings.route) }
-                DrawerItem(Icons.Default.Update, "Check For Updates") { scope.launch { drawerState.close() }; navController.navigate(Screen.Updates.route) }
+
+                DrawerItem(Icons.Default.Home, "Home") { closeAndNavigate(Screen.Home.route) }
+                DrawerItem(Icons.Default.EmojiEvents, "My Score") { closeAndNavigate(Screen.Score.route) }
+                DrawerItem(Icons.Default.Receipt, "Transactions") { closeAndNavigate(Screen.Transactions.route) }
+                DrawerItem(Icons.Default.People, "Customers") { closeAndNavigate(Screen.Customers.route) }
+                DrawerItem(Icons.Default.LocalOffer, "Offers") { closeAndNavigate(Screen.Offers.route) }
+                DrawerItem(Icons.Default.Dialpad, "Dialer") { closeAndNavigate(Screen.Dialer.route) }
+                DrawerItem(Icons.Default.Cached, "Auto Renewals") { closeAndNavigate(Screen.AutoRenewals.route) }
+                DrawerItem(Icons.Default.Subscriptions, "Subscriptions") { closeAndNavigate(Screen.Subscriptions.route) }
+                DrawerItem(Icons.Default.Email, "Botted Replies") { closeAndNavigate(Screen.AutoReplies.route) }
+                DrawerItem(Icons.Default.SmartToy, "Engage Bot") { closeAndNavigate(Screen.EngageBot.route) }
+                DrawerItem(Icons.Default.Group, "Intelligent USSD") { closeAndNavigate(Screen.Community.route) }
+                DrawerItem(Icons.Default.Store, "My Store") { closeAndNavigate(Screen.MyStore.route) }
+                DrawerItem(Icons.Default.Wifi, "Bingwa Mesh") { closeAndNavigate(Screen.Mesh.route) }
+                DrawerItem(Icons.Default.Block, "Blacklist") { closeAndNavigate(Screen.Blacklist.route) }
+                DrawerItem(Icons.Default.Security, "Authorized Senders") { closeAndNavigate(Screen.AuthorizedSenders.route) }
+                DrawerItem(Icons.Default.Settings, "Settings") { closeAndNavigate(Screen.Settings.route) }
+                DrawerItem(Icons.Default.Update, "Check For Updates") { closeAndNavigate(Screen.Updates.route) }
+                
+                Spacer(Modifier.weight(1f))
+                
                 DrawerItem(Icons.Default.Logout, "Logout") {
                     scope.launch { drawerState.close() }
-                    navController.navigate(Screen.Login.route) { popUpTo(0) { inclusive = true } }
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
                 }
+                Spacer(Modifier.height(16.dp))
             }
         }
     ) {
@@ -147,7 +161,11 @@ fun BingwaNavHost() {
                 val vm: AuthViewModel = hiltViewModel()
                 LoginScreen(
                     viewModel = vm,
-                    onLoginSuccess = { navController.navigate(Screen.Home.route) { popUpTo(Screen.Login.route) { inclusive = true } } },
+                    onLoginSuccess = {
+                        navController.navigate(Screen.Home.route) {
+                            popUpTo(Screen.Login.route) { inclusive = true }
+                        }
+                    },
                     onNavigateToSignup = { navController.navigate(Screen.Signup.route) }
                 )
             }
@@ -155,7 +173,11 @@ fun BingwaNavHost() {
                 val vm: AuthViewModel = hiltViewModel()
                 SignupScreen(
                     viewModel = vm,
-                    onSignupSuccess = { navController.navigate(Screen.Home.route) { popUpTo(Screen.Login.route) { inclusive = true } } },
+                    onSignupSuccess = {
+                        navController.navigate(Screen.Home.route) {
+                            popUpTo(Screen.Login.route) { inclusive = true }
+                        }
+                    },
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
