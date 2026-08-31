@@ -40,12 +40,16 @@ class BalanceRepository @Inject constructor(
         if (_loading.value) return
         _loading.value = true
         scope.launch {
-            val text = querySilently("*144#")
-            if (text != null) {
-                balanceRegex.findAll(text).lastOrNull()?.groupValues?.get(1)?.let { parsed ->
-                    _balance.value = parsed
-                    settingsRepository.saveString(AppSetting.STATS_AIRTIME_BALANCE, parsed)
+            try {
+                val text = querySilently("*144#")
+                if (text != null) {
+                    balanceRegex.findAll(text).lastOrNull()?.groupValues?.get(1)?.let { parsed ->
+                        _balance.value = parsed
+                        settingsRepository.saveString(AppSetting.STATS_AIRTIME_BALANCE, parsed)
+                    }
                 }
+            } catch (e: Exception) {
+                Timber.e(e, "Balance refresh failed")
             }
             _loading.value = false
         }
@@ -68,7 +72,7 @@ class BalanceRepository @Inject constructor(
                     }
                 }, Handler(Looper.getMainLooper()))
             } catch (e: Exception) {
-                Timber.e(e, "Balance query failed")
+                Timber.e(e, "sendUssdRequest failed")
                 cont.resume(null)
             }
         }
