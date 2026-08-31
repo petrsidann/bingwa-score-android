@@ -38,7 +38,6 @@ class TransactionPipeline @Inject constructor(
     private val engageBot: EngageBotSessionLifecycle,
     @ApplicationContext private val context: Context
 ) {
-    companion object { const val MAX_RETRIES = 2 }
 
     suspend fun onMpesaReceived(msg: MpesaMessage) = withContext(Dispatchers.IO) {
         val phone = normalize(msg.phoneNumber)
@@ -59,7 +58,6 @@ class TransactionPipeline @Inject constructor(
         if (offer == null) {
             val tx = createTx(msg, null, TransactionStatus.UNMATCHED)
             sendReply(tx, AutoReplyType.UNAVAILABLE_OFFER)
-            Timber.w("No offer matches Ksh${msg.amountInt}")
             return@withContext
         }
 
@@ -77,13 +75,13 @@ class TransactionPipeline @Inject constructor(
     suspend fun onUssdSuccess(transactionId: String) = withContext(Dispatchers.IO) {
         val tx = transactionDao.getTransactionById(transactionId) ?: return@withContext
         val offer = offerDao.getOfferById(tx.offerId)
-        if (awaitingCompletion(offer)) {
+        val awaiting = offer?.strictMode == true &&
+                (OfferSignature.canEnableStrictMode(offer.completionMessage) || OfferSignature.isBingwaOffer(offer.ussdCode))
+        if (awaiting) {
             transactionDao.updateTransactionStatus(transactionId, TransactionStatus.AWAITING_COMMISSION)
-            Timber.d("$transactionId awaiting commission SMS (strict mode)")
         } else {
             transactionDao.completeTransaction(transactionId, tx.commission, TransactionStatus.SUCCESSFUL, System.currentTimeMillis())
             sendReply(tx, AutoReplyType.SUCCESSFUL_RESPONSE)
-            Timber.d("$transactionId SUCCESSFUL")
         }
     }
 
@@ -97,7 +95,6 @@ class TransactionPipeline @Inject constructor(
             transactionDao.updateTransaction(
                 tx.copy(status = TransactionStatus.SCHEDULED, scheduledAt = retryAt, retryCount = tx.retryCount + 1, errorMessage = reason)
             )
-            Timber.d("$transactionId retry ${tx.retryCount + 1} scheduled")
             return@withContext
         }
 
@@ -119,7 +116,6 @@ class TransactionPipeline @Inject constructor(
             ?: return@withContext
         transactionDao.completeTransaction(tx.id, commission, TransactionStatus.SUCCESSFUL, System.currentTimeMillis())
         sendReply(tx, AutoReplyType.SUCCESSFUL_RESPONSE)
-        Timber.d("Commission Ksh$commission recorded for ${tx.id}")
     }
 
     suspend fun onCompletionSms() = withContext(Dispatchers.IO) {
@@ -160,7 +156,6 @@ class TransactionPipeline @Inject constructor(
             transactionDao.updateTransaction(
                 tx.copy(status = TransactionStatus.SCHEDULED, scheduledAt = nextRunTime(offer.autoRescheduleRunTime))
             )
-            Timber.d("${tx.id} auto-rescheduled to ${offer.autoRescheduleRunTime}")
         }
     }
 
@@ -182,7 +177,6 @@ class TransactionPipeline @Inject constructor(
         )
         transactionDao.insertTransaction(fallback)
         dial(fallback, next)
-        Timber.d("Fallback rule: ${next.name}")
         return true
     }
 
@@ -199,7 +193,6 @@ class TransactionPipeline @Inject constructor(
                 putExtra("TIMEOUT_MS", offer.ussdTimeoutMillis)
             }
         )
-        Timber.d("Dialing $code for ${tx.id}")
     }
 
     private suspend fun createTx(msg: MpesaMessage, offer: Offer?, status: TransactionStatus): Transaction {
@@ -234,13 +227,6 @@ class TransactionPipeline @Inject constructor(
                 "mpesaCode" to (tx.mpesaReceipt ?: "")
             )
         )
-    }
-
-    private fun awaitingCompletion(offer: Offer?): Boolean {
-        if (offer == null || !offer.strictMode) return false
-        val msg = offer.completionMessage
-        val hasPlaceholder = !msg.isNullOrBlank() && (msg.contains("@phone", true) || msg.contains("<phone>", true))
-        return hasPlaceholder || offer.ussdCode.contains("*180*5")
     }
 
     private fun nextRunTime(timeStr: String): Long {
