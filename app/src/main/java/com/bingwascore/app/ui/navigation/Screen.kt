@@ -15,7 +15,7 @@ sealed class Screen(val route: String) {
     data object OfferActions : Screen("offeractions/{offerId}") {
         fun createRoute(offerId: String) = "offeractions/$offerId"
     }
-    data object Dialer : Screen("dialer")
+    data object Dialer : Screen("dialer") // THIS MUST BE DIALER
     data object AutoRenewals : Screen("autorenewals")
     data object Subscriptions : Screen("subscriptions")
     data object AutoReplies : Screen("autoreplies")
