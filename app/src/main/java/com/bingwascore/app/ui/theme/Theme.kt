@@ -11,18 +11,6 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
-val Purple500 = Color(0xFF6200EE)
-val Purple700 = Color(0xFF3700B3)
-val Purple900 = Color(0xFF1A0033)
-val Purple400 = Color(0xFFBB86FC)
-val Teal200 = Color(0xFF03DAC5)
-val TealBlue = Color(0xFF00BCD4)
-val Orange500 = Color(0xFFFF6D00)
-val Orange600 = Color(0xFFF57C00)
-val EmeraldGreen = Color(0xFF00C853)
-val ErrorRed = Color(0xFFD50000)
-val White = Color(0xFFFFFFFF)
-
 private val LightColors = lightColorScheme(
     primary = Orange500,
     onPrimary = White,

@@ -107,7 +107,7 @@ fun HomeScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.Warning, null, tint = ErrorRed, modifier = Modifier.size(20.dp))
                             Spacer(Modifier.width(10.dp))
-                            Text(state.healthIssues.first().advice, color = onSurface, fontSize = 12.sp, modifier = Modifier.weight(1f))
+                            Text(state.healthIssues.first(), color = onSurface, fontSize = 12.sp, modifier = Modifier.weight(1f))
                             Text("Fix", color = ErrorRed, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, modifier = Modifier.clickable { viewModel.openSystemSettings() })
                         }
                     }

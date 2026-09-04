@@ -1,81 +1,31 @@
 ```
-# Logs
-*.log
-hs_err_pid*.log
-
 # Gradle
 .gradle/
 build/
 target/
 
-# Local configuration
-local.properties
+# Kotlin
+*.class
+*.jar
+*.war
+*.ear
 
-# Environment
-.env
-.env.local
-*.env.*
-
-# Dependencies
-node_modules/
-**/node_modules/
+# Android
+*.apk
+*.aar
+*.dex
 
 # IDE
-.vscode/
 .idea/
-*.swp
-*.swo
+*.iml
+*.ipr
+*.iws
 
-# OS
-.DS_Store
-Thumbs.db
+# Temp files
+*.tmp
+*.temp
+*.log
 
-# Coverage
-coverage/
-htmlcov/
-.coverage
-
-# Python
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
-env/
-venv/
-.venv/
-.venv.bak/
-pip-log.txt
-pip-selfcheck.json
-
-# Build outputs
-dist/
-build/
-*.egg-info/
-.pytest_cache/
-.mypy_cache/
-
-# Archives
-*.zip
-*.gz
-*.tar
-*.tgz
-*.bz2
-*.xz
-*.7z
-*.rar
-*.zst
-*.lz4
-*.lzh
-*.cab
-*.arj
-*.rpm
-*.deb
-*.Z
-*.lz
-*.lzo
-*.tar.gz
-*.tar.bz2
-*.tar.xz
-*.tar.zst
+# Local configuration
+local.properties
 ```
