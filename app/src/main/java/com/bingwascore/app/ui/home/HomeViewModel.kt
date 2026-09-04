@@ -13,6 +13,7 @@ import com.bingwascore.app.domain.model.Transaction
 import com.bingwascore.app.domain.model.TransactionStatus
 import com.bingwascore.app.domain.stats.EngineHealth
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow

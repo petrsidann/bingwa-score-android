@@ -31,60 +31,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import com.bingwascore.app.data.repository.AuthRepository
 import com.bingwascore.app.ui.theme.EmeraldGreen
-import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
-import javax.inject.Inject
-
-@HiltViewModel
-class AuthViewModel @Inject constructor(
-    private val authRepository: AuthRepository
-) : ViewModel() {
-    private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
-    private val _error = MutableStateFlow<String?>(null)
-    val error: StateFlow<String?> = _error.asStateFlow()
-
-    fun login(email: String, password: String, onSuccess: () -> Unit) {
-        viewModelScope.launch {
-            _isLoading.value = true
-            _error.value = null
-            try {
-                authRepository.login(email, password)
-                onSuccess()
-            } catch (e: Exception) {
-                _error.value = e.message ?: "Login failed"
-            } finally {
-                _isLoading.value = false
-            }
-        }
-    }
-
-    fun signup(email: String, password: String, onSuccess: () -> Unit) {
-        viewModelScope.launch {
-            _isLoading.value = true
-            _error.value = null
-            try {
-                authRepository.signup(email, password)
-                onSuccess()
-            } catch (e: Exception) {
-                _error.value = e.message ?: "Signup failed"
-            } finally {
-                _isLoading.value = false
-            }
-        }
-    }
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LoginScreen(viewModel: AuthViewModel, onLoginSuccess: () -> Unit, onNavigateToSignup: () -> Unit) {
+fun LoginScreen(viewModel: AuthViewModel = hiltViewModel(), onLoginSuccess: () -> Unit, onNavigateToSignup: () -> Unit) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     val isLoading by viewModel.isLoading.collectAsState()
@@ -110,7 +61,7 @@ fun LoginScreen(viewModel: AuthViewModel, onLoginSuccess: () -> Unit, onNavigate
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SignupScreen(viewModel: AuthViewModel, onSignupSuccess: () -> Unit, onNavigateBack: () -> Unit) {
+fun SignupScreen(viewModel: AuthViewModel = hiltViewModel(), onSignupSuccess: () -> Unit, onNavigateBack: () -> Unit) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     val isLoading by viewModel.isLoading.collectAsState()

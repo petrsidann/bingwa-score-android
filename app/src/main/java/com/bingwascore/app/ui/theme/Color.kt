@@ -15,6 +15,12 @@ val EmeraldGreen = Color(0xFF00C853)
 val ErrorRed = Color(0xFFD50000)
 val White = Color(0xFFFFFFFF)
 
+// Additional colors for Bingwa Score
+val Sky500 = Color(0xFF0EA5E9)
+val Emerald500 = Color(0xFF10B981)
+val Rose500 = Color(0xFFF43F5E)
+val TextSecondary = Color(0xFF6B7280)
+
 val DarkBackground = Color(0xFF0B0B0F)
 val DarkSurface = Color(0xFF15151A)
 val DarkCard = Color(0xFF1F1F27)

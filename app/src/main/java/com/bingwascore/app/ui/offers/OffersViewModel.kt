@@ -18,6 +18,9 @@ class OffersViewModel @Inject constructor(
 
     private val _offers = MutableStateFlow<List<Offer>>(emptyList())
     val offers: StateFlow<List<Offer>> = _offers.asStateFlow()
+    
+    private val _filter = MutableStateFlow("all")
+    val filter: StateFlow<String> = _filter.asStateFlow()
 
     init {
         viewModelScope.launch {
@@ -26,7 +29,23 @@ class OffersViewModel @Inject constructor(
             }
         }
     }
+    
+    fun setFilter(id: String) {
+        _filter.value = id
+    }
 
+    fun toggleActive(offer: Offer) {
+        viewModelScope.launch {
+            repository.updateOffer(offer.copy(isActive = !offer.isActive))
+        }
+    }
+    
+    fun saveOffer(offer: Offer) {
+        viewModelScope.launch {
+            repository.saveOffer(offer)
+        }
+    }
+    
     fun toggleOfferActive(offer: Offer) {
         viewModelScope.launch {
             repository.updateOffer(offer.copy(isActive = !offer.isActive))
