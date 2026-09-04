@@ -43,6 +43,8 @@ class UserPreferences(private val context: Context) {
     suspend fun saveUserId(id: String) { context.dataStore.edit { it[userIdKey] = id } }
     suspend fun saveUserInfo(phone: String, name: String) { context.dataStore.edit { it[userPhoneKey] = phone; it[userNameKey] = name } }
     suspend fun setThemeMode(mode: Int) { context.dataStore.edit { it[themeModeKey] = mode } }
+    suspend fun setLoggedIn(isLoggedIn: Boolean) { context.dataStore.edit { it[isLoggedInKey] = isLoggedIn } }
+    suspend fun setUserName(name: String) { context.dataStore.edit { it[userNameKey] = name } }
     suspend fun clear() { context.dataStore.edit { it.clear() } }
     suspend fun isLoggedInSync(): Boolean = isLoggedIn.first()
 }

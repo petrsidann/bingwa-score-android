@@ -115,7 +115,7 @@ fun OffersScreen(viewModel: OffersViewModel, onNavigateBack: () -> Unit, onOpenO
         if (showAddDialog) {
             OfferDialog(editing = editingOffer, onDismiss = { showAddDialog = false }, onSave = { name, ussd, price, type ->
                 val offer = Offer(id = editingOffer?.id ?: UUID.randomUUID().toString(), name = name, ussdCode = ussd, price = price, type = type, isActive = editingOffer?.isActive ?: true)
-                viewModel.saveOffer(offer)
+                viewModel.insertOffer(offer)
                 showAddDialog = false
             })
         }
