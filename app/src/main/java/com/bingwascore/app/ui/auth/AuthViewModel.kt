@@ -26,10 +26,9 @@ class AuthViewModel @Inject constructor(
             _isLoading.value = true
             _error.value = null
             try {
-                // Simulate auth delay
                 kotlinx.coroutines.delay(1000)
                 userPreferences.setLoggedIn(true)
-                userPreferences.setUserName(phone) // Use phone as name for now
+                userPreferences.setUserName(phone)
                 onSuccess()
             } catch (e: Exception) {
                 _error.value = e.message ?: "Login failed"
