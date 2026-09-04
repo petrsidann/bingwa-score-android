@@ -1,24 +1,81 @@
-# Compiled class file
-*.class
-
-# Log file
+```
+# Logs
 *.log
+hs_err_pid*.log
 
-# BlueJ files
-*.ctxt
+# Gradle
+.gradle/
+build/
+target/
 
-# Mobile Tools for Java (J2ME)
-.mtj.tmp/
+# Local configuration
+local.properties
 
-# Package Files #
-*.jar
-*.war
-*.nar
-*.ear
+# Environment
+.env
+.env.local
+*.env.*
+
+# Dependencies
+node_modules/
+**/node_modules/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Coverage
+coverage/
+htmlcov/
+.coverage
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+.venv.bak/
+pip-log.txt
+pip-selfcheck.json
+
+# Build outputs
+dist/
+build/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# Archives
 *.zip
-*.tar.gz
+*.gz
+*.tar
+*.tgz
+*.bz2
+*.xz
+*.7z
 *.rar
-
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
-hs_err_pid*
-replay_pid*
+*.zst
+*.lz4
+*.lzh
+*.cab
+*.arj
+*.rpm
+*.deb
+*.Z
+*.lz
+*.lzo
+*.tar.gz
+*.tar.bz2
+*.tar.xz
+*.tar.zst
+```
