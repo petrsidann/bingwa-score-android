@@ -26,8 +26,8 @@ class TransactionRepository @Inject constructor(
     fun getTransactionsByPhone(phoneNumber: String): Flow<List<Transaction>> = 
         transactionDao.getTransactionsByPhone(phoneNumber)
     
-    suspend fun getScheduledTransactions(status: TransactionStatus = TransactionStatus.SCHEDULED): List<Transaction> = 
-        transactionDao.getScheduledTransactions(status)
+    suspend fun getDueScheduled(time: Long = System.currentTimeMillis()): List<Transaction> = 
+        transactionDao.getDueScheduled(time)
     
     fun getTransactionsByDateRange(startTime: Long, endTime: Long): Flow<List<Transaction>> = 
         transactionDao.getTransactionsByDateRange(startTime, endTime)

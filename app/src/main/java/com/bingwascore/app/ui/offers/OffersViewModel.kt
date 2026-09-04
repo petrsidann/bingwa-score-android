@@ -38,4 +38,10 @@ class OffersViewModel @Inject constructor(
             repository.deleteOffer(offer)
         }
     }
+    
+    fun saveOffer(offer: Offer) {
+        viewModelScope.launch {
+            repository.insertOffer(offer)
+        }
+    }
 }
