@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
+import androidx.lifecycle.viewModelScope
 import com.bingwascore.app.data.repository.TransactionRepository
 import com.bingwascore.app.data.settings.SettingsRepository
 import com.bingwascore.app.data.statistics.BalanceRepository

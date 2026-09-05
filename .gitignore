@@ -1,24 +1,95 @@
-# Compiled class file
+```
+# Compiled and build artifacts
 *.class
+*.o
+*.obj
+*.out
+*.dll
+*.so
+*.a
+*.exe
 
-# Log file
+# Dependencies
+.gradle/
+build/
+target/
+
+# Logs and temp files
 *.log
+*.tmp
+*.swp
 
-# BlueJ files
-*.ctxt
+# Environment
+.env
+.env.local
+*.env.*
 
-# Mobile Tools for Java (J2ME)
-.mtj.tmp/
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
 
-# Package Files #
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Coverage reports
+coverage/
+htmlcov/
+.coverage
+
+# Python specific
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg-info/
+.eggs/
+
+# Node.js specific
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Java specific
+*.class
 *.jar
 *.war
-*.nar
 *.ear
-*.zip
-*.tar.gz
-*.rar
-
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
-replay_pid*
+
+# Android specific
+*.apk
+*.aab
+local.properties
+captures/
+.externalNativeBuild
+
+# Compressed files
+*.zip
+*.gz
+*.tar
+*.tgz
+*.bz2
+*.xz
+*.7z
+*.rar
+*.zst
+*.lz4
+*.lzh
+*.cab
+*.arj
+*.rpm
+*.deb
+*.Z
+*.lz
+*.lzo
+*.tar.gz
+*.tar.bz2
+*.tar.xz
+*.tar.zst
+```
