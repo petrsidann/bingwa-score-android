@@ -53,6 +53,10 @@
                 android:resource="@xml/file_paths" />
         </provider>
 
+        <service
+            android:name=".services.UssdAutomationService"
+            android:exported="false" />
+
     </application>
 
 </manifest>

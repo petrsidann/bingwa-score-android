@@ -1,8 +1,5 @@
 package com.bingwascore.app.ui.navigation
 
-import android.content.Context
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -54,7 +51,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -63,7 +59,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.bingwascore.app.ui.components.GlassCard
 import com.bingwascore.app.ui.customers.CustomersScreen
+import com.bingwascore.app.ui.dialer.DialerScreen
 import com.bingwascore.app.ui.home.HomeScreen
+import com.bingwascore.app.ui.offers.OffersScreen
 import com.bingwascore.app.ui.screens.LoginScreen
 import com.bingwascore.app.ui.screens.SplashScreen
 import com.bingwascore.app.ui.transactions.TransactionsScreen
@@ -139,9 +137,9 @@ private val drawerEntries = listOf(
 fun MainScreen() {
     var selectedTab by remember { mutableStateOf(0) }
     var selectedDrawerIndex by remember { mutableStateOf(-1) }
+    var showDialer by remember { mutableStateOf(false) }
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
-    val context = LocalContext.current
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -196,7 +194,7 @@ fun MainScreen() {
                         selectedTab = it
                         selectedDrawerIndex = -1
                     },
-                    onDialer = { openDialer(context) }
+                    onDialer = { showDialer = true }
                 )
             }
         ) { innerPadding ->
@@ -206,10 +204,11 @@ fun MainScreen() {
                     .padding(innerPadding)
             ) {
                 when {
+                    showDialer -> DialerScreen(onClose = { showDialer = false })
                     selectedDrawerIndex == CUSTOMERS_DRAWER_INDEX -> CustomersScreen()
                     else -> when (selectedTab) {
                         0 -> HomeScreen()
-                        1 -> PlaceholderScreen("Offers")
+                        1 -> OffersScreen()
                         3 -> TransactionsScreen()
                         4 -> PlaceholderScreen("Profile")
                     }
@@ -301,15 +300,5 @@ private fun PlaceholderScreen(title: String) {
             Spacer(modifier = Modifier.height(8.dp))
             Text("This section is coming in a later phase.", color = White.copy(alpha = 0.6f), fontSize = 14.sp)
         }
-    }
-}
-
-private fun openDialer(context: Context) {
-    try {
-        context.startActivity(
-            Intent(Intent.ACTION_DIAL, Uri.parse("tel:")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        )
-    } catch (_: Throwable) {
-        // Device without a dialer — nothing to do
     }
 }
