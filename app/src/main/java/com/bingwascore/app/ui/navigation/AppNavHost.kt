@@ -59,13 +59,18 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.bingwascore.app.ui.autorenewals.AutoRenewalsScreen
 import com.bingwascore.app.ui.autoreplies.AutoRepliesScreen
+import com.bingwascore.app.ui.authorizedsenders.AuthorizedSendersScreen
+import com.bingwascore.app.ui.blacklist.BlacklistScreen
 import com.bingwascore.app.ui.components.GlassCard
 import com.bingwascore.app.ui.customers.CustomersScreen
 import com.bingwascore.app.ui.dialer.DialerScreen
 import com.bingwascore.app.ui.home.HomeScreen
+import com.bingwascore.app.ui.mesh.MeshScreen
+import com.bingwascore.app.ui.mystore.MyStoreScreen
 import com.bingwascore.app.ui.offers.OffersScreen
 import com.bingwascore.app.ui.screens.LoginScreen
 import com.bingwascore.app.ui.screens.SplashScreen
+import com.bingwascore.app.ui.settings.SettingsScreen
 import com.bingwascore.app.ui.subscriptions.SubscriptionsScreen
 import com.bingwascore.app.ui.transactions.TransactionsScreen
 import com.bingwascore.app.ui.theme.EmeraldGreen
@@ -120,6 +125,12 @@ private const val CUSTOMERS_DRAWER_INDEX = 0
 private const val AUTO_RENEWALS_DRAWER_INDEX = 1
 private const val SUBSCRIPTIONS_DRAWER_INDEX = 2
 private const val BOTTED_REPLIES_DRAWER_INDEX = 3
+private const val ENGAGE_BOT_DRAWER_INDEX = 4
+private const val MY_STORE_DRAWER_INDEX = 5
+private const val MESH_DRAWER_INDEX = 6
+private const val BLACKLIST_DRAWER_INDEX = 7
+private const val AUTHORIZED_SENDERS_DRAWER_INDEX = 8
+private const val SETTINGS_DRAWER_INDEX = 9
 
 private val drawerEntries = listOf(
     DrawerEntry("Customers", Icons.Rounded.People),
@@ -215,6 +226,12 @@ fun MainScreen() {
                     selectedDrawerIndex == AUTO_RENEWALS_DRAWER_INDEX -> AutoRenewalsScreen()
                     selectedDrawerIndex == SUBSCRIPTIONS_DRAWER_INDEX -> SubscriptionsScreen()
                     selectedDrawerIndex == BOTTED_REPLIES_DRAWER_INDEX -> AutoRepliesScreen()
+                    selectedDrawerIndex == ENGAGE_BOT_DRAWER_INDEX -> PlaceholderScreen("Engage Bot")
+                    selectedDrawerIndex == MY_STORE_DRAWER_INDEX -> MyStoreScreen()
+                    selectedDrawerIndex == MESH_DRAWER_INDEX -> MeshScreen()
+                    selectedDrawerIndex == BLACKLIST_DRAWER_INDEX -> BlacklistScreen()
+                    selectedDrawerIndex == AUTHORIZED_SENDERS_DRAWER_INDEX -> AuthorizedSendersScreen()
+                    selectedDrawerIndex == SETTINGS_DRAWER_INDEX -> SettingsScreen()
                     else -> when (selectedTab) {
                         0 -> HomeScreen()
                         1 -> OffersScreen()
