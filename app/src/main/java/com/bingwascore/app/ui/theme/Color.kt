@@ -2,22 +2,24 @@ package com.bingwascore.app.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-val Purple200 = Color(0xFFBB86FC)
-val Purple400 = Color(0xFFBB86FC)
-val Purple500 = Color(0xFF6200EE)
-val Purple700 = Color(0xFF3700B3)
-val Purple900 = Color(0xFF1A0033)
-val Teal200 = Color(0xFF03DAC5)
-val TealBlue = Color(0xFF00BCD4)
-val Orange500 = Color(0xFFFF6D00)
-val Orange600 = Color(0xFFF57C00)
 val EmeraldGreen = Color(0xFF00C853)
-val ErrorRed = Color(0xFFD50000)
-val White = Color(0xFFFFFFFF)
+val TealBlue = Color(0xFF00B8D4)
+val MintGlow = Color(0xFF69F0AE)
 
-val DarkBackground = Color(0xFF0B0B0F)
-val DarkSurface = Color(0xFF15151A)
-val DarkCard = Color(0xFF1F1F27)
-val LightBackground = Color(0xFFE4E4E9)
-val LightSurface = Color(0xFFF2F2F5)
-val LightCard = Color(0xFFDCDCE2)
+val NightBlack = Color(0xFF0A0A0F)
+val NightSurface = Color(0xFF12121A)
+val GlassWhite = Color(0x14FFFFFF)
+val GlassBorder = Color(0x24FFFFFF)
+val GlassHighlight = Color(0x33FFFFFF)
+
+val TextPrimary = Color(0xFFF5F5F7)
+val TextSecondary = Color(0x99F5F5F7)
+val TextTertiary = Color(0x66F5F5F7)
+
+val ErrorRed = Color(0xFFFF453A)
+val WarningOrange = Color(0xFFFF9F0A)
+val SuccessGreen = Color(0xFF30D158)
+val InfoBlue = Color(0xFF0A84FF)
+
+val BrandGradientStart = Color(0xFF00E676)
+val BrandGradientEnd = Color(0xFF00B8D4)

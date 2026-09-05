@@ -8,7 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import com.bingwascore.app.ui.navigation.BingwaNavHost
-import com.bingwascore.app.ui.theme.BingwaTheme
+import com.bingwascore.app.ui.theme.BingwaScoreTheme
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -17,7 +17,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            BingwaTheme {
+            BingwaScoreTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     BingwaNavHost()
                 }
