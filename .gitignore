@@ -19,6 +19,15 @@
 *.tar.gz
 *.rar
 
+# Gradle wrapper jar must be committed even though *.jar is ignored
+!gradle/wrapper/gradle-wrapper.jar
+
+# Android / Gradle build outputs and local config
+.gradle/
+build/
+local.properties
+.cxx/
+
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 replay_pid*
