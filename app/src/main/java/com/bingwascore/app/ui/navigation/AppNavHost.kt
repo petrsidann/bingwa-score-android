@@ -62,9 +62,11 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.bingwascore.app.ui.components.GlassCard
+import com.bingwascore.app.ui.customers.CustomersScreen
 import com.bingwascore.app.ui.home.HomeScreen
 import com.bingwascore.app.ui.screens.LoginScreen
 import com.bingwascore.app.ui.screens.SplashScreen
+import com.bingwascore.app.ui.transactions.TransactionsScreen
 import com.bingwascore.app.ui.theme.EmeraldGreen
 import com.bingwascore.app.ui.theme.NightBlack
 import com.bingwascore.app.ui.theme.SurfaceDark
@@ -111,6 +113,9 @@ fun AppNavHost() {
 }
 
 private data class DrawerEntry(val label: String, val icon: ImageVector)
+
+/** Drawer index of the Customers entry — the only drawer destination built so far. */
+private const val CUSTOMERS_DRAWER_INDEX = 0
 
 private val drawerEntries = listOf(
     DrawerEntry("Customers", Icons.Rounded.People),
@@ -187,7 +192,10 @@ fun MainScreen() {
             bottomBar = {
                 GlassBottomBar(
                     selected = selectedTab,
-                    onSelect = { selectedTab = it },
+                    onSelect = {
+                        selectedTab = it
+                        selectedDrawerIndex = -1
+                    },
                     onDialer = { openDialer(context) }
                 )
             }
@@ -197,11 +205,14 @@ fun MainScreen() {
                     .fillMaxSize()
                     .padding(innerPadding)
             ) {
-                when (selectedTab) {
-                    0 -> HomeScreen()
-                    1 -> PlaceholderScreen("Offers")
-                    3 -> PlaceholderScreen("Transactions")
-                    4 -> PlaceholderScreen("Profile")
+                when {
+                    selectedDrawerIndex == CUSTOMERS_DRAWER_INDEX -> CustomersScreen()
+                    else -> when (selectedTab) {
+                        0 -> HomeScreen()
+                        1 -> PlaceholderScreen("Offers")
+                        3 -> TransactionsScreen()
+                        4 -> PlaceholderScreen("Profile")
+                    }
                 }
             }
         }
