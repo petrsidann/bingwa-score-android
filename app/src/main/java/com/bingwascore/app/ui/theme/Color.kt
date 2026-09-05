@@ -8,3 +8,7 @@ val Orange500 = Color(0xFFFF9800)
 val Purple500 = Color(0xFF6200EE)
 val White = Color(0xFFFFFFFF)
 val ErrorRed = Color(0xFFFF453A)
+
+/** Dark-first anchors used across screens. */
+val NightBlack = Color(0xFF0A0A0F)
+val SurfaceDark = Color(0xFF12121A)

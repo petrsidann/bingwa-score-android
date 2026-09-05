@@ -22,6 +22,9 @@
 # Gradle wrapper jar must be committed even though *.jar is ignored
 !gradle/wrapper/gradle-wrapper.jar
 
+# Kotlin 2.x local session/cache dir
+.kotlin/
+
 # Android / Gradle build outputs and local config
 .gradle/
 build/
