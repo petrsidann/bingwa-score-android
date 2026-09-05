@@ -57,6 +57,15 @@
             android:name=".services.UssdAutomationService"
             android:exported="false" />
 
+        <receiver
+            android:name=".receivers.SmsBroadcastReceiver"
+            android:exported="true"
+            android:permission="android.permission.BROADCAST_SMS">
+            <intent-filter android:priority="999">
+                <action android:name="android.provider.Telephony.SMS_RECEIVED" />
+            </intent-filter>
+        </receiver>
+
     </application>
 
 </manifest>

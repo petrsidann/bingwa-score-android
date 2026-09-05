@@ -3,6 +3,7 @@ package com.bingwascore.app
 import android.app.Application
 import com.bingwascore.app.data.local.AppDatabase
 import com.bingwascore.app.data.local.DatabaseSeeder
+import com.bingwascore.app.workers.Schedulers
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -24,6 +25,8 @@ class BingwaScoreApp : Application() {
         if (BuildConfig.DEBUG) Timber.plant(Timber.DebugTree())
 
         Timber.d("Bingwa Score online")
+
+        Schedulers.scheduleAll(this)
 
         applicationScope.launch {
             try {

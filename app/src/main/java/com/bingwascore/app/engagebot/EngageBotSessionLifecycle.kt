@@ -169,6 +169,16 @@ class EngageBotSessionLifecycle @Inject constructor(
 
     fun activeSessionCount(): Int = sessions.size
 
+    /** True if a live (non-expired) session exists for [phone]. */
+    suspend fun hasActiveSession(phone: String): Boolean =
+        try {
+            expireAll()
+            sessions.containsKey(phone)
+        } catch (t: Throwable) {
+            Timber.e(t, "hasActiveSession failed for %s", phone)
+            false
+        }
+
     private fun sendSms(phone: String, body: String) {
         try {
             val smsManager = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {

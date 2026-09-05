@@ -9,6 +9,7 @@ import android.telephony.TelephonyManager
 import com.bingwascore.app.data.repository.OfferRepository
 import com.bingwascore.app.data.repository.TransactionRepository
 import com.bingwascore.app.domain.TransactionStatus
+import com.bingwascore.app.domain.engine.TransactionPipeline
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -37,6 +38,7 @@ class UssdAutomationService : Service() {
 
     @Inject lateinit var transactionRepository: TransactionRepository
     @Inject lateinit var offerRepository: OfferRepository
+    @Inject lateinit var transactionPipeline: TransactionPipeline
 
     /** Cancellable scope for intent handling + watchdog, tied to the service lifetime. */
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -193,7 +195,11 @@ class UssdAutomationService : Service() {
         }
     }
 
-    /** Persists the terminal status exactly once; safe to call from any thread. */
+    /**
+     * Routes the terminal status into the pipeline: it persists the final
+     * state, sends the matching auto-reply and runs engage/retry side
+     * effects. Called at most once per service instance.
+     */
     private fun finalizeTransaction(
         transactionId: String,
         status: TransactionStatus,
@@ -202,18 +208,14 @@ class UssdAutomationService : Service() {
         if (!finalized.compareAndSet(false, true)) return
         writeScope.launch {
             try {
-                val transaction = transactionRepository.getTransaction(transactionId)
-                if (transaction == null) {
-                    Timber.w("Transaction %s vanished before finalization", transactionId)
-                    return@launch
+                when (status) {
+                    TransactionStatus.SUCCESSFUL ->
+                        transactionPipeline.onUssdSuccess(transactionId)
+                    TransactionStatus.FAILED_ALREADY_RECOMMENDED ->
+                        transactionPipeline.onAlreadyRecommended(transactionId)
+                    else ->
+                        transactionPipeline.onUssdFailed(transactionId, errorMessage)
                 }
-                transactionRepository.update(
-                    transaction.copy(
-                        status = status.value,
-                        errorMessage = errorMessage ?: transaction.errorMessage
-                    )
-                )
-                Timber.i("Transaction %s -> %s", transactionId, status.value)
             } catch (t: Throwable) {
                 Timber.e(t, "Failed to persist final status for transaction %s", transactionId)
             }
