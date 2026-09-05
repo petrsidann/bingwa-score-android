@@ -57,6 +57,8 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.bingwascore.app.ui.autorenewals.AutoRenewalsScreen
+import com.bingwascore.app.ui.autoreplies.AutoRepliesScreen
 import com.bingwascore.app.ui.components.GlassCard
 import com.bingwascore.app.ui.customers.CustomersScreen
 import com.bingwascore.app.ui.dialer.DialerScreen
@@ -64,6 +66,7 @@ import com.bingwascore.app.ui.home.HomeScreen
 import com.bingwascore.app.ui.offers.OffersScreen
 import com.bingwascore.app.ui.screens.LoginScreen
 import com.bingwascore.app.ui.screens.SplashScreen
+import com.bingwascore.app.ui.subscriptions.SubscriptionsScreen
 import com.bingwascore.app.ui.transactions.TransactionsScreen
 import com.bingwascore.app.ui.theme.EmeraldGreen
 import com.bingwascore.app.ui.theme.NightBlack
@@ -112,8 +115,11 @@ fun AppNavHost() {
 
 private data class DrawerEntry(val label: String, val icon: ImageVector)
 
-/** Drawer index of the Customers entry — the only drawer destination built so far. */
+/** Drawer indexes of the destinations built so far. */
 private const val CUSTOMERS_DRAWER_INDEX = 0
+private const val AUTO_RENEWALS_DRAWER_INDEX = 1
+private const val SUBSCRIPTIONS_DRAWER_INDEX = 2
+private const val BOTTED_REPLIES_DRAWER_INDEX = 3
 
 private val drawerEntries = listOf(
     DrawerEntry("Customers", Icons.Rounded.People),
@@ -206,6 +212,9 @@ fun MainScreen() {
                 when {
                     showDialer -> DialerScreen(onClose = { showDialer = false })
                     selectedDrawerIndex == CUSTOMERS_DRAWER_INDEX -> CustomersScreen()
+                    selectedDrawerIndex == AUTO_RENEWALS_DRAWER_INDEX -> AutoRenewalsScreen()
+                    selectedDrawerIndex == SUBSCRIPTIONS_DRAWER_INDEX -> SubscriptionsScreen()
+                    selectedDrawerIndex == BOTTED_REPLIES_DRAWER_INDEX -> AutoRepliesScreen()
                     else -> when (selectedTab) {
                         0 -> HomeScreen()
                         1 -> OffersScreen()

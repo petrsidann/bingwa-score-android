@@ -143,5 +143,46 @@ object DatabaseSeeder {
                 )
             ).forEach { database.customerDao().insert(it) }
         }
+
+        if (database.autoReplyDao().count() == 0) {
+            listOf(
+                AutoReply(
+                    title = "Successful",
+                    message = "Your bundle is live. Asante for choosing Bingwa Score!",
+                    type = "SUCCESSFUL",
+                    isActive = true
+                ),
+                AutoReply(
+                    title = "Already Recommended",
+                    message = "That number already has this bundle. No double charging today.",
+                    type = "FAILED_ALREADY_RECOMMENDED",
+                    isActive = true
+                ),
+                AutoReply(
+                    title = "Failed",
+                    message = "We could not complete your bundle purchase. We will retry shortly.",
+                    type = "FAILED",
+                    isActive = true
+                ),
+                AutoReply(
+                    title = "Unavailable",
+                    message = "That bundle is temporarily unavailable. Please try again later.",
+                    type = "UNMATCHED",
+                    isActive = true
+                ),
+                AutoReply(
+                    title = "Paused",
+                    message = "Your auto-renewal is paused. Reply RESUME to turn it back on.",
+                    type = "PAUSED",
+                    isActive = false
+                ),
+                AutoReply(
+                    title = "Blacklisted",
+                    message = "You have been unsubscribed from Bingwa Score messages.",
+                    type = "BLACKLISTED",
+                    isActive = true
+                )
+            ).forEach { database.autoReplyDao().insert(it) }
+        }
     }
 }
