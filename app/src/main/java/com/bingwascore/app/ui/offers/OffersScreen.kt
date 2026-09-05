@@ -3,6 +3,7 @@ package com.bingwascore.app.ui.offers
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,6 +19,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -26,6 +28,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.LocalOffer
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material.icons.rounded.Verified
 import androidx.compose.material3.Icon
@@ -53,8 +56,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bingwascore.app.data.local.Offer
 import com.bingwascore.app.data.preferences.OfferTransitionRule
 import com.bingwascore.app.domain.TransactionStatus
+import com.bingwascore.app.ui.components.EmptyState
 import com.bingwascore.app.ui.components.GlassCard
 import com.bingwascore.app.ui.components.GradientButton
+import com.bingwascore.app.ui.components.pressScale
 import com.bingwascore.app.ui.theme.EmeraldGreen
 import com.bingwascore.app.ui.theme.ErrorRed
 import com.bingwascore.app.ui.theme.NightBlack
@@ -98,32 +103,21 @@ fun OffersScreen(viewModel: OffersViewModel = hiltViewModel()) {
             }
 
             if (offers.isEmpty()) {
-                GlassCard(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(20.dp)
-                ) {
-                    Text(
-                        "No offers yet",
-                        color = White,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        "Tap + to add your first bundle offer.",
-                        color = White.copy(alpha = 0.55f),
-                        fontSize = 13.sp
-                    )
-                }
+                EmptyState(
+                    icon = Icons.Rounded.LocalOffer,
+                    title = "No offers yet",
+                    message = "Tap the + button to add your first bundle offer — then dial it in one tap.",
+                    modifier = Modifier.padding(20.dp)
+                )
             } else {
                 LazyColumn(
                     contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 96.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(offers, key = { it.id }) { offer ->
+                    itemsIndexed(offers, key = { _, offer -> offer.id }) { index, offer ->
                         OfferCard(
                             offer = offer,
+                            enterDelayMillis = minOf(index, 6) * 35,
                             onToggle = { viewModel.toggleActive(offer) },
                             onOpenSettings = { settingsOffer = offer },
                             onOpenActions = { actionsOffer = offer }
@@ -187,14 +181,15 @@ fun OffersScreen(viewModel: OffersViewModel = hiltViewModel()) {
 @Composable
 private fun OfferCard(
     offer: Offer,
+    enterDelayMillis: Int,
     onToggle: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenActions: () -> Unit
 ) {
     GlassCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onOpenSettings)
+        modifier = Modifier.fillMaxWidth(),
+        onClick = onOpenSettings,
+        enterDelayMillis = enterDelayMillis
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
@@ -278,12 +273,18 @@ private fun PriceChip(price: Int) {
 
 @Composable
 private fun AddOfferFab(modifier: Modifier = Modifier, onClick: () -> Unit) {
+    val interactionSource = remember { MutableInteractionSource() }
     Box(
         modifier = modifier
+            .pressScale(interactionSource)
             .size(58.dp)
             .clip(CircleShape)
             .background(Brush.linearGradient(listOf(EmeraldGreen, TealBlue)))
-            .clickable(onClick = onClick),
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            ),
         contentAlignment = Alignment.Center
     ) {
         Icon(

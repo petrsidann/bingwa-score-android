@@ -22,6 +22,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Inbox
 import androidx.compose.material.icons.rounded.Phone
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -96,11 +97,20 @@ fun DialerScreen(onClose: () -> Unit, viewModel: DialerViewModel = hiltViewModel
         Spacer(modifier = Modifier.height(10.dp))
 
         if (offers.isEmpty()) {
-            Text(
-                "No active offers — add one in the Offers tab.",
-                color = White.copy(alpha = 0.4f),
-                fontSize = 13.sp
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Rounded.Inbox,
+                    contentDescription = null,
+                    tint = White.copy(alpha = 0.3f),
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    "No active offers yet — add one in the Offers tab.",
+                    color = White.copy(alpha = 0.45f),
+                    fontSize = 13.sp
+                )
+            }
         } else {
             LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 items(offers, key = { it.id }) { offer ->

@@ -207,12 +207,10 @@ private fun SettingsRow(
     GlassCard(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 5.dp)
+            .padding(horizontal = 20.dp, vertical = 5.dp),
+        onClick = onClick
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.clickable(onClick = onClick)
-        ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier = Modifier
                     .size(40.dp)
@@ -254,12 +252,10 @@ private fun OptionCard(
     GlassCard(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = 10.dp)
+            .padding(bottom = 10.dp),
+        onClick = onClick
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.clickable(onClick = onClick)
-        ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(title, color = White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                 Spacer(modifier = Modifier.height(2.dp))

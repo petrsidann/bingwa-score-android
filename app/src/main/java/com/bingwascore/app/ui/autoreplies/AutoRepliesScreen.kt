@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -131,9 +132,10 @@ fun AutoRepliesScreen(viewModel: AutoRepliesViewModel = hiltViewModel()) {
                 )
             }
 
-            items(templates, key = { it.id }) { template ->
+            itemsIndexed(templates, key = { _, template -> template.id }) { index, template ->
                 TemplateCard(
                     template = template,
+                    enterDelayMillis = minOf(index, 6) * 35,
                     onToggle = { viewModel.toggleTemplate(template) },
                     onEdit = { editing = template }
                 )
@@ -168,11 +170,16 @@ fun AutoRepliesScreen(viewModel: AutoRepliesViewModel = hiltViewModel()) {
 }
 
 @Composable
-private fun TemplateCard(template: AutoReply, onToggle: () -> Unit, onEdit: () -> Unit) {
+private fun TemplateCard(
+    template: AutoReply,
+    enterDelayMillis: Int,
+    onToggle: () -> Unit,
+    onEdit: () -> Unit
+) {
     GlassCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onEdit)
+        modifier = Modifier.fillMaxWidth(),
+        onClick = onEdit,
+        enterDelayMillis = enterDelayMillis
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {

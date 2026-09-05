@@ -3,6 +3,7 @@ package com.bingwascore.app.ui.blacklist
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -15,9 +16,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Block
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -32,6 +35,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bingwascore.app.data.local.Customer
+import com.bingwascore.app.ui.components.EmptyState
 import com.bingwascore.app.ui.components.GlassCard
 import com.bingwascore.app.ui.theme.EmeraldGreen
 import com.bingwascore.app.ui.theme.NightBlack
@@ -62,25 +66,23 @@ fun BlacklistScreen(viewModel: BlacklistViewModel = hiltViewModel()) {
         }
 
         if (blacklisted.isEmpty()) {
-            GlassCard(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp)
-            ) {
-                Text("No blocked customers", color = White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    "Block a customer from the Customers screen to stop their offers and bot replies.",
-                    color = White.copy(alpha = 0.55f),
-                    fontSize = 12.sp
-                )
-            }
+            EmptyState(
+                icon = Icons.Rounded.Block,
+                title = "All clear, nobody blocked",
+                message = "Block a customer from the Customers screen to stop their offers and bot replies.",
+                modifier = Modifier.padding(horizontal = 20.dp)
+            )
         } else {
             LazyColumn(
-                contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 24.dp)
+                contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(blacklisted, key = { it.phoneNumber }) { customer ->
-                    BlacklistRow(customer = customer, onUnblock = { viewModel.unblock(customer) })
+                itemsIndexed(blacklisted, key = { _, customer -> customer.phoneNumber }) { index, customer ->
+                    BlacklistRow(
+                        customer = customer,
+                        enterDelayMillis = minOf(index, 6) * 35,
+                        onUnblock = { viewModel.unblock(customer) }
+                    )
                 }
             }
         }
@@ -88,8 +90,12 @@ fun BlacklistScreen(viewModel: BlacklistViewModel = hiltViewModel()) {
 }
 
 @Composable
-private fun BlacklistRow(customer: Customer, onUnblock: () -> Unit) {
-    GlassCard(modifier = Modifier.fillMaxWidth()) {
+private fun BlacklistRow(
+    customer: Customer,
+    enterDelayMillis: Int,
+    onUnblock: () -> Unit
+) {
+    GlassCard(modifier = Modifier.fillMaxWidth(), enterDelayMillis = enterDelayMillis) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier = Modifier

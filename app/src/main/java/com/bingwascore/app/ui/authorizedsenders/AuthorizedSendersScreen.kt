@@ -3,6 +3,8 @@ package com.bingwascore.app.ui.authorizedsenders
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -15,7 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -42,7 +44,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.bingwascore.app.ui.components.EmptyState
 import com.bingwascore.app.ui.components.GlassCard
+import com.bingwascore.app.ui.components.pressScale
 import com.bingwascore.app.ui.theme.EmeraldGreen
 import com.bingwascore.app.ui.theme.ErrorRed
 import com.bingwascore.app.ui.theme.NightBlack
@@ -94,32 +98,23 @@ fun AuthorizedSendersScreen(viewModel: AuthorizedSendersViewModel = hiltViewMode
         }
 
         if (senders.isEmpty()) {
-            GlassCard(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.VerifiedUser,
-                    contentDescription = null,
-                    tint = TealBlue,
-                    modifier = Modifier.size(30.dp)
-                )
-                Spacer(modifier = Modifier.height(10.dp))
-                Text("No trusted numbers", color = White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    "Add the numbers you trust. Only these senders trigger bot replies and offer flows.",
-                    color = White.copy(alpha = 0.55f),
-                    fontSize = 12.sp
-                )
-            }
+            EmptyState(
+                icon = Icons.Rounded.VerifiedUser,
+                title = "No trusted numbers yet",
+                message = "Add the numbers you trust — only these senders trigger bot replies and offer flows.",
+                modifier = Modifier.padding(horizontal = 20.dp)
+            )
         } else {
             LazyColumn(
-                contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 24.dp)
+                contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(senders.sorted(), key = { it }) { number ->
-                    SenderRow(number = number, onRemove = { viewModel.removeSender(number) })
+                itemsIndexed(senders.sorted(), key = { _, number -> number }) { index, number ->
+                    SenderRow(
+                        number = number,
+                        enterDelayMillis = minOf(index, 6) * 35,
+                        onRemove = { viewModel.removeSender(number) }
+                    )
                 }
             }
         }
@@ -129,6 +124,7 @@ fun AuthorizedSendersScreen(viewModel: AuthorizedSendersViewModel = hiltViewMode
 @Composable
 private fun SenderInput(value: String, onValueChange: (String) -> Unit, onSubmit: () -> Unit) {
     val shape = RoundedCornerShape(16.dp)
+    val addInteraction = remember { MutableInteractionSource() }
     Row(verticalAlignment = Alignment.CenterVertically) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -157,9 +153,14 @@ private fun SenderInput(value: String, onValueChange: (String) -> Unit, onSubmit
         Box(
             modifier = Modifier
                 .size(48.dp)
+                .pressScale(addInteraction)
                 .clip(CircleShape)
                 .background(Brush.linearGradient(listOf(EmeraldGreen, TealBlue)))
-                .clickable(onClick = onSubmit),
+                .clickable(
+                    interactionSource = addInteraction,
+                    indication = null,
+                    onClick = onSubmit
+                ),
             contentAlignment = Alignment.Center
         ) {
             Icon(
@@ -173,8 +174,8 @@ private fun SenderInput(value: String, onValueChange: (String) -> Unit, onSubmit
 }
 
 @Composable
-private fun SenderRow(number: String, onRemove: () -> Unit) {
-    GlassCard(modifier = Modifier.fillMaxWidth()) {
+private fun SenderRow(number: String, enterDelayMillis: Int, onRemove: () -> Unit) {
+    GlassCard(modifier = Modifier.fillMaxWidth(), enterDelayMillis = enterDelayMillis) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier = Modifier

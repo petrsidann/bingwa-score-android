@@ -4,6 +4,7 @@ import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,9 +21,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.HelpOutline
+import androidx.compose.material.icons.automirrored.rounded.ReceiptLong
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.ErrorOutline
@@ -30,6 +33,7 @@ import androidx.compose.material.icons.rounded.FileDownload
 import androidx.compose.material.icons.rounded.HourglassTop
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Schedule
+import androidx.compose.material.icons.rounded.SearchOff
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
@@ -54,7 +58,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bingwascore.app.data.local.Transaction
 import com.bingwascore.app.domain.TransactionStatus
+import com.bingwascore.app.ui.components.EmptyState
 import com.bingwascore.app.ui.components.GlassCard
+import com.bingwascore.app.ui.components.pressScale
 import com.bingwascore.app.ui.theme.EmeraldGreen
 import com.bingwascore.app.ui.theme.ErrorRed
 import com.bingwascore.app.ui.theme.NightBlack
@@ -115,33 +121,30 @@ fun TransactionsScreen(viewModel: TransactionsViewModel = hiltViewModel()) {
         }
 
         if (transactions.isEmpty()) {
-            GlassCard(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(20.dp)
-            ) {
-                Text(
-                    "Nothing here",
-                    color = White,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    "No transactions match this filter yet.",
-                    color = White.copy(alpha = 0.55f),
-                    fontSize = 12.sp
-                )
-            }
+            EmptyState(
+                icon = if (selectedFilter == TransactionFilter.ALL) {
+                    Icons.AutoMirrored.Rounded.ReceiptLong
+                } else {
+                    Icons.Rounded.SearchOff
+                },
+                title = if (selectedFilter == TransactionFilter.ALL) "No transactions yet" else "Nothing in this filter",
+                message = if (selectedFilter == TransactionFilter.ALL) {
+                    "Every bundle you dial gets recorded here — pending, completed, scheduled and failed."
+                } else {
+                    "No ${selectedFilter.label.lowercase(Locale.ROOT)} records yet — try another filter."
+                },
+                modifier = Modifier.padding(20.dp)
+            )
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(transactions, key = { it.id }) { transaction ->
+                itemsIndexed(transactions, key = { _, tx -> tx.id }) { index, transaction ->
                     TransactionRow(
                         transaction = transaction,
+                        enterDelayMillis = minOf(index, 6) * 35,
                         onClick = { selectedTransaction = transaction }
                     )
                 }
@@ -178,13 +181,15 @@ fun TransactionsScreen(viewModel: TransactionsViewModel = hiltViewModel()) {
 }
 
 @Composable
-private fun TransactionRow(transaction: Transaction, onClick: () -> Unit) {
+private fun TransactionRow(transaction: Transaction, enterDelayMillis: Int, onClick: () -> Unit) {
     val color = statusColor(transaction.status)
-    GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 18.dp) {
-        Row(
-            modifier = Modifier.clickable(onClick = onClick),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        cornerRadius = 18.dp,
+        onClick = onClick,
+        enterDelayMillis = enterDelayMillis
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier = Modifier
                     .size(40.dp)
@@ -360,13 +365,19 @@ private fun ColumnScope.DetailRow(label: String, value: String) {
 @Composable
 private fun SheetAction(icon: ImageVector, label: String, tint: Color, onClick: () -> Unit) {
     val shape = RoundedCornerShape(14.dp)
+    val interactionSource = remember { MutableInteractionSource() }
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .pressScale(interactionSource)
             .clip(shape)
             .background(Color(0x14FFFFFF))
             .border(1.dp, Color(0x1FFFFFFF), shape)
-            .clickable(onClick = onClick)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            )
             .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -384,8 +395,10 @@ private fun SheetAction(icon: ImageVector, label: String, tint: Color, onClick: 
 @Composable
 private fun FilterChip(label: String, selected: Boolean, onClick: () -> Unit) {
     val shape = RoundedCornerShape(14.dp)
+    val interactionSource = remember { MutableInteractionSource() }
     Box(
         modifier = Modifier
+            .pressScale(interactionSource)
             .clip(shape)
             .background(if (selected) EmeraldGreen.copy(alpha = 0.18f) else Color(0x14FFFFFF))
             .border(
@@ -393,7 +406,11 @@ private fun FilterChip(label: String, selected: Boolean, onClick: () -> Unit) {
                 if (selected) EmeraldGreen.copy(alpha = 0.55f) else Color(0x1FFFFFFF),
                 shape
             )
-            .clickable(onClick = onClick)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            )
             .padding(horizontal = 14.dp, vertical = 8.dp)
     ) {
         Text(
@@ -408,12 +425,18 @@ private fun FilterChip(label: String, selected: Boolean, onClick: () -> Unit) {
 @Composable
 private fun ExportButton(onClick: () -> Unit) {
     val shape = RoundedCornerShape(14.dp)
+    val interactionSource = remember { MutableInteractionSource() }
     Box(
         modifier = Modifier
+            .pressScale(interactionSource)
             .clip(shape)
             .background(Color(0x14FFFFFF))
             .border(1.dp, Color(0x33FFFFFF), shape)
-            .clickable(onClick = onClick)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            )
             .padding(horizontal = 14.dp, vertical = 10.dp),
         contentAlignment = Alignment.Center
     ) {

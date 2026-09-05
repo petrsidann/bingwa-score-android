@@ -1,6 +1,7 @@
 package com.bingwascore.app.ui.autorenewals
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -11,7 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -81,13 +82,15 @@ fun AutoRenewalsScreen() {
 
         LazyColumn(
             contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            items(renewals, key = { it.id }) { renewal ->
+            itemsIndexed(renewals, key = { _, renewal -> renewal.id }) { index, renewal ->
                 val isActive = activeStates[renewal.id] ?: renewal.isActive
                 RenewalCard(
                     renewal = renewal,
                     isActive = isActive,
                     now = now,
+                    enterDelayMillis = minOf(index, 6) * 35,
                     onToggle = {
                         activeStates = activeStates + (renewal.id to !isActive)
                     }
@@ -98,8 +101,14 @@ fun AutoRenewalsScreen() {
 }
 
 @Composable
-private fun RenewalCard(renewal: RenewalRow, isActive: Boolean, now: Long, onToggle: () -> Unit) {
-    GlassCard(modifier = Modifier.fillMaxWidth()) {
+private fun RenewalCard(
+    renewal: RenewalRow,
+    isActive: Boolean,
+    now: Long,
+    enterDelayMillis: Int,
+    onToggle: () -> Unit
+) {
+    GlassCard(modifier = Modifier.fillMaxWidth(), enterDelayMillis = enterDelayMillis) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(

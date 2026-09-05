@@ -16,12 +16,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.People
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Switch
@@ -42,6 +43,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bingwascore.app.data.local.Customer
+import com.bingwascore.app.ui.components.EmptyState
 import com.bingwascore.app.ui.components.GlassCard
 import com.bingwascore.app.ui.theme.EmeraldGreen
 import com.bingwascore.app.ui.theme.ErrorRed
@@ -76,37 +78,26 @@ fun CustomersScreen(viewModel: CustomersViewModel = hiltViewModel()) {
         }
 
         if (customers.isEmpty()) {
-            GlassCard(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(20.dp)
-            ) {
-                Text(
-                    "No customers",
-                    color = White,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    if (query.isBlank()) {
-                        "Customers appear here once they transact."
-                    } else {
-                        "No customer matches \"$query\"."
-                    },
-                    color = White.copy(alpha = 0.55f),
-                    fontSize = 12.sp
-                )
-            }
+            EmptyState(
+                icon = Icons.Rounded.People,
+                title = if (query.isBlank()) "No customers yet" else "No matches found",
+                message = if (query.isBlank()) {
+                    "Customers appear here once they transact — then it's one tap to serve them again."
+                } else {
+                    "Nothing matches \"$query\" — try a different name or number."
+                },
+                modifier = Modifier.padding(20.dp)
+            )
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(customers, key = { it.phoneNumber }) { customer ->
+                itemsIndexed(customers, key = { _, customer -> customer.phoneNumber }) { index, customer ->
                     CustomerRow(
                         customer = customer,
+                        enterDelayMillis = minOf(index, 6) * 35,
                         onToggle = { viewModel.toggleBlacklisted(customer) }
                     )
                 }
@@ -116,8 +107,16 @@ fun CustomersScreen(viewModel: CustomersViewModel = hiltViewModel()) {
 }
 
 @Composable
-private fun CustomerRow(customer: Customer, onToggle: (Boolean) -> Unit) {
-    GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 18.dp) {
+private fun CustomerRow(
+    customer: Customer,
+    enterDelayMillis: Int,
+    onToggle: (Boolean) -> Unit
+) {
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        cornerRadius = 18.dp,
+        enterDelayMillis = enterDelayMillis
+    ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier = Modifier

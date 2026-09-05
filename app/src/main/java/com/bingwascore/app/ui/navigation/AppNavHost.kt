@@ -3,6 +3,7 @@ package com.bingwascore.app.ui.navigation
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -62,6 +63,8 @@ import com.bingwascore.app.ui.autoreplies.AutoRepliesScreen
 import com.bingwascore.app.ui.authorizedsenders.AuthorizedSendersScreen
 import com.bingwascore.app.ui.blacklist.BlacklistScreen
 import com.bingwascore.app.ui.components.GlassCard
+import com.bingwascore.app.ui.components.ScreenTransition
+import com.bingwascore.app.ui.components.pressScale
 import com.bingwascore.app.ui.customers.CustomersScreen
 import com.bingwascore.app.ui.dialer.DialerScreen
 import com.bingwascore.app.ui.home.HomeScreen
@@ -215,28 +218,48 @@ fun MainScreen() {
                 )
             }
         ) { innerPadding ->
+            val destination = when {
+                showDialer -> "dialer"
+                selectedDrawerIndex == CUSTOMERS_DRAWER_INDEX -> "customers"
+                selectedDrawerIndex == AUTO_RENEWALS_DRAWER_INDEX -> "autorenewals"
+                selectedDrawerIndex == SUBSCRIPTIONS_DRAWER_INDEX -> "subscriptions"
+                selectedDrawerIndex == BOTTED_REPLIES_DRAWER_INDEX -> "bottedreplies"
+                selectedDrawerIndex == ENGAGE_BOT_DRAWER_INDEX -> "engagebot"
+                selectedDrawerIndex == MY_STORE_DRAWER_INDEX -> "mystore"
+                selectedDrawerIndex == MESH_DRAWER_INDEX -> "mesh"
+                selectedDrawerIndex == BLACKLIST_DRAWER_INDEX -> "blacklist"
+                selectedDrawerIndex == AUTHORIZED_SENDERS_DRAWER_INDEX -> "authorizedsenders"
+                selectedDrawerIndex == SETTINGS_DRAWER_INDEX -> "settings"
+                else -> when (selectedTab) {
+                    0 -> "home"
+                    1 -> "offers"
+                    3 -> "transactions"
+                    else -> "profile"
+                }
+            }
+
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding)
             ) {
-                when {
-                    showDialer -> DialerScreen(onClose = { showDialer = false })
-                    selectedDrawerIndex == CUSTOMERS_DRAWER_INDEX -> CustomersScreen()
-                    selectedDrawerIndex == AUTO_RENEWALS_DRAWER_INDEX -> AutoRenewalsScreen()
-                    selectedDrawerIndex == SUBSCRIPTIONS_DRAWER_INDEX -> SubscriptionsScreen()
-                    selectedDrawerIndex == BOTTED_REPLIES_DRAWER_INDEX -> AutoRepliesScreen()
-                    selectedDrawerIndex == ENGAGE_BOT_DRAWER_INDEX -> PlaceholderScreen("Engage Bot")
-                    selectedDrawerIndex == MY_STORE_DRAWER_INDEX -> MyStoreScreen()
-                    selectedDrawerIndex == MESH_DRAWER_INDEX -> MeshScreen()
-                    selectedDrawerIndex == BLACKLIST_DRAWER_INDEX -> BlacklistScreen()
-                    selectedDrawerIndex == AUTHORIZED_SENDERS_DRAWER_INDEX -> AuthorizedSendersScreen()
-                    selectedDrawerIndex == SETTINGS_DRAWER_INDEX -> SettingsScreen()
-                    else -> when (selectedTab) {
-                        0 -> HomeScreen()
-                        1 -> OffersScreen()
-                        3 -> TransactionsScreen()
-                        4 -> PlaceholderScreen("Profile")
+                ScreenTransition(screenKey = destination, modifier = Modifier.fillMaxSize()) {
+                    when (destination) {
+                        "dialer" -> DialerScreen(onClose = { showDialer = false })
+                        "customers" -> CustomersScreen()
+                        "autorenewals" -> AutoRenewalsScreen()
+                        "subscriptions" -> SubscriptionsScreen()
+                        "bottedreplies" -> AutoRepliesScreen()
+                        "engagebot" -> PlaceholderScreen("Engage Bot")
+                        "mystore" -> MyStoreScreen()
+                        "mesh" -> MeshScreen()
+                        "blacklist" -> BlacklistScreen()
+                        "authorizedsenders" -> AuthorizedSendersScreen()
+                        "settings" -> SettingsScreen()
+                        "home" -> HomeScreen()
+                        "offers" -> OffersScreen()
+                        "transactions" -> TransactionsScreen()
+                        else -> PlaceholderScreen("Profile")
                     }
                 }
             }
@@ -247,6 +270,7 @@ fun MainScreen() {
 @Composable
 private fun GlassBottomBar(selected: Int, onSelect: (Int) -> Unit, onDialer: () -> Unit) {
     val shape = RoundedCornerShape(28.dp)
+    val fabInteraction = remember { MutableInteractionSource() }
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -269,9 +293,14 @@ private fun GlassBottomBar(selected: Int, onSelect: (Int) -> Unit, onDialer: () 
             Box(
                 modifier = Modifier
                     .size(54.dp)
+                    .pressScale(fabInteraction)
                     .clip(CircleShape)
                     .background(Brush.linearGradient(listOf(EmeraldGreen, TealBlue)))
-                    .clickable(onClick = onDialer),
+                    .clickable(
+                        interactionSource = fabInteraction,
+                        indication = null,
+                        onClick = onDialer
+                    ),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(

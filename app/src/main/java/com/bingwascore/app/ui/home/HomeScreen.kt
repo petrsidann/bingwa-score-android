@@ -34,6 +34,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.TrendingUp
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.ErrorOutline
+import androidx.compose.material.icons.rounded.Inbox
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.SimCard
 import androidx.compose.material.icons.rounded.Visibility
@@ -336,13 +337,8 @@ private fun ModeChip(
     active: Boolean,
     onClick: () -> Unit
 ) {
-    GlassCard(modifier = modifier, cornerRadius = 18.dp) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onClick)
-        ) {
+    GlassCard(modifier = modifier, cornerRadius = 18.dp, onClick = onClick) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier = Modifier
                     .size(10.dp)
@@ -454,7 +450,20 @@ private fun RecentActivity(transactions: List<Transaction>) {
         Text("Recent Activity", color = White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
         Spacer(modifier = Modifier.height(14.dp))
         if (transactions.isEmpty()) {
-            Text("No activity yet.", color = White.copy(alpha = 0.5f), fontSize = 13.sp)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Rounded.Inbox,
+                    contentDescription = null,
+                    tint = White.copy(alpha = 0.3f),
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    "Nothing yet — your dialed bundles will show up here.",
+                    color = White.copy(alpha = 0.5f),
+                    fontSize = 13.sp
+                )
+            }
         }
         transactions.forEachIndexed { index, tx ->
             val statusColor = when (tx.status) {
