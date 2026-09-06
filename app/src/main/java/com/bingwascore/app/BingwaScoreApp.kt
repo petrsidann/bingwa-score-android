@@ -5,6 +5,7 @@ import com.bingwascore.app.data.local.AppDatabase
 import com.bingwascore.app.data.local.DatabaseSeeder
 import com.bingwascore.app.data.preferences.UserPreferences
 import com.bingwascore.app.services.EngineService
+import com.bingwascore.app.util.CrashHandler
 import com.bingwascore.app.workers.Schedulers
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
@@ -28,6 +29,7 @@ class BingwaScoreApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        CrashHandler.init(this)
         if (BuildConfig.DEBUG) Timber.plant(Timber.DebugTree())
 
         Timber.d("Bingwa Score online")

@@ -9,6 +9,8 @@ import com.bingwascore.app.BuildConfig
 import com.bingwascore.app.data.preferences.UserPreferences
 import com.bingwascore.app.domain.AppProcessingMode
 import com.bingwascore.app.domain.ThemeMode
+import com.bingwascore.app.updates.UpdateChecker
+import com.bingwascore.app.updates.UpdateState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.delay
@@ -44,6 +46,9 @@ class SettingsViewModel @Inject constructor(
 
     private val _updateState = MutableStateFlow<UpdateCheckState>(UpdateCheckState.Idle)
     val updateState: StateFlow<UpdateCheckState> = _updateState.asStateFlow()
+
+    private val _updateUrl = MutableStateFlow<String?>(null)
+    val updateUrl: StateFlow<String?> = _updateUrl.asStateFlow()
 
     val appVersion: String = BuildConfig.APP_VERSION
 
@@ -89,17 +94,27 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch { userPreferences.setSimSelection(value) }
     }
 
-    /** Placeholder release check — swap for a real endpoint later. */
+    /** Hits the GitHub releases endpoint and compares the latest tag to BuildConfig.VERSION_NAME. */
     fun checkForUpdates() {
         if (_updateState.value is UpdateCheckState.Checking) return
         viewModelScope.launch {
             _updateState.value = UpdateCheckState.Checking
-            delay(CHECK_DELAY_MS)
-            _updateState.value = UpdateCheckState.Done(upToDate = true)
+            _updateUrl.value = null
+            try {
+                when (val state = UpdateChecker.check()) {
+                    is UpdateState.UpToDate ->
+                        _updateState.value = UpdateCheckState.Done(upToDate = true)
+                    is UpdateState.UpdateAvailable -> {
+                        _updateUrl.value = state.downloadUrl
+                        _updateState.value = UpdateCheckState.Done(upToDate = false)
+                    }
+                    is UpdateState.Error ->
+                        _updateState.value = UpdateCheckState.Done(upToDate = true)
+                }
+            } catch (t: Throwable) {
+                Timber.e(t, "UpdateChecker failed")
+                _updateState.value = UpdateCheckState.Done(upToDate = true)
+            }
         }
-    }
-
-    private companion object {
-        const val CHECK_DELAY_MS = 1_200L
     }
 }

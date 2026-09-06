@@ -21,6 +21,10 @@
 
 # Gradle wrapper jar must be committed even though *.jar is ignored
 !gradle/wrapper/gradle-wrapper.jar
+# Signing keystore — never commit private keys
+keystore/
+
+
 
 # Kotlin 2.x local session/cache dir
 .kotlin/

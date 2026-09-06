@@ -1,6 +1,10 @@
 package com.bingwascore.app.ui.settings
 
 import androidx.compose.foundation.background
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,6 +28,7 @@ import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.PrivacyTip
+import androidx.compose.material.icons.rounded.SaveAlt
 import androidx.compose.material.icons.rounded.SimCard
 import androidx.compose.material.icons.rounded.SystemUpdateAlt
 import androidx.compose.material3.Icon
@@ -32,12 +37,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -53,11 +60,15 @@ import com.bingwascore.app.util.screenEnter
 import com.bingwascore.app.ui.theme.EmeraldGreen
 import com.bingwascore.app.ui.theme.NightBlack
 import com.bingwascore.app.ui.theme.White
+import com.bingwascore.app.util.BackupManager
+import kotlinx.coroutines.launch
+import java.io.File
 
 private enum class SettingsPage(val title: String) {
     APPEARANCE("Appearance"),
     PROCESSING_MODE("Processing Mode"),
     SIM_SELECTION("SIM Selection"),
+    BACKUP_RESTORE("Backup & Restore"),
     UPDATES("Check For Updates"),
     ABOUT("About"),
     TERMS("Terms of Service"),
@@ -99,6 +110,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
                     SettingsPage.APPEARANCE -> AppearancePage(viewModel)
                     SettingsPage.PROCESSING_MODE -> ProcessingModePage(viewModel)
                     SettingsPage.SIM_SELECTION -> SimSelectionPage(viewModel)
+                    SettingsPage.BACKUP_RESTORE -> BackupRestorePage(viewModel)
                     SettingsPage.UPDATES -> UpdatesPage(viewModel)
                     SettingsPage.ABOUT -> AboutPage(viewModel)
                     SettingsPage.TERMS -> TermsPage()
@@ -149,6 +161,12 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
             )
 
             SectionLabel("General")
+            SettingsRow(
+                icon = Icons.Rounded.SaveAlt,
+                title = "Backup & Restore",
+                subtitle = "Export or import your data as JSON",
+                onClick = { currentPage = SettingsPage.BACKUP_RESTORE }
+            )
             SettingsRow(
                 icon = Icons.Rounded.SystemUpdateAlt,
                 title = "Check For Updates",
@@ -362,11 +380,97 @@ private fun SimSelectionPage(viewModel: SettingsViewModel) {
     )
 }
 
+
+@Composable
+private fun BackupRestorePage(viewModel: SettingsViewModel) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var lastResult by remember { mutableStateOf<String?>(null) }
+
+    val importLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        scope.launch {
+            try {
+                val tempFile = File(context.cacheDir, "restore_backup.json")
+                context.contentResolver.openInputStream(uri)?.use { input ->
+                    tempFile.outputStream().use { output -> input.copyTo(output) } ?: return@launch
+                } ?: return@launch
+                val ok = BackupManager.importAll(context, tempFile)
+                tempFile.delete()
+                val msg = if (ok) "Restore successful" else "Restore failed"
+                lastResult = msg
+                Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+            } catch (_: Throwable) {
+                Toast.makeText(context, "Restore failed", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    PageTitle("Backup & Restore")
+    PageIntro("Export your transactions, offers, customers and auto-replies to a JSON file, or restore them later. Restoring replaces all current data.")
+
+    GlassCard(modifier = Modifier.fillMaxWidth()) {
+        Text("Export", color = White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+        Spacer(modifier = Modifier.height(2.dp))
+        Text(
+            "Save all your app data to a JSON file in Bingwa Score/backups.",
+            color = White.copy(alpha = 0.55f),
+            fontSize = 12.sp
+        )
+        Spacer(modifier = Modifier.height(14.dp))
+        GradientButton(
+            text = "Export data",
+            onClick = {
+                scope.launch {
+                    val file = BackupManager.exportAll(context)
+                    val msg = if (file != null) "Backup saved" else "Backup failed"
+                    lastResult = msg
+                    Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                }
+            }
+        )
+    }
+
+    Spacer(modifier = Modifier.height(12.dp))
+
+    GlassCard(modifier = Modifier.fillMaxWidth()) {
+        Text("Import", color = White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+        Spacer(modifier = Modifier.height(2.dp))
+        Text(
+            "Restore from a previously exported JSON backup. This clears current data first.",
+            color = White.copy(alpha = 0.55f),
+            fontSize = 12.sp
+        )
+        Spacer(modifier = Modifier.height(14.dp))
+        GradientButton(
+            text = "Import data",
+            onClick = { importLauncher.launch("application/json") }
+        )
+    }
+
+    lastResult?.let { result ->
+        Spacer(modifier = Modifier.height(12.dp))
+        Text(
+            result,
+            color = if (result.contains("successful") || result.contains("saved")) EmeraldGreen else White,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.SemiBold
+        )
+    }
+}
+
+// __CHUNK5__
+
+
 // __CHUNK5__
 
 @Composable
 private fun UpdatesPage(viewModel: SettingsViewModel) {
     val updateState by viewModel.updateState.collectAsStateWithLifecycle()
+    val updateUrl by viewModel.updateUrl.collectAsStateWithLifecycle()
+    val context = LocalContext.current
 
     PageTitle("Check For Updates")
     GlassCard(
@@ -396,11 +500,29 @@ private fun UpdatesPage(viewModel: SettingsViewModel) {
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
                     if (state.upToDate) "You're on the latest version."
-                    else "Update available — check the Play Store.",
+                    else "Update available — download the latest release.",
                     color = if (state.upToDate) EmeraldGreen else White,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold
                 )
+                if (!state.upToDate && updateUrl != null) {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    GradientButton(
+                        text = "Open in browser",
+                        onClick = {
+                            try {
+                                context.startActivity(
+                                    android.content.Intent(
+                                        android.content.Intent.ACTION_VIEW,
+                                        android.net.Uri.parse(updateUrl)
+                                    ).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                                )
+                            } catch (_: Throwable) {
+                                Toast.makeText(context, "Could not open browser", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    )
+                }
             }
             else -> Unit
         }

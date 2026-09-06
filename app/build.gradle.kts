@@ -15,21 +15,40 @@ android {
         applicationId = "com.bingwascore.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = (System.getenv("GITHUB_RUN_NUMBER") ?: "2").toInt()
-        versionName = "1.1.0"
+        versionCode = 1
+        versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField("String", "API_BASE_URL", "\"https://api.bingwascore.com/\"")
-        buildConfigField("String", "APP_VERSION", "\"1.1.0\"")
+        buildConfigField("String", "APP_VERSION", "\"1.0.0\"")
 
         vectorDrawables { useSupportLibrary = true }
     }
 
+    signingConfigs {
+        create("release") {
+            val keystoreFile = file("../keystore/release.keystore")
+            if (keystoreFile.exists()) {
+                storeFile = keystoreFile
+                storePassword = "bingwa123"
+                keyAlias = "bingwa"
+                keyPassword = "bingwa123"
+            }
+        }
+    }
+
     buildTypes {
         release {
-            isMinifyEnabled = true
-            isShrinkResources = true
+            isMinifyEnabled = false
+            val releaseSigning = signingConfigs.getByName("release")
+            // Use the release keystore when present; otherwise fall back to the debug
+            // keystore so CI builds (which have no release.keystore) still succeed.
+            signingConfig = if (releaseSigning.storeFile?.exists() == true) {
+                releaseSigning
+            } else {
+                signingConfigs.getByName("debug")
+            }
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
         debug {

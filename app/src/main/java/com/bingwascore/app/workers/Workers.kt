@@ -156,6 +156,7 @@ object Schedulers {
             scheduleDailyArchive(context)
             scheduleEngageBotTimeout(context)
             scheduleSmsPoll(context)
+            WatchdogWorker.schedule(context)
         } catch (t: Throwable) {
             Timber.e(t, "Failed to schedule workers")
         }

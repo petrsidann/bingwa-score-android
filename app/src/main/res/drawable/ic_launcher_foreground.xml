@@ -5,32 +5,20 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Premium gradient background -->
+    <!-- Bold "B" letter mark on a dark adaptive-icon safe zone. The background
+         colour (ic_launcher_background = #0A0A0F) is supplied by the adaptive-icon
+         definition, so this foreground is just the mark itself. -->
     <path
-        android:fillColor="#F97316"
-        android:pathData="M54,54m-42,0a42,42 0,1 1,84 0a42,42 0,1 1,-84 0" />
-    
-    <!-- Inner glow effect -->
-    <path
-        android:fillColor="#FB923C"
-        android:pathData="M54,54m-35,0a35,35 0,1 1,70 0a35,35 0,1 1,-70 0"
-        android:fillAlpha="0.3" />
+        android:fillColor="#10B981"
+        android:pathData="M54,54m-30,0a30,30 0,1 1,60 0a30,30 0,1 1,-60 0" />
 
-    <!-- Premium "B" letter - Bold and Modern -->
+    <!-- Bold "B" letter -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M42,32 L42,76 L58,76 C64.6,76 70,70.6 70,64 C70,59.5 67.5,55.6 63.8,53.5 C66.6,51.4 68.5,48.1 68.5,44.2 C68.5,38.1 63.4,33 57.3,33 L58,32 L42,32 Z M48,39 L56.8,39 C59,39 60.5,40.5 60.5,42.7 C60.5,44.9 59,46.4 56.8,46.4 L48,46.4 L48,39 Z M48,52 L57.8,52 C60.5,52 62.5,54 62.5,56.7 C62.5,59.4 60.5,61.4 57.8,61.4 L48,61.4 L48,52 Z" />
-    
-    <!-- "S" for Score - PlayStation style -->
-    <path
-        android:fillColor="#8B5CF6"
-        android:pathData="M68,70 C68,70 68,70 68,70 L68,70 C68,70 68,70 68,70 Z" 
-        android:strokeWidth="0"
-        android:fillAlpha="0"/>
+        android:pathData="M44,34 L44,74 L58,74 C64,74 68.5,69.5 68.5,63.5 C68.5,59.3 66.2,55.7 62.8,54 C65.8,52.3 67.8,49.2 67.8,45.6 C67.8,40 63.2,35.3 57.6,35.3 L58,34 L44,34 Z M50,40 L57,40 C59.2,40 61,41.8 61,44 C61,46.2 59.2,48 57,48 L50,48 L50,40 Z M50,52 L57.8,52 C60.4,52 62.4,54 62.4,56.6 C62.4,59.2 60.4,61.2 57.8,61.2 L50,61.2 L50,52 Z" />
 
-    <!-- Subtle shine effect -->
+    <!-- Small bolt accent -->
     <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M48,38 C48,38 52,36 58,36 C64,36 68,38 68,38 C68,38 66,42 60,42 C54,42 48,38 48,38 Z"
-        android:fillAlpha="0.15" />
+        android:fillColor="#F59E0B"
+        android:pathData="M70,40 L66,48 L71,48 L66,60 L68,52 L63,52 Z" />
 </vector>
