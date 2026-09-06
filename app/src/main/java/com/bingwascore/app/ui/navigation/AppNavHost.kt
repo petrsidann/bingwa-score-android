@@ -1,11 +1,21 @@
 package com.bingwascore.app.ui.navigation
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -13,8 +23,10 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
@@ -55,7 +67,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -82,6 +98,7 @@ import com.bingwascore.app.ui.settings.SettingsScreen
 import com.bingwascore.app.ui.subscriptions.SubscriptionsScreen
 import com.bingwascore.app.ui.transactions.TransactionsScreen
 import com.bingwascore.app.ui.theme.EmeraldGreen
+import com.bingwascore.app.ui.theme.Motion
 import com.bingwascore.app.ui.theme.NightBlack
 import com.bingwascore.app.ui.theme.SurfaceDark
 import com.bingwascore.app.ui.theme.TealBlue
@@ -291,7 +308,20 @@ fun MainScreen() {
 private fun GlassBottomBar(selected: Int, onSelect: (Int) -> Unit, onDialer: () -> Unit) {
     val shape = RoundedCornerShape(28.dp)
     val fabInteraction = remember { MutableInteractionSource() }
-    Box(
+    val haptic = LocalHapticFeedback.current
+    val tick = {
+        try { haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove) } catch (_: Throwable) { }
+    }
+
+    // Infinite pulsing glow for the dialer FAB
+    val glowTransition = rememberInfiniteTransition(label = "fabGlow")
+    val glow by glowTransition.animateFloat(
+        initialValue = 0f, targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(1800), RepeatMode.Reverse),
+        label = "fabGlowPulse"
+    )
+
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxWidth()
             .navigationBarsPadding()
@@ -300,6 +330,25 @@ private fun GlassBottomBar(selected: Int, onSelect: (Int) -> Unit, onDialer: () 
             .background(Color(0x14FFFFFF))
             .border(1.dp, Brush.verticalGradient(listOf(Color(0x33FFFFFF), Color.Transparent)), shape)
     ) {
+        // 5 logical slots: Home | Offers | FAB | Transactions | Profile
+        val slotWidth = maxWidth / 5f
+        val pillWidth = slotWidth * 0.6f
+        val pillOffset by animateDpAsState(
+            targetValue = slotWidth * selected + (slotWidth - pillWidth) / 2f,
+            animationSpec = spring(dampingRatio = Motion.DAMPING),
+            label = "pillOffset"
+        )
+
+        // Animated pill behind the selected tab
+        Box(
+            modifier = Modifier
+                .offset(x = pillOffset, y = 8.dp)
+                .width(pillWidth)
+                .height(50.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .background(Brush.horizontalGradient(listOf(EmeraldGreen, TealBlue)))
+        )
+
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -308,30 +357,50 @@ private fun GlassBottomBar(selected: Int, onSelect: (Int) -> Unit, onDialer: () 
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            BottomNavItem(Icons.Rounded.Home, "Home", selected == 0) { onSelect(0) }
-            BottomNavItem(Icons.Rounded.LocalOffer, "Offers", selected == 1) { onSelect(1) }
-            Box(
-                modifier = Modifier
-                    .size(54.dp)
-                    .pressScale(fabInteraction)
-                    .clip(CircleShape)
-                    .background(Brush.linearGradient(listOf(EmeraldGreen, TealBlue)))
-                    .clickable(
-                        interactionSource = fabInteraction,
-                        indication = null,
-                        onClick = onDialer
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.Call,
-                    contentDescription = "Dialer",
-                    tint = NightBlack,
-                    modifier = Modifier.size(26.dp)
+            BottomNavItem(Icons.Rounded.Home, "Home", selected == 0) { tick(); onSelect(0) }
+            BottomNavItem(Icons.Rounded.LocalOffer, "Offers", selected == 1) { tick(); onSelect(1) }
+
+            // Dialer FAB — infinite pulsing glow behind the gradient button
+            Box(modifier = Modifier.size(54.dp)) {
+                // Glow ring that breathes behind the FAB
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .size(54.dp)
+                        .graphicsLayer {
+                            alpha = 0.25f + 0.15f * glow
+                            scaleX = 1f + 0.35f * glow
+                            scaleY = 1f + 0.35f * glow
+                        }
+                        .clip(CircleShape)
+                        .background(EmeraldGreen.copy(alpha = 0.5f))
                 )
+                // Main FAB — gradient, press-scale 0.98, press feedback
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .size(54.dp)
+                        .pressScale(fabInteraction)
+                        .clip(CircleShape)
+                        .background(Brush.linearGradient(listOf(EmeraldGreen, TealBlue)))
+                        .clickable(
+                            interactionSource = fabInteraction,
+                            indication = null,
+                            onClick = { try { haptic.performHapticFeedback(HapticFeedbackType.LongPress) } catch (_: Throwable) { }; onDialer() }
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Call,
+                        contentDescription = "Dialer",
+                        tint = NightBlack,
+                        modifier = Modifier.size(26.dp)
+                    )
+                }
             }
-            BottomNavItem(Icons.AutoMirrored.Rounded.ReceiptLong, "Transactions", selected == 3) { onSelect(3) }
-            BottomNavItem(Icons.Rounded.Person, "Profile", selected == 4) { onSelect(4) }
+
+            BottomNavItem(Icons.AutoMirrored.Rounded.ReceiptLong, "Transactions", selected == 3) { tick(); onSelect(3) }
+            BottomNavItem(Icons.Rounded.Person, "Profile", selected == 4) { tick(); onSelect(4) }
         }
     }
 }
@@ -339,6 +408,21 @@ private fun GlassBottomBar(selected: Int, onSelect: (Int) -> Unit, onDialer: () 
 @Composable
 private fun BottomNavItem(icon: ImageVector, label: String, selected: Boolean, onClick: () -> Unit) {
     val interactionSource = remember { MutableInteractionSource() }
+    val iconTint by animateColorAsState(
+        targetValue = if (selected) EmeraldGreen else White.copy(alpha = 0.55f),
+        animationSpec = spring(dampingRatio = Motion.DAMPING),
+        label = "navIconTint"
+    )
+    val labelColor by animateColorAsState(
+        targetValue = if (selected) White else White.copy(alpha = 0.55f),
+        animationSpec = spring(dampingRatio = Motion.DAMPING),
+        label = "navLabelColor"
+    )
+    val labelWeight by animateFloatAsState(
+        targetValue = if (selected) 1f else 0.5f,
+        animationSpec = spring(dampingRatio = Motion.DAMPING),
+        label = "navLabelWeight"
+    )
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
@@ -354,13 +438,13 @@ private fun BottomNavItem(icon: ImageVector, label: String, selected: Boolean, o
         Icon(
             imageVector = icon,
             contentDescription = label,
-            tint = if (selected) EmeraldGreen else White.copy(alpha = 0.55f),
+            tint = iconTint,
             modifier = Modifier.size(22.dp)
         )
         Spacer(modifier = Modifier.height(3.dp))
         Text(
             label,
-            color = if (selected) White else White.copy(alpha = 0.55f),
+            color = labelColor,
             fontSize = 10.sp,
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
         )

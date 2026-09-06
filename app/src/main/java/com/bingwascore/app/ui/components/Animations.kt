@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bingwascore.app.ui.theme.EmeraldGreen
 import com.bingwascore.app.ui.theme.White
+import com.bingwascore.app.util.screenEnter
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -110,8 +111,8 @@ fun ScreenTransition(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
-    key(screenKey) {
-        Box(modifier = modifier.enterAnimation()) { content() }
+        key(screenKey) {
+        Box(modifier = modifier.screenEnter()) { content() }
     }
 }
 

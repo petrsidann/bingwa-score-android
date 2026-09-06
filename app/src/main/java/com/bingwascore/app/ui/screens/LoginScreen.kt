@@ -35,10 +35,13 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.bingwascore.app.ui.components.AmbientBackground
 import com.bingwascore.app.ui.components.GlassCard
 import com.bingwascore.app.ui.components.GradientButton
 import com.bingwascore.app.ui.theme.EmeraldGreen
+import com.bingwascore.app.ui.theme.NightBlack
 import com.bingwascore.app.ui.theme.White
+import com.bingwascore.app.util.screenEnter
 
 @Composable
 fun LoginScreen(
@@ -48,15 +51,22 @@ fun LoginScreen(
     var phone by remember { mutableStateOf("") }
     var pin by remember { mutableStateOf("") }
 
-    Column(
+        Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF0A0A0F))
-            .statusBarsPadding()
-            .padding(horizontal = 20.dp)
-            .navigationBarsPadding()
-            .imePadding()
+            .screenEnter()
+            .background(NightBlack)
     ) {
+        AmbientBackground()
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .padding(horizontal = 20.dp)
+                .navigationBarsPadding()
+                .imePadding()
+        ) {
         Spacer(modifier = Modifier.height(48.dp))
 
         Text(
@@ -114,7 +124,8 @@ fun LoginScreen(
                 .clickable { onCreateAccount() }
         )
 
-        Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(24.dp))
+        }
     }
 }
 

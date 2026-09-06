@@ -82,7 +82,8 @@ fun GradientButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
+        val interactionSource = remember { MutableInteractionSource() }
+    val haptic = LocalHapticFeedback.current
     Box(
         modifier = modifier
             .pressScale(interactionSource)
@@ -94,7 +95,14 @@ fun GradientButton(
                 enabled = enabled,
                 interactionSource = interactionSource,
                 indication = null
-            ) { onClick() },
+            ) {
+                try {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                } catch (_: Throwable) {
+                    // Haptics are optional polish; never block the click.
+                }
+                onClick()
+            },
         contentAlignment = Alignment.Center
     ) {
         Text(text, color = Color(0xFF0A0A0F), fontWeight = FontWeight.Bold, fontSize = 17.sp)
