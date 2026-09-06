@@ -60,6 +60,7 @@ import com.bingwascore.app.ui.components.GlassCard
 import com.bingwascore.app.ui.components.GradientButton
 import com.bingwascore.app.ui.components.HapticSwitch
 import com.bingwascore.app.ui.components.pressScale
+import com.bingwascore.app.util.screenEnter
 import com.bingwascore.app.ui.theme.EmeraldGreen
 import com.bingwascore.app.ui.theme.ErrorRed
 import com.bingwascore.app.ui.theme.NightBlack
@@ -86,6 +87,7 @@ fun OffersScreen(viewModel: OffersViewModel = hiltViewModel()) {
     Box(
         modifier = Modifier
             .fillMaxSize()
+            .screenEnter()
             .background(NightBlack)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {

@@ -8,8 +8,10 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -43,6 +45,7 @@ import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -66,16 +69,22 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bingwascore.app.data.local.Transaction
 import com.bingwascore.app.domain.TransactionStatus
+import com.bingwascore.app.ui.components.AmbientBackground
+import com.bingwascore.app.ui.components.AnimatedRing
 import com.bingwascore.app.ui.components.GlassCard
 import com.bingwascore.app.ui.components.GlassExplanationDialog
 import com.bingwascore.app.ui.components.GradientButton
 import com.bingwascore.app.ui.components.HapticSwitch
+import com.bingwascore.app.ui.components.shimmer
 import com.bingwascore.app.ui.theme.EmeraldGreen
 import com.bingwascore.app.ui.theme.ErrorRed
 import com.bingwascore.app.ui.theme.NightBlack
 import com.bingwascore.app.ui.theme.Orange500
 import com.bingwascore.app.ui.theme.TealBlue
+import com.bingwascore.app.ui.theme.Motion
 import com.bingwascore.app.ui.theme.White
+import com.bingwascore.app.util.screenEnter
+import com.bingwascore.app.util.stagger
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -119,10 +128,17 @@ fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .screenEnter()
             .background(NightBlack)
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp, vertical = 16.dp)
     ) {
+        AmbientBackground()
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp, vertical = 16.dp)
+        ) {
         GreetingHeader(userName = userName)
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -142,14 +158,16 @@ fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
                 icon = Icons.Rounded.CheckCircle,
                 iconTint = EmeraldGreen,
                 label = "Completed",
-                value = successfulCount.toString()
+                targetValue = successfulCount,
+                formatter = { it.toInt().toString() }
             )
             StatTile(
                 modifier = Modifier.weight(1f),
                 icon = Icons.Rounded.ErrorOutline,
                 iconTint = ErrorRed,
                 label = "Failed",
-                value = failedCount.toString()
+                targetValue = failedCount,
+                formatter = { it.toInt().toString() }
             )
         }
 
@@ -161,14 +179,16 @@ fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
                 icon = Icons.Rounded.SimCard,
                 iconTint = TealBlue,
                 label = "Airtime Used Today",
-                value = formatKsh(airtimeUsedToday)
+                targetValue = airtimeUsedToday,
+                formatter = { formatKsh(it.toDouble()) }
             )
             StatTile(
                 modifier = Modifier.weight(1f),
                 icon = Icons.AutoMirrored.Rounded.TrendingUp,
                 iconTint = Orange500,
                 label = "Weekly Commission",
-                value = formatKsh(weeklyCommission)
+                targetValue = weeklyCommission,
+                formatter = { formatKsh(it.toDouble()) }
             )
         }
 
@@ -182,6 +202,10 @@ fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
             onToggleVisibility = { balanceVisible = !balanceVisible },
             onRefresh = { viewModel.refreshBalance() }
         )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        WeeklyGoalHero(weeklyCommission = weeklyCommission)
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -230,6 +254,7 @@ fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
         RecentActivity(transactions = recentTransactions)
 
         Spacer(modifier = Modifier.height(24.dp))
+        }
     }
 }
 
@@ -327,7 +352,8 @@ private fun AirtimeBalanceCard(
                     if (balanceVisible) formatKsh(balance) else "Ksh • • • • • •",
                     color = White,
                     fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    modifier = if (balanceLoading) Modifier.shimmer() else Modifier
                 )
             }
             Icon(
@@ -389,12 +415,18 @@ private fun StatTile(
     icon: ImageVector,
     iconTint: Color,
     label: String,
-    value: String
+    targetValue: Number,
+    formatter: (Number) -> String = { it.toString() }
 ) {
+    val animatedValue by animateFloatAsState(
+        targetValue = targetValue.toFloat(),
+        animationSpec = spring(dampingRatio = Motion.DAMPING),
+        label = "statTileCount"
+    )
     GlassCard(modifier = modifier) {
         Icon(imageVector = icon, contentDescription = label, tint = iconTint, modifier = Modifier.size(20.dp))
         Spacer(modifier = Modifier.height(10.dp))
-        Text(value, color = White, fontSize = 19.sp, fontWeight = FontWeight.Bold)
+        Text(formatter(animatedValue), color = White, fontSize = 19.sp, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(3.dp))
         Text(label, color = White.copy(alpha = 0.55f), fontSize = 11.sp)
     }
@@ -403,6 +435,8 @@ private fun StatTile(
 @Composable
 private fun WeeklyChart(weeklyBars: List<Double>, weeklyCommission: Double) {
     val dayLabels = remember { listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun") }
+    var shimmering by remember { mutableStateOf(true) }
+    LaunchedEffect(Unit) { kotlinx.coroutines.delay(800); shimmering = false }
 
     GlassCard(modifier = Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -422,7 +456,12 @@ private fun WeeklyChart(weeklyBars: List<Double>, weeklyCommission: Double) {
 
         val maxValue = (weeklyBars.maxOrNull() ?: 0.0).coerceAtLeast(1.0)
 
-        Canvas(modifier = Modifier.fillMaxWidth().height(140.dp)) {
+        Canvas(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(140.dp)
+                .then(if (shimmering) Modifier.shimmer() else Modifier)
+        ) {
             val count = weeklyBars.size.coerceAtLeast(1)
             val slot = size.width / count
             val barWidth = slot * 0.45f
@@ -466,6 +505,49 @@ private fun WeeklyChart(weeklyBars: List<Double>, weeklyCommission: Double) {
 }
 
 @Composable
+private fun WeeklyGoalHero(weeklyCommission: Double) {
+    val weeklyGoal = 5000.0
+    val progress = (weeklyCommission / weeklyGoal).toFloat().coerceIn(0f, 1f)
+
+    GlassCard(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Box(
+                modifier = Modifier.size(80.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                AnimatedRing(progress = progress, size = 80.dp)
+                Text(
+                    "${(progress * 100).toInt()}%",
+                    color = White,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text("Weekly Goal", color = White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    "${formatKsh(weeklyCommission)} of ${formatKsh(weeklyGoal)}",
+                    color = EmeraldGreen,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    if (progress >= 1f) "Goal reached! 🎉" else "Keep going — you're almost there",
+                    color = White.copy(alpha = 0.55f),
+                    fontSize = 11.sp
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun RecentActivity(transactions: List<Transaction>) {
     val timeFormat = remember { SimpleDateFormat("HH:mm", Locale.US) }
 
@@ -494,7 +576,10 @@ private fun RecentActivity(transactions: List<Transaction>) {
                 TransactionStatus.FAILED.value -> ErrorRed
                 else -> Orange500
             }
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.stagger(index)
+            ) {
                 Box(
                     modifier = Modifier
                         .size(38.dp)

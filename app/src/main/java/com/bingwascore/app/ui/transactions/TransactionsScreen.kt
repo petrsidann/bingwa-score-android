@@ -61,6 +61,7 @@ import com.bingwascore.app.domain.TransactionStatus
 import com.bingwascore.app.ui.components.EmptyState
 import com.bingwascore.app.ui.components.GlassCard
 import com.bingwascore.app.ui.components.pressScale
+import com.bingwascore.app.util.screenEnter
 import com.bingwascore.app.ui.theme.EmeraldGreen
 import com.bingwascore.app.ui.theme.ErrorRed
 import com.bingwascore.app.ui.theme.NightBlack
@@ -88,6 +89,7 @@ fun TransactionsScreen(viewModel: TransactionsViewModel = hiltViewModel()) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .screenEnter()
             .background(NightBlack)
     ) {
         Row(

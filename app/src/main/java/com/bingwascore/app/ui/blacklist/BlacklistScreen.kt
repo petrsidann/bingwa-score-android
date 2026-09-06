@@ -37,6 +37,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bingwascore.app.data.local.Customer
 import com.bingwascore.app.ui.components.EmptyState
 import com.bingwascore.app.ui.components.GlassCard
+import com.bingwascore.app.util.screenEnter
 import com.bingwascore.app.ui.theme.EmeraldGreen
 import com.bingwascore.app.ui.theme.NightBlack
 import com.bingwascore.app.ui.theme.TealBlue
@@ -50,6 +51,7 @@ fun BlacklistScreen(viewModel: BlacklistViewModel = hiltViewModel()) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .screenEnter()
             .background(NightBlack)
     ) {
         Column(

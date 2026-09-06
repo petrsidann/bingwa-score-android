@@ -35,7 +35,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -43,6 +45,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bingwascore.app.ui.components.GlassCard
 import com.bingwascore.app.ui.components.GradientButton
+import com.bingwascore.app.util.screenEnter
 import com.bingwascore.app.ui.theme.EmeraldGreen
 import com.bingwascore.app.ui.theme.NightBlack
 import com.bingwascore.app.ui.theme.Orange500
@@ -72,6 +75,7 @@ fun SetupChecklistScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .screenEnter()
             .background(NightBlack)
             .verticalScroll(rememberScrollState())
             .navigationBarsPadding()
@@ -144,11 +148,21 @@ private fun ChecklistRow(
     actionLabel: String,
     onTap: () -> Unit
 ) {
+    val haptic = LocalHapticFeedback.current
     GlassCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 6.dp),
-        onClick = if (done) null else { onTap }
+        onClick = if (done) null else {
+            {
+                try {
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                } catch (_: Throwable) {
+                    // Haptics are optional polish; never block the tap.
+                }
+                onTap()
+            }
+        }
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(

@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.sp
 import com.bingwascore.app.ui.components.EmptyState
 import com.bingwascore.app.ui.components.GlassCard
 import com.bingwascore.app.ui.components.HapticSwitch
+import com.bingwascore.app.util.screenEnter
 import com.bingwascore.app.ui.theme.EmeraldGreen
 import com.bingwascore.app.ui.theme.ErrorRed
 import com.bingwascore.app.ui.theme.NightBlack
@@ -68,6 +69,7 @@ fun AutoRenewalsScreen() {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .screenEnter()
             .background(NightBlack)
     ) {
         Column(

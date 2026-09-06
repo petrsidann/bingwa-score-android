@@ -46,6 +46,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bingwascore.app.data.local.Offer
 import com.bingwascore.app.ui.components.GradientButton
 import com.bingwascore.app.ui.components.pressScale
+import com.bingwascore.app.util.screenEnter
 import com.bingwascore.app.ui.theme.EmeraldGreen
 import com.bingwascore.app.ui.theme.ErrorRed
 import com.bingwascore.app.ui.theme.NightBlack
@@ -65,6 +66,7 @@ fun DialerScreen(onClose: () -> Unit, viewModel: DialerViewModel = hiltViewModel
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .screenEnter()
             .background(NightBlack)
             .padding(horizontal = 20.dp, vertical = 16.dp)
     ) {

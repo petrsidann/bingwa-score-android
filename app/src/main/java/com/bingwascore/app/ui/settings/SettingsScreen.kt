@@ -49,6 +49,7 @@ import com.bingwascore.app.domain.ThemeMode
 import com.bingwascore.app.ui.components.GlassCard
 import com.bingwascore.app.ui.components.GlassExplanationDialog
 import com.bingwascore.app.ui.components.GradientButton
+import com.bingwascore.app.util.screenEnter
 import com.bingwascore.app.ui.theme.EmeraldGreen
 import com.bingwascore.app.ui.theme.NightBlack
 import com.bingwascore.app.ui.theme.White
@@ -84,6 +85,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .screenEnter()
                 .background(NightBlack)
         ) {
             PageHeader(title = page.title, onBack = { currentPage = null })
@@ -109,6 +111,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .screenEnter()
                 .background(NightBlack)
                 .verticalScroll(rememberScrollState())
         ) {
