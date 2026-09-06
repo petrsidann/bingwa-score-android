@@ -15,6 +15,7 @@ import com.bingwascore.app.data.preferences.UserPreferences
 import com.bingwascore.app.data.repository.TransactionRepository
 import com.bingwascore.app.domain.AppProcessingMode
 import com.bingwascore.app.domain.TransactionStatus
+import com.bingwascore.app.services.EngineService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,6 +28,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.Calendar
 import javax.inject.Inject
+import timber.log.Timber
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
@@ -53,9 +55,17 @@ class HomeViewModel @Inject constructor(
         .map { it == AppProcessingMode.ADVANCED }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
-    val botPaused: StateFlow<Boolean> = userPreferences.engageBotActive
+        val botPaused: StateFlow<Boolean> = userPreferences.engageBotActive
         .map { !it }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
+    /** Whether the foreground engine service is enabled (and therefore should be running). */
+    val engineEnabled: StateFlow<Boolean> = userPreferences.engineEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
+
+    /** One-shot flag surfaced as a glass dialog before Advanced Mode is turned on. */
+    private val _showAdvancedExplanation = MutableStateFlow(false)
+    val showAdvancedExplanation: StateFlow<Boolean> = _showAdvancedExplanation.asStateFlow()
 
     val successfulCount: StateFlow<Int> = transactionRepository
         .transactionsByStatus(TransactionStatus.SUCCESSFUL.value)
@@ -187,16 +197,50 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    fun toggleAdvanced() {
+        fun toggleAdvanced() {
         viewModelScope.launch {
             val current = userPreferences.processingMode.first()
-            userPreferences.setProcessingMode(
-                if (current == AppProcessingMode.ADVANCED) {
-                    AppProcessingMode.EXPRESS
-                } else {
-                    AppProcessingMode.ADVANCED
-                }
+            if (current == AppProcessingMode.ADVANCED) {
+                userPreferences.setProcessingMode(AppProcessingMode.EXPRESS)
+            } else {
+                // Turning Advanced on requires the accessibility service, so gate
+                // it behind an explanation dialog that opens the system picker.
+                _showAdvancedExplanation.value = true
+            }
+        }
+    }
+
+    /** Starts/stops the foreground engine service and persists the preference. */
+    fun toggleEngine() {
+        viewModelScope.launch {
+            val current = userPreferences.engineEnabled.first()
+            userPreferences.setEngineEnabled(!current)
+            if (!current) {
+                EngineService.start(context.applicationContext)
+            } else {
+                EngineService.stop(context.applicationContext)
+            }
+        }
+    }
+
+    fun dismissAdvancedExplanation() {
+        _showAdvancedExplanation.value = false
+    }
+
+    /** Confirmed the explanation dialog: enable Advanced + open the accessibility picker. */
+    fun enableAdvancedMode() {
+        viewModelScope.launch { userPreferences.setProcessingMode(AppProcessingMode.ADVANCED) }
+        openAccessibilitySettings()
+    }
+
+    private fun openAccessibilitySettings() {
+        try {
+            context.startActivity(
+                Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             )
+        } catch (t: Throwable) {
+            Timber.e(t, "Could not open accessibility settings")
         }
     }
 

@@ -6,6 +6,7 @@ import android.content.Intent
 import android.provider.Telephony
 import com.bingwascore.app.domain.engine.TransactionPipeline
 import com.bingwascore.app.engagebot.EngageBotSessionLifecycle
+import com.bingwascore.app.utils.SmsParser
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -64,9 +65,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
 
             upperSender.contains(SENDER_SAFARICOM) &&
                 body.contains(COMMISSION_KEYWORD, ignoreCase = true) -> {
-                val amount = commissionAmountRegex.find(body)
-                    ?.groupValues?.get(1)
-                    ?.replace(",", "")?.toDoubleOrNull()
+                val amount = SmsParser.parseCommission(body)
                 receiverScope.launch {
                     try {
                         pipeline.onCommissionSms(amount)
@@ -108,9 +107,5 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
 
         // Pure phone-number senders: 0712345678 / +254712345678 / 254712345678
         private val phoneSenderRegex = Regex("^(?:\\+?254|0)[17]\\d{8}$")
-
-        // "Total Commission this week is Ksh.1825.1"
-        private val commissionAmountRegex =
-            Regex("Commission.*?Ksh\\.?\\s*([0-9][0-9,]*(?:\\.[0-9]+)?)", RegexOption.IGNORE_CASE)
     }
 }

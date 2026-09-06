@@ -47,6 +47,7 @@ import com.bingwascore.app.data.preferences.UserPreferences
 import com.bingwascore.app.domain.AppProcessingMode
 import com.bingwascore.app.domain.ThemeMode
 import com.bingwascore.app.ui.components.GlassCard
+import com.bingwascore.app.ui.components.GlassExplanationDialog
 import com.bingwascore.app.ui.components.GradientButton
 import com.bingwascore.app.ui.theme.EmeraldGreen
 import com.bingwascore.app.ui.theme.NightBlack
@@ -66,6 +67,17 @@ private enum class SettingsPage(val title: String) {
 @Composable
 fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
     var currentPage by remember { mutableStateOf<SettingsPage?>(null) }
+
+    val showAdvancedExplanation by viewModel.showAdvancedExplanation.collectAsStateWithLifecycle()
+    if (showAdvancedExplanation) {
+        GlassExplanationDialog(
+            title = "Advanced Mode",
+            message = "Advanced Mode uses an accessibility service to read and auto-tap USSD screens so Safaricom flows complete on their own. Open the system settings to enable the \"Bingwa Score\" accessibility service, then toggle Advanced back on.",
+            onDismiss = { viewModel.dismissAdvancedExplanation() },
+            onConfirm = { viewModel.confirmAdvancedMode() }
+        )
+    }
+
 
     val page = currentPage
     if (page != null) {
@@ -319,11 +331,11 @@ private fun ProcessingModePage(viewModel: SettingsViewModel) {
         selected = processingMode == AppProcessingMode.EXPRESS,
         onClick = { viewModel.setProcessingMode(AppProcessingMode.EXPRESS) }
     )
-    OptionCard(
+        OptionCard(
         title = "Advanced",
         description = "Extra verification steps and retries",
         selected = processingMode == AppProcessingMode.ADVANCED,
-        onClick = { viewModel.setProcessingMode(AppProcessingMode.ADVANCED) }
+        onClick = { viewModel.requestAdvancedMode() }
     )
 }
 

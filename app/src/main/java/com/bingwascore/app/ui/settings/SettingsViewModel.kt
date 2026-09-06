@@ -1,5 +1,8 @@
 package com.bingwascore.app.ui.settings
 
+import android.content.Context
+import android.content.Intent
+import android.provider.Settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bingwascore.app.BuildConfig
@@ -7,7 +10,9 @@ import com.bingwascore.app.data.preferences.UserPreferences
 import com.bingwascore.app.domain.AppProcessingMode
 import com.bingwascore.app.domain.ThemeMode
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.delay
+import timber.log.Timber
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -24,6 +29,7 @@ sealed interface UpdateCheckState {
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val userPreferences: UserPreferences
 ) : ViewModel() {
 
@@ -45,8 +51,38 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch { userPreferences.setThemeMode(value) }
     }
 
-    fun setProcessingMode(value: AppProcessingMode) {
+        fun setProcessingMode(value: AppProcessingMode) {
         viewModelScope.launch { userPreferences.setProcessingMode(value) }
+    }
+
+    private val _showAdvancedExplanation = MutableStateFlow(false)
+    val showAdvancedExplanation: StateFlow<Boolean> = _showAdvancedExplanation.asStateFlow()
+
+    /** The user tapped "Advanced" — surface the explanation dialog before enabling. */
+    fun requestAdvancedMode() {
+        _showAdvancedExplanation.value = true
+    }
+
+    fun dismissAdvancedExplanation() {
+        _showAdvancedExplanation.value = false
+    }
+
+    /** Confirmed: enable Advanced mode and open the system accessibility picker. */
+    fun confirmAdvancedMode() {
+        _showAdvancedExplanation.value = false
+        viewModelScope.launch { userPreferences.setProcessingMode(AppProcessingMode.ADVANCED) }
+        openAccessibilitySettings()
+    }
+
+    private fun openAccessibilitySettings() {
+        try {
+            context.startActivity(
+                Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            )
+        } catch (t: Throwable) {
+            Timber.e(t, "Could not open accessibility settings")
+        }
     }
 
     fun setSimSelection(value: String) {

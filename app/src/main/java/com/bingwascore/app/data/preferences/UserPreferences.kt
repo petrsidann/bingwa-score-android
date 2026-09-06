@@ -38,6 +38,8 @@ class UserPreferences @Inject constructor(
         val MESH_SERVER_URL = stringPreferencesKey("mesh_server_url")
         val MESH_CONNECTED = booleanPreferencesKey("mesh_connected")
         val SIM_SELECTION = stringPreferencesKey("sim_selection")
+        val ENGINE_ENABLED = booleanPreferencesKey("engine_enabled")
+        val SETUP_COMPLETE = booleanPreferencesKey("setup_complete")
     }
 
     val isLoggedIn: Flow<Boolean> = context.dataStore.data.map { it[Keys.IS_LOGGED_IN] ?: false }
@@ -56,6 +58,10 @@ class UserPreferences @Inject constructor(
     val meshServerUrl: Flow<String> = context.dataStore.data.map { it[Keys.MESH_SERVER_URL] ?: "" }
     val meshConnected: Flow<Boolean> = context.dataStore.data.map { it[Keys.MESH_CONNECTED] ?: false }
     val simSelection: Flow<String> = context.dataStore.data.map { it[Keys.SIM_SELECTION] ?: SIM_1 }
+    val engineEnabled: Flow<Boolean> =
+        context.dataStore.data.map { it[Keys.ENGINE_ENABLED] ?: true }
+    val setupComplete: Flow<Boolean> =
+        context.dataStore.data.map { it[Keys.SETUP_COMPLETE] ?: false }
 
     suspend fun setLoggedIn(value: Boolean) = edit { it[Keys.IS_LOGGED_IN] = value }
 
@@ -80,7 +86,11 @@ class UserPreferences @Inject constructor(
 
     suspend fun setMeshConnected(value: Boolean) = edit { it[Keys.MESH_CONNECTED] = value }
 
-    suspend fun setSimSelection(value: String) = edit { it[Keys.SIM_SELECTION] = value }
+        suspend fun setSimSelection(value: String) = edit { it[Keys.SIM_SELECTION] = value }
+
+    suspend fun setEngineEnabled(value: Boolean) = edit { it[Keys.ENGINE_ENABLED] = value }
+
+    suspend fun setSetupComplete(value: Boolean) = edit { it[Keys.SETUP_COMPLETE] = value }
 
     companion object {
         const val SIM_1 = "SIM 1"

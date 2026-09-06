@@ -67,7 +67,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bingwascore.app.data.local.Transaction
 import com.bingwascore.app.domain.TransactionStatus
 import com.bingwascore.app.ui.components.GlassCard
+import com.bingwascore.app.ui.components.GlassExplanationDialog
 import com.bingwascore.app.ui.components.GradientButton
+import com.bingwascore.app.ui.components.HapticSwitch
 import com.bingwascore.app.ui.theme.EmeraldGreen
 import com.bingwascore.app.ui.theme.ErrorRed
 import com.bingwascore.app.ui.theme.NightBlack
@@ -92,8 +94,10 @@ fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
     val recentTransactions by viewModel.recentTransactions.collectAsStateWithLifecycle()
     val balance by viewModel.balance.collectAsStateWithLifecycle()
     val balanceLoading by viewModel.balanceLoading.collectAsStateWithLifecycle()
-    val advancedMode by viewModel.advancedMode.collectAsStateWithLifecycle()
+        val advancedMode by viewModel.advancedMode.collectAsStateWithLifecycle()
+    val engineEnabled by viewModel.engineEnabled.collectAsStateWithLifecycle()
     val botPaused by viewModel.botPaused.collectAsStateWithLifecycle()
+    val showAdvancedExplanation by viewModel.showAdvancedExplanation.collectAsStateWithLifecycle()
 
     var balanceVisible by remember { mutableStateOf(true) }
     var missingPermissions by remember { mutableStateOf(computeMissingPermissions(context)) }
@@ -189,7 +193,7 @@ fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
                 active = advancedMode,
                 onClick = { viewModel.toggleAdvanced() }
             )
-            ModeChip(
+                        ModeChip(
                 modifier = Modifier.weight(1f),
                 title = "Auto Bot",
                 subtitle = if (botPaused) "PAUSED" else "ACTIVE",
@@ -199,6 +203,25 @@ fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
         }
 
         Spacer(modifier = Modifier.height(16.dp))
+
+        EngineToggleCard(
+            enabled = engineEnabled,
+            onToggle = { viewModel.toggleEngine() }
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        if (showAdvancedExplanation) {
+            GlassExplanationDialog(
+                title = "Advanced Mode",
+                message = "Advanced Mode uses an accessibility service to read and auto-tap USSD screens so Safaricom flows complete on their own. Open the system settings to enable the \"Bingwa Score\" accessibility service, then toggle Advanced back on.",
+                onDismiss = { viewModel.dismissAdvancedExplanation() },
+                onConfirm = {
+                    viewModel.dismissAdvancedExplanation()
+                    viewModel.enableAdvancedMode()
+                }
+            )
+        }
 
         WeeklyChart(weeklyBars = weeklyBars, weeklyCommission = weeklyCommission)
 
@@ -558,3 +581,30 @@ private fun computeMissingPermissions(context: Context): List<String> =
     requiredPermissions().filter {
         ContextCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED
     }
+
+@Composable
+private fun EngineToggleCard(enabled: Boolean, onToggle: () -> Unit) {
+    GlassCard(modifier = Modifier.fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    "Purchase Engine",
+                    color = White,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    if (enabled) "Running — watching for M-Pesa payments"
+                    else "Stopped — tap to start",
+                    color = if (enabled) EmeraldGreen else White.copy(alpha = 0.55f),
+                    fontSize = 12.sp
+                )
+            }
+            HapticSwitch(
+                checked = enabled,
+                onCheckedChange = { onToggle() }
+            )
+        }
+    }
+}

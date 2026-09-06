@@ -14,11 +14,12 @@ import com.bingwascore.app.data.repository.TransactionRepository
 import com.bingwascore.app.domain.TransactionStatus
 import com.bingwascore.app.engagebot.EngageBotSessionLifecycle
 import com.bingwascore.app.services.UssdAutomationService
+import com.bingwascore.app.utils.SmsParser
+import com.bingwascore.app.workers.Schedulers
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -47,8 +48,6 @@ class TransactionPipeline @Inject constructor(
     private val engageBot: EngageBotSessionLifecycle
 ) {
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-
     // ------------------------------------------------------------------
     // Inbound entry points
     // ------------------------------------------------------------------
@@ -61,7 +60,7 @@ class TransactionPipeline @Inject constructor(
      */
     suspend fun onMpesaReceived(sender: String, body: String) {
         try {
-            val parsed = parseMpesa(body) ?: run {
+            val parsed = parseMpesa(sender, body) ?: run {
                 Timber.w("M-Pesa SMS could not be parsed: %s", body)
                 return
             }
@@ -225,17 +224,16 @@ class TransactionPipeline @Inject constructor(
                 )
                 transactionRepository.update(next)
                 Timber.i(
-                    "Auto-retry %d for %s in %d mins",
+                    "Auto-retry %d for %s scheduled in %d mins",
                     next.retryCount, transactionId, offer.retryIntervalMins
                 )
-                scope.launch {
-                    try {
-                        delay(offer.retryIntervalMins * 60_000L)
-                        startUssdAutomation(next)
-                    } catch (t: Throwable) {
-                        Timber.e(t, "Auto-retry failed for %s", transactionId)
-                    }
-                }
+                // Process-death-proof scheduling via WorkManager: the retry
+                // survives reboots and app kills (see RetryWorker).
+                Schedulers.enqueueRetry(
+                    context,
+                    next.id,
+                    offer.retryIntervalMins.coerceAtLeast(1)
+                )
             } else {
                 transactionRepository.update(
                     transaction.copy(
@@ -466,40 +464,14 @@ class TransactionPipeline @Inject constructor(
         val amount: Double?
     )
 
-    private fun parseMpesa(body: String): ParsedMpesa? {
-        val receipt = receiptRegex.find(body)?.groupValues?.get(1)
-        val amount = amountRegex.find(body)
-            ?.groupValues?.get(1)?.replace(",", "")?.toDoubleOrNull()
-        val phone = body.findKenyanPhone()
-        val name = nameRegex.find(body)?.groupValues?.get(1)?.trim()
-        if (receipt == null && amount == null && phone == null) return null
-        return ParsedMpesa(receipt, phone, name, amount)
+    private fun parseMpesa(sender: String, body: String): ParsedMpesa? {
+        val message = SmsParser.parse(sender, body) ?: return null
+        if (message.receipt == null && message.amount == null && message.phone == null) return null
+        return ParsedMpesa(message.receipt, message.phone, message.name, message.amount)
     }
-
-    /** Best-effort extraction of a Kenyan customer number (07.. / 2547.. / +2547..). */
-    private fun String.findKenyanPhone(): String? =
-        phoneRegex.findAll(this)
-            .map { it.groupValues[1] }
-            .firstOrNull { it.length == 9 && (it.startsWith("7") || it.startsWith("1")) }
-            ?.let { "0$it" }
 
     companion object {
         /** How far back a duplicate check looks. */
         private const val DUPLICATE_WINDOW_MILLIS = 12L * 60 * 60 * 1000
-
-        // UHNRD47VMC Confirmed...
-        private val receiptRegex =
-            Regex("([A-Z0-9]{10})\\s*Confirmed", RegexOption.IGNORE_CASE)
-
-        // KSH20.00 / Ksh 1,825.1
-        private val amountRegex =
-            Regex("KSH?\\s*([0-9][0-9,]*(?:\\.[0-9]+)?)", RegexOption.IGNORE_CASE)
-
-        // group(1) = the 9 subscriber digits
-        private val phoneRegex = Regex("(?:(?:\\+?254)|0)?([17]\\d{8})")
-
-        // ...received from JOHN DOE 0712345678...
-        private val nameRegex =
-            Regex("from\\s+([A-Z0-9 .'&-]+?)\\s+(?:(?:\\+?254)|0)?[17]\\d{8}", RegexOption.IGNORE_CASE)
     }
 }

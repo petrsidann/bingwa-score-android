@@ -3,9 +3,12 @@ package com.bingwascore.app.workers
 import android.content.Context
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.ExistingWorkPolicy
+import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import androidx.work.workDataOf
 import com.bingwascore.app.data.local.AppDatabase
 import com.bingwascore.app.data.local.Transaction
 import com.bingwascore.app.engagebot.EngageBotSessionLifecycle
@@ -180,5 +183,27 @@ object Schedulers {
             ExistingPeriodicWorkPolicy.KEEP,
             PeriodicWorkRequestBuilder<SmsPollWorker>(15, TimeUnit.MINUTES).build()
         )
+    }
+
+    /**
+     * Enqueues a process-death-proof retry for [transactionId], firing after
+     * [delayMins] minutes via [RetryWorker]. Replacing a previous attempt for
+     * the same transaction keeps retries from stacking.
+     */
+    fun enqueueRetry(context: Context, transactionId: String, delayMins: Int) {
+        try {
+            val request = OneTimeWorkRequestBuilder<RetryWorker>()
+                .setInputData(workDataOf(RetryWorker.KEY_TX_ID to transactionId))
+                .setInitialDelay(delayMins.toLong().coerceAtLeast(1), TimeUnit.MINUTES)
+                .build()
+            WorkManager.getInstance(context).enqueueUniqueWork(
+                RetryWorker.WORK_NAME_PREFIX + transactionId,
+                ExistingWorkPolicy.REPLACE,
+                request
+            )
+            Timber.i("Retry for %s scheduled in %d min(s)", transactionId, delayMins)
+        } catch (t: Throwable) {
+            Timber.e(t, "Failed to enqueue retry for %s", transactionId)
+        }
     }
 }

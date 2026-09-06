@@ -77,6 +77,7 @@ import com.bingwascore.app.ui.mystore.MyStoreScreen
 import com.bingwascore.app.ui.offers.OffersScreen
 import com.bingwascore.app.ui.screens.LoginScreen
 import com.bingwascore.app.ui.screens.SplashScreen
+import com.bingwascore.app.ui.onboarding.SetupChecklistScreen
 import com.bingwascore.app.ui.settings.SettingsScreen
 import com.bingwascore.app.ui.subscriptions.SubscriptionsScreen
 import com.bingwascore.app.ui.transactions.TransactionsScreen
@@ -90,6 +91,7 @@ import kotlinx.coroutines.launch
 object Routes {
     const val SPLASH = "splash"
     const val LOGIN = "login"
+    const val SETUP_CHECKLIST = "setup_checklist"
     const val MAIN = "main"
 }
 
@@ -110,11 +112,22 @@ fun AppNavHost() {
                 }
             )
         }
-        composable(Routes.LOGIN) {
+                composable(Routes.LOGIN) {
             LoginScreen(
                 onSignIn = {
-                    navController.navigate(Routes.MAIN) {
+                    // After sign-in the user lands on the setup checklist, which
+                    // auto-forwards to the main screen once setup is complete.
+                    navController.navigate(Routes.SETUP_CHECKLIST) {
                         popUpTo(Routes.LOGIN) { inclusive = true }
+                    }
+                }
+            )
+        }
+        composable(Routes.SETUP_CHECKLIST) {
+            SetupChecklistScreen(
+                onSetupComplete = {
+                    navController.navigate(Routes.MAIN) {
+                        popUpTo(Routes.SETUP_CHECKLIST) { inclusive = true }
                     }
                 }
             )
