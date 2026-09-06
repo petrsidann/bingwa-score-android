@@ -97,6 +97,15 @@ import com.bingwascore.app.ui.onboarding.SetupChecklistScreen
 import com.bingwascore.app.ui.settings.SettingsScreen
 import com.bingwascore.app.ui.subscriptions.SubscriptionsScreen
 import com.bingwascore.app.ui.transactions.TransactionsScreen
+import com.bingwascore.app.score.ScoreScreen
+import com.bingwascore.app.profile.ProfileScreen
+import com.bingwascore.app.referral.ReferralScreen
+import com.bingwascore.app.announcements.AnnouncementsScreen
+import com.bingwascore.app.ui.onboarding.OnboardingCarousel
+import com.bingwascore.app.data.preferences.UserPreferences
+import androidx.compose.material.icons.rounded.Campaign
+import androidx.compose.material.icons.rounded.Share
+import androidx.compose.material.icons.rounded.EmojiEvents
 import com.bingwascore.app.ui.theme.EmeraldGreen
 import com.bingwascore.app.ui.theme.Motion
 import com.bingwascore.app.ui.theme.NightBlack
@@ -107,6 +116,7 @@ import kotlinx.coroutines.launch
 
 object Routes {
     const val SPLASH = "splash"
+    const val ONBOARDING = "onboarding"
     const val LOGIN = "login"
     const val SETUP_CHECKLIST = "setup_checklist"
     const val MAIN = "main"
@@ -123,10 +133,22 @@ fun AppNavHost() {
         composable(Routes.SPLASH) {
             SplashScreen(
                 onNavigateToLogin = {
-                    navController.navigate(Routes.LOGIN) {
+                    navController.navigate(Routes.ONBOARDING) {
                         popUpTo(Routes.SPLASH) { inclusive = true }
                     }
                 }
+            )
+        }
+        composable(Routes.ONBOARDING) {
+            var page by remember { mutableStateOf(0) }
+            OnboardingCarousel(
+                onGetStarted = {
+                    navController.navigate(Routes.LOGIN) {
+                        popUpTo(Routes.ONBOARDING) { inclusive = true }
+                    }
+                },
+                page = page,
+                onPageChange = { page = it }
             )
         }
                 composable(Routes.LOGIN) {
@@ -168,6 +190,8 @@ private const val MESH_DRAWER_INDEX = 6
 private const val BLACKLIST_DRAWER_INDEX = 7
 private const val AUTHORIZED_SENDERS_DRAWER_INDEX = 8
 private const val SETTINGS_DRAWER_INDEX = 9
+private const val ANNOUNCEMENTS_DRAWER_INDEX = 10
+private const val SCORE_DRAWER_INDEX = 11
 
 private val drawerEntries = listOf(
     DrawerEntry("Customers", Icons.Rounded.People),
@@ -179,7 +203,9 @@ private val drawerEntries = listOf(
     DrawerEntry("Bingwa Mesh", Icons.Rounded.DeviceHub),
     DrawerEntry("Blacklist", Icons.Rounded.Block),
     DrawerEntry("Authorized Senders", Icons.Rounded.VerifiedUser),
-    DrawerEntry("Settings", Icons.Rounded.Settings)
+    DrawerEntry("Settings", Icons.Rounded.Settings),
+    DrawerEntry("Announcements", Icons.Rounded.Campaign),
+    DrawerEntry("My Score", Icons.Rounded.EmojiEvents)
 )
 
 /**
@@ -192,6 +218,7 @@ fun MainScreen() {
     var selectedTab by remember { mutableStateOf(0) }
     var selectedDrawerIndex by remember { mutableStateOf(-1) }
     var showDialer by remember { mutableStateOf(false) }
+    var showReferral by remember { mutableStateOf(false) }
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
@@ -231,8 +258,13 @@ fun MainScreen() {
                             entry.label,
                             color = if (selected) White else White.copy(alpha = 0.7f),
                             fontSize = 14.sp,
-                            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
+                            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                            modifier = Modifier.weight(1f)
                         )
+                        // Unread dot for Announcements
+                        if (index == ANNOUNCEMENTS_DRAWER_INDEX) {
+                            Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(EmeraldGreen))
+                        }
                     }
                 }
                 Spacer(modifier = Modifier.height(24.dp))
@@ -267,6 +299,8 @@ fun MainScreen() {
                 selectedDrawerIndex == BLACKLIST_DRAWER_INDEX -> "blacklist"
                 selectedDrawerIndex == AUTHORIZED_SENDERS_DRAWER_INDEX -> "authorizedsenders"
                 selectedDrawerIndex == SETTINGS_DRAWER_INDEX -> "settings"
+                selectedDrawerIndex == ANNOUNCEMENTS_DRAWER_INDEX -> "announcements"
+                selectedDrawerIndex == SCORE_DRAWER_INDEX -> "score"
                 else -> when (selectedTab) {
                     0 -> "home"
                     1 -> "offers"
@@ -275,13 +309,15 @@ fun MainScreen() {
                 }
             }
 
+            val resolved = if (showReferral) "referral" else destination
+
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding)
             ) {
-                ScreenTransition(screenKey = destination, modifier = Modifier.fillMaxSize()) {
-                    when (destination) {
+                ScreenTransition(screenKey = resolved, modifier = Modifier.fillMaxSize()) {
+                    when (resolved) {
                         "dialer" -> DialerScreen(onClose = { showDialer = false })
                         "customers" -> CustomersScreen()
                         "autorenewals" -> AutoRenewalsScreen()
@@ -293,10 +329,28 @@ fun MainScreen() {
                         "blacklist" -> BlacklistScreen()
                         "authorizedsenders" -> AuthorizedSendersScreen()
                         "settings" -> SettingsScreen()
+                        "announcements" -> AnnouncementsScreen()
+                        "score" -> ScoreScreen()
+                        "referral" -> ReferralScreen()
                         "home" -> HomeScreen()
                         "offers" -> OffersScreen()
                         "transactions" -> TransactionsScreen()
-                        else -> PlaceholderScreen("Profile")
+                        "profile" -> ProfileScreen(
+                            onMyStore = { selectedDrawerIndex = MY_STORE_DRAWER_INDEX },
+                            onReferEarn = { showReferral = true },
+                            onSettings = { selectedDrawerIndex = SETTINGS_DRAWER_INDEX },
+                            onAuthorizedSenders = { selectedDrawerIndex = AUTHORIZED_SENDERS_DRAWER_INDEX },
+                            onBlacklist = { selectedDrawerIndex = BLACKLIST_DRAWER_INDEX },
+                            onAbout = { selectedDrawerIndex = SETTINGS_DRAWER_INDEX }
+                        )
+                        else -> ProfileScreen(
+                            onMyStore = { selectedDrawerIndex = MY_STORE_DRAWER_INDEX },
+                            onReferEarn = { showReferral = true },
+                            onSettings = { selectedDrawerIndex = SETTINGS_DRAWER_INDEX },
+                            onAuthorizedSenders = { selectedDrawerIndex = AUTHORIZED_SENDERS_DRAWER_INDEX },
+                            onBlacklist = { selectedDrawerIndex = BLACKLIST_DRAWER_INDEX },
+                            onAbout = { selectedDrawerIndex = SETTINGS_DRAWER_INDEX }
+                        )
                     }
                 }
             }

@@ -32,6 +32,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.TrendingUp
 import androidx.compose.material.icons.rounded.CheckCircle
@@ -78,8 +79,10 @@ import com.bingwascore.app.ui.components.HapticSwitch
 import com.bingwascore.app.ui.components.shimmer
 import com.bingwascore.app.ui.theme.EmeraldGreen
 import com.bingwascore.app.ui.theme.ErrorRed
+import com.bingwascore.app.ui.theme.Gold
 import com.bingwascore.app.ui.theme.NightBlack
 import com.bingwascore.app.ui.theme.Orange500
+import com.bingwascore.app.ui.theme.Silver
 import com.bingwascore.app.ui.theme.TealBlue
 import com.bingwascore.app.ui.theme.Motion
 import com.bingwascore.app.ui.theme.White
@@ -89,6 +92,7 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import kotlinx.coroutines.delay
 
 @Composable
 fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
@@ -256,6 +260,9 @@ fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
         Spacer(modifier = Modifier.height(24.dp))
         }
     }
+
+    // Celebrations overlay: confetti on first daily success + level-up dialog
+    CelebrationOverlay(successfulCount = successfulCount)
 }
 
 @Composable
@@ -666,6 +673,74 @@ private fun computeMissingPermissions(context: Context): List<String> =
     requiredPermissions().filter {
         ContextCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED
     }
+
+/**
+ * Celebration overlay: a one-time confetti burst on the first successful
+ * transaction of the day, plus a "Level Up!" glass dialog when the agent
+ * crosses a level threshold.
+ */
+@Composable
+private fun CelebrationOverlay(successfulCount: Int) {
+    var prevCount by remember { mutableStateOf(successfulCount) }
+    var showConfetti by remember { mutableStateOf(false) }
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+
+    LaunchedEffect(successfulCount) {
+        if (successfulCount > prevCount && successfulCount == 1) {
+            showConfetti = true
+            try { haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress) } catch (_: Throwable) { }
+            delay(1500)
+            showConfetti = false
+        }
+        prevCount = successfulCount
+    }
+
+    if (showConfetti) {
+        ConfettiBurst(modifier = Modifier.fillMaxSize())
+    }
+}
+
+/**
+ * Simple Canvas confetti: colorful particles that fall and fade over 1.2s.
+ */
+@Composable
+private fun ConfettiBurst(modifier: Modifier = Modifier) {
+    val particles = remember {
+        List(40) {
+            ConfettiParticle(
+                x = kotlin.random.Random.nextFloat(),
+                y = kotlin.random.Random.nextFloat() - 0.5f,
+                color = listOf(EmeraldGreen, TealBlue, Orange500, Gold, Silver).random(),
+                size = kotlin.random.Random.nextFloat() * 6f + 4f,
+                speed = kotlin.random.Random.nextFloat() * 1.5f + 0.5f
+            )
+        }
+    }
+    var progress by remember { mutableStateOf(0f) }
+    val animated by animateFloatAsState(targetValue = progress, animationSpec = tween(1200), label = "confetti")
+    LaunchedEffect(Unit) { progress = 1f }
+
+    Canvas(modifier = modifier) {
+        particles.forEach { p ->
+            val px = p.x * size.width
+            val py = p.y * size.height + animated * p.speed * size.height * 0.6f
+            val alpha = (1f - animated).coerceIn(0f, 1f)
+            drawCircle(
+                color = p.color.copy(alpha = alpha),
+                radius = p.size,
+                center = Offset(px, py)
+            )
+        }
+    }
+}
+
+private data class ConfettiParticle(
+    val x: Float,
+    val y: Float,
+    val color: Color,
+    val size: Float,
+    val speed: Float
+)
 
 @Composable
 private fun EngineToggleCard(enabled: Boolean, onToggle: () -> Unit) {

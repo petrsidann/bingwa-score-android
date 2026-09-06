@@ -1,5 +1,6 @@
 package com.bingwascore.app.ui.mystore
 
+import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -15,6 +16,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.Link
+import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.Storefront
 import androidx.compose.material3.Icon
 import androidx.compose.material3.SwitchDefaults
@@ -25,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -47,23 +50,45 @@ fun MyStoreScreen(viewModel: MyStoreViewModel = hiltViewModel()) {
     val isActive by viewModel.isActive.collectAsStateWithLifecycle()
     val userName by viewModel.userName.collectAsStateWithLifecycle()
 
+    val context = LocalContext.current
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .screenEnter()
             .background(NightBlack)
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 16.dp)
+                .padding(horizontal = 20.dp, vertical = 16.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("My Store", color = White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-            Text(
-                if (storeLink.isEmpty()) "Create your public storefront link"
-                else "Your storefront is ${if (isActive) "live" else "paused"}",
-                color = White.copy(alpha = 0.5f),
-                fontSize = 12.sp
+            Column(modifier = Modifier.weight(1f)) {
+                Text("My Store", color = White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                Text(
+                    if (storeLink.isEmpty()) "Create your public storefront link"
+                    else "Your storefront is ${if (isActive) "live" else "paused"}",
+                    color = White.copy(alpha = 0.5f),
+                    fontSize = 12.sp
+                )
+            }
+            Icon(
+                Icons.Rounded.Share,
+                contentDescription = "Share store",
+                tint = EmeraldGreen,
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .clickable {
+                        val msg = if (storeLink.isNotEmpty()) "Check out my store: $storeLink" else "Join me on Bingwa Score!"
+                        val send = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_TEXT, msg)
+                        }
+                        context.startActivity(Intent.createChooser(send, "Share via"))
+                    }
+                    .padding(6.dp)
             )
         }
 

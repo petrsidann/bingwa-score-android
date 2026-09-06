@@ -40,6 +40,11 @@ class UserPreferences @Inject constructor(
         val SIM_SELECTION = stringPreferencesKey("sim_selection")
         val ENGINE_ENABLED = booleanPreferencesKey("engine_enabled")
         val SETUP_COMPLETE = booleanPreferencesKey("setup_complete")
+        val PHONE = stringPreferencesKey("user_phone")
+        val REFERRAL_CODE = stringPreferencesKey("referral_code")
+        val REFERRAL_COUNT = stringPreferencesKey("referral_count")
+        val ONBOARDING_DONE = booleanPreferencesKey("onboarding_done")
+        val ANNOUNCEMENTS_SEEDED = booleanPreferencesKey("announcements_seeded")
     }
 
     val isLoggedIn: Flow<Boolean> = context.dataStore.data.map { it[Keys.IS_LOGGED_IN] ?: false }
@@ -62,6 +67,18 @@ class UserPreferences @Inject constructor(
         context.dataStore.data.map { it[Keys.ENGINE_ENABLED] ?: true }
     val setupComplete: Flow<Boolean> =
         context.dataStore.data.map { it[Keys.SETUP_COMPLETE] ?: false }
+
+    val phone: Flow<String> = context.dataStore.data.map { it[Keys.PHONE] ?: "" }
+
+    val referralCode: Flow<String> = context.dataStore.data.map { it[Keys.REFERRAL_CODE] ?: "" }
+
+    val referralCount: Flow<Int> = context.dataStore.data.map { (it[Keys.REFERRAL_COUNT] ?: "0").toIntOrNull() ?: 0 }
+
+    val onboardingDone: Flow<Boolean> =
+        context.dataStore.data.map { it[Keys.ONBOARDING_DONE] ?: false }
+
+    val announcementsSeeded: Flow<Boolean> =
+        context.dataStore.data.map { it[Keys.ANNOUNCEMENTS_SEEDED] ?: false }
 
     suspend fun setLoggedIn(value: Boolean) = edit { it[Keys.IS_LOGGED_IN] = value }
 
@@ -91,6 +108,16 @@ class UserPreferences @Inject constructor(
     suspend fun setEngineEnabled(value: Boolean) = edit { it[Keys.ENGINE_ENABLED] = value }
 
     suspend fun setSetupComplete(value: Boolean) = edit { it[Keys.SETUP_COMPLETE] = value }
+
+    suspend fun setPhone(value: String) = edit { it[Keys.PHONE] = value }
+
+    suspend fun setReferralCode(value: String) = edit { it[Keys.REFERRAL_CODE] = value }
+
+    suspend fun setReferralCount(value: Int) = edit { it[Keys.REFERRAL_COUNT] = value.toString() }
+
+    suspend fun setOnboardingDone(value: Boolean) = edit { it[Keys.ONBOARDING_DONE] = value }
+
+    suspend fun setAnnouncementsSeeded(value: Boolean) = edit { it[Keys.ANNOUNCEMENTS_SEEDED] = value }
 
     companion object {
         const val SIM_1 = "SIM 1"
