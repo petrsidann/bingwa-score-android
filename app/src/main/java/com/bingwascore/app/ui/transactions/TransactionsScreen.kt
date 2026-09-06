@@ -139,7 +139,7 @@ fun TransactionsScreen(viewModel: TransactionsViewModel = hiltViewModel()) {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 itemsIndexed(transactions, key = { _, tx -> tx.id }) { index, transaction ->
                     TransactionRow(

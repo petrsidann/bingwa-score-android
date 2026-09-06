@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
@@ -51,11 +52,12 @@ fun LoginScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFF0A0A0F))
-            .padding(horizontal = 24.dp)
+            .statusBarsPadding()
+            .padding(horizontal = 20.dp)
             .navigationBarsPadding()
             .imePadding()
     ) {
-        Spacer(modifier = Modifier.height(64.dp))
+        Spacer(modifier = Modifier.height(48.dp))
 
         Text(
             "Welcome back",

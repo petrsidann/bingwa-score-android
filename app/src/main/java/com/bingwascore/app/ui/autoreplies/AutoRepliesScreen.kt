@@ -19,8 +19,9 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.SmartToy
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -43,7 +44,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bingwascore.app.data.local.AutoReply
 import com.bingwascore.app.engagebot.BotLog
 import com.bingwascore.app.engagebot.BotLogKind
+import com.bingwascore.app.ui.components.EmptyState
 import com.bingwascore.app.ui.components.GlassCard
+import com.bingwascore.app.ui.components.HapticSwitch
 import com.bingwascore.app.ui.theme.EmeraldGreen
 import com.bingwascore.app.ui.theme.ErrorRed
 import com.bingwascore.app.ui.theme.NightBlack
@@ -83,7 +86,7 @@ fun AutoRepliesScreen(viewModel: AutoRepliesViewModel = hiltViewModel()) {
 
         LazyColumn(
             contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item {
                 GlassCard(modifier = Modifier.fillMaxWidth()) {
@@ -107,7 +110,7 @@ fun AutoRepliesScreen(viewModel: AutoRepliesViewModel = hiltViewModel()) {
                             )
                         }
                         Spacer(modifier = Modifier.width(12.dp))
-                        Switch(
+                        HapticSwitch(
                             checked = engageBotActive,
                             onCheckedChange = { viewModel.setEngageBotActive(it) },
                             colors = SwitchDefaults.colors(
@@ -141,7 +144,16 @@ fun AutoRepliesScreen(viewModel: AutoRepliesViewModel = hiltViewModel()) {
                 )
             }
 
-            if (botLogs.isNotEmpty()) {
+            if (botLogs.isEmpty()) {
+                item {
+                    EmptyState(
+                        icon = Icons.Rounded.SmartToy,
+                        title = "No bot activity yet",
+                        message = "Engage messages sent to your customers will be logged here.",
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                }
+            } else {
                 item {
                     Text(
                         "Bot Activity",
@@ -212,7 +224,7 @@ private fun TemplateCard(
                 )
             }
             Spacer(modifier = Modifier.width(12.dp))
-            Switch(
+            HapticSwitch(
                 checked = template.isActive,
                 onCheckedChange = { onToggle() },
                 colors = SwitchDefaults.colors(

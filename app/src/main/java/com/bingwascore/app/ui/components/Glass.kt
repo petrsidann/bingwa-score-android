@@ -11,6 +11,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchColors
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -20,6 +23,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -94,4 +99,32 @@ fun GradientButton(
     ) {
         Text(text, color = Color(0xFF0A0A0F), fontWeight = FontWeight.Bold, fontSize = 17.sp)
     }
+}
+
+/**
+ * Switch with a haptic tick on every toggle. The haptic call is wrapped so a
+ * device without haptics (or a framework quirk) can never crash the toggle —
+ * the state change always goes through.
+ */
+@Composable
+fun HapticSwitch(
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+    colors: SwitchColors = SwitchDefaults.colors()
+) {
+    val haptic = LocalHapticFeedback.current
+    Switch(
+        checked = checked,
+        onCheckedChange = {
+            try {
+                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            } catch (_: Throwable) {
+                // Haptics are optional polish; never fail the toggle.
+            }
+            onCheckedChange(it)
+        },
+        modifier = modifier,
+        colors = colors
+    )
 }

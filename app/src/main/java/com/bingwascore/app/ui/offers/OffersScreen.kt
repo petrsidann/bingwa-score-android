@@ -33,7 +33,6 @@ import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material.icons.rounded.Verified
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -59,6 +58,7 @@ import com.bingwascore.app.domain.TransactionStatus
 import com.bingwascore.app.ui.components.EmptyState
 import com.bingwascore.app.ui.components.GlassCard
 import com.bingwascore.app.ui.components.GradientButton
+import com.bingwascore.app.ui.components.HapticSwitch
 import com.bingwascore.app.ui.components.pressScale
 import com.bingwascore.app.ui.theme.EmeraldGreen
 import com.bingwascore.app.ui.theme.ErrorRed
@@ -112,7 +112,7 @@ fun OffersScreen(viewModel: OffersViewModel = hiltViewModel()) {
             } else {
                 LazyColumn(
                     contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 96.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     itemsIndexed(offers, key = { _, offer -> offer.id }) { index, offer ->
                         OfferCard(
@@ -224,7 +224,7 @@ private fun OfferCard(
                 }
             }
             Spacer(modifier = Modifier.width(12.dp))
-            Switch(
+            HapticSwitch(
                 checked = offer.isActive,
                 onCheckedChange = { onToggle() },
                 colors = SwitchDefaults.colors(
@@ -400,7 +400,7 @@ private fun SwitchRow(label: String, checked: Boolean, onCheckedChange: (Boolean
             fontSize = 14.sp,
             modifier = Modifier.weight(1f)
         )
-        Switch(
+        HapticSwitch(
             checked = checked,
             onCheckedChange = onCheckedChange,
             colors = SwitchDefaults.colors(

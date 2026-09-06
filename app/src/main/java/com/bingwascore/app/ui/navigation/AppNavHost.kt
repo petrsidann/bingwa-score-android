@@ -9,11 +9,15 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -207,6 +211,9 @@ fun MainScreen() {
     ) {
         Scaffold(
             containerColor = NightBlack,
+            contentWindowInsets = WindowInsets.safeDrawing.only(
+                WindowInsetsSides.Top + WindowInsetsSides.Horizontal
+            ),
             bottomBar = {
                 GlassBottomBar(
                     selected = selectedTab,
@@ -318,11 +325,17 @@ private fun GlassBottomBar(selected: Int, onSelect: (Int) -> Unit, onDialer: () 
 
 @Composable
 private fun BottomNavItem(icon: ImageVector, label: String, selected: Boolean, onClick: () -> Unit) {
+    val interactionSource = remember { MutableInteractionSource() }
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
+            .pressScale(interactionSource)
             .clip(RoundedCornerShape(16.dp))
-            .clickable(onClick = onClick)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            )
             .padding(horizontal = 8.dp, vertical = 6.dp)
     ) {
         Icon(
@@ -347,7 +360,7 @@ private fun PlaceholderScreen(title: String) {
         modifier = Modifier
             .fillMaxSize()
             .background(NightBlack)
-            .padding(24.dp),
+            .padding(20.dp),
         contentAlignment = Alignment.Center
     ) {
         GlassCard(modifier = Modifier.fillMaxWidth()) {

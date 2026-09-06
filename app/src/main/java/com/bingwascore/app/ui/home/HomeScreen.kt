@@ -149,7 +149,7 @@ fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
             )
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             StatTile(
@@ -179,7 +179,7 @@ fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
             onRefresh = { viewModel.refreshBalance() }
         )
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             ModeChip(

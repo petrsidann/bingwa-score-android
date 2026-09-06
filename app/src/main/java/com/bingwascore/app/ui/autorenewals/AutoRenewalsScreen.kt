@@ -14,7 +14,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Switch
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Autorenew
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -29,7 +30,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.bingwascore.app.ui.components.EmptyState
 import com.bingwascore.app.ui.components.GlassCard
+import com.bingwascore.app.ui.components.HapticSwitch
 import com.bingwascore.app.ui.theme.EmeraldGreen
 import com.bingwascore.app.ui.theme.ErrorRed
 import com.bingwascore.app.ui.theme.NightBlack
@@ -80,21 +83,30 @@ fun AutoRenewalsScreen() {
             )
         }
 
-        LazyColumn(
-            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            itemsIndexed(renewals, key = { _, renewal -> renewal.id }) { index, renewal ->
-                val isActive = activeStates[renewal.id] ?: renewal.isActive
-                RenewalCard(
-                    renewal = renewal,
-                    isActive = isActive,
-                    now = now,
-                    enterDelayMillis = minOf(index, 6) * 35,
-                    onToggle = {
-                        activeStates = activeStates + (renewal.id to !isActive)
-                    }
-                )
+        if (renewals.isEmpty()) {
+            EmptyState(
+                icon = Icons.Rounded.Autorenew,
+                title = "No auto renewals",
+                message = "Turn on auto-renew for a bundle and it will be re-dialed automatically here.",
+                modifier = Modifier.padding(horizontal = 20.dp)
+            )
+        } else {
+            LazyColumn(
+                contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                itemsIndexed(renewals, key = { _, renewal -> renewal.id }) { index, renewal ->
+                    val isActive = activeStates[renewal.id] ?: renewal.isActive
+                    RenewalCard(
+                        renewal = renewal,
+                        isActive = isActive,
+                        now = now,
+                        enterDelayMillis = minOf(index, 6) * 35,
+                        onToggle = {
+                            activeStates = activeStates + (renewal.id to !isActive)
+                        }
+                    )
+                }
             }
         }
     }
@@ -141,7 +153,7 @@ private fun RenewalCard(
                 fontWeight = FontWeight.SemiBold
             )
             Spacer(modifier = Modifier.width(12.dp))
-            Switch(
+            HapticSwitch(
                 checked = isActive,
                 onCheckedChange = { onToggle() },
                 colors = SwitchDefaults.colors(

@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Subscriptions
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -24,6 +26,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.bingwascore.app.ui.components.EmptyState
 import com.bingwascore.app.ui.components.GlassCard
 import com.bingwascore.app.ui.theme.EmeraldGreen
 import com.bingwascore.app.ui.theme.ErrorRed
@@ -73,16 +76,25 @@ fun SubscriptionsScreen() {
             )
         }
 
-        LazyColumn(
-            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            itemsIndexed(subscriptions, key = { _, subscription -> subscription.id }) { index, subscription ->
-                SubscriptionCard(
-                    subscription = subscription,
-                    now = now,
-                    enterDelayMillis = minOf(index, 6) * 35
-                )
+        if (subscriptions.isEmpty()) {
+            EmptyState(
+                icon = Icons.Rounded.Subscriptions,
+                title = "No subscriptions yet",
+                message = "Bundles your customers subscribe to will appear here.",
+                modifier = Modifier.padding(horizontal = 20.dp)
+            )
+        } else {
+            LazyColumn(
+                contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                itemsIndexed(subscriptions, key = { _, subscription -> subscription.id }) { index, subscription ->
+                    SubscriptionCard(
+                        subscription = subscription,
+                        now = now,
+                        enterDelayMillis = minOf(index, 6) * 35
+                    )
+                }
             }
         }
     }

@@ -17,7 +17,6 @@ import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.Link
 import androidx.compose.material.icons.rounded.Storefront
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -33,6 +32,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bingwascore.app.ui.components.GlassCard
 import com.bingwascore.app.ui.components.GradientButton
+import com.bingwascore.app.ui.components.HapticSwitch
 import com.bingwascore.app.ui.theme.EmeraldGreen
 import com.bingwascore.app.ui.theme.ErrorRed
 import com.bingwascore.app.ui.theme.NightBlack
@@ -131,7 +131,7 @@ private fun StoreLinkCard(
                 )
             }
             Spacer(modifier = Modifier.width(12.dp))
-            Switch(
+            HapticSwitch(
                 checked = isActive,
                 onCheckedChange = onToggle,
                 colors = SwitchDefaults.colors(

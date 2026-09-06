@@ -25,7 +25,6 @@ import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.People
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -45,6 +44,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bingwascore.app.data.local.Customer
 import com.bingwascore.app.ui.components.EmptyState
 import com.bingwascore.app.ui.components.GlassCard
+import com.bingwascore.app.ui.components.HapticSwitch
 import com.bingwascore.app.ui.theme.EmeraldGreen
 import com.bingwascore.app.ui.theme.ErrorRed
 import com.bingwascore.app.ui.theme.NightBlack
@@ -92,7 +92,7 @@ fun CustomersScreen(viewModel: CustomersViewModel = hiltViewModel()) {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 itemsIndexed(customers, key = { _, customer -> customer.phoneNumber }) { index, customer ->
                     CustomerRow(
@@ -158,7 +158,7 @@ private fun CustomerRow(
                 }
             }
             Spacer(modifier = Modifier.width(8.dp))
-            Switch(
+            HapticSwitch(
                 checked = customer.isBlacklisted,
                 onCheckedChange = onToggle,
                 colors = SwitchDefaults.colors(

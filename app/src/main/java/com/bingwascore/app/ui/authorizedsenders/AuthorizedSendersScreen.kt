@@ -107,7 +107,7 @@ fun AuthorizedSendersScreen(viewModel: AuthorizedSendersViewModel = hiltViewMode
         } else {
             LazyColumn(
                 contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 24.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 itemsIndexed(senders.sorted(), key = { _, number -> number }) { index, number ->
                     SenderRow(

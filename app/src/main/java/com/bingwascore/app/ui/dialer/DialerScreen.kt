@@ -3,6 +3,7 @@ package com.bingwascore.app.ui.dialer
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,6 +29,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -43,6 +45,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bingwascore.app.data.local.Offer
 import com.bingwascore.app.ui.components.GradientButton
+import com.bingwascore.app.ui.components.pressScale
 import com.bingwascore.app.ui.theme.EmeraldGreen
 import com.bingwascore.app.ui.theme.ErrorRed
 import com.bingwascore.app.ui.theme.NightBlack
@@ -201,19 +204,26 @@ private fun GlassPhoneField(value: String, onValueChange: (String) -> Unit) {
 @Composable
 private fun OfferChip(offer: Offer, selected: Boolean, onClick: () -> Unit) {
     val shape = RoundedCornerShape(16.dp)
+    val interactionSource = remember { MutableInteractionSource() }
     val base = if (selected) {
         Modifier
             .clip(shape)
+            .pressScale(interactionSource)
             .background(Brush.linearGradient(listOf(EmeraldGreen, TealBlue)))
     } else {
         Modifier
             .clip(shape)
+            .pressScale(interactionSource)
             .background(Color(0x14FFFFFF))
             .border(1.dp, Color(0x1FFFFFFF), shape)
     }
     Column(
         modifier = base
-            .clickable(onClick = onClick)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            )
             .padding(horizontal = 14.dp, vertical = 10.dp)
     ) {
         Text(

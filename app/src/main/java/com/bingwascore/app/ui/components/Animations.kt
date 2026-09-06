@@ -29,6 +29,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -70,8 +71,10 @@ fun Modifier.pressScale(
  */
 @Composable
 fun Modifier.enterAnimation(delayMillis: Int = 0): Modifier {
+    val density = LocalDensity.current
+    val slideDistance = with(density) { 16.dp.toPx() }
     val fade = remember(delayMillis) { Animatable(0f) }
-    val slideY = remember(delayMillis) { Animatable(28f) }
+    val slideY = remember(delayMillis, slideDistance) { Animatable(slideDistance) }
     val enterScale = remember(delayMillis) { Animatable(0.96f) }
 
     LaunchedEffect(delayMillis) {
