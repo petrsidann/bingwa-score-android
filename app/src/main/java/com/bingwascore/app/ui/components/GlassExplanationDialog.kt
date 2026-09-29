@@ -11,6 +11,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.bingwascore.app.ui.theme.GlassFill
 import com.bingwascore.app.ui.theme.BingwaOrange
 import com.bingwascore.app.ui.theme.White
 
@@ -67,7 +68,7 @@ fun GlassExplanationDialog(
                 modifier = Modifier.fillMaxWidth()
             )
         },
-        containerColor = Color(0x14FFFFFF),
+        containerColor = GlassFill,
         tonalElevation = 8.dp,
         shape = RoundedCornerShape(24.dp)
     )

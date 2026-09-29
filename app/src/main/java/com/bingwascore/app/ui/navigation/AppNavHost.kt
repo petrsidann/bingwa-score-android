@@ -106,6 +106,8 @@ import com.bingwascore.app.data.preferences.UserPreferences
 import androidx.compose.material.icons.rounded.Campaign
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.EmojiEvents
+import com.bingwascore.app.ui.theme.GlassBorderStrong
+import com.bingwascore.app.ui.theme.GlassFill
 import com.bingwascore.app.ui.theme.Amber
 import com.bingwascore.app.ui.theme.BingwaOrange
 import com.bingwascore.app.ui.theme.Motion
@@ -394,8 +396,8 @@ private fun GlassBottomBar(selected: Int, onSelect: (Int) -> Unit, onDialer: () 
             .navigationBarsPadding()
             .padding(horizontal = 16.dp, vertical = 10.dp)
             .clip(shape)
-            .background(Color(0x14FFFFFF))
-            .border(1.dp, Brush.verticalGradient(listOf(Color(0x33FFFFFF), Color.Transparent)), shape)
+            .background(GlassFill)
+            .border(1.dp, Brush.verticalGradient(listOf(GlassBorderStrong, Color.Transparent)), shape)
     ) {
         // 5 logical slots: Home | Offers | FAB | Transactions | Profile
         val slotWidth = maxWidth / 5f

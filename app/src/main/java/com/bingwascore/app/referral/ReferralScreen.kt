@@ -37,6 +37,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bingwascore.app.ui.components.GlassCard
 import com.bingwascore.app.ui.components.GradientButton
+import com.bingwascore.app.ui.theme.GlassFill
 import com.bingwascore.app.ui.theme.Amber
 import com.bingwascore.app.ui.theme.EmeraldGreen
 import com.bingwascore.app.ui.theme.NightBlack
@@ -65,7 +66,7 @@ fun ReferralScreen(viewModel: ReferralViewModel = hiltViewModel()) {
                 Text(code.ifEmpty { "---" }, color = White, fontSize = 24.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
                 Spacer(modifier = Modifier.width(8.dp))
                 Row(
-                    modifier = Modifier.clip(RoundedCornerShape(12.dp)).background(Color(0x14FFFFFF)).clickable {
+                    modifier = Modifier.clip(RoundedCornerShape(12.dp)).background(GlassFill).clickable {
                         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                         clipboard.setPrimaryClip(ClipData.newPlainText("Referral Code", code))
                     }.padding(horizontal = 12.dp, vertical = 8.dp),

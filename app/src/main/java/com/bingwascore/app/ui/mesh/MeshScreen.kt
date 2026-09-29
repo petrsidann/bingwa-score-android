@@ -38,6 +38,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bingwascore.app.ui.components.GlassCard
 import com.bingwascore.app.ui.components.GradientButton
 import com.bingwascore.app.util.screenEnter
+import com.bingwascore.app.ui.theme.GlassFill
 import com.bingwascore.app.ui.theme.BingwaOrange
 import com.bingwascore.app.ui.theme.EmeraldGreen
 import com.bingwascore.app.ui.theme.ErrorRed
@@ -180,7 +181,7 @@ private fun MeshUrlField(value: String, onValueChange: (String) -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(shape)
-            .background(Color(0x14FFFFFF))
+            .background(GlassFill)
             .padding(horizontal = 14.dp, vertical = 12.dp)
     ) {
         Icon(

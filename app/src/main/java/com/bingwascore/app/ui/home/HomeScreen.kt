@@ -77,6 +77,7 @@ import com.bingwascore.app.ui.components.GlassExplanationDialog
 import com.bingwascore.app.ui.components.GradientButton
 import com.bingwascore.app.ui.components.HapticSwitch
 import com.bingwascore.app.ui.components.shimmer
+import com.bingwascore.app.ui.theme.GlassBorder
 import com.bingwascore.app.ui.theme.Amber
 import com.bingwascore.app.ui.theme.BingwaOrange
 import com.bingwascore.app.ui.theme.EmeraldGreen
@@ -479,7 +480,7 @@ private fun WeeklyChart(weeklyBars: List<Double>, weeklyCommission: Double) {
             val baseline = size.height
 
             drawLine(
-                color = Color(0x1FFFFFFF),
+                color = GlassBorder,
                 start = Offset(0f, baseline),
                 end = Offset(size.width, baseline),
                 strokeWidth = 1.dp.toPx()

@@ -61,6 +61,10 @@ import com.bingwascore.app.ui.components.GradientButton
 import com.bingwascore.app.ui.components.HapticSwitch
 import com.bingwascore.app.ui.components.pressScale
 import com.bingwascore.app.util.screenEnter
+import com.bingwascore.app.ui.theme.GlassBorderStrong
+import com.bingwascore.app.ui.theme.GlassFillStrong
+import com.bingwascore.app.ui.theme.GlassBorder
+import com.bingwascore.app.ui.theme.GlassFill
 import com.bingwascore.app.ui.theme.BingwaOrange
 import com.bingwascore.app.ui.theme.EmeraldGreen
 import com.bingwascore.app.ui.theme.brandBrush
@@ -235,8 +239,8 @@ private fun OfferCard(
                     checkedTrackColor = BingwaOrange,
                     checkedBorderColor = BingwaOrange,
                     uncheckedThumbColor = White.copy(alpha = 0.7f),
-                    uncheckedTrackColor = Color(0x22FFFFFF),
-                    uncheckedBorderColor = Color(0x33FFFFFF)
+                    uncheckedTrackColor = GlassFillStrong,
+                    uncheckedBorderColor = GlassBorderStrong
                 )
             )
             Spacer(modifier = Modifier.width(8.dp))
@@ -363,8 +367,8 @@ private fun SheetTextField(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(shape)
-                .background(Color(0x14FFFFFF))
-                .border(1.dp, Color(0x1FFFFFFF), shape)
+                .background(GlassFill)
+                .border(1.dp, GlassBorder, shape)
                 .padding(horizontal = 14.dp, vertical = 12.dp)
         ) {
             Box {
@@ -411,8 +415,8 @@ private fun SwitchRow(label: String, checked: Boolean, onCheckedChange: (Boolean
                 checkedTrackColor = BingwaOrange,
                 checkedBorderColor = BingwaOrange,
                 uncheckedThumbColor = White.copy(alpha = 0.7f),
-                uncheckedTrackColor = Color(0x22FFFFFF),
-                uncheckedBorderColor = Color(0x33FFFFFF)
+                uncheckedTrackColor = GlassFillStrong,
+                uncheckedBorderColor = GlassBorderStrong
             )
         )
     }
@@ -615,8 +619,8 @@ private fun StatusChip(status: TransactionStatus, selected: Boolean, onClick: ()
     } else {
         Modifier
             .clip(shape)
-            .background(Color(0x14FFFFFF))
-            .border(1.dp, Color(0x1FFFFFFF), shape)
+            .background(GlassFill)
+            .border(1.dp, GlassBorder, shape)
     }
     Text(
         status.value.replace('_', ' ').lowercase()
@@ -638,8 +642,8 @@ private fun OfferPickChip(offer: Offer, selected: Boolean, onClick: () -> Unit) 
     } else {
         Modifier
             .clip(shape)
-            .background(Color(0x14FFFFFF))
-            .border(1.dp, Color(0x1FFFFFFF), shape)
+            .background(GlassFill)
+            .border(1.dp, GlassBorder, shape)
     }
     Column(
         modifier = base.clickable(onClick = onClick).padding(horizontal = 12.dp, vertical = 8.dp)
@@ -664,7 +668,7 @@ private fun RuleRow(rule: OfferTransitionRule, onDelete: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(Color(0x14FFFFFF))
+            .background(GlassFill)
             .padding(horizontal = 14.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

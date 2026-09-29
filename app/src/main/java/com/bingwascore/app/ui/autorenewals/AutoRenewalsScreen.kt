@@ -34,6 +34,9 @@ import com.bingwascore.app.ui.components.EmptyState
 import com.bingwascore.app.ui.components.GlassCard
 import com.bingwascore.app.ui.components.HapticSwitch
 import com.bingwascore.app.util.screenEnter
+import com.bingwascore.app.ui.theme.GlassBorderStrong
+import com.bingwascore.app.ui.theme.GlassFillStrong
+import com.bingwascore.app.ui.theme.GlassFill
 import com.bingwascore.app.ui.theme.BingwaOrange
 import com.bingwascore.app.ui.theme.ErrorRed
 import com.bingwascore.app.ui.theme.NightBlack
@@ -163,8 +166,8 @@ private fun RenewalCard(
                     checkedTrackColor = BingwaOrange,
                     checkedBorderColor = BingwaOrange,
                     uncheckedThumbColor = White.copy(alpha = 0.7f),
-                    uncheckedTrackColor = Color(0x22FFFFFF),
-                    uncheckedBorderColor = Color(0x33FFFFFF)
+                    uncheckedTrackColor = GlassFillStrong,
+                    uncheckedBorderColor = GlassBorderStrong
                 )
             )
         }
@@ -185,7 +188,7 @@ private fun CountdownChip(label: String, urgent: Boolean) {
         fontWeight = FontWeight.SemiBold,
         modifier = Modifier
             .clip(RoundedCornerShape(10.dp))
-            .background(Color(0x14FFFFFF))
+            .background(GlassFill)
             .padding(horizontal = 10.dp, vertical = 4.dp)
     )
 }

@@ -32,6 +32,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.bingwascore.app.ui.theme.GlassBorder
 import com.bingwascore.app.ui.theme.Amber
 import com.bingwascore.app.ui.theme.BingwaOrange
 import com.bingwascore.app.ui.theme.BrandColors
@@ -127,7 +128,7 @@ fun SuccessRateDonut(
             val r = (this.size.minDimension - stroke) / 2f
             val center = Offset(this.size.width / 2f, this.size.height / 2f)
             drawCircle(
-                color = Color(0x1FFFFFFF),
+                color = GlassBorder,
                 radius = r,
                 center = center,
                 style = Stroke(width = stroke)

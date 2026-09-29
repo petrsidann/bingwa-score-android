@@ -48,6 +48,9 @@ import com.bingwascore.app.ui.components.EmptyState
 import com.bingwascore.app.ui.components.GlassCard
 import com.bingwascore.app.ui.components.HapticSwitch
 import com.bingwascore.app.util.screenEnter
+import com.bingwascore.app.ui.theme.GlassBorderStrong
+import com.bingwascore.app.ui.theme.GlassFillStrong
+import com.bingwascore.app.ui.theme.GlassFill
 import com.bingwascore.app.ui.theme.Amber
 import com.bingwascore.app.ui.theme.BingwaOrange
 import com.bingwascore.app.ui.theme.EmeraldGreen
@@ -121,8 +124,8 @@ fun AutoRepliesScreen(viewModel: AutoRepliesViewModel = hiltViewModel()) {
                                 checkedTrackColor = BingwaOrange,
                                 checkedBorderColor = BingwaOrange,
                                 uncheckedThumbColor = White.copy(alpha = 0.7f),
-                                uncheckedTrackColor = Color(0x22FFFFFF),
-                                uncheckedBorderColor = Color(0x33FFFFFF)
+                                uncheckedTrackColor = GlassFillStrong,
+                                uncheckedBorderColor = GlassBorderStrong
                             )
                         )
                     }
@@ -214,7 +217,7 @@ private fun TemplateCard(
                         fontWeight = FontWeight.SemiBold,
                         modifier = Modifier
                             .clip(RoundedCornerShape(8.dp))
-                            .background(Color(0x14FFFFFF))
+                            .background(GlassFill)
                             .padding(horizontal = 8.dp, vertical = 2.dp)
                     )
                 }
@@ -235,8 +238,8 @@ private fun TemplateCard(
                     checkedTrackColor = BingwaOrange,
                     checkedBorderColor = BingwaOrange,
                     uncheckedThumbColor = White.copy(alpha = 0.7f),
-                    uncheckedTrackColor = Color(0x22FFFFFF),
-                    uncheckedBorderColor = Color(0x33FFFFFF)
+                    uncheckedTrackColor = GlassFillStrong,
+                    uncheckedBorderColor = GlassBorderStrong
                 )
             )
         }
@@ -291,7 +294,7 @@ private fun DialogField(label: String, value: String, onValueChange: (String) ->
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(shape)
-                .background(Color(0x14FFFFFF))
+                .background(GlassFill)
                 .padding(horizontal = 12.dp, vertical = 10.dp)
         ) {
             BasicTextField(
@@ -319,7 +322,7 @@ private fun BotLogRow(log: BotLog) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(Color(0x14FFFFFF))
+            .background(GlassFill)
             .padding(horizontal = 14.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

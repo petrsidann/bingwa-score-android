@@ -57,6 +57,7 @@ import com.bingwascore.app.ui.components.GlassCard
 import com.bingwascore.app.ui.components.GlassExplanationDialog
 import com.bingwascore.app.ui.components.GradientButton
 import com.bingwascore.app.util.screenEnter
+import com.bingwascore.app.ui.theme.GlassFill
 import com.bingwascore.app.ui.theme.BingwaOrange
 import com.bingwascore.app.ui.theme.EmeraldGreen
 import com.bingwascore.app.ui.theme.NightBlack
@@ -308,7 +309,7 @@ private fun OptionCard(
                     modifier = Modifier
                         .size(22.dp)
                         .clip(CircleShape)
-                        .background(Color(0x14FFFFFF))
+                        .background(GlassFill)
                 )
             }
         }

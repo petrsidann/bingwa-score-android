@@ -29,6 +29,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.bingwascore.app.ui.theme.GlassBorderStrong
+import com.bingwascore.app.ui.theme.GlassFill
 import com.bingwascore.app.ui.theme.BrandColors
 
 /**
@@ -50,8 +52,8 @@ fun GlassCard(
     val visuals = Modifier
         .shadow(12.dp, shape, ambientColor = Color.Black.copy(0.35f))
         .clip(shape)
-        .background(Color(0x14FFFFFF))
-        .border(1.dp, Brush.verticalGradient(listOf(Color(0x33FFFFFF), Color.Transparent)), shape)
+        .background(GlassFill)
+        .border(1.dp, Brush.verticalGradient(listOf(GlassBorderStrong, Color.Transparent)), shape)
 
     val cardModifier = if (onClick != null) {
         Modifier
@@ -81,7 +83,7 @@ fun GradientButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true
 ) {
-        val interactionSource = remember { MutableInteractionSource() }
+    val interactionSource = remember { MutableInteractionSource() }
     val haptic = LocalHapticFeedback.current
     Box(
         modifier = modifier

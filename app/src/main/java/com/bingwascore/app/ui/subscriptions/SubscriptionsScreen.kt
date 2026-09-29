@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.sp
 import com.bingwascore.app.ui.components.EmptyState
 import com.bingwascore.app.ui.components.GlassCard
 import com.bingwascore.app.util.screenEnter
+import com.bingwascore.app.ui.theme.GlassFill
 import com.bingwascore.app.ui.theme.EmeraldGreen
 import com.bingwascore.app.ui.theme.ErrorRed
 import com.bingwascore.app.ui.theme.NightBlack
@@ -150,7 +151,7 @@ private fun CountdownChip(label: String) {
         fontWeight = FontWeight.SemiBold,
         modifier = Modifier
             .clip(RoundedCornerShape(10.dp))
-            .background(Color(0x14FFFFFF))
+            .background(GlassFill)
             .padding(horizontal = 10.dp, vertical = 4.dp)
     )
 }
@@ -164,7 +165,7 @@ private fun AutoRenewChip(autoRenew: Boolean) {
         fontWeight = FontWeight.SemiBold,
         modifier = Modifier
             .clip(RoundedCornerShape(10.dp))
-            .background(Color(0x14FFFFFF))
+            .background(GlassFill)
             .padding(horizontal = 8.dp, vertical = 4.dp)
     )
 }

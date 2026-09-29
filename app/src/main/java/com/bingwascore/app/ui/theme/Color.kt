@@ -32,3 +32,16 @@ val Platinum = Color(0xFFE5E4E2)
 /** Dark-first anchors used across screens. */
 val NightBlack = Color(0xFF0A0A0F)
 val SurfaceDark = Color(0xFF12121A)
+
+// ─── Glass system: shared translucent surface tokens ──────────────────────────
+/** Frosted card / chip fill (white ≈8%). */
+val GlassFill = Color(0x14FFFFFF)
+
+/** Hairline glass border (white ≈12%). */
+val GlassBorder = Color(0x1FFFFFFF)
+
+/** Stronger translucent fill — pressed fills, unchecked tracks (white ≈13%). */
+val GlassFillStrong = Color(0x22FFFFFF)
+
+/** Strong glass border — emphasized rows, dividers (white ≈20%). */
+val GlassBorderStrong = Color(0x33FFFFFF)

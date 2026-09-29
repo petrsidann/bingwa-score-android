@@ -46,6 +46,10 @@ import com.bingwascore.app.ui.components.EmptyState
 import com.bingwascore.app.ui.components.GlassCard
 import com.bingwascore.app.ui.components.HapticSwitch
 import com.bingwascore.app.util.screenEnter
+import com.bingwascore.app.ui.theme.GlassBorderStrong
+import com.bingwascore.app.ui.theme.GlassFillStrong
+import com.bingwascore.app.ui.theme.GlassBorder
+import com.bingwascore.app.ui.theme.GlassFill
 import com.bingwascore.app.ui.theme.BingwaOrange
 import com.bingwascore.app.ui.theme.brandBrush
 import com.bingwascore.app.ui.theme.ErrorRed
@@ -168,8 +172,8 @@ private fun CustomerRow(
                     checkedTrackColor = ErrorRed,
                     checkedBorderColor = ErrorRed,
                     uncheckedThumbColor = White.copy(alpha = 0.7f),
-                    uncheckedTrackColor = Color(0x22FFFFFF),
-                    uncheckedBorderColor = Color(0x33FFFFFF)
+                    uncheckedTrackColor = GlassFillStrong,
+                    uncheckedBorderColor = GlassBorderStrong
                 )
             )
         }
@@ -183,8 +187,8 @@ private fun GlassSearchField(value: String, onValueChange: (String) -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(shape)
-            .background(Color(0x14FFFFFF))
-            .border(1.dp, Color(0x1FFFFFFF), shape)
+            .background(GlassFill)
+            .border(1.dp, GlassBorder, shape)
             .padding(horizontal = 14.dp, vertical = 14.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {

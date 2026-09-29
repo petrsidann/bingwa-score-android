@@ -38,6 +38,8 @@ import androidx.compose.ui.unit.sp
 import com.bingwascore.app.ui.components.AmbientBackground
 import com.bingwascore.app.ui.components.GlassCard
 import com.bingwascore.app.ui.components.GradientButton
+import com.bingwascore.app.ui.theme.GlassBorder
+import com.bingwascore.app.ui.theme.GlassFill
 import com.bingwascore.app.ui.theme.BingwaOrange
 import com.bingwascore.app.ui.theme.NightBlack
 import com.bingwascore.app.ui.theme.White
@@ -143,8 +145,8 @@ private fun GlassField(
         modifier = modifier
             .fillMaxWidth()
             .clip(shape)
-            .background(Color(0x14FFFFFF))
-            .border(1.dp, Color(0x1FFFFFFF), shape)
+            .background(GlassFill)
+            .border(1.dp, GlassBorder, shape)
             .padding(horizontal = 16.dp, vertical = 16.dp)
     ) {
         BasicTextField(

@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.bingwascore.app.ui.theme.GlassBorder
 import com.bingwascore.app.ui.theme.Amber
 import com.bingwascore.app.ui.theme.BingwaOrange
 import com.bingwascore.app.ui.theme.Motion
@@ -46,7 +47,7 @@ fun AnimatedRing(
 
         // Track — faint
         drawArc(
-            color = androidx.compose.ui.graphics.Color(0x1FFFFFFF),
+            color = GlassBorder,
             startAngle = -90f,
             sweepAngle = 360f,
             useCenter = false,

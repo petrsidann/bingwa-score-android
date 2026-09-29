@@ -48,6 +48,8 @@ import com.bingwascore.app.ui.components.EmptyState
 import com.bingwascore.app.ui.components.GlassCard
 import com.bingwascore.app.ui.components.pressScale
 import com.bingwascore.app.util.screenEnter
+import com.bingwascore.app.ui.theme.GlassBorder
+import com.bingwascore.app.ui.theme.GlassFill
 import com.bingwascore.app.ui.theme.Amber
 import com.bingwascore.app.ui.theme.BingwaOrange
 import com.bingwascore.app.ui.theme.EmeraldGreen
@@ -136,8 +138,8 @@ private fun SenderInput(value: String, onValueChange: (String) -> Unit, onSubmit
             modifier = Modifier
                 .weight(1f)
                 .clip(shape)
-                .background(Color(0x14FFFFFF))
-                .border(1.dp, Color(0x1FFFFFFF), shape)
+                .background(GlassFill)
+                .border(1.dp, GlassBorder, shape)
                 .padding(horizontal = 14.dp, vertical = 13.dp)
         ) {
             Box(modifier = Modifier.weight(1f)) {

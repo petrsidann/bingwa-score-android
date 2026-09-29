@@ -62,6 +62,9 @@ import com.bingwascore.app.ui.components.EmptyState
 import com.bingwascore.app.ui.components.GlassCard
 import com.bingwascore.app.ui.components.pressScale
 import com.bingwascore.app.util.screenEnter
+import com.bingwascore.app.ui.theme.GlassBorderStrong
+import com.bingwascore.app.ui.theme.GlassBorder
+import com.bingwascore.app.ui.theme.GlassFill
 import com.bingwascore.app.ui.theme.Amber
 import com.bingwascore.app.ui.theme.BingwaOrange
 import com.bingwascore.app.ui.theme.EmeraldGreen
@@ -299,8 +302,8 @@ private fun TransactionDetailSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(18.dp))
-                .background(Color(0x14FFFFFF))
-                .border(1.dp, Color(0x1FFFFFFF), RoundedCornerShape(18.dp))
+                .background(GlassFill)
+                .border(1.dp, GlassBorder, RoundedCornerShape(18.dp))
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
@@ -374,8 +377,8 @@ private fun SheetAction(icon: ImageVector, label: String, tint: Color, onClick: 
             .fillMaxWidth()
             .pressScale(interactionSource)
             .clip(shape)
-            .background(Color(0x14FFFFFF))
-            .border(1.dp, Color(0x1FFFFFFF), shape)
+            .background(GlassFill)
+            .border(1.dp, GlassBorder, shape)
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
@@ -403,10 +406,10 @@ private fun FilterChip(label: String, selected: Boolean, onClick: () -> Unit) {
         modifier = Modifier
             .pressScale(interactionSource)
             .clip(shape)
-            .background(if (selected) BingwaOrange.copy(alpha = 0.18f) else Color(0x14FFFFFF))
+            .background(if (selected) BingwaOrange.copy(alpha = 0.18f) else GlassFill)
             .border(
                 1.dp,
-                if (selected) BingwaOrange.copy(alpha = 0.55f) else Color(0x1FFFFFFF),
+                if (selected) BingwaOrange.copy(alpha = 0.55f) else GlassBorder,
                 shape
             )
             .clickable(
@@ -433,8 +436,8 @@ private fun ExportButton(onClick: () -> Unit) {
         modifier = Modifier
             .pressScale(interactionSource)
             .clip(shape)
-            .background(Color(0x14FFFFFF))
-            .border(1.dp, Color(0x33FFFFFF), shape)
+            .background(GlassFill)
+            .border(1.dp, GlassBorderStrong, shape)
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,

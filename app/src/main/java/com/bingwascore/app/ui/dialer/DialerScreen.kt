@@ -47,6 +47,9 @@ import com.bingwascore.app.data.local.Offer
 import com.bingwascore.app.ui.components.GradientButton
 import com.bingwascore.app.ui.components.pressScale
 import com.bingwascore.app.util.screenEnter
+import com.bingwascore.app.ui.theme.GlassBorderStrong
+import com.bingwascore.app.ui.theme.GlassBorder
+import com.bingwascore.app.ui.theme.GlassFill
 import com.bingwascore.app.ui.theme.BingwaOrange
 import com.bingwascore.app.ui.theme.EmeraldGreen
 import com.bingwascore.app.ui.theme.brandBrush
@@ -164,8 +167,8 @@ private fun GlassPhoneField(value: String, onValueChange: (String) -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(shape)
-            .background(Color(0x14FFFFFF))
-            .border(1.dp, Brush.verticalGradient(listOf(Color(0x33FFFFFF), Color.Transparent)), shape)
+            .background(GlassFill)
+            .border(1.dp, Brush.verticalGradient(listOf(GlassBorderStrong, Color.Transparent)), shape)
             .padding(horizontal = 16.dp, vertical = 18.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -217,8 +220,8 @@ private fun OfferChip(offer: Offer, selected: Boolean, onClick: () -> Unit) {
         Modifier
             .clip(shape)
             .pressScale(interactionSource)
-            .background(Color(0x14FFFFFF))
-            .border(1.dp, Color(0x1FFFFFFF), shape)
+            .background(GlassFill)
+            .border(1.dp, GlassBorder, shape)
     }
     Column(
         modifier = base
