@@ -10,6 +10,8 @@ import com.bingwascore.app.data.repository.OfferRepository
 import com.bingwascore.app.data.repository.TransactionRepository
 import com.bingwascore.app.domain.TransactionStatus
 import com.bingwascore.app.services.UssdAutomationService
+import com.bingwascore.app.util.formatPhoneToTenDigits
+import com.bingwascore.app.util.isTenDigitPhone
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -46,9 +48,22 @@ class DialerViewModel @Inject constructor(
     private val _feedback = MutableStateFlow<DialerFeedback?>(null)
     val feedback: StateFlow<DialerFeedback?> = _feedback.asStateFlow()
 
+    // Parity E — drives the "Dialing…" spinner on the gradient CTA.
+    private val _isDialing = MutableStateFlow(false)
+    val isDialing: StateFlow<Boolean> = _isDialing.asStateFlow()
+
     fun setPhone(value: String) {
         _phone.value = value.filter { it.isDigit() }.take(12)
         _feedback.value = null
+    }
+
+    /**
+     * Parity E — on blur, collapse `+254 712…`, `254712…` and `712…` into the
+     * canonical ten-digit `0712…` form so the USSD code expands correctly.
+     */
+    fun formatPhone() {
+        val formatted = formatPhoneToTenDigits(_phone.value)
+        if (formatted != _phone.value) _phone.value = formatted
     }
 
     fun selectOffer(offer: Offer) {
@@ -58,11 +73,12 @@ class DialerViewModel @Inject constructor(
 
     /** Resolves the dial code, records a PENDING transaction and fires the USSD service. */
     fun dialNow() {
+        if (_isDialing.value) return
         val offer = offers.value.firstOrNull { it.id == _selectedOfferId.value }
             ?: offers.value.firstOrNull()
-        val phoneValue = _phone.value.trim()
+        val phoneValue = formatPhoneToTenDigits(_phone.value)
 
-        if (phoneValue.length < MIN_PHONE_LENGTH) {
+        if (!isTenDigitPhone(phoneValue)) {
             _feedback.value = DialerFeedback("Enter a valid customer phone number", isError = true)
             return
         }
@@ -75,6 +91,7 @@ class DialerViewModel @Inject constructor(
         val transactionId = "tx_${UUID.randomUUID()}"
 
         viewModelScope.launch {
+            _isDialing.value = true
             try {
                 transactionRepository.insert(
                     Transaction(
@@ -104,16 +121,15 @@ class DialerViewModel @Inject constructor(
                     return@launch
                 }
 
+                _phone.value = phoneValue
                 _feedback.value =
                     DialerFeedback("Dialing ${offer.name} for $phoneValue — watch for the USSD reply", isError = false)
             } catch (t: Throwable) {
                 Timber.e(t, "Dial failed")
                 _feedback.value = DialerFeedback("Dial failed: ${t.message}", isError = true)
+            } finally {
+                _isDialing.value = false
             }
         }
-    }
-
-    private companion object {
-        const val MIN_PHONE_LENGTH = 9
     }
 }

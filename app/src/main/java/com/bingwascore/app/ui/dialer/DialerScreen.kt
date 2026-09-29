@@ -28,11 +28,13 @@ import androidx.compose.material.icons.rounded.Phone
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
@@ -46,6 +48,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bingwascore.app.data.local.Offer
 import com.bingwascore.app.ui.components.GradientButton
 import com.bingwascore.app.ui.components.pressScale
+import com.bingwascore.app.util.rememberHaptics
 import com.bingwascore.app.util.screenEnter
 import com.bingwascore.app.ui.theme.GlassBorderStrong
 import com.bingwascore.app.ui.theme.GlassBorder
@@ -64,6 +67,13 @@ fun DialerScreen(onClose: () -> Unit, viewModel: DialerViewModel = hiltViewModel
     val phone by viewModel.phone.collectAsStateWithLifecycle()
     val selectedOfferId by viewModel.selectedOfferId.collectAsStateWithLifecycle()
     val feedback by viewModel.feedback.collectAsStateWithLifecycle()
+    val isDialing by viewModel.isDialing.collectAsStateWithLifecycle()
+    val haptics = rememberHaptics()
+
+    // Parity E — every dial outcome gets a tactile confirmation.
+    LaunchedEffect(feedback) {
+        feedback?.let { if (it.isError) haptics.error() else haptics.success() }
+    }
 
     val selectedOffer = offers.firstOrNull { it.id == selectedOfferId } ?: offers.firstOrNull()
 
@@ -99,7 +109,12 @@ fun DialerScreen(onClose: () -> Unit, viewModel: DialerViewModel = hiltViewModel
         }
 
         Spacer(modifier = Modifier.height(24.dp))
-        GlassPhoneField(value = phone, onValueChange = viewModel::setPhone)
+        GlassPhoneField(
+            value = phone,
+            onValueChange = viewModel::setPhone,
+            // Parity E — normalise to 07XXXXXXXX the moment the field blurs.
+            onBlur = viewModel::formatPhone
+        )
 
         Spacer(modifier = Modifier.height(22.dp))
         Text("Active offers", color = White.copy(alpha = 0.5f), fontSize = 12.sp)
@@ -126,7 +141,10 @@ fun DialerScreen(onClose: () -> Unit, viewModel: DialerViewModel = hiltViewModel
                     OfferChip(
                         offer = offer,
                         selected = offer.id == selectedOffer?.id,
-                        onClick = { viewModel.selectOffer(offer) }
+                        onClick = {
+                            haptics.tick()
+                            viewModel.selectOffer(offer)
+                        }
                     )
                 }
             }
@@ -155,13 +173,19 @@ fun DialerScreen(onClose: () -> Unit, viewModel: DialerViewModel = hiltViewModel
         GradientButton(
             text = "Dial Now",
             enabled = phone.isNotBlank() && selectedOffer != null,
+            loading = isDialing,
+            loadingText = "Dialing...",
             onClick = viewModel::dialNow
         )
     }
 }
 
 @Composable
-private fun GlassPhoneField(value: String, onValueChange: (String) -> Unit) {
+private fun GlassPhoneField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    onBlur: () -> Unit = {}
+) {
     val shape = RoundedCornerShape(18.dp)
     Box(
         modifier = Modifier
@@ -192,7 +216,9 @@ private fun GlassPhoneField(value: String, onValueChange: (String) -> Unit) {
                         letterSpacing = 1.sp
                     ),
                     cursorBrush = SolidColor(BingwaOrange),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .onFocusChanged { focusState -> if (!focusState.isFocused) onBlur() }
                 )
                 if (value.isEmpty()) {
                     Text(

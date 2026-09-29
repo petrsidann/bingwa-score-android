@@ -24,19 +24,19 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.HelpOutline
 import androidx.compose.material.icons.automirrored.rounded.ReceiptLong
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.DeleteOutline
-import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.rounded.FileDownload
-import androidx.compose.material.icons.rounded.HourglassTop
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material.icons.rounded.SearchOff
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -60,8 +60,12 @@ import com.bingwascore.app.data.local.Transaction
 import com.bingwascore.app.domain.TransactionStatus
 import com.bingwascore.app.ui.components.EmptyState
 import com.bingwascore.app.ui.components.GlassCard
+import com.bingwascore.app.ui.components.ShimmerBlock
 import com.bingwascore.app.ui.components.pressScale
+import com.bingwascore.app.ui.components.shimmer
+import com.bingwascore.app.util.rememberHaptics
 import com.bingwascore.app.util.screenEnter
+import com.bingwascore.app.util.staggeredEnter
 import com.bingwascore.app.ui.theme.GlassBorderStrong
 import com.bingwascore.app.ui.theme.GlassBorder
 import com.bingwascore.app.ui.theme.GlassFill
@@ -72,6 +76,8 @@ import com.bingwascore.app.ui.theme.ErrorRed
 import com.bingwascore.app.ui.theme.NightBlack
 import com.bingwascore.app.ui.theme.Orange500
 import com.bingwascore.app.ui.theme.SurfaceDark
+import com.bingwascore.app.ui.theme.Motion
+import com.bingwascore.app.ui.theme.StatusColors
 import com.bingwascore.app.ui.theme.White
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -80,8 +86,10 @@ import java.util.Locale
 @Composable
 fun TransactionsScreen(viewModel: TransactionsViewModel = hiltViewModel()) {
     val context = LocalContext.current
+    val haptics = rememberHaptics()
     val transactions by viewModel.transactions.collectAsStateWithLifecycle()
     val selectedFilter by viewModel.filter.collectAsStateWithLifecycle()
+    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     var selectedTransaction by remember { mutableStateOf<Transaction?>(null) }
 
     LaunchedEffect(Unit) {
@@ -121,12 +129,18 @@ fun TransactionsScreen(viewModel: TransactionsViewModel = hiltViewModel()) {
                 FilterChip(
                     label = filter.label,
                     selected = selectedFilter == filter,
-                    onClick = { viewModel.setFilter(filter) }
+                    onClick = {
+                        haptics.tick()
+                        viewModel.setFilter(filter)
+                    }
                 )
             }
         }
 
-        if (transactions.isEmpty()) {
+        if (isLoading) {
+            // Parity E — shimmer skeletons while Room warms up.
+            TransactionSkeleton()
+        } else if (transactions.isEmpty()) {
             EmptyState(
                 icon = if (selectedFilter == TransactionFilter.ALL) {
                     Icons.AutoMirrored.Rounded.ReceiptLong
@@ -148,11 +162,20 @@ fun TransactionsScreen(viewModel: TransactionsViewModel = hiltViewModel()) {
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 itemsIndexed(transactions, key = { _, tx -> tx.id }) { index, transaction ->
-                    TransactionRow(
-                        transaction = transaction,
-                        enterDelayMillis = minOf(index, 6) * 35,
-                        onClick = { selectedTransaction = transaction }
-                    )
+                    // Parity E — swipe left to tombstone the row (soft delete).
+                    SwipeToDeleteRow(
+                        index = index,
+                        onDelete = { viewModel.softDelete(transaction) }
+                    ) {
+                        TransactionRow(
+                            transaction = transaction,
+                            enterDelayMillis = 0,
+                            onClick = {
+                                haptics.tick()
+                                selectedTransaction = transaction
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -182,6 +205,100 @@ fun TransactionsScreen(viewModel: TransactionsViewModel = hiltViewModel()) {
                     selectedTransaction = null
                 }
             )
+        }
+    }
+}
+
+/**
+ * Parity E — swipe-to-delete wrapper. Dragging a row from right to left reveals
+ * a red tombstone rail and, once past the threshold, soft-deletes the record
+ * (with a haptic thud) so the live list drops it immediately.
+ */
+@Composable
+private fun SwipeToDeleteRow(
+    index: Int,
+    onDelete: () -> Unit,
+    content: @Composable () -> Unit
+) {
+    val haptics = rememberHaptics()
+    val state = rememberSwipeToDismissBoxState(
+        confirmValueChange = { value ->
+            if (value == SwipeToDismissBoxValue.EndToStart) {
+                haptics.error()
+                onDelete()
+                true
+            } else {
+                false
+            }
+        }
+    )
+    val shape = RoundedCornerShape(18.dp)
+
+    SwipeToDismissBox(
+        state = state,
+        modifier = Modifier.staggeredEnter(index),
+        enableDismissFromStartToEnd = false,
+        backgroundContent = {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(shape)
+                    .background(ErrorRed.copy(alpha = 0.16f))
+                    .border(1.dp, ErrorRed.copy(alpha = 0.45f), shape)
+                    .padding(horizontal = 20.dp),
+                contentAlignment = Alignment.CenterEnd
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Rounded.DeleteOutline,
+                        contentDescription = "Delete transaction",
+                        tint = ErrorRed,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        "Delete",
+                        color = ErrorRed,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+        }
+    ) {
+        content()
+    }
+}
+
+/**
+ * Parity E — list skeleton shown while the first Room snapshot is in flight:
+ * three frosted cards with shimmering value bars.
+ */
+@Composable
+private fun TransactionSkeleton() {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        items(3) { index ->
+            GlassCard(
+                modifier = Modifier.fillMaxWidth(),
+                cornerRadius = 18.dp,
+                enterDelayMillis = index * Motion.STAGGER
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    ShimmerBlock(modifier = Modifier.size(40.dp), cornerRadius = 14.dp)
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        ShimmerBlock(modifier = Modifier.fillMaxWidth(0.6f))
+                        Spacer(modifier = Modifier.height(8.dp))
+                        ShimmerBlock(modifier = Modifier.fillMaxWidth(0.4f), cornerRadius = 8.dp)
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    ShimmerBlock(modifier = Modifier.width(64.dp))
+                }
+            }
         }
     }
 }
@@ -321,6 +438,10 @@ private fun TransactionDetailSheet(
                 DetailRow("Scheduled for", iso.format(Date(it)))
             }
             transaction.mpesaReceipt?.let { DetailRow("M-Pesa receipt", it) }
+            // Parity C hybrid field: the raw USSD/MPesa reply that closed the row.
+            transaction.responseMessage
+                ?.takeIf { it.isNotBlank() }
+                ?.let { DetailRow("Response", it) }
             transaction.errorMessage?.let { DetailRow("Error", it) }
             DetailRow("Retries", transaction.retryCount.toString())
         }
@@ -464,21 +585,10 @@ private fun ExportButton(onClick: () -> Unit) {
     }
 }
 
-private fun statusColor(status: String): Color = when (status) {
-    TransactionStatus.SUCCESSFUL.value -> EmeraldGreen
-    TransactionStatus.FAILED.value, TransactionStatus.FAILED_ALREADY_RECOMMENDED.value -> ErrorRed
-    TransactionStatus.SCHEDULED.value -> Amber
-    else -> Orange500
-}
+/** Parity E — status visuals come from the shared [StatusColors] palette. */
+private fun statusColor(status: String): Color = StatusColors.color(status)
 
-private fun statusIcon(status: String): ImageVector = when (status) {
-    TransactionStatus.SUCCESSFUL.value -> Icons.Rounded.CheckCircle
-    TransactionStatus.FAILED.value, TransactionStatus.FAILED_ALREADY_RECOMMENDED.value ->
-        Icons.Rounded.ErrorOutline
-    TransactionStatus.SCHEDULED.value -> Icons.Rounded.Schedule
-    TransactionStatus.UNMATCHED.value -> Icons.AutoMirrored.Rounded.HelpOutline
-    else -> Icons.Rounded.HourglassTop
-}
+private fun statusIcon(status: String): ImageVector = StatusColors.icon(status)
 
 private fun canRetry(status: String): Boolean =
     status != TransactionStatus.SUCCESSFUL.value &&

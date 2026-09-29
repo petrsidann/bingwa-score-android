@@ -52,8 +52,13 @@ class TransactionsViewModel @Inject constructor(
     private val _filter = MutableStateFlow(TransactionFilter.ALL)
     val filter: StateFlow<TransactionFilter> = _filter.asStateFlow()
 
+    // Parity E — rows shimmer (skeleton) until the first Room emission lands.
+    private val _isLoading = MutableStateFlow(true)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
+    /** Live (soft-delete-safe) rows: a swiped-away tombstone disappears. */
     val transactions: StateFlow<List<Transaction>> =
-        combine(transactionRepository.allTransactions, _filter) { list, filter ->
+        combine(transactionRepository.liveTransactions, _filter) { list, filter ->
             val now = System.currentTimeMillis()
             list.filter { filter.matches(it, now) }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
@@ -61,8 +66,38 @@ class TransactionsViewModel @Inject constructor(
     private val _events = MutableSharedFlow<String>(extraBufferCapacity = 1)
     val events: SharedFlow<String> = _events.asSharedFlow()
 
+    init {
+        viewModelScope.launch {
+            try {
+                // Blocks until the DAO delivers its first snapshot.
+                transactionRepository.liveTransactions.first()
+            } catch (t: Throwable) {
+                Timber.e(t, "Initial transaction load failed")
+            }
+            _isLoading.value = false
+        }
+    }
+
     fun setFilter(filter: TransactionFilter) {
         _filter.value = filter
+    }
+
+    /**
+     * Parity E — swipe-to-delete tombstone (hybrid soft delete): the row keeps
+     * its history but drops out of every live list immediately.
+     */
+    fun softDelete(transaction: Transaction) {
+        viewModelScope.launch {
+            try {
+                transactionRepository.softDelete(transaction.id)
+                _events.tryEmit(
+                    "${transaction.customerName ?: transaction.phoneNumber} deleted"
+                )
+            } catch (t: Throwable) {
+                Timber.e(t, "Soft delete failed for %s", transaction.id)
+                _events.tryEmit("Could not delete that transaction")
+            }
+        }
     }
 
     /** Re-queue the transaction: back to PENDING with a bumped retry count. */

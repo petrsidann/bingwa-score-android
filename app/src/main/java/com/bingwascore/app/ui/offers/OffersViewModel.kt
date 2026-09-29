@@ -7,8 +7,11 @@ import com.bingwascore.app.data.preferences.OfferTransitionRule
 import com.bingwascore.app.data.preferences.OfferTransitionStore
 import com.bingwascore.app.data.repository.OfferRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -25,6 +28,21 @@ class OffersViewModel @Inject constructor(
         offerRepository.allOffers.stateIn(
             viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList()
         )
+
+    // Parity E — offer cards shimmer (skeleton) until the first Room emission.
+    private val _isLoading = MutableStateFlow(true)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            try {
+                offerRepository.allOffers.first()
+            } catch (t: Throwable) {
+                Timber.e(t, "Initial offer load failed")
+            }
+            _isLoading.value = false
+        }
+    }
 
     val transitionRules: StateFlow<List<OfferTransitionRule>> =
         transitionStore.rules.stateIn(

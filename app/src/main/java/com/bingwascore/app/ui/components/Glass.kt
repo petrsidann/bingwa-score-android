@@ -7,10 +7,15 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchColors
 import androidx.compose.material3.SwitchDefaults
@@ -23,8 +28,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -33,6 +36,7 @@ import com.bingwascore.app.ui.theme.GlassBorderStrong
 import com.bingwascore.app.ui.theme.GlassFill
 import com.bingwascore.app.ui.theme.BrandColors
 import com.bingwascore.app.ui.theme.OnBrandInk
+import com.bingwascore.app.util.rememberHaptics
 
 /**
  * Frosted glass card. Every card fades + slides in on composition; when
@@ -76,16 +80,22 @@ fun GlassCard(
 
 /**
  * Full-width gradient action button with the same 0.98 press-scale feedback.
+ *
+ * Parity E: pass [loading] to swap the label for a spinning indicator (e.g.
+ * "Dialing…") and block double taps while the work is in flight. The press
+ * haptic comes from the shared `Haptics` vocabulary.
  */
 @Composable
 fun GradientButton(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    enabled: Boolean = true
+    enabled: Boolean = true,
+    loading: Boolean = false,
+    loadingText: String = text
 ) {
     val interactionSource = remember { MutableInteractionSource() }
-    val haptic = LocalHapticFeedback.current
+    val haptics = rememberHaptics()
     Box(
         modifier = modifier
             .pressScale(interactionSource)
@@ -94,20 +104,33 @@ fun GradientButton(
             .clip(RoundedCornerShape(18.dp))
             .background(Brush.horizontalGradient(BrandColors))
             .clickable(
-                enabled = enabled,
+                enabled = enabled && !loading,
                 interactionSource = interactionSource,
                 indication = null
             ) {
-                try {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                } catch (_: Throwable) {
-                    // Haptics are optional polish; never block the click.
-                }
+                haptics.press()
                 onClick()
             },
         contentAlignment = Alignment.Center
     ) {
-        Text(text, color = OnBrandInk, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+        if (loading) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(18.dp),
+                    color = OnBrandInk,
+                    strokeWidth = 2.dp
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Text(
+                    loadingText,
+                    color = OnBrandInk,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 17.sp
+                )
+            }
+        } else {
+            Text(text, color = OnBrandInk, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+        }
     }
 }
 
@@ -123,15 +146,11 @@ fun HapticSwitch(
     modifier: Modifier = Modifier,
     colors: SwitchColors = SwitchDefaults.colors()
 ) {
-    val haptic = LocalHapticFeedback.current
+    val haptics = rememberHaptics()
     Switch(
         checked = checked,
         onCheckedChange = {
-            try {
-                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-            } catch (_: Throwable) {
-                // Haptics are optional polish; never fail the toggle.
-            }
+            haptics.tick()
             onCheckedChange(it)
         },
         modifier = modifier,

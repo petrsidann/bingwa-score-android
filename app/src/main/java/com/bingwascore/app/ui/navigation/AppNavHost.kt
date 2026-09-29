@@ -69,9 +69,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -98,6 +96,7 @@ import com.bingwascore.app.ui.settings.SettingsScreen
 import com.bingwascore.app.ui.subscriptions.SubscriptionsScreen
 import com.bingwascore.app.ui.transactions.TransactionsScreen
 import com.bingwascore.app.score.ScoreScreen
+import com.bingwascore.app.util.rememberHaptics
 import com.bingwascore.app.profile.ProfileScreen
 import com.bingwascore.app.referral.ReferralScreen
 import com.bingwascore.app.announcements.AnnouncementsScreen
@@ -376,10 +375,8 @@ fun MainScreen() {
 private fun GlassBottomBar(selected: Int, onSelect: (Int) -> Unit, onDialer: () -> Unit) {
     val shape = RoundedCornerShape(28.dp)
     val fabInteraction = remember { MutableInteractionSource() }
-    val haptic = LocalHapticFeedback.current
-    val tick = {
-        try { haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove) } catch (_: Throwable) { }
-    }
+    val haptics = rememberHaptics()
+    val tick = { haptics.tick() }
 
     // Infinite pulsing glow for the dialer FAB
     val glowTransition = rememberInfiniteTransition(label = "fabGlow")
@@ -454,7 +451,7 @@ private fun GlassBottomBar(selected: Int, onSelect: (Int) -> Unit, onDialer: () 
                         .clickable(
                             interactionSource = fabInteraction,
                             indication = null,
-                            onClick = { try { haptic.performHapticFeedback(HapticFeedbackType.LongPress) } catch (_: Throwable) { }; onDialer() }
+                            onClick = { haptics.press(); onDialer() }
                         ),
                     contentAlignment = Alignment.Center
                 ) {

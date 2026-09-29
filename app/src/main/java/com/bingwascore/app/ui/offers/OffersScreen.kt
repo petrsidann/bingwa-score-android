@@ -59,7 +59,9 @@ import com.bingwascore.app.ui.components.EmptyState
 import com.bingwascore.app.ui.components.GlassCard
 import com.bingwascore.app.ui.components.GradientButton
 import com.bingwascore.app.ui.components.HapticSwitch
+import com.bingwascore.app.ui.components.ShimmerBlock
 import com.bingwascore.app.ui.components.pressScale
+import com.bingwascore.app.util.rememberHaptics
 import com.bingwascore.app.util.screenEnter
 import com.bingwascore.app.ui.theme.GlassBorderStrong
 import com.bingwascore.app.ui.theme.GlassFillStrong
@@ -70,6 +72,7 @@ import com.bingwascore.app.ui.theme.EmeraldGreen
 import com.bingwascore.app.ui.theme.OfferTags
 import com.bingwascore.app.ui.theme.brandBrush
 import com.bingwascore.app.ui.theme.ErrorRed
+import com.bingwascore.app.ui.theme.Motion
 import com.bingwascore.app.ui.theme.NightBlack
 import com.bingwascore.app.ui.theme.SurfaceDark
 import com.bingwascore.app.ui.theme.White
@@ -85,6 +88,7 @@ private val FALLBACK_STATUSES = listOf(
 fun OffersScreen(viewModel: OffersViewModel = hiltViewModel()) {
     val offers by viewModel.offers.collectAsStateWithLifecycle()
     val rules by viewModel.transitionRules.collectAsStateWithLifecycle()
+    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
 
     var showAddSheet by remember { mutableStateOf(false) }
     var settingsOffer by remember { mutableStateOf<Offer?>(null) }
@@ -110,7 +114,10 @@ fun OffersScreen(viewModel: OffersViewModel = hiltViewModel()) {
                 )
             }
 
-            if (offers.isEmpty()) {
+            if (isLoading) {
+                // Parity E — shimmer skeletons while the offers load.
+                OfferSkeleton()
+            } else if (offers.isEmpty()) {
                 EmptyState(
                     icon = Icons.Rounded.LocalOffer,
                     title = "No offers yet",
@@ -185,6 +192,35 @@ fun OffersScreen(viewModel: OffersViewModel = hiltViewModel()) {
             onSaveRule = viewModel::saveTransitionRule,
             onDeleteRule = viewModel::deleteTransitionRule
         )
+    }
+}
+
+/**
+ * Parity E — offer-card skeleton: two frosted cards with shimmering bars while
+ * `isLoading` is true (i.e. before Room delivers its first snapshot).
+ */
+@Composable
+private fun OfferSkeleton() {
+    LazyColumn(
+        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 96.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        items(2) { index ->
+            GlassCard(
+                modifier = Modifier.fillMaxWidth(),
+                enterDelayMillis = index * Motion.STAGGER
+            ) {
+                ShimmerBlock(modifier = Modifier.fillMaxWidth(0.5f))
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    ShimmerBlock(modifier = Modifier.width(72.dp), cornerRadius = 10.dp)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    ShimmerBlock(modifier = Modifier.width(54.dp), cornerRadius = 10.dp)
+                }
+                Spacer(modifier = Modifier.height(14.dp))
+                ShimmerBlock(modifier = Modifier.fillMaxWidth(0.7f), cornerRadius = 8.dp)
+            }
+        }
     }
 }
 
@@ -341,6 +377,7 @@ private fun PriceChip(price: Int) {
 @Composable
 private fun AddOfferFab(modifier: Modifier = Modifier, onClick: () -> Unit) {
     val interactionSource = remember { MutableInteractionSource() }
+    val haptics = rememberHaptics()
     Box(
         modifier = modifier
             .pressScale(interactionSource)
@@ -350,7 +387,10 @@ private fun AddOfferFab(modifier: Modifier = Modifier, onClick: () -> Unit) {
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
-                onClick = onClick
+                onClick = {
+                    haptics.press()
+                    onClick()
+                }
             ),
         contentAlignment = Alignment.Center
     ) {

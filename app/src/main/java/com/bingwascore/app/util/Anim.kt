@@ -37,6 +37,14 @@ fun Modifier.screenEnter(delayMs: Int = 0): Modifier {
 }
 
 /**
+ * Staggered list enter used by Parity E rows: fades 0 → 1 and slides up from
+ * 20dp, starting `index * Motion.STAGGER` ms after the previous row so lists
+ * cascade instead of popping in together.
+ */
+@Composable
+fun Modifier.staggeredEnter(index: Int = 0): Modifier = screenEnter(index * Motion.STAGGER)
+
+/**
  * Staggered enter: item `[index]` starts [Motion.STAGGER] ms after the
  * previous one, producing a satisfying cascade down the list.
  */

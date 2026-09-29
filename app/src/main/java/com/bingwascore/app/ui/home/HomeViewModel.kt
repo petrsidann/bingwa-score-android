@@ -48,6 +48,22 @@ class HomeViewModel @Inject constructor(
     private val _balanceLoading = MutableStateFlow(false)
     val balanceLoading: StateFlow<Boolean> = _balanceLoading.asStateFlow()
 
+    // Parity E — true until the first Room snapshot lands, so the stat tiles
+    // shimmer instead of flashing 0 on cold start.
+    private val _statsLoading = MutableStateFlow(true)
+    val statsLoading: StateFlow<Boolean> = _statsLoading.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            try {
+                transactionRepository.liveTransactions.first()
+            } catch (t: Throwable) {
+                Timber.e(t, "Initial home stats load failed")
+            }
+            _statsLoading.value = false
+        }
+    }
+
     val userName: StateFlow<String> = userPreferences.userName
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), "Bingwa User")
 

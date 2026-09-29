@@ -93,6 +93,7 @@ import com.bingwascore.app.ui.theme.Silver
 import com.bingwascore.app.ui.theme.TealBlue
 import com.bingwascore.app.ui.theme.Motion
 import com.bingwascore.app.ui.theme.White
+import com.bingwascore.app.util.rememberHaptics
 import com.bingwascore.app.util.screenEnter
 import com.bingwascore.app.util.stagger
 import java.text.SimpleDateFormat
@@ -114,6 +115,7 @@ fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
     val recentTransactions by viewModel.recentTransactions.collectAsStateWithLifecycle()
     val balance by viewModel.balance.collectAsStateWithLifecycle()
     val balanceLoading by viewModel.balanceLoading.collectAsStateWithLifecycle()
+    val statsLoading by viewModel.statsLoading.collectAsStateWithLifecycle()
         val advancedMode by viewModel.advancedMode.collectAsStateWithLifecycle()
     val engineEnabled by viewModel.engineEnabled.collectAsStateWithLifecycle()
     val botPaused by viewModel.botPaused.collectAsStateWithLifecycle()
@@ -172,7 +174,8 @@ fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
                 iconTint = EmeraldGreen,
                 label = "Completed",
                 targetValue = successfulCount,
-                formatter = { it.toInt().toString() }
+                formatter = { it.toInt().toString() },
+                loading = statsLoading
             )
             StatTile(
                 modifier = Modifier.weight(1f),
@@ -180,7 +183,8 @@ fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
                 iconTint = ErrorRed,
                 label = "Failed",
                 targetValue = failedCount,
-                formatter = { it.toInt().toString() }
+                formatter = { it.toInt().toString() },
+                loading = statsLoading
             )
         }
 
@@ -193,7 +197,8 @@ fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
                 iconTint = TealBlue,
                 label = "Airtime Used Today",
                 targetValue = airtimeUsedToday,
-                formatter = { formatKsh(it.toDouble()) }
+                formatter = { formatKsh(it.toDouble()) },
+                loading = statsLoading
             )
             StatTile(
                 modifier = Modifier.weight(1f),
@@ -201,7 +206,8 @@ fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
                 iconTint = Orange500,
                 label = "Weekly Commission",
                 targetValue = weeklyCommission,
-                formatter = { formatKsh(it.toDouble()) }
+                formatter = { formatKsh(it.toDouble()) },
+                loading = statsLoading
             )
         }
 
@@ -432,7 +438,8 @@ private fun StatTile(
     iconTint: Color,
     label: String,
     targetValue: Number,
-    formatter: (Number) -> String = { it.toString() }
+    formatter: (Number) -> String = { it.toString() },
+    loading: Boolean = false
 ) {
     val animatedValue by animateFloatAsState(
         targetValue = targetValue.toFloat(),
@@ -442,7 +449,14 @@ private fun StatTile(
     GlassCard(modifier = modifier) {
         Icon(imageVector = icon, contentDescription = label, tint = iconTint, modifier = Modifier.size(20.dp))
         Spacer(modifier = Modifier.height(10.dp))
-        Text(formatter(animatedValue), color = White, fontSize = 19.sp, fontWeight = FontWeight.Bold)
+        // Parity E — shimmer the value until Room delivers its first snapshot.
+        Text(
+            formatter(animatedValue),
+            color = White,
+            fontSize = 19.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.shimmer(loading)
+        )
         Spacer(modifier = Modifier.height(3.dp))
         Text(label, color = White.copy(alpha = 0.55f), fontSize = 11.sp)
     }
@@ -692,12 +706,12 @@ private fun computeMissingPermissions(context: Context): List<String> =
 private fun CelebrationOverlay(successfulCount: Int) {
     var prevCount by remember { mutableStateOf(successfulCount) }
     var showConfetti by remember { mutableStateOf(false) }
-    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+    val haptics = rememberHaptics()
 
     LaunchedEffect(successfulCount) {
         if (successfulCount > prevCount && successfulCount == 1) {
             showConfetti = true
-            try { haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress) } catch (_: Throwable) { }
+            haptics.success()
             delay(1500)
             showConfetti = false
         }

@@ -57,6 +57,10 @@ class SettingsViewModel @Inject constructor(
     private val _simulateResult = MutableStateFlow<String?>(null)
     val simulateResult: StateFlow<String?> = _simulateResult.asStateFlow()
 
+    // Parity E — drives the success/error haptic on the simulate bench.
+    private val _simulateFailed = MutableStateFlow(false)
+    val simulateFailed: StateFlow<Boolean> = _simulateFailed.asStateFlow()
+
     /**
      * Dev hook (Audit G8): feeds a fake INCOMING payment into the real engine
      * so match -> dial -> status -> reply is testable with zero real money.
@@ -66,14 +70,17 @@ class SettingsViewModel @Inject constructor(
             try {
                 val cleanPhone = phone.trim()
                 if (cleanPhone.isBlank() || amount <= 0.0) {
+                    _simulateFailed.value = true
                     _simulateResult.value = "Enter a phone number and an amount above 0."
                     return@launch
                 }
                 pipeline.simulateIncomingPayment(cleanPhone, name.trim(), amount)
+                _simulateFailed.value = false
                 _simulateResult.value =
                     "Simulated Ksh ${"%.2f".format(amount)} from $cleanPhone — watch Transactions."
             } catch (t: Throwable) {
                 Timber.e(t, "simulatePayment failed")
+                _simulateFailed.value = true
                 _simulateResult.value = "Simulation failed: ${t.message}"
             }
         }

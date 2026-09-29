@@ -39,6 +39,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -61,11 +62,13 @@ import com.bingwascore.app.domain.ThemeMode
 import com.bingwascore.app.ui.components.GlassCard
 import com.bingwascore.app.ui.components.GlassExplanationDialog
 import com.bingwascore.app.ui.components.GradientButton
+import com.bingwascore.app.util.rememberHaptics
 import com.bingwascore.app.util.screenEnter
 import com.bingwascore.app.ui.theme.GlassBorder
 import com.bingwascore.app.ui.theme.GlassFill
 import com.bingwascore.app.ui.theme.BingwaOrange
 import com.bingwascore.app.ui.theme.EmeraldGreen
+import com.bingwascore.app.ui.theme.ErrorRed
 import com.bingwascore.app.ui.theme.NightBlack
 import com.bingwascore.app.ui.theme.White
 import com.bingwascore.app.util.BackupManager
@@ -412,6 +415,13 @@ private fun SimSelectionPage(viewModel: SettingsViewModel) {
 @Composable
 private fun SimulatePaymentPage(viewModel: SettingsViewModel) {
     val result by viewModel.simulateResult.collectAsStateWithLifecycle()
+    val simulateFailed by viewModel.simulateFailed.collectAsStateWithLifecycle()
+    val haptics = rememberHaptics()
+
+    // Parity E — a simulation that lands feels different from one that fails.
+    LaunchedEffect(result) {
+        result?.let { if (simulateFailed) haptics.error() else haptics.success() }
+    }
 
     var phone by remember { mutableStateOf("") }
     var payerName by remember { mutableStateOf("") }
@@ -447,7 +457,12 @@ private fun SimulatePaymentPage(viewModel: SettingsViewModel) {
         )
         result?.let {
             Spacer(modifier = Modifier.height(12.dp))
-            Text(it, color = EmeraldGreen, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+            Text(
+                it,
+                color = if (simulateFailed) ErrorRed else EmeraldGreen,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold
+            )
         }
     }
 }
