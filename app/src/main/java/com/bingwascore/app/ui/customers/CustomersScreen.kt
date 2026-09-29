@@ -1,4 +1,4 @@
-package com.bingwascore.app.ui.customers
+﻿package com.bingwascore.app.ui.customers
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -47,6 +47,7 @@ import com.bingwascore.app.ui.components.GlassCard
 import com.bingwascore.app.ui.components.HapticSwitch
 import com.bingwascore.app.util.screenEnter
 import com.bingwascore.app.ui.theme.EmeraldGreen
+import com.bingwascore.app.ui.theme.brandBrush
 import com.bingwascore.app.ui.theme.ErrorRed
 import com.bingwascore.app.ui.theme.NightBlack
 import com.bingwascore.app.ui.theme.TealBlue
@@ -84,9 +85,9 @@ fun CustomersScreen(viewModel: CustomersViewModel = hiltViewModel()) {
                 icon = Icons.Rounded.People,
                 title = if (query.isBlank()) "No customers yet" else "No matches found",
                 message = if (query.isBlank()) {
-                    "Customers appear here once they transact — then it's one tap to serve them again."
+                    "Customers appear here once they transact â€” then it's one tap to serve them again."
                 } else {
-                    "Nothing matches \"$query\" — try a different name or number."
+                    "Nothing matches \"$query\" â€” try a different name or number."
                 },
                 modifier = Modifier.padding(20.dp)
             )
@@ -124,7 +125,7 @@ private fun CustomerRow(
                 modifier = Modifier
                     .size(44.dp)
                     .clip(CircleShape)
-                    .background(Brush.linearGradient(listOf(EmeraldGreen, TealBlue))),
+                    .background(brandBrush()),
                 contentAlignment = Alignment.Center
             ) {
                 Text(

@@ -1,4 +1,4 @@
-package com.bingwascore.app.ui.onboarding
+﻿package com.bingwascore.app.ui.onboarding
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bingwascore.app.ui.components.GradientButton
 import com.bingwascore.app.ui.theme.EmeraldGreen
+import com.bingwascore.app.ui.theme.brandBrush
 import com.bingwascore.app.ui.theme.NightBlack
 import com.bingwascore.app.ui.theme.TealBlue
 import com.bingwascore.app.ui.theme.White
@@ -73,7 +74,7 @@ fun OnboardingCarousel(
         Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
                 Box(modifier = Modifier.size(80.dp).clip(CircleShape)
-                    .background(Brush.linearGradient(listOf(EmeraldGreen, TealBlue))),
+                    .background(brandBrush()),
                     contentAlignment = Alignment.Center) {
                     Icon(slide.icon, contentDescription = null, tint = NightBlack, modifier = Modifier.size(40.dp))
                 }

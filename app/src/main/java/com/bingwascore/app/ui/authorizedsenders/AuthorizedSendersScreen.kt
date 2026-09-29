@@ -1,4 +1,4 @@
-package com.bingwascore.app.ui.authorizedsenders
+﻿package com.bingwascore.app.ui.authorizedsenders
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -49,6 +49,7 @@ import com.bingwascore.app.ui.components.GlassCard
 import com.bingwascore.app.ui.components.pressScale
 import com.bingwascore.app.util.screenEnter
 import com.bingwascore.app.ui.theme.EmeraldGreen
+import com.bingwascore.app.ui.theme.brandBrush
 import com.bingwascore.app.ui.theme.ErrorRed
 import com.bingwascore.app.ui.theme.NightBlack
 import com.bingwascore.app.ui.theme.TealBlue
@@ -103,7 +104,7 @@ fun AuthorizedSendersScreen(viewModel: AuthorizedSendersViewModel = hiltViewMode
             EmptyState(
                 icon = Icons.Rounded.VerifiedUser,
                 title = "No trusted numbers yet",
-                message = "Add the numbers you trust — only these senders trigger bot replies and offer flows.",
+                message = "Add the numbers you trust â€” only these senders trigger bot replies and offer flows.",
                 modifier = Modifier.padding(horizontal = 20.dp)
             )
         } else {
@@ -157,7 +158,7 @@ private fun SenderInput(value: String, onValueChange: (String) -> Unit, onSubmit
                 .size(48.dp)
                 .pressScale(addInteraction)
                 .clip(CircleShape)
-                .background(Brush.linearGradient(listOf(EmeraldGreen, TealBlue)))
+                .background(brandBrush())
                 .clickable(
                     interactionSource = addInteraction,
                     indication = null,

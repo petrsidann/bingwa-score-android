@@ -1,4 +1,4 @@
-package com.bingwascore.app.ui.offers
+﻿package com.bingwascore.app.ui.offers
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -62,6 +62,7 @@ import com.bingwascore.app.ui.components.HapticSwitch
 import com.bingwascore.app.ui.components.pressScale
 import com.bingwascore.app.util.screenEnter
 import com.bingwascore.app.ui.theme.EmeraldGreen
+import com.bingwascore.app.ui.theme.brandBrush
 import com.bingwascore.app.ui.theme.ErrorRed
 import com.bingwascore.app.ui.theme.NightBlack
 import com.bingwascore.app.ui.theme.SurfaceDark
@@ -108,7 +109,7 @@ fun OffersScreen(viewModel: OffersViewModel = hiltViewModel()) {
                 EmptyState(
                     icon = Icons.Rounded.LocalOffer,
                     title = "No offers yet",
-                    message = "Tap the + button to add your first bundle offer — then dial it in one tap.",
+                    message = "Tap the + button to add your first bundle offer â€” then dial it in one tap.",
                     modifier = Modifier.padding(20.dp)
                 )
             } else {
@@ -261,7 +262,7 @@ private fun PriceChip(price: Int) {
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(12.dp))
-            .background(Brush.linearGradient(listOf(EmeraldGreen, TealBlue)))
+            .background(brandBrush())
             .padding(horizontal = 12.dp, vertical = 5.dp)
     ) {
         Text(
@@ -281,7 +282,7 @@ private fun AddOfferFab(modifier: Modifier = Modifier, onClick: () -> Unit) {
             .pressScale(interactionSource)
             .size(58.dp)
             .clip(CircleShape)
-            .background(Brush.linearGradient(listOf(EmeraldGreen, TealBlue)))
+            .background(brandBrush())
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
@@ -331,7 +332,7 @@ private fun AddOfferSheet(onDismiss: () -> Unit, onAdd: (name: String, price: In
                 placeholder = "*544*2*1*1*ph#"
             )
             Text(
-                "Use \"ph\" where the customer number goes — the dialer swaps it in automatically.",
+                "Use \"ph\" where the customer number goes â€” the dialer swaps it in automatically.",
                 color = White.copy(alpha = 0.45f),
                 fontSize = 11.sp
             )
@@ -610,7 +611,7 @@ private fun StatusChip(status: TransactionStatus, selected: Boolean, onClick: ()
     val base = if (selected) {
         Modifier
             .clip(shape)
-            .background(Brush.linearGradient(listOf(EmeraldGreen, TealBlue)))
+            .background(brandBrush())
     } else {
         Modifier
             .clip(shape)
@@ -633,7 +634,7 @@ private fun OfferPickChip(offer: Offer, selected: Boolean, onClick: () -> Unit) 
     val base = if (selected) {
         Modifier
             .clip(shape)
-            .background(Brush.linearGradient(listOf(EmeraldGreen, TealBlue)))
+            .background(brandBrush())
     } else {
         Modifier
             .clip(shape)

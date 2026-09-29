@@ -29,8 +29,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.bingwascore.app.ui.theme.EmeraldGreen
-import com.bingwascore.app.ui.theme.TealBlue
+import com.bingwascore.app.ui.theme.BrandColors
 
 /**
  * Frosted glass card. Every card fades + slides in on composition; when
@@ -90,7 +89,7 @@ fun GradientButton(
             .fillMaxWidth()
             .height(56.dp)
             .clip(RoundedCornerShape(18.dp))
-            .background(Brush.horizontalGradient(listOf(EmeraldGreen, TealBlue)))
+            .background(Brush.horizontalGradient(BrandColors))
             .clickable(
                 enabled = enabled,
                 interactionSource = interactionSource,

@@ -1,4 +1,4 @@
-package com.bingwascore.app.ui.blacklist
+﻿package com.bingwascore.app.ui.blacklist
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -39,6 +39,7 @@ import com.bingwascore.app.ui.components.EmptyState
 import com.bingwascore.app.ui.components.GlassCard
 import com.bingwascore.app.util.screenEnter
 import com.bingwascore.app.ui.theme.EmeraldGreen
+import com.bingwascore.app.ui.theme.brandBrush
 import com.bingwascore.app.ui.theme.NightBlack
 import com.bingwascore.app.ui.theme.TealBlue
 import com.bingwascore.app.ui.theme.White
@@ -103,7 +104,7 @@ private fun BlacklistRow(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(CircleShape)
-                    .background(Brush.linearGradient(listOf(EmeraldGreen, TealBlue))),
+                    .background(brandBrush()),
                 contentAlignment = Alignment.Center
             ) {
                 Text(

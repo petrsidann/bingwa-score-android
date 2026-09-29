@@ -1,4 +1,4 @@
-package com.bingwascore.app.ui.home
+﻿package com.bingwascore.app.ui.home
 
 import android.Manifest
 import android.content.Context
@@ -78,6 +78,8 @@ import com.bingwascore.app.ui.components.GradientButton
 import com.bingwascore.app.ui.components.HapticSwitch
 import com.bingwascore.app.ui.components.shimmer
 import com.bingwascore.app.ui.theme.EmeraldGreen
+import com.bingwascore.app.ui.theme.brandBrush
+import com.bingwascore.app.ui.theme.BrandColors
 import com.bingwascore.app.ui.theme.ErrorRed
 import com.bingwascore.app.ui.theme.Gold
 import com.bingwascore.app.ui.theme.NightBlack
@@ -289,7 +291,7 @@ private fun GreetingHeader(userName: String) {
                 modifier = Modifier
                     .size(48.dp)
                     .clip(CircleShape)
-                    .background(Brush.linearGradient(listOf(EmeraldGreen, TealBlue))),
+                    .background(brandBrush()),
                 contentAlignment = Alignment.Center
             ) {
                 Text(initials, color = NightBlack, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold)
@@ -356,7 +358,7 @@ private fun AirtimeBalanceCard(
                 Text("Airtime Balance", color = White.copy(alpha = 0.55f), fontSize = 12.sp)
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    if (balanceVisible) formatKsh(balance) else "Ksh • • • • • •",
+                    if (balanceVisible) formatKsh(balance) else "Ksh â€¢ â€¢ â€¢ â€¢ â€¢ â€¢",
                     color = White,
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
@@ -487,7 +489,7 @@ private fun WeeklyChart(weeklyBars: List<Double>, weeklyCommission: Double) {
                 val left = index * slot + (slot - barWidth) / 2f
                 drawRoundRect(
                     brush = Brush.verticalGradient(
-                        colors = listOf(EmeraldGreen, TealBlue),
+                        colors = BrandColors,
                         startY = baseline - barHeight,
                         endY = baseline
                     ),
@@ -545,7 +547,7 @@ private fun WeeklyGoalHero(weeklyCommission: Double) {
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    if (progress >= 1f) "Goal reached! 🎉" else "Keep going — you're almost there",
+                    if (progress >= 1f) "Goal reached! ðŸŽ‰" else "Keep going â€” you're almost there",
                     color = White.copy(alpha = 0.55f),
                     fontSize = 11.sp
                 )
@@ -571,7 +573,7 @@ private fun RecentActivity(transactions: List<Transaction>) {
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    "Nothing yet — your dialed bundles will show up here.",
+                    "Nothing yet â€” your dialed bundles will show up here.",
                     color = White.copy(alpha = 0.5f),
                     fontSize = 13.sp
                 )
@@ -610,7 +612,7 @@ private fun RecentActivity(transactions: List<Transaction>) {
                         fontWeight = FontWeight.SemiBold
                     )
                     Text(
-                        "${tx.offerName} • ${timeFormat.format(Date(tx.createdAt))}",
+                        "${tx.offerName} â€¢ ${timeFormat.format(Date(tx.createdAt))}",
                         color = White.copy(alpha = 0.5f),
                         fontSize = 11.sp
                     )
@@ -755,8 +757,8 @@ private fun EngineToggleCard(enabled: Boolean, onToggle: () -> Unit) {
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    if (enabled) "Running — watching for M-Pesa payments"
-                    else "Stopped — tap to start",
+                    if (enabled) "Running â€” watching for M-Pesa payments"
+                    else "Stopped â€” tap to start",
                     color = if (enabled) EmeraldGreen else White.copy(alpha = 0.55f),
                     fontSize = 12.sp
                 )

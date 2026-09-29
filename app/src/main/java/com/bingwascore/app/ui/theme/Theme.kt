@@ -9,15 +9,17 @@ import androidx.compose.ui.graphics.Color
 import com.bingwascore.app.domain.ThemeMode
 
 private val DarkColors = darkColorScheme(
-    primary = EmeraldGreen,
-    secondary = TealBlue,
+    primary = BingwaOrange,
+    secondary = Amber,
+    tertiary = OrangeDark,
     background = Color(0xFF0A0A0F),
     surface = Color(0xFF12121A)
 )
 
 private val LightColors = lightColorScheme(
-    primary = EmeraldGreen,
-    secondary = TealBlue,
+    primary = BingwaOrange,
+    secondary = Amber,
+    tertiary = OrangeDark,
     background = Color(0xFFF4F6F5),
     surface = Color(0xFFFFFFFF)
 )

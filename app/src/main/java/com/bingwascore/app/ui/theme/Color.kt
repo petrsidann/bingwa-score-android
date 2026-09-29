@@ -1,8 +1,22 @@
 package com.bingwascore.app.ui.theme
 
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
+// ─── Brand: orange ────────────────────────────────────────────────────────────
+val BingwaOrange = Color(0xFFFF6D00)
+val Amber = Color(0xFFFFB300)
+val OrangeDark = Color(0xFFE65100)
+
+/** The primary brand gradient used on buttons, FABs, chips, rings and nav. */
+val BrandColors = listOf(BingwaOrange, Amber)
+
+/** Convenience brush for the orange→amber brand gradient. */
+fun brandBrush(): Brush = Brush.linearGradient(BrandColors)
+
+// ─── Semantic: green is reserved for success states only ─────────────────────
 val EmeraldGreen = Color(0xFF00C853)
+val SuccessGreen = Color(0xFF00C853)
 val TealBlue = Color(0xFF00B8D4)
 val Orange500 = Color(0xFFFF9800)
 val Purple500 = Color(0xFF6200EE)

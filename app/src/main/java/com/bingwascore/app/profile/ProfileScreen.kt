@@ -1,4 +1,4 @@
-package com.bingwascore.app.profile
+﻿package com.bingwascore.app.profile
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -40,12 +40,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bingwascore.app.ui.components.GlassCard
 import com.bingwascore.app.ui.components.HapticSwitch
 import com.bingwascore.app.ui.theme.Bronze
+import com.bingwascore.app.ui.theme.BingwaOrange
 import com.bingwascore.app.ui.theme.EmeraldGreen
+import com.bingwascore.app.ui.theme.brandBrush
 import com.bingwascore.app.ui.theme.Gold
 import com.bingwascore.app.ui.theme.NightBlack
 import com.bingwascore.app.ui.theme.Platinum
 import com.bingwascore.app.ui.theme.Silver
-import com.bingwascore.app.ui.theme.TealBlue
 import com.bingwascore.app.ui.theme.White
 import com.bingwascore.app.util.screenEnter
 
@@ -76,7 +77,7 @@ fun ProfileScreen(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier.size(54.dp).clip(CircleShape)
-                        .background(Brush.linearGradient(listOf(EmeraldGreen, TealBlue))),
+                        .background(brandBrush()),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(userName.take(1).uppercase(), color = NightBlack, fontSize = 22.sp, fontWeight = FontWeight.Bold)
@@ -141,7 +142,7 @@ private fun ProfileMenuRow(label: String, icon: ImageVector, onClick: () -> Unit
         onClick = onClick
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(icon, contentDescription = null, tint = EmeraldGreen, modifier = Modifier.size(22.dp))
+            Icon(icon, contentDescription = null, tint = BingwaOrange, modifier = Modifier.size(22.dp))
             Spacer(modifier = Modifier.width(14.dp))
             Text(label, color = White, fontSize = 15.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
             Icon(Icons.Rounded.ChevronRight, contentDescription = null, tint = White.copy(alpha = 0.4f), modifier = Modifier.size(20.dp))

@@ -1,4 +1,4 @@
-package com.bingwascore.app.ui.dialer
+﻿package com.bingwascore.app.ui.dialer
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -48,6 +48,7 @@ import com.bingwascore.app.ui.components.GradientButton
 import com.bingwascore.app.ui.components.pressScale
 import com.bingwascore.app.util.screenEnter
 import com.bingwascore.app.ui.theme.EmeraldGreen
+import com.bingwascore.app.ui.theme.brandBrush
 import com.bingwascore.app.ui.theme.ErrorRed
 import com.bingwascore.app.ui.theme.NightBlack
 import com.bingwascore.app.ui.theme.TealBlue
@@ -111,7 +112,7 @@ fun DialerScreen(onClose: () -> Unit, viewModel: DialerViewModel = hiltViewModel
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    "No active offers yet — add one in the Offers tab.",
+                    "No active offers yet â€” add one in the Offers tab.",
                     color = White.copy(alpha = 0.45f),
                     fontSize = 13.sp
                 )
@@ -211,7 +212,7 @@ private fun OfferChip(offer: Offer, selected: Boolean, onClick: () -> Unit) {
         Modifier
             .clip(shape)
             .pressScale(interactionSource)
-            .background(Brush.linearGradient(listOf(EmeraldGreen, TealBlue)))
+            .background(brandBrush())
     } else {
         Modifier
             .clip(shape)

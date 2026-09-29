@@ -32,8 +32,9 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.bingwascore.app.ui.theme.EmeraldGreen
-import com.bingwascore.app.ui.theme.TealBlue
+import com.bingwascore.app.ui.theme.Amber
+import com.bingwascore.app.ui.theme.BingwaOrange
+import com.bingwascore.app.ui.theme.BrandColors
 import com.bingwascore.app.ui.theme.White
 import kotlinx.coroutines.delay
 
@@ -79,7 +80,7 @@ fun CommissionLineChart(
         drawPath(
             path = areaPath,
             brush = Brush.verticalGradient(
-                colors = listOf(TealBlue.copy(alpha = 0.25f), Color.Transparent),
+                colors = listOf(Amber.copy(alpha = 0.25f), Color.Transparent),
                 startY = 0f, endY = h
             )
         )
@@ -90,7 +91,7 @@ fun CommissionLineChart(
         }
         drawPath(
             path = linePath,
-            brush = Brush.horizontalGradient(listOf(EmeraldGreen, TealBlue)),
+            brush = Brush.horizontalGradient(BrandColors),
             style = Stroke(width = 4.dp.toPx(), cap = StrokeCap.Round)
         )
 
@@ -133,7 +134,7 @@ fun SuccessRateDonut(
             )
             if (sweep > 0f) {
                 drawArc(
-                    brush = Brush.sweepGradient(listOf(EmeraldGreen, TealBlue), center),
+                    brush = Brush.sweepGradient(BrandColors, center),
                     startAngle = -90f,
                     sweepAngle = 360f * sweep,
                     useCenter = false,

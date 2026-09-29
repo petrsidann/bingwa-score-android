@@ -14,13 +14,13 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.bingwascore.app.ui.theme.EmeraldGreen
+import com.bingwascore.app.ui.theme.Amber
+import com.bingwascore.app.ui.theme.BingwaOrange
 import com.bingwascore.app.ui.theme.Motion
-import com.bingwascore.app.ui.theme.TealBlue
 
 /**
  * Animated progress ring — the sweep animates 0 → [progress] with a soft
- * spring, gradient stroke EmeraldGreen→TealBlue, rounded caps.
+ * spring, gradient stroke BingwaOrange→Amber, rounded caps.
  *
  * Used in the Home hero card to visualise weekly-goal progress.
  *
@@ -59,7 +59,7 @@ fun AnimatedRing(
         if (animatedProgress > 0f) {
             drawArc(
                 brush = Brush.sweepGradient(
-                    colors = listOf(EmeraldGreen, TealBlue),
+                    colors = listOf(BingwaOrange, Amber),
                     center = Offset(inset + diameter / 2f, inset + diameter / 2f)
                 ),
                 startAngle = -90f,
