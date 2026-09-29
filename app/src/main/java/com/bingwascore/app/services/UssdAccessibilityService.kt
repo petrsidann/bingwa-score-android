@@ -10,6 +10,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -34,6 +35,10 @@ class UssdAccessibilityService : AccessibilityService() {
     @Inject
     lateinit var sessionHolder: UssdSessionHolder
 
+    /** Timestamp of the last successful auto-tap (debounce guard). */
+    @Volatile
+    private var lastTapAt = 0L
+
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onServiceConnected() {
@@ -43,7 +48,7 @@ class UssdAccessibilityService : AccessibilityService() {
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         try {
-                        if (event?.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED &&
+            if (event?.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED &&
                 event?.eventType != AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED
             ) {
                 return
@@ -62,6 +67,9 @@ class UssdAccessibilityService : AccessibilityService() {
 
             serviceScope.launch {
                 try {
+                    // Debounce: window-content events arrive in bursts; without this
+                    // guard the same dialog could be tapped twice in quick succession.
+                    if (System.currentTimeMillis() - lastTapAt < TAP_DEBOUNCE_MILLIS) return@launch
                     if (userPreferences.processingMode.first() == AppProcessingMode.ADVANCED) {
                         tapPositiveAction(root)
                     }
@@ -80,6 +88,7 @@ class UssdAccessibilityService : AccessibilityService() {
 
     override fun onDestroy() {
         Timber.i("USSD accessibility service disconnected")
+        serviceScope.cancel()
         super.onDestroy()
     }
 
@@ -111,6 +120,7 @@ class UssdAccessibilityService : AccessibilityService() {
             POSITIVE_ACTIONS.contains(label)
         }?.let { target ->
             if (target.performAction(AccessibilityNodeInfo.ACTION_CLICK)) {
+                lastTapAt = System.currentTimeMillis()
                 Timber.i("USSD auto-tapped positive action")
                 true
             } else {
@@ -139,5 +149,8 @@ class UssdAccessibilityService : AccessibilityService() {
     companion object {
         /** Standard positive SS/USSD action labels (case-insensitive). */
         private val POSITIVE_ACTIONS = setOf("send", "ok", "yes", "1")
+
+        /** Ignore further auto-taps within this window to avoid double-taps. */
+        private const val TAP_DEBOUNCE_MILLIS = 1500L
     }
 }
