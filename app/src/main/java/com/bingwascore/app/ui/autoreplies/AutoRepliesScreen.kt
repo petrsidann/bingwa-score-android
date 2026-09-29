@@ -11,12 +11,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
@@ -42,8 +40,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bingwascore.app.data.local.AutoReply
-import com.bingwascore.app.engagebot.BotLog
-import com.bingwascore.app.engagebot.BotLogKind
+import com.bingwascore.app.ui.engagebot.BotLogRow
 import com.bingwascore.app.ui.components.EmptyState
 import com.bingwascore.app.ui.components.GlassCard
 import com.bingwascore.app.ui.components.HapticSwitch
@@ -53,15 +50,10 @@ import com.bingwascore.app.ui.theme.GlassFillStrong
 import com.bingwascore.app.ui.theme.GlassFill
 import com.bingwascore.app.ui.theme.Amber
 import com.bingwascore.app.ui.theme.BingwaOrange
-import com.bingwascore.app.ui.theme.EmeraldGreen
 import com.bingwascore.app.ui.theme.ErrorRed
 import com.bingwascore.app.ui.theme.NightBlack
-import com.bingwascore.app.ui.theme.Orange500
 import com.bingwascore.app.ui.theme.SurfaceDark
 import com.bingwascore.app.ui.theme.White
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 /** "Botted Replies": Engage Bot switch, reply templates and bot activity. */
 @Composable
@@ -273,7 +265,7 @@ private fun EditTemplateDialog(
                 onClick = { onSave(template.copy(title = title.trim(), message = message.trim())) },
                 enabled = title.isNotBlank() && message.isNotBlank()
             ) {
-                Text("Save", color = EmeraldGreen, fontWeight = FontWeight.SemiBold)
+                Text("Save", color = BingwaOrange, fontWeight = FontWeight.SemiBold)
             }
         },
         dismissButton = {
@@ -303,42 +295,6 @@ private fun DialogField(label: String, value: String, onValueChange: (String) ->
                 textStyle = TextStyle(color = White, fontSize = 14.sp),
                 cursorBrush = SolidColor(BingwaOrange),
                 modifier = Modifier.fillMaxWidth()
-            )
-        }
-    }
-}
-
-@Composable
-private fun BotLogRow(log: BotLog) {
-    val timeFormat = remember { SimpleDateFormat("HH:mm:ss", Locale.getDefault()) }
-    val kindColor = when (log.kind) {
-        BotLogKind.ENGAGE -> Amber
-        BotLogKind.SUCCESS -> EmeraldGreen
-        BotLogKind.INVALID -> Orange500
-        BotLogKind.ERROR -> ErrorRed
-        BotLogKind.INFO -> White.copy(alpha = 0.5f)
-    }
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(GlassFill)
-            .padding(horizontal = 14.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        androidx.compose.foundation.layout.Box(
-            modifier = Modifier
-                .size(8.dp)
-                .clip(CircleShape)
-                .background(kindColor)
-        )
-        Spacer(modifier = Modifier.width(10.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(log.message, color = White.copy(alpha = 0.85f), fontSize = 12.sp)
-            Text(
-                timeFormat.format(Date(log.timestamp)),
-                color = White.copy(alpha = 0.4f),
-                fontSize = 10.sp
             )
         }
     }

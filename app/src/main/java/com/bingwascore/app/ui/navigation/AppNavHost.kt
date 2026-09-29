@@ -82,11 +82,11 @@ import com.bingwascore.app.ui.autorenewals.AutoRenewalsScreen
 import com.bingwascore.app.ui.autoreplies.AutoRepliesScreen
 import com.bingwascore.app.ui.authorizedsenders.AuthorizedSendersScreen
 import com.bingwascore.app.ui.blacklist.BlacklistScreen
-import com.bingwascore.app.ui.components.GlassCard
 import com.bingwascore.app.ui.components.ScreenTransition
 import com.bingwascore.app.ui.components.pressScale
 import com.bingwascore.app.ui.customers.CustomersScreen
 import com.bingwascore.app.ui.dialer.DialerScreen
+import com.bingwascore.app.ui.engagebot.EngageBotScreen
 import com.bingwascore.app.ui.home.HomeScreen
 import com.bingwascore.app.ui.mesh.MeshScreen
 import com.bingwascore.app.ui.mystore.MyStoreScreen
@@ -102,7 +102,6 @@ import com.bingwascore.app.profile.ProfileScreen
 import com.bingwascore.app.referral.ReferralScreen
 import com.bingwascore.app.announcements.AnnouncementsScreen
 import com.bingwascore.app.ui.onboarding.OnboardingCarousel
-import com.bingwascore.app.data.preferences.UserPreferences
 import androidx.compose.material.icons.rounded.Campaign
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.EmojiEvents
@@ -166,7 +165,7 @@ fun AppNavHost() {
                 onPageChange = { page = it }
             )
         }
-                composable(Routes.LOGIN) {
+        composable(Routes.LOGIN) {
             LoginScreen(
                 onSignIn = {
                     // After sign-in the user lands on the setup checklist, which
@@ -338,7 +337,7 @@ fun MainScreen() {
                         "autorenewals" -> AutoRenewalsScreen()
                         "subscriptions" -> SubscriptionsScreen()
                         "bottedreplies" -> AutoRepliesScreen()
-                        "engagebot" -> PlaceholderScreen("Engage Bot")
+                        "engagebot" -> EngageBotScreen()
                         "mystore" -> MyStoreScreen()
                         "mesh" -> MeshScreen()
                         "blacklist" -> BlacklistScreen()
@@ -517,22 +516,5 @@ private fun BottomNavItem(icon: ImageVector, label: String, selected: Boolean, o
             fontSize = 10.sp,
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
         )
-    }
-}
-
-@Composable
-private fun PlaceholderScreen(title: String) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(NightBlack)
-            .padding(20.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        GlassCard(modifier = Modifier.fillMaxWidth()) {
-            Text(title, color = White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(8.dp))
-            Text("This section is coming in a later phase.", color = White.copy(alpha = 0.6f), fontSize = 14.sp)
-        }
     }
 }
