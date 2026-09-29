@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onSizeChanged
+import com.bingwascore.app.ui.theme.Motion
 
 /**
  * Moving white highlight that sweeps left→right infinitely. Apply to a balance
@@ -30,7 +31,7 @@ fun Modifier.shimmer(): Modifier {
     val x by transition.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(1200), RepeatMode.Restart),
+        animationSpec = infiniteRepeatable(tween(Motion.SHIMMER), RepeatMode.Restart),
         label = "shimmerOffset"
     )
 

@@ -32,6 +32,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.bingwascore.app.ui.theme.Motion
 import com.bingwascore.app.ui.theme.GlassBorder
 import com.bingwascore.app.ui.theme.Amber
 import com.bingwascore.app.ui.theme.BingwaOrange
@@ -52,7 +53,7 @@ fun CommissionLineChart(
     var started by remember { mutableStateOf(false) }
     val progress by animateFloatAsState(
         targetValue = if (started) 1f else 0f,
-        animationSpec = tween(900),
+        animationSpec = tween(Motion.CHART),
         label = "chartDraw"
     )
 
@@ -116,7 +117,7 @@ fun SuccessRateDonut(
     var started by remember { mutableStateOf(false) }
     val sweep by animateFloatAsState(
         targetValue = if (started) clamped else 0f,
-        animationSpec = tween(900),
+        animationSpec = tween(Motion.CHART),
         label = "donutDraw"
     )
 

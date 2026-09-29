@@ -44,6 +44,7 @@ import com.bingwascore.app.domain.score.Achievement
 import com.bingwascore.app.domain.score.ScoreState
 import com.bingwascore.app.ui.components.AnimatedRing
 import com.bingwascore.app.ui.components.GlassCard
+import com.bingwascore.app.ui.theme.Motion
 import com.bingwascore.app.ui.theme.Amber
 import com.bingwascore.app.ui.theme.Bronze
 import com.bingwascore.app.ui.theme.EmeraldGreen
@@ -113,7 +114,7 @@ fun ScoreScreen(viewModel: ScoreViewModel = hiltViewModel()) {
 @Composable
 private fun CountUpScore(target: Int) {
     var current by remember(target) { mutableStateOf(0) }
-    val animated by animateFloatAsState(targetValue = current.toFloat(), animationSpec = tween(700), label = "scoreCount")
+    val animated by animateFloatAsState(targetValue = current.toFloat(), animationSpec = tween(Motion.COUNT_UP), label = "scoreCount")
     LaunchedEffect(target) { current = target }
     Text(animated.toInt().toString(), color = White, fontSize = 32.sp, fontWeight = FontWeight.Bold)
 }

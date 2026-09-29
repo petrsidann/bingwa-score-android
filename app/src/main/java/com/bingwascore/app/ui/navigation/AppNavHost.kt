@@ -385,7 +385,7 @@ private fun GlassBottomBar(selected: Int, onSelect: (Int) -> Unit, onDialer: () 
     val glowTransition = rememberInfiniteTransition(label = "fabGlow")
     val glow by glowTransition.animateFloat(
         initialValue = 0f, targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(1800), RepeatMode.Reverse),
+        animationSpec = infiniteRepeatable(tween(Motion.GLOW), RepeatMode.Reverse),
         label = "fabGlowPulse"
     )
 

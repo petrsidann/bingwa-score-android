@@ -12,6 +12,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
+import com.bingwascore.app.ui.theme.Motion
 import com.bingwascore.app.ui.theme.Amber
 import com.bingwascore.app.ui.theme.BingwaOrange
 import com.bingwascore.app.ui.theme.Purple500
@@ -29,17 +30,17 @@ fun AmbientBackground(modifier: Modifier = Modifier) {
 
     val driftA by transition.animateFloat(
         initialValue = 0f, targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(22_000), RepeatMode.Reverse),
+        animationSpec = infiniteRepeatable(tween(Motion.AMBIENT_MIN), RepeatMode.Reverse),
         label = "driftA"
     )
     val driftB by transition.animateFloat(
         initialValue = 0f, targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(28_000), RepeatMode.Reverse),
+        animationSpec = infiniteRepeatable(tween(Motion.AMBIENT_MID), RepeatMode.Reverse),
         label = "driftB"
     )
     val driftC by transition.animateFloat(
         initialValue = 0f, targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(34_000), RepeatMode.Reverse),
+        animationSpec = infiniteRepeatable(tween(Motion.AMBIENT_MAX), RepeatMode.Reverse),
         label = "driftC"
     )
 

@@ -34,6 +34,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.bingwascore.app.ui.theme.Motion
 import com.bingwascore.app.ui.theme.Amber
 import com.bingwascore.app.ui.theme.White
 import com.bingwascore.app.util.screenEnter
@@ -80,8 +81,8 @@ fun Modifier.enterAnimation(delayMillis: Int = 0): Modifier {
 
     LaunchedEffect(delayMillis) {
         if (delayMillis > 0) delay(delayMillis.toLong())
-        launch { fade.animateTo(1f, tween(320)) }
-        launch { slideY.animateTo(0f, tween(360)) }
+        launch { fade.animateTo(1f, tween(Motion.FADE)) }
+        launch { slideY.animateTo(0f, tween(Motion.SLIDE)) }
         launch {
             enterScale.animateTo(
                 1f,
@@ -111,7 +112,7 @@ fun ScreenTransition(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
-        key(screenKey) {
+    key(screenKey) {
         Box(modifier = modifier.screenEnter()) { content() }
     }
 }

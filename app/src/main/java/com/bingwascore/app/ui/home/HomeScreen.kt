@@ -722,7 +722,7 @@ private fun ConfettiBurst(modifier: Modifier = Modifier) {
         }
     }
     var progress by remember { mutableStateOf(0f) }
-    val animated by animateFloatAsState(targetValue = progress, animationSpec = tween(1200), label = "confetti")
+    val animated by animateFloatAsState(targetValue = progress, animationSpec = tween(Motion.CONFETTI), label = "confetti")
     LaunchedEffect(Unit) { progress = 1f }
 
     Canvas(modifier = modifier) {

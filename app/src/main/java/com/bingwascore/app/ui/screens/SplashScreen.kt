@@ -58,18 +58,18 @@ fun SplashScreen(target: String?, onFinish: (String) -> Unit) {
 
     LaunchedEffect(Unit) {
         // Logo: fade in + springy scale-up
-        launch { logoAlpha.animateTo(1f, tween(300)) }
+        launch { logoAlpha.animateTo(1f, tween(Motion.SPLASH_FADE)) }
         launch { logoScale.animateTo(1f, spring(dampingRatio = Motion.DAMPING)) }
         delay(250)
 
         // Wordmark: fade up
-        launch { wordAlpha.animateTo(1f, tween(300)) }
-        launch { wordOffset.animateTo(0f, tween(300)) }
+        launch { wordAlpha.animateTo(1f, tween(Motion.SPLASH_FADE)) }
+        launch { wordOffset.animateTo(0f, tween(Motion.SPLASH_FADE)) }
         delay(150)
 
         // Tagline: fade up
-        launch { taglineAlpha.animateTo(1f, tween(250)) }
-        launch { taglineOffset.animateTo(0f, tween(250)) }
+        launch { taglineAlpha.animateTo(1f, tween(Motion.SPLASH_STEP)) }
+        launch { taglineOffset.animateTo(0f, tween(Motion.SPLASH_STEP)) }
         delay(200)
 
         // Hold the reveal until UserPreferences resolves (a frame or two at most).
