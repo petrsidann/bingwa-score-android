@@ -35,6 +35,9 @@ class BootReceiver : BroadcastReceiver() {
 
             Schedulers.scheduleAll(context)
 
+            // goAsync keeps the process alive for the async DataStore read +
+            // EngineService start; finish() releases it as soon as they settle.
+            val pendingResult = goAsync()
             receiverScope.launch {
                 try {
                     if (userPreferences.engineEnabled.first()) {
@@ -42,6 +45,8 @@ class BootReceiver : BroadcastReceiver() {
                     }
                 } catch (t: Throwable) {
                     Timber.e(t, "Engine start on boot failed")
+                } finally {
+                    pendingResult.finish()
                 }
             }
         } catch (t: Throwable) {

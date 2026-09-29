@@ -8,6 +8,10 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.bingwascore.app.services.EngineService
 import com.bingwascore.app.data.preferences.UserPreferences
+import dagger.hilt.EntryPoint
+import dagger.hilt.InstallIn
+import dagger.hilt.android.EntryPointAccessors
+import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
@@ -24,9 +28,17 @@ class WatchdogWorker(
     params: WorkerParameters
 ) : CoroutineWorker(context, params) {
 
+    @EntryPoint
+    @InstallIn(SingletonComponent::class)
+    interface WatchdogEntryPoint {
+        fun prefs(): UserPreferences
+    }
+
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         try {
-            val prefs = UserPreferences(applicationContext)
+            val prefs = EntryPointAccessors.fromApplication(
+                applicationContext, WatchdogEntryPoint::class.java
+            ).prefs()
             val engineWanted = prefs.engineEnabled.first()
 
             if (engineWanted && !EngineService.isRunning) {
