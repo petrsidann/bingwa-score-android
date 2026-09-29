@@ -8,8 +8,11 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
-    entities = [Transaction::class, Offer::class, Customer::class, AutoReply::class],
-    version = 3,
+    entities = [
+        Transaction::class, Offer::class, Customer::class, AutoReply::class,
+        AgentCommission::class
+    ],
+    version = 4,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -18,6 +21,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun offerDao(): OfferDao
     abstract fun customerDao(): CustomerDao
     abstract fun autoReplyDao(): AutoReplyDao
+    abstract fun agentCommissionDao(): AgentCommissionDao
 
     companion object {
         @Volatile
@@ -83,6 +87,35 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * v3 → v4 (Parity F — silent batch dial + commission ledger). One
+         * migration carries both schema changes:
+         * - offers: silentBatch (INTEGER NOT NULL DEFAULT 0 → existing offers
+         *   stay "advanced", so a batch dial always confirms first).
+         * - agent_commissions: new ledger table (id autoincrement PK) plus the
+         *   createdAt index Room expects.
+         */
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE `offers` " +
+                        "ADD COLUMN `silentBatch` INTEGER NOT NULL DEFAULT 0"
+                )
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `agent_commissions` (" +
+                        "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`txId` TEXT NOT NULL, " +
+                        "`amount` REAL NOT NULL, " +
+                        "`commission` REAL NOT NULL, " +
+                        "`createdAt` INTEGER NOT NULL)"
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_agent_commissions_createdAt` " +
+                        "ON `agent_commissions` (`createdAt`)"
+                )
+            }
+        }
+
         fun getDatabase(context: Context): AppDatabase =
             INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -90,7 +123,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "bingwa_score.db"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                     .fallbackToDestructiveMigration()
                     .build()
                     .also { INSTANCE = it }

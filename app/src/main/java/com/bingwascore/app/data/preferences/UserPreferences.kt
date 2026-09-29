@@ -41,6 +41,8 @@ class UserPreferences @Inject constructor(
         val ENGINE_ENABLED = booleanPreferencesKey("engine_enabled")
         val SETUP_COMPLETE = booleanPreferencesKey("setup_complete")
         val PHONE = stringPreferencesKey("user_phone")
+        // Parity F — last dialled customer number, prefilled into the silent batch.
+        val LAST_DIAL_PHONE = stringPreferencesKey("last_dial_phone")
         val REFERRAL_CODE = stringPreferencesKey("referral_code")
         val REFERRAL_COUNT = stringPreferencesKey("referral_count")
         val ONBOARDING_DONE = booleanPreferencesKey("onboarding_done")
@@ -69,6 +71,10 @@ class UserPreferences @Inject constructor(
         context.dataStore.data.map { it[Keys.SETUP_COMPLETE] ?: false }
 
     val phone: Flow<String> = context.dataStore.data.map { it[Keys.PHONE] ?: "" }
+
+    /** Parity F — phone of the most recent dial, prefilled in the batch dial sheet. */
+    val lastDialPhone: Flow<String> =
+        context.dataStore.data.map { it[Keys.LAST_DIAL_PHONE] ?: "" }
 
     val referralCode: Flow<String> = context.dataStore.data.map { it[Keys.REFERRAL_CODE] ?: "" }
 
@@ -110,6 +116,9 @@ class UserPreferences @Inject constructor(
     suspend fun setSetupComplete(value: Boolean) = edit { it[Keys.SETUP_COMPLETE] = value }
 
     suspend fun setPhone(value: String) = edit { it[Keys.PHONE] = value }
+
+    /** Parity F — remember the last dialled customer for the silent batch dial. */
+    suspend fun setLastDialPhone(value: String) = edit { it[Keys.LAST_DIAL_PHONE] = value }
 
     suspend fun setReferralCode(value: String) = edit { it[Keys.REFERRAL_CODE] = value }
 

@@ -140,5 +140,6 @@ No real money moves. On a debug or release build:
 | Offer matching | amount == price | amount == price + fallback rules | minor — fallback rules deferred |
 | USSD dial | `UssdAutomationService` + accessibility auto-tap | same | ✅ parity |
 | Engage bot | duplicate-INCOMING trigger, session Q&A, timeout worker | same | ✅ parity |
+| Silent batch dial | multi-select offers → queued sequential dials (3 s gap, silent first); non-silent offers ask once | silent batch dial + confirmation for advanced | ✅ parity |
 | Tests | `SmsParser`/`UssdResponses`/`CsvEscapes`/`ScoreEngine`/`botLogColor` unit tests | device tests | ✅ JVM parity; no device farm |
 

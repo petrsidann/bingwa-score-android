@@ -74,7 +74,14 @@ data class Offer(
     /** Offer tag bucket (Hybrid OfferTag OFFER_1..OFFER_4) — null = untagged. */
     val tag: String? = null,
     /** Hybrid Connect relay device id/name that should serve this offer — null = local. */
-    val relayDevice: String? = null
+    val relayDevice: String? = null,
+    // ── Parity F ──
+    /**
+     * Silent batch dial: when true the offer is queued from the Offers
+     * multi-select without any per-dial confirmation dialog. When false the
+     * batch dial asks once for the whole "advanced" group.
+     */
+    val silentBatch: Boolean = false
 )
 
 /** A customer identified by phone number. */
@@ -100,4 +107,24 @@ data class AutoReply(
     val message: String,
     val type: String,
     val isActive: Boolean = true
+)
+
+/**
+ * Parity F — commission ledger. One row per Safaricom commission summary SMS
+ * ("Total Commission this week is Ksh.1825.1"), mirrored onto the transaction
+ * it belongs to ([txId] is blank when no un-commissioned sale was found).
+ */
+@Entity(
+    tableName = "agent_commissions",
+    indices = [Index("createdAt")]
+)
+data class AgentCommission(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0L,
+    /** Transaction the commission was stamped onto — blank for orphan summaries. */
+    val txId: String,
+    /** Airtime/bundle amount of that transaction (0.0 for orphan summaries). */
+    val amount: Double,
+    /** Commission amount reported by Safaricom. */
+    val commission: Double,
+    val createdAt: Long
 )

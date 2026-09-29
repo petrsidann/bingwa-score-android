@@ -3,6 +3,7 @@ package com.bingwascore.app.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,6 +29,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -42,17 +44,23 @@ import com.bingwascore.app.util.rememberHaptics
  * Frosted glass card. Every card fades + slides in on composition; when
  * [onClick] is provided the card also springs to 0.98 scale while pressed.
  * [enterDelayMillis] staggers lists (min(index, 6) * 35 reads naturally).
+ *
+ * Parity F: pass [onLongClick] for gesture-driven cards (Offers multi-select).
+ * Tap and long-press are then resolved by a single gesture detector, so a long
+ * press can never also fire the tap action.
  */
 @Composable
 fun GlassCard(
     modifier: Modifier = Modifier,
     cornerRadius: Dp = 24.dp,
     onClick: (() -> Unit)? = null,
+    onLongClick: (() -> Unit)? = null,
     enterDelayMillis: Int = 0,
     content: @Composable ColumnScope.() -> Unit
 ) {
     val shape = RoundedCornerShape(cornerRadius)
     val interactionSource = remember { MutableInteractionSource() }
+    val haptics = rememberHaptics()
 
     val visuals = Modifier
         .shadow(12.dp, shape, ambientColor = Color.Black.copy(0.35f))
@@ -60,8 +68,21 @@ fun GlassCard(
         .background(GlassFill)
         .border(1.dp, Brush.verticalGradient(listOf(GlassBorderStrong, Color.Transparent)), shape)
 
-    val cardModifier = if (onClick != null) {
-        Modifier
+    val cardModifier = when {
+        onLongClick != null -> Modifier
+            .pressScale(interactionSource)
+            .then(visuals)
+            .pointerInput(onLongClick) {
+                detectTapGestures(
+                    onTap = { onClick?.invoke() },
+                    onLongPress = {
+                        haptics.press()
+                        onLongClick()
+                    }
+                )
+            }
+
+        onClick != null -> Modifier
             .pressScale(interactionSource)
             .then(visuals)
             .clickable(
@@ -69,8 +90,8 @@ fun GlassCard(
                 indication = null,
                 onClick = onClick
             )
-    } else {
-        visuals
+
+        else -> visuals
     }
 
     Box(modifier = modifier.enterAnimation(enterDelayMillis).then(cardModifier)) {

@@ -47,5 +47,8 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: bingwa-score-release-apk
-        path: app/build/outputs/apk/release/app-release-unsigned.apk
+        # Parity F: glob the release output — CI signs with the debug keystore
+        # fallback, so the file is sometimes app-release.apk, sometimes unsigned.
+        path: app/build/outputs/apk/release/*.apk
+        if-no-files-found: error
         retention-days: 30

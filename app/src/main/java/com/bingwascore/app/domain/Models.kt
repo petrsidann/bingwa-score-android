@@ -14,7 +14,9 @@ enum class TransactionStatus(val value: String) {
     FAILED_ALREADY_RECOMMENDED("FAILED_ALREADY_RECOMMENDED"),
     UNMATCHED("UNMATCHED"),
     CANCELLED("CANCELLED"),
-    PAUSED("PAUSED");
+    PAUSED("PAUSED"),
+    /** Parity F — SMS from a sender outside the authorized list: audit only, never replied to. */
+    IGNORED("IGNORED");
 
     companion object {
         fun fromValue(value: String?): TransactionStatus =

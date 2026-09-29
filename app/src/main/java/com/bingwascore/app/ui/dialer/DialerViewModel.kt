@@ -6,8 +6,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bingwascore.app.data.local.Offer
 import com.bingwascore.app.data.local.Transaction
+import com.bingwascore.app.data.preferences.UserPreferences
 import com.bingwascore.app.data.repository.OfferRepository
 import com.bingwascore.app.data.repository.TransactionRepository
+import com.bingwascore.app.domain.BatchDialPlanner
 import com.bingwascore.app.domain.TransactionStatus
 import com.bingwascore.app.services.UssdAutomationService
 import com.bingwascore.app.util.formatPhoneToTenDigits
@@ -31,6 +33,7 @@ data class DialerFeedback(val message: String, val isError: Boolean)
 class DialerViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val transactionRepository: TransactionRepository,
+    private val userPreferences: UserPreferences,
     offerRepository: OfferRepository
 ) : ViewModel() {
 
@@ -87,7 +90,7 @@ class DialerViewModel @Inject constructor(
             return
         }
 
-        val dialCode = offer.ussdCode.replace("ph", phoneValue).replace("BH", phoneValue, true)
+        val dialCode = BatchDialPlanner.expand(offer.ussdCode, phoneValue)
         val transactionId = "tx_${UUID.randomUUID()}"
 
         viewModelScope.launch {
@@ -122,6 +125,12 @@ class DialerViewModel @Inject constructor(
                 }
 
                 _phone.value = phoneValue
+                // Parity F — remember the target so the silent batch dial can prefill it.
+                try {
+                    userPreferences.setLastDialPhone(phoneValue)
+                } catch (t: Throwable) {
+                    Timber.e(t, "Could not persist the last dialled phone")
+                }
                 _feedback.value =
                     DialerFeedback("Dialing ${offer.name} for $phoneValue — watch for the USSD reply", isError = false)
             } catch (t: Throwable) {

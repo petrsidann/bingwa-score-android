@@ -27,15 +27,20 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.LocalOffer
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material.icons.rounded.Verified
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -54,6 +59,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bingwascore.app.data.local.Offer
 import com.bingwascore.app.data.preferences.OfferTransitionRule
+import com.bingwascore.app.domain.BatchDialPlanner
 import com.bingwascore.app.domain.TransactionStatus
 import com.bingwascore.app.ui.components.EmptyState
 import com.bingwascore.app.ui.components.GlassCard
@@ -89,10 +95,33 @@ fun OffersScreen(viewModel: OffersViewModel = hiltViewModel()) {
     val offers by viewModel.offers.collectAsStateWithLifecycle()
     val rules by viewModel.transitionRules.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+    // Parity F — batch dial + duplicate-rule feedback.
+    val ruleError by viewModel.ruleError.collectAsStateWithLifecycle()
+    val isBatching by viewModel.isBatching.collectAsStateWithLifecycle()
+    val lastDialPhone by viewModel.lastDialPhone.collectAsStateWithLifecycle()
 
     var showAddSheet by remember { mutableStateOf(false) }
     var settingsOffer by remember { mutableStateOf<Offer?>(null) }
     var actionsOffer by remember { mutableStateOf<Offer?>(null) }
+
+    // Parity F — multi-select (long-press a card), batch phone and the single
+    // confirmation dialog listing the non-silent offers.
+    var selectionMode by remember { mutableStateOf(false) }
+    var selectedIds by remember { mutableStateOf<Set<String>>(emptySet()) }
+    var batchPhone by remember { mutableStateOf("") }
+    var confirmOffers by remember { mutableStateOf<List<Offer>?>(null) }
+
+    val selectedOffers = offers.filter { it.id in selectedIds }
+
+    fun exitSelection() {
+        selectionMode = false
+        selectedIds = emptySet()
+    }
+
+    // Prefill the batch phone with the last dialled customer (Dialer parity).
+    LaunchedEffect(lastDialPhone) {
+        if (batchPhone.isBlank() && lastDialPhone.isNotBlank()) batchPhone = lastDialPhone
+    }
 
     Box(
         modifier = Modifier
@@ -108,7 +137,8 @@ fun OffersScreen(viewModel: OffersViewModel = hiltViewModel()) {
             ) {
                 Text("Offers", color = White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
                 Text(
-                    "${offers.size} offer(s)",
+                    if (selectionMode) "${selectedOffers.size} selected"
+                    else "${offers.size} offer(s)",
                     color = White.copy(alpha = 0.5f),
                     fontSize = 12.sp
                 )
@@ -126,27 +156,121 @@ fun OffersScreen(viewModel: OffersViewModel = hiltViewModel()) {
                 )
             } else {
                 LazyColumn(
-                    contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 96.dp),
+                    contentPadding = PaddingValues(
+                        start = 20.dp,
+                        end = 20.dp,
+                        bottom = if (selectionMode) 280.dp else 96.dp
+                    ),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     itemsIndexed(offers, key = { _, offer -> offer.id }) { index, offer ->
                         OfferCard(
                             offer = offer,
                             enterDelayMillis = minOf(index, 6) * 35,
+                            selectionMode = selectionMode,
+                            selected = offer.id in selectedIds,
                             onToggle = { viewModel.toggleActive(offer) },
                             onOpenSettings = { settingsOffer = offer },
-                            onOpenActions = { actionsOffer = offer }
+                            onOpenActions = { actionsOffer = offer },
+                            onLongPress = {
+                                selectionMode = true
+                                selectedIds = selectedIds + offer.id
+                            },
+                            onSelectToggle = {
+                                selectedIds = if (offer.id in selectedIds) {
+                                    selectedIds - offer.id
+                                } else {
+                                    selectedIds + offer.id
+                                }
+                            }
                         )
                     }
                 }
             }
         }
 
-        AddOfferFab(
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(20.dp),
-            onClick = { showAddSheet = true }
+        if (!selectionMode) {
+            AddOfferFab(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(20.dp),
+                onClick = { showAddSheet = true }
+            )
+        }
+
+        // Parity F — floating silent batch bar (replaces the FAB while selecting).
+        if (selectionMode) {
+            BatchDialBar(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(20.dp),
+                count = selectedOffers.size,
+                silentCount = selectedOffers.count { it.silentBatch },
+                phone = batchPhone,
+                onPhoneChange = { batchPhone = it },
+                isBatching = isBatching,
+                onCancel = { exitSelection() },
+                onDial = {
+                    val targets = selectedOffers
+                    if (targets.isNotEmpty()) {
+                        // Silent offers need no confirmation; anything else gets
+                        // exactly ONE dialog listing them before queueing.
+                        if (BatchDialPlanner.requiresConfirmation(targets)) {
+                            confirmOffers = targets
+                        } else {
+                            viewModel.batchDial(targets, batchPhone)
+                            exitSelection()
+                        }
+                    }
+                }
+            )
+        }
+    }
+
+    // Parity F — the single confirmation for non-silent offers.
+    confirmOffers?.let { targets ->
+        AlertDialog(
+            onDismissRequest = { confirmOffers = null },
+            containerColor = SurfaceDark,
+            title = {
+                Text(
+                    "Queue ${targets.size} dials?",
+                    color = White,
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column {
+                    Text(
+                        "These offers are not marked SILENT, so they will dial one after the other:",
+                        color = White.copy(alpha = 0.6f),
+                        fontSize = 12.sp
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        BatchDialPlanner.confirmationMessage(targets),
+                        color = White,
+                        fontSize = 13.sp
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.batchDial(targets, batchPhone)
+                        confirmOffers = null
+                        exitSelection()
+                    }
+                ) {
+                    Text("Queue anyway", color = BingwaOrange, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmOffers = null }) {
+                    Text("Cancel", color = White.copy(alpha = 0.6f))
+                }
+            }
         )
     }
 
@@ -188,6 +312,8 @@ fun OffersScreen(viewModel: OffersViewModel = hiltViewModel()) {
             offer = offer,
             offers = offers,
             rules = rules,
+            ruleError = ruleError,
+            onClearRuleError = viewModel::clearRuleError,
             onDismiss = { actionsOffer = null },
             onSaveRule = viewModel::saveTransitionRule,
             onDeleteRule = viewModel::deleteTransitionRule
@@ -228,13 +354,19 @@ private fun OfferSkeleton() {
 private fun OfferCard(
     offer: Offer,
     enterDelayMillis: Int,
+    selectionMode: Boolean = false,
+    selected: Boolean = false,
     onToggle: () -> Unit,
     onOpenSettings: () -> Unit,
-    onOpenActions: () -> Unit
+    onOpenActions: () -> Unit,
+    onLongPress: () -> Unit = {},
+    onSelectToggle: () -> Unit = {}
 ) {
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
-        onClick = onOpenSettings,
+        onClick = if (selectionMode) onSelectToggle else onOpenSettings,
+        // Parity F — long-press anywhere on the card starts multi-select.
+        onLongClick = onLongPress,
         enterDelayMillis = enterDelayMillis
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -265,6 +397,11 @@ private fun OfferCard(
                         Spacer(modifier = Modifier.width(8.dp))
                         TagChip(tag = tag)
                     }
+                    // Parity F — silent batch dial chip.
+                    if (offer.silentBatch) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        SilentChip()
+                    }
                 }
                 // Parity D — Hybrid Connect relay routing line.
                 offer.relayDevice?.takeIf { it.isNotBlank() }?.let { relay ->
@@ -287,31 +424,36 @@ private fun OfferCard(
                 }
             }
             Spacer(modifier = Modifier.width(12.dp))
-            HapticSwitch(
-                checked = offer.isActive,
-                onCheckedChange = { onToggle() },
-                colors = SwitchDefaults.colors(
-                    checkedThumbColor = NightBlack,
-                    checkedTrackColor = BingwaOrange,
-                    checkedBorderColor = BingwaOrange,
-                    uncheckedThumbColor = White.copy(alpha = 0.7f),
-                    uncheckedTrackColor = GlassFillStrong,
-                    uncheckedBorderColor = GlassBorderStrong
+            if (selectionMode) {
+                // Parity F — multi-select: the switch/Tune controls give way to a checkbox.
+                SelectionCheckbox(checked = selected)
+            } else {
+                HapticSwitch(
+                    checked = offer.isActive,
+                    onCheckedChange = { onToggle() },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = NightBlack,
+                        checkedTrackColor = BingwaOrange,
+                        checkedBorderColor = BingwaOrange,
+                        uncheckedThumbColor = White.copy(alpha = 0.7f),
+                        uncheckedTrackColor = GlassFillStrong,
+                        uncheckedBorderColor = GlassBorderStrong
+                    )
                 )
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Box(
-                modifier = Modifier
-                    .clip(CircleShape)
-                    .clickable(onClick = onOpenActions)
-                    .padding(6.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.Tune,
-                    contentDescription = "Offer actions",
-                    tint = White.copy(alpha = 0.6f),
-                    modifier = Modifier.size(20.dp)
-                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Box(
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .clickable(onClick = onOpenActions)
+                        .padding(6.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Tune,
+                        contentDescription = "Offer actions",
+                        tint = White.copy(alpha = 0.6f),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
             }
         }
     }
@@ -532,6 +674,8 @@ private fun OfferSettingsSheet(offer: Offer, onDismiss: () -> Unit, onSave: (Off
     var autoReschedule by remember { mutableStateOf(offer.autoReschedule) }
     var rescheduleTime by remember { mutableStateOf(offer.autoRescheduleRunTime) }
     var completionMessage by remember { mutableStateOf(offer.completionMessage.orEmpty()) }
+    // Parity F — silent batch dial flag (no per-dial confirmation).
+    var silentBatch by remember { mutableStateOf(offer.silentBatch) }
     // Parity D — Hybrid tag + relay editors (OfferSettingsScreen parity).
     var tag by remember { mutableStateOf(offer.tag.orEmpty()) }
     var relayDevice by remember { mutableStateOf(offer.relayDevice.orEmpty()) }
@@ -549,6 +693,14 @@ private fun OfferSettingsSheet(offer: Offer, onDismiss: () -> Unit, onSave: (Off
 
             SwitchRow("Strict mode", strictMode) { strictMode = it }
             SwitchRow("Auto retry", autoRetry) { autoRetry = it }
+            // Parity F — silent batch dial opt-in.
+            SwitchRow("Silent batch dial", silentBatch) { silentBatch = it }
+            Text(
+                "Silent offers are queued straight away in a batch dial — no per-dial confirmation.",
+                color = White.copy(alpha = 0.45f),
+                fontSize = 11.sp
+            )
+            Spacer(modifier = Modifier.height(8.dp))
             SheetTextField(
                 label = "Number of retries",
                 value = numberOfRetries,
@@ -614,7 +766,8 @@ private fun OfferSettingsSheet(offer: Offer, onDismiss: () -> Unit, onSave: (Off
                             autoRescheduleRunTime = rescheduleTime.ifBlank { offer.autoRescheduleRunTime },
                             completionMessage = completionMessage.ifBlank { null },
                             tag = tag.ifBlank { null },
-                            relayDevice = relayDevice.ifBlank { null }
+                            relayDevice = relayDevice.ifBlank { null },
+                            silentBatch = silentBatch
                         )
                     )
                 }
@@ -628,6 +781,8 @@ private fun OfferActionsSheet(
     offer: Offer,
     offers: List<Offer>,
     rules: List<OfferTransitionRule>,
+    ruleError: String?,
+    onClearRuleError: () -> Unit,
     onDismiss: () -> Unit,
     onSaveRule: (OfferTransitionRule) -> Unit,
     onDeleteRule: (OfferTransitionRule) -> Unit
@@ -665,7 +820,10 @@ private fun OfferActionsSheet(
                     StatusChip(
                         status = status,
                         selected = selectedStatus == status,
-                        onClick = { selectedStatus = status }
+                        onClick = {
+                            selectedStatus = status
+                            onClearRuleError()
+                        }
                     )
                 }
             }
@@ -692,7 +850,10 @@ private fun OfferActionsSheet(
                         OfferPickChip(
                             offer = target,
                             selected = selectedTarget?.id == target.id,
-                            onClick = { selectedTarget = target }
+                            onClick = {
+                                selectedTarget = target
+                                onClearRuleError()
+                            }
                         )
                     }
                 }
@@ -715,6 +876,13 @@ private fun OfferActionsSheet(
                     }
                 }
             )
+
+            // Parity F — duplicate rules are rejected by the ViewModel guard and
+            // reported here in red instead of silently overwriting the old rule.
+            if (ruleError != null) {
+                Spacer(modifier = Modifier.height(10.dp))
+                Text(ruleError, color = ErrorRed, fontSize = 12.sp)
+            }
 
             if (rules.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(20.dp))
@@ -827,4 +995,108 @@ private fun RuleRow(rule: OfferTransitionRule, onDelete: () -> Unit) {
 
 
 
+
+
+/**
+ * Parity F — "SILENT" chip on offers flagged for silent batch dial: they are
+ * queued without the per-dial confirmation the advanced offers get.
+ */
+@Composable
+private fun SilentChip() {
+    val shape = RoundedCornerShape(12.dp)
+    Box(
+        modifier = Modifier
+            .clip(shape)
+            .background(BingwaOrange.copy(alpha = 0.16f))
+            .border(1.dp, BingwaOrange.copy(alpha = 0.55f), shape)
+            .padding(horizontal = 8.dp, vertical = 5.dp)
+    ) {
+        Text(
+            "SILENT",
+            color = BingwaOrange,
+            fontSize = 9.sp,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
+
+/** Parity F — multi-select checkbox shown in place of the switch/Tune controls. */
+@Composable
+private fun SelectionCheckbox(checked: Boolean) {
+    val shape = RoundedCornerShape(8.dp)
+    Box(
+        modifier = Modifier
+            .size(24.dp)
+            .clip(shape)
+            .background(if (checked) brandBrush() else SolidColor(GlassFill))
+            .border(1.dp, if (checked) BingwaOrange else GlassBorderStrong, shape),
+        contentAlignment = Alignment.Center
+    ) {
+        if (checked) {
+            Icon(
+                imageVector = Icons.Rounded.Check,
+                contentDescription = "Selected",
+                tint = NightBlack,
+                modifier = Modifier.size(16.dp)
+            )
+        }
+    }
+}
+
+/**
+ * Parity F — floating batch bar: selected count, the target customer number
+ * (prefilled with the last dialled one) and the gradient "Dial N Silent" CTA.
+ */
+@Composable
+private fun BatchDialBar(
+    modifier: Modifier = Modifier,
+    count: Int,
+    silentCount: Int,
+    phone: String,
+    onPhoneChange: (String) -> Unit,
+    isBatching: Boolean,
+    onCancel: () -> Unit,
+    onDial: () -> Unit
+) {
+    GlassCard(modifier = modifier.fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    "$count selected — $silentCount silent",
+                    color = White,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    "Silent offers dial straight away; the rest ask once.",
+                    color = White.copy(alpha = 0.5f),
+                    fontSize = 10.sp
+                )
+            }
+            Icon(
+                imageVector = Icons.Rounded.Close,
+                contentDescription = "Cancel selection",
+                tint = White.copy(alpha = 0.6f),
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .clickable(onClick = onCancel)
+                    .padding(6.dp)
+                    .size(18.dp)
+            )
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+        SheetTextField(
+            label = "Batch phone (customer)",
+            value = phone,
+            onValueChange = { raw -> onPhoneChange(raw.filter { it.isDigit() }) },
+            placeholder = "0712345678"
+        )
+        GradientButton(
+            text = "Dial $count Silent",
+            loading = isBatching,
+            enabled = count > 0,
+            onClick = onDial
+        )
+    }
+}
 

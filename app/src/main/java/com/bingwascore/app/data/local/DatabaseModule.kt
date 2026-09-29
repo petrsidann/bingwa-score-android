@@ -28,4 +28,8 @@ object DatabaseModule {
 
     @Provides
     fun provideAutoReplyDao(database: AppDatabase): AutoReplyDao = database.autoReplyDao()
+
+    @Provides
+    fun provideAgentCommissionDao(database: AppDatabase): AgentCommissionDao =
+        database.agentCommissionDao()
 }

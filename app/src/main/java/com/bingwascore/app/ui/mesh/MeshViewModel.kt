@@ -3,7 +3,9 @@ package com.bingwascore.app.ui.mesh
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bingwascore.app.data.preferences.UserPreferences
+import com.bingwascore.app.util.DeviceIdProvider
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -12,12 +14,15 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import timber.log.Timber
+
 import javax.inject.Inject
-import kotlin.random.Random
 
 @HiltViewModel
 class MeshViewModel @Inject constructor(
-    private val userPreferences: UserPreferences
+    private val userPreferences: UserPreferences,
+    private val deviceIdProvider: DeviceIdProvider
 ) : ViewModel() {
 
     val deviceId: StateFlow<String> = userPreferences.deviceId
@@ -37,8 +42,16 @@ class MeshViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            if (userPreferences.deviceId.first().isEmpty()) {
-                userPreferences.setDeviceId(generateDeviceId())
+            // Parity F — the shown id is now a permanent digest of an
+            // AndroidKeyStore key pair (DeviceIdProvider), not a random
+            // per-install string. Keystore access happens off the main thread.
+            try {
+                val permanent = withContext(Dispatchers.IO) { deviceIdProvider.deviceId() }
+                if (userPreferences.deviceId.first() != permanent) {
+                    userPreferences.setDeviceId(permanent)
+                }
+            } catch (t: Throwable) {
+                Timber.e(t, "Could not resolve the permanent device id")
             }
         }
     }
@@ -74,15 +87,7 @@ class MeshViewModel @Inject constructor(
         _error.value = null
     }
 
-    private fun generateDeviceId(): String {
-        val charset = ('A'..'Z') + ('0'..'9')
-        val suffix = (1..DEVICE_ID_LENGTH).map { charset[Random.nextInt(charset.size)] }
-            .joinToString("")
-        return "BSC-$suffix"
-    }
-
     private companion object {
-        const val DEVICE_ID_LENGTH = 5
         const val CONNECT_DELAY_MS = 900L
     }
 }

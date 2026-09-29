@@ -77,6 +77,16 @@ interface TransactionDao {
 
     @Query("DELETE FROM transactions WHERE createdAt < :before")
     suspend fun deleteOlderThan(before: Long)
+
+    /**
+     * Parity F — newest live transaction that has not been stamped with a
+     * commission yet; the commission ledger attaches a Safaricom summary to it.
+     */
+    @Query(
+        "SELECT * FROM transactions WHERE commission <= 0 AND deletedAt IS NULL " +
+            "ORDER BY createdAt DESC LIMIT 1"
+    )
+    suspend fun getLatestWithoutCommission(): Transaction?
 }
 
 @Dao
@@ -173,6 +183,31 @@ interface AutoReplyDao {
     @Delete
     suspend fun delete(autoReply: AutoReply)
 
+
     @Query("UPDATE auto_replies SET isActive = :active WHERE id = :id")
     suspend fun setActive(id: Int, active: Boolean)
+}
+
+/**
+ * Parity F — commission ledger access. `flowSumToday` / `flowSumWeek` take the
+ * window start (epoch millis) so callers control the boundary (local midnight /
+ * start of week) instead of relying on SQLite date parsing.
+ */
+@Dao
+interface AgentCommissionDao {
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(commission: AgentCommission): Long
+
+    @Query("SELECT COALESCE(SUM(commission), 0) FROM agent_commissions WHERE createdAt >= :since")
+    fun flowSumToday(since: Long): Flow<Double>
+
+    @Query("SELECT COALESCE(SUM(commission), 0) FROM agent_commissions WHERE createdAt >= :since")
+    fun flowSumWeek(since: Long): Flow<Double>
+
+    @Query("SELECT COALESCE(SUM(commission), 0) FROM agent_commissions")
+    suspend fun sumAll(): Double
+
+    @Query("SELECT COUNT(*) FROM agent_commissions")
+    suspend fun count(): Int
 }

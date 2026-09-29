@@ -2,6 +2,8 @@ package com.bingwascore.app.data.repository
 
 import com.bingwascore.app.data.local.AutoReply
 import com.bingwascore.app.data.local.AutoReplyDao
+import com.bingwascore.app.data.local.AgentCommission
+import com.bingwascore.app.data.local.AgentCommissionDao
 import com.bingwascore.app.data.local.Customer
 import com.bingwascore.app.data.local.CustomerDao
 import com.bingwascore.app.data.local.Offer
@@ -56,6 +58,9 @@ class TransactionRepository @Inject constructor(
         amount: Double,
         since: Long
     ): List<Transaction> = dao.getRecentSuccessfulList(phone, amount, since)
+
+    /** Parity F — commission ledger target: newest sale with no commission stamped. */
+    suspend fun getLatestWithoutCommission(): Transaction? = dao.getLatestWithoutCommission()
 }
 
 @Singleton
@@ -122,4 +127,23 @@ class AutoReplyRepository @Inject constructor(
     suspend fun delete(autoReply: AutoReply) = dao.delete(autoReply)
 
     suspend fun setActive(id: Int, active: Boolean) = dao.setActive(id, active)
+}
+
+/**
+ * Parity F — commission ledger. [sumToday] / [sumWeek] take the window start
+ * (epoch millis) so the caller owns the boundary (local midnight, week start).
+ */
+@Singleton
+class AgentCommissionRepository @Inject constructor(
+    private val dao: AgentCommissionDao
+) {
+    fun sumToday(since: Long): Flow<Double> = dao.flowSumToday(since)
+
+    fun sumWeek(since: Long): Flow<Double> = dao.flowSumWeek(since)
+
+    suspend fun insert(commission: AgentCommission): Long = dao.insert(commission)
+
+    suspend fun sumAll(): Double = dao.sumAll()
+
+    suspend fun count(): Int = dao.count()
 }

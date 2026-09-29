@@ -4,14 +4,17 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.telephony.SmsManager
+import com.bingwascore.app.data.local.AgentCommission
 import com.bingwascore.app.data.local.Offer
 import com.bingwascore.app.data.local.Transaction
 import com.bingwascore.app.data.preferences.AuthorizedSendersStore
 import com.bingwascore.app.data.preferences.UserPreferences
+import com.bingwascore.app.data.repository.AgentCommissionRepository
 import com.bingwascore.app.data.repository.AutoReplyRepository
 import com.bingwascore.app.data.repository.CustomerRepository
 import com.bingwascore.app.data.repository.OfferRepository
 import com.bingwascore.app.data.repository.TransactionRepository
+import com.bingwascore.app.domain.InvalidSenderException
 import com.bingwascore.app.domain.TransactionStatus
 import com.bingwascore.app.engagebot.EngageBotSessionLifecycle
 import com.bingwascore.app.services.UssdAutomationService
@@ -47,6 +50,7 @@ class TransactionPipeline @Inject constructor(
     private val autoReplyRepository: AutoReplyRepository,
     private val userPreferences: UserPreferences,
     private val authorizedSenders: AuthorizedSendersStore,
+    private val commissionRepository: AgentCommissionRepository,
     private val engageBot: EngageBotSessionLifecycle
 ) {
 
@@ -80,12 +84,11 @@ class TransactionPipeline @Inject constructor(
                 return
             }
 
-            // 0b. Authorized-senders gate: a non-empty trusted list means any
-            //     other sender is IGNORED with no reply.
-            if (!isSenderAuthorized(sender)) {
-                Timber.w("Ignoring SMS from unauthorized sender=%s", sender)
-                return
-            }
+            // 0b. Authorized-senders gate (Parity F): a non-empty trusted list
+            //     means every other sender is rejected by the guard below — the
+            //     InvalidSenderException is caught and turned into an IGNORED
+            //     audit row with zero replies, never into offer matching.
+            guardSender(sender)
             val parsed = parseMpesa(sender, body) ?: run {
                 Timber.w("M-Pesa SMS could not be parsed: %s", body)
                 return
@@ -166,6 +169,9 @@ class TransactionPipeline @Inject constructor(
             transactionRepository.insert(transaction)
             Timber.i("PENDING transaction %s for %s (%s)", transaction.id, phone, offer.name)
             startUssdAutomation(transaction)
+        } catch (e: InvalidSenderException) {
+            // Parity F — unauthorized sender: IGNORED status, zero replies.
+            recordIgnoredSender(e.sender)
         } catch (t: Throwable) {
             Timber.e(t, "onMpesaReceived failed")
         }
@@ -177,7 +183,25 @@ class TransactionPipeline @Inject constructor(
             if (amount == null || amount <= 0.0) return
             val current = userPreferences.airtimeBalance.first()
             userPreferences.setAirtimeBalance(current + amount)
-            Timber.i("Commission received: Ksh %.2f (balance now %.2f)", amount, current + amount)
+            // Parity F — commission ledger: every Safaricom summary writes one
+            // row, and the newest sale that has not been paid out yet gets the
+            // commission stamped onto it (Hybrid AgentCommission behaviour).
+            val target = transactionRepository.getLatestWithoutCommission()
+            if (target != null) {
+                transactionRepository.update(target.copy(commission = amount))
+            }
+            commissionRepository.insert(
+                AgentCommission(
+                    txId = target?.id.orEmpty(),
+                    amount = target?.amount ?: 0.0,
+                    commission = amount,
+                    createdAt = System.currentTimeMillis()
+                )
+            )
+            Timber.i(
+                "Commission received: Ksh %.2f (balance now %.2f, ledger tx=%s)",
+                amount, current + amount, target?.id ?: "none"
+            )
         } catch (t: Throwable) {
             Timber.e(t, "onCommissionSms failed")
         }
@@ -571,6 +595,43 @@ class TransactionPipeline @Inject constructor(
         } catch (t: Throwable) {
             Timber.e(t, "Authorized-sender check failed — allowing by default")
             true
+        }
+    }
+
+    /**
+     * Parity F guard — throws [InvalidSenderException] whenever the trusted list
+     * is non-empty and [sender] is not on it. A typed throw keeps the money path
+     * explicit: there is no way to "fall through" into offer matching.
+     */
+    private fun guardSender(sender: String) {
+        if (!isSenderAuthorized(sender)) throw InvalidSenderException(sender)
+    }
+
+    /**
+     * Audit row for a rejected sender: status IGNORED, zero amount, flagged in
+     * [Transaction.errorMessage]. Deliberately sends zero replies and never
+     * dials — the SMS is recorded only so the agent can see who was blocked.
+     */
+    private suspend fun recordIgnoredSender(sender: String) {
+        try {
+            transactionRepository.insert(
+                Transaction(
+                    id = "IG-${UUID.randomUUID()}",
+                    phoneNumber = sender.ifBlank { "UNKNOWN" },
+                    customerName = null,
+                    offerId = "",
+                    offerName = "Ignored sender",
+                    ussdCode = "",
+                    amount = 0.0,
+                    commission = 0.0,
+                    status = TransactionStatus.IGNORED.value,
+                    createdAt = System.currentTimeMillis(),
+                    errorMessage = "Sender not in the authorized-senders list"
+                )
+            )
+            Timber.w("Recorded IGNORED SMS from unauthorized sender=%s", sender)
+        } catch (t: Throwable) {
+            Timber.e(t, "Failed to record IGNORED sender=%s", sender)
         }
     }
 
