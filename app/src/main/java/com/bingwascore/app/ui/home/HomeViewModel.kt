@@ -67,17 +67,24 @@ class HomeViewModel @Inject constructor(
     private val _showAdvancedExplanation = MutableStateFlow(false)
     val showAdvancedExplanation: StateFlow<Boolean> = _showAdvancedExplanation.asStateFlow()
 
+    // Parity D — Home renders REAL Room data via the live (soft-delete-safe)
+    // flow: every tile + recent list derives from liveTransactions.
     val successfulCount: StateFlow<Int> = transactionRepository
-        .transactionsByStatus(TransactionStatus.SUCCESSFUL.value)
-        .map { it.size }
+        .liveTransactions
+        .map { list -> list.count { it.status == TransactionStatus.SUCCESSFUL.value } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
     val failedCount: StateFlow<Int> = transactionRepository
-        .transactionsByStatus(TransactionStatus.FAILED.value)
-        .map { it.size }
+        .liveTransactions
+        .map { list ->
+            list.count {
+                it.status == TransactionStatus.FAILED.value ||
+                    it.status == TransactionStatus.FAILED_ALREADY_RECOMMENDED.value
+            }
+        }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
-    val airtimeUsedToday: StateFlow<Double> = transactionRepository.allTransactions
+    val airtimeUsedToday: StateFlow<Double> = transactionRepository.liveTransactions
         .map { list ->
             val startOfDay = startOfDayMillis()
             list.filter {
@@ -87,7 +94,7 @@ class HomeViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0.0)
 
     /** Commission per weekday (Monday-first, Mon..Sun) for the current calendar week. */
-    val weeklyCommissionByDay: StateFlow<List<Double>> = transactionRepository.allTransactions
+    val weeklyCommissionByDay: StateFlow<List<Double>> = transactionRepository.liveTransactions
         .map { list ->
             val weekStart = startOfWeekMillis()
             val cal = Calendar.getInstance()
@@ -106,7 +113,8 @@ class HomeViewModel @Inject constructor(
         .map { it.sum() }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0.0)
 
-    val recentTransactions: StateFlow<List<Transaction>> = transactionRepository.allTransactions
+    // Parity D — Recent Activity: last 5 live rows (DAO already ORDERs BY createdAt DESC).
+    val recentTransactions: StateFlow<List<Transaction>> = transactionRepository.liveTransactions
         .map { it.take(5) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 

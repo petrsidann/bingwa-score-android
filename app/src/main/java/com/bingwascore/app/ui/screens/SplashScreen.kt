@@ -1,8 +1,10 @@
 package com.bingwascore.app.ui.screens
 
-import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,69 +12,82 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import com.bingwascore.app.R
 import com.bingwascore.app.ui.components.AmbientBackground
-import com.bingwascore.app.ui.theme.Amber
-import com.bingwascore.app.ui.theme.BingwaOrange
 import com.bingwascore.app.ui.theme.Motion
 import com.bingwascore.app.ui.theme.NightBlack
+import com.bingwascore.app.ui.theme.TextSecondary
 import com.bingwascore.app.ui.theme.White
 import com.bingwascore.app.util.screenEnter
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 /**
- * Splash reveal — staggered hero entrance:
- *   logo scale 0.8→1 (spring) → wordmark fade-up → tagline fade-up.
+ * PARITY D — Cinematic splash:
+ * - Background [NightBlack]; center app icon scales 0.8 → 1.0
+ *   (spring, damping 0.7) with a fade-in.
+ * - "Bingwa Score" (28sp bold white) fades in with 200ms delay.
+ * - "Your bundle business, automated." (14sp [TextSecondary]) fades in
+ *   with 400ms delay.
+ * - Auto-navigates to Login (or Onboarding if first launch) after 1.5s
+ *   via [LaunchedEffect]; holds longer only until [target] resolves.
  *
  * Total animation chain stays under 1.6 s. Behind everything the
  * [AmbientBackground] blobs drift slowly.
  */
 @Composable
 fun SplashScreen(target: String?, onFinish: (String) -> Unit) {
-    val logoScale = remember { Animatable(0.8f) }
-    val logoAlpha = remember { Animatable(0f) }
-    val wordAlpha = remember { Animatable(0f) }
-    val wordOffset = remember { Animatable(24f) }
-    val taglineAlpha = remember { Animatable(0f) }
-    val taglineOffset = remember { Animatable(16f) }
+    // Cinematic tokens: icon scale 0.8 -> 1.0 (spring, damping 0.7);
+    // wordmark alpha 0 -> 1 @200ms; tagline alpha 0 -> 1 @400ms.
+    var iconTarget by remember { mutableStateOf(0.8f) }
+    val iconScale by animateFloatAsState(
+        targetValue = iconTarget,
+        animationSpec = spring(dampingRatio = 0.7f, stiffness = Spring.StiffnessLow),
+        label = "splashIconScale"
+    )
+    var wordTarget by remember { mutableStateOf(0f) }
+    val wordAlpha by animateFloatAsState(
+        targetValue = wordTarget,
+        animationSpec = tween(Motion.SPLASH_FADE),
+        label = "splashWordAlpha"
+    )
+    var taglineTarget by remember { mutableStateOf(0f) }
+    val taglineAlpha by animateFloatAsState(
+        targetValue = taglineTarget,
+        animationSpec = tween(Motion.SPLASH_FADE),
+        label = "splashTaglineAlpha"
+    )
     val currentTarget by rememberUpdatedState(target)
     val currentOnFinish by rememberUpdatedState(onFinish)
 
     LaunchedEffect(Unit) {
-        // Logo: fade in + springy scale-up
-        launch { logoAlpha.animateTo(1f, tween(Motion.SPLASH_FADE)) }
-        launch { logoScale.animateTo(1f, spring(dampingRatio = Motion.DAMPING)) }
-        delay(250)
-
-        // Wordmark: fade up
-        launch { wordAlpha.animateTo(1f, tween(Motion.SPLASH_FADE)) }
-        launch { wordOffset.animateTo(0f, tween(Motion.SPLASH_FADE)) }
-        delay(150)
-
-        // Tagline: fade up
-        launch { taglineAlpha.animateTo(1f, tween(Motion.SPLASH_STEP)) }
-        launch { taglineOffset.animateTo(0f, tween(Motion.SPLASH_STEP)) }
+        // Kick the icon pop immediately (initial 0.8 -> 1.0).
+        launch { iconTarget = 1f }
+        // Wordmark fades in with 200ms delay…
         delay(200)
-
-        // Hold the reveal until UserPreferences resolves (a frame or two at most).
+        wordTarget = 1f
+        // …tagline with 400ms delay…
+        delay(200)
+        taglineTarget = 1f
+        // …then auto-navigate after 1.5s total. Holds longer only
+        // until UserPreferences resolves (a frame or two at most).
+        delay(1100)
         var resolved = currentTarget
         while (resolved == null) {
             delay(50)
@@ -93,59 +108,36 @@ fun SplashScreen(target: String?, onFinish: (String) -> Unit) {
             modifier = Modifier.align(Alignment.Center),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Box(
+            // Center: real app icon, 0.8 -> 1.0 spring pop.
+            Image(
+                painter = painterResource(id = R.drawable.ic_launcher_foreground),
+                contentDescription = "Bingwa Score",
                 modifier = Modifier
-                    .graphicsLayer {
-                        scaleX = logoScale.value
-                        scaleY = logoScale.value
-                        alpha = logoAlpha.value
-                    }
-                    .size(96.dp)
-                    .clip(RoundedCornerShape(28.dp))
-                    .background(Brush.linearGradient(listOf(BingwaOrange, Amber))),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    "B",
-                    color = White,
-                    fontSize = 44.sp,
-                    fontWeight = FontWeight.ExtraBold
-                )
-                // Small amber spark dot, top-right — mirrors the app icon.
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(top = 7.dp, end = 7.dp)
-                        .size(9.dp)
-                        .clip(CircleShape)
-                        .background(Amber)
-                )
-            }
+                    .size(108.dp)
+                    .scale(iconScale)
+                    .alpha(iconScale.coerceIn(0f, 1f))
+            )
 
             Spacer(modifier = Modifier.height(20.dp))
 
+            // Below icon: wordmark 28sp bold white, alpha 0 -> 1 @200ms.
             Text(
                 "Bingwa Score",
                 color = White,
-                fontSize = 24.sp,
+                fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.graphicsLayer {
-                    alpha = wordAlpha.value
-                    translationY = wordOffset.value
-                }
+                modifier = Modifier.alpha(wordAlpha)
             )
 
             Spacer(modifier = Modifier.height(8.dp))
 
+            // Below text: tagline 14sp secondary, alpha 0 -> 1 @400ms.
             Text(
-                "Your M-Pesa business, automated.",
-                color = White.copy(alpha = 0.5f),
-                fontSize = 13.sp,
+                "Your bundle business, automated.",
+                color = TextSecondary,
+                fontSize = 14.sp,
                 fontWeight = FontWeight.Normal,
-                modifier = Modifier.graphicsLayer {
-                    alpha = taglineAlpha.value
-                    translationY = taglineOffset.value
-                }
+                modifier = Modifier.alpha(taglineAlpha)
             )
         }
     }

@@ -55,7 +55,7 @@ class OffersViewModel @Inject constructor(
         update(offer.copy(isActive = !offer.isActive))
     }
 
-    /** Persists everything edited in the OfferSettings sheet. */
+    /** Persists everything edited in the OfferSettings sheet (Parity D: + tag/relay). */
     fun saveSettings(
         offer: Offer,
         strictMode: Boolean,
@@ -65,7 +65,9 @@ class OffersViewModel @Inject constructor(
         ussdTimeoutMillis: Long,
         autoReschedule: Boolean,
         autoRescheduleRunTime: String,
-        completionMessage: String?
+        completionMessage: String?,
+        tag: String? = offer.tag,
+        relayDevice: String? = offer.relayDevice
     ) {
         update(
             offer.copy(
@@ -76,7 +78,9 @@ class OffersViewModel @Inject constructor(
                 ussdTimeoutMillis = ussdTimeoutMillis,
                 autoReschedule = autoReschedule,
                 autoRescheduleRunTime = autoRescheduleRunTime,
-                completionMessage = completionMessage
+                completionMessage = completionMessage,
+                tag = tag,
+                relayDevice = relayDevice
             )
         )
     }

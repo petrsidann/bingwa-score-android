@@ -67,6 +67,7 @@ import com.bingwascore.app.ui.theme.GlassBorder
 import com.bingwascore.app.ui.theme.GlassFill
 import com.bingwascore.app.ui.theme.BingwaOrange
 import com.bingwascore.app.ui.theme.EmeraldGreen
+import com.bingwascore.app.ui.theme.OfferTags
 import com.bingwascore.app.ui.theme.brandBrush
 import com.bingwascore.app.ui.theme.ErrorRed
 import com.bingwascore.app.ui.theme.NightBlack
@@ -166,7 +167,9 @@ fun OffersScreen(viewModel: OffersViewModel = hiltViewModel()) {
                     ussdTimeoutMillis = updated.ussdTimeoutMillis,
                     autoReschedule = updated.autoReschedule,
                     autoRescheduleRunTime = updated.autoRescheduleRunTime,
-                    completionMessage = updated.completionMessage
+                    completionMessage = updated.completionMessage,
+                    tag = updated.tag,
+                    relayDevice = updated.relayDevice
                 )
                 settingsOffer = null
             }
@@ -219,7 +222,24 @@ private fun OfferCard(
                     }
                 }
                 Spacer(modifier = Modifier.height(6.dp))
-                PriceChip(price = offer.price)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    PriceChip(price = offer.price)
+                    // Parity D — Hybrid tag bucket chip (OFFER_1..OFFER_4).
+                    offer.tag?.takeIf { it.isNotBlank() }?.let { tag ->
+                        Spacer(modifier = Modifier.width(8.dp))
+                        TagChip(tag = tag)
+                    }
+                }
+                // Parity D — Hybrid Connect relay routing line.
+                offer.relayDevice?.takeIf { it.isNotBlank() }?.let { relay ->
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        "Relay: $relay",
+                        color = White.copy(alpha = 0.45f),
+                        fontSize = 11.sp,
+                        maxLines = 1
+                    )
+                }
                 offer.completionMessage?.takeIf { it.isNotBlank() }?.let { message ->
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
@@ -258,6 +278,46 @@ private fun OfferCard(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun TagOptionChip(label: String, selected: Boolean, onClick: () -> Unit) {
+    val shape = RoundedCornerShape(12.dp)
+    val base = if (selected) {
+        Modifier
+            .clip(shape)
+            .background(brandBrush())
+    } else {
+        Modifier
+            .clip(shape)
+            .background(GlassFill)
+            .border(1.dp, GlassBorder, shape)
+    }
+    Text(
+        label,
+        color = if (selected) NightBlack else White.copy(alpha = 0.75f),
+        fontSize = 11.sp,
+        fontWeight = FontWeight.SemiBold,
+        modifier = base.clickable(onClick = onClick).padding(horizontal = 10.dp, vertical = 8.dp)
+    )
+}
+
+@Composable
+private fun TagChip(tag: String) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(GlassFill)
+            .border(1.dp, GlassBorder, RoundedCornerShape(12.dp))
+            .padding(horizontal = 10.dp, vertical = 5.dp)
+    ) {
+        Text(
+            tag,
+            color = White.copy(alpha = 0.8f),
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Bold
+        )
     }
 }
 
@@ -432,6 +492,9 @@ private fun OfferSettingsSheet(offer: Offer, onDismiss: () -> Unit, onSave: (Off
     var autoReschedule by remember { mutableStateOf(offer.autoReschedule) }
     var rescheduleTime by remember { mutableStateOf(offer.autoRescheduleRunTime) }
     var completionMessage by remember { mutableStateOf(offer.completionMessage.orEmpty()) }
+    // Parity D — Hybrid tag + relay editors (OfferSettingsScreen parity).
+    var tag by remember { mutableStateOf(offer.tag.orEmpty()) }
+    var relayDevice by remember { mutableStateOf(offer.relayDevice.orEmpty()) }
 
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = SurfaceDark) {
         Column(
@@ -477,6 +540,25 @@ private fun OfferSettingsSheet(offer: Offer, onDismiss: () -> Unit, onSave: (Off
                 placeholder = "Sent to the customer after a successful dial"
             )
 
+            // Parity D — Hybrid OfferTag bucket (OFFER_1..OFFER_4, optional).
+            Spacer(modifier = Modifier.height(4.dp))
+            Text("Offer tag", color = White.copy(alpha = 0.55f), fontSize = 11.sp)
+            Spacer(modifier = Modifier.height(6.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TagOptionChip(label = "None", selected = tag.isBlank()) { tag = "" }
+                OfferTags.ALL.forEach { option ->
+                    TagOptionChip(label = option, selected = tag == option) { tag = option }
+                }
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+
+            SheetTextField(
+                label = "Relay device (Hybrid Connect, optional)",
+                value = relayDevice,
+                onValueChange = { relayDevice = it },
+                placeholder = "e.g. relay-01 — blank = dial locally"
+            )
+
             Spacer(modifier = Modifier.height(16.dp))
             GradientButton(
                 text = "Save settings",
@@ -490,7 +572,9 @@ private fun OfferSettingsSheet(offer: Offer, onDismiss: () -> Unit, onSave: (Off
                             ussdTimeoutMillis = ussdTimeout.toLongOrNull() ?: offer.ussdTimeoutMillis,
                             autoReschedule = autoReschedule,
                             autoRescheduleRunTime = rescheduleTime.ifBlank { offer.autoRescheduleRunTime },
-                            completionMessage = completionMessage.ifBlank { null }
+                            completionMessage = completionMessage.ifBlank { null },
+                            tag = tag.ifBlank { null },
+                            relayDevice = relayDevice.ifBlank { null }
                         )
                     )
                 }

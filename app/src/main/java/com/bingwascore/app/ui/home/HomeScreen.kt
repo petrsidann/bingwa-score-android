@@ -136,7 +136,9 @@ fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
         label = "refreshAngle"
     )
 
-    Column(
+    // Parity D — Box root: ambient blobs behind, scrollable content above.
+    // (Column root + fillMaxSize ambient = blank screen; Box fixes it.)
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .screenEnter()

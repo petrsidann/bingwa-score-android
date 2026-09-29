@@ -69,3 +69,15 @@ val LightSurface = Color(0xFFFFFFFF)
 
 /** Ink drawn on top of the orange→amber brand gradient. */
 val OnBrandInk = Color(0xFF0A0A0F)
+
+/** Secondary body copy on dark surfaces (60% white) — splash tagline, subtitles. */
+val TextSecondary = Color(0x99FFFFFF)
+
+/** Offer tag buckets (Hybrid OfferTag OFFER_1..OFFER_4). */
+object OfferTags {
+    const val OFFER_1 = "OFFER_1"
+    const val OFFER_2 = "OFFER_2"
+    const val OFFER_3 = "OFFER_3"
+    const val OFFER_4 = "OFFER_4"
+    val ALL = listOf(OFFER_1, OFFER_2, OFFER_3, OFFER_4)
+}
