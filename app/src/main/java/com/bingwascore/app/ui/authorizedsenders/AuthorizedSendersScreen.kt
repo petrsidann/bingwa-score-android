@@ -110,7 +110,7 @@ fun AuthorizedSendersScreen(viewModel: AuthorizedSendersViewModel = hiltViewMode
             EmptyState(
                 icon = Icons.Rounded.VerifiedUser,
                 title = "No trusted numbers yet",
-                message = "Add the numbers you trust â€” only these senders trigger bot replies and offer flows.",
+                message = "Add the numbers you trust — only these senders trigger bot replies and offer flows.",
                 modifier = Modifier.padding(horizontal = 20.dp)
             )
         } else {

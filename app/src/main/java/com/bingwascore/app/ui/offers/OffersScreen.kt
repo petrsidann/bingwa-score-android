@@ -121,7 +121,7 @@ fun OffersScreen(viewModel: OffersViewModel = hiltViewModel()) {
                 EmptyState(
                     icon = Icons.Rounded.LocalOffer,
                     title = "No offers yet",
-                    message = "Tap the + button to add your first bundle offer â€” then dial it in one tap.",
+                    message = "Tap the + button to add your first bundle offer — then dial it in one tap.",
                     modifier = Modifier.padding(20.dp)
                 )
             } else {
@@ -436,7 +436,7 @@ private fun AddOfferSheet(onDismiss: () -> Unit, onAdd: (name: String, price: In
                 placeholder = "*544*2*1*1*ph#"
             )
             Text(
-                "Use \"ph\" where the customer number goes â€” the dialer swaps it in automatically.",
+                "Use \"ph\" where the customer number goes — the dialer swaps it in automatically.",
                 color = White.copy(alpha = 0.45f),
                 fontSize = 11.sp
             )

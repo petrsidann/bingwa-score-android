@@ -371,7 +371,7 @@ private fun AirtimeBalanceCard(
                 Text("Airtime Balance", color = White.copy(alpha = 0.55f), fontSize = 12.sp)
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    if (balanceVisible) formatKsh(balance) else "Ksh â€¢ â€¢ â€¢ â€¢ â€¢ â€¢",
+                    if (balanceVisible) formatKsh(balance) else "Ksh • • • • • •",
                     color = White,
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
@@ -568,7 +568,7 @@ private fun WeeklyGoalHero(weeklyCommission: Double) {
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    if (progress >= 1f) "Goal reached! ðŸŽ‰" else "Keep going â€” you're almost there",
+                    if (progress >= 1f) "Goal reached! 🎉" else "Keep going — you're almost there",
                     color = White.copy(alpha = 0.55f),
                     fontSize = 11.sp
                 )
@@ -594,7 +594,7 @@ private fun RecentActivity(transactions: List<Transaction>) {
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    "Nothing yet â€” your dialed bundles will show up here.",
+                    "Nothing yet — your dialed bundles will show up here.",
                     color = White.copy(alpha = 0.5f),
                     fontSize = 13.sp
                 )
@@ -633,7 +633,7 @@ private fun RecentActivity(transactions: List<Transaction>) {
                         fontWeight = FontWeight.SemiBold
                     )
                     Text(
-                        "${tx.offerName} â€¢ ${timeFormat.format(Date(tx.createdAt))}",
+                        "${tx.offerName} • ${timeFormat.format(Date(tx.createdAt))}",
                         color = White.copy(alpha = 0.5f),
                         fontSize = 11.sp
                     )
@@ -778,8 +778,8 @@ private fun EngineToggleCard(enabled: Boolean, onToggle: () -> Unit) {
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    if (enabled) "Running â€” watching for M-Pesa payments"
-                    else "Stopped â€” tap to start",
+                    if (enabled) "Running — watching for M-Pesa payments"
+                    else "Stopped — tap to start",
                     color = if (enabled) EmeraldGreen else White.copy(alpha = 0.55f),
                     fontSize = 12.sp
                 )

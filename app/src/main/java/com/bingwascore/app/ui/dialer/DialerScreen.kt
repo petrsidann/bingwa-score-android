@@ -130,7 +130,7 @@ fun DialerScreen(onClose: () -> Unit, viewModel: DialerViewModel = hiltViewModel
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    "No active offers yet â€” add one in the Offers tab.",
+                    "No active offers yet — add one in the Offers tab.",
                     color = White.copy(alpha = 0.45f),
                     fontSize = 13.sp
                 )
