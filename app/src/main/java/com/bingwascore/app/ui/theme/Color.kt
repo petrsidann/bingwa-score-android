@@ -3,6 +3,14 @@ package com.bingwascore.app.ui.theme
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
+/**
+ * PARITY BLOCK C — Bingwa brand truth (locked):
+ * - Primary Brand: BingwaOrange #FF6D00 + Amber #FFB300 (Orange→Amber gradient).
+ * - Background: NightBlack #0A0A0F (dark-first).
+ * - Success ONLY: EmeraldGreen #00C853 — never used for brand surfaces.
+ * Glass tokens below drive true iOS-style glassmorphism in GlassCard;
+ * GradientButton always renders [BrandColors] (Orange→Amber).
+ */
 // ─── Brand: orange ────────────────────────────────────────────────────────────
 val BingwaOrange = Color(0xFFFF6D00)
 val Amber = Color(0xFFFFB300)

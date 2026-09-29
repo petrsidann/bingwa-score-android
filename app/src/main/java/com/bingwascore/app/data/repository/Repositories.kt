@@ -28,6 +28,14 @@ class TransactionRepository @Inject constructor(
 
     suspend fun getTransaction(id: String): Transaction? = dao.getById(id)
 
+    // Parity C — Hybrid soft-delete surface.
+    suspend fun getLiveTransaction(id: String): Transaction? = dao.getLiveById(id)
+
+    val liveTransactions: Flow<List<Transaction>> = dao.getLiveTransactions()
+
+    suspend fun softDelete(id: String, at: Long = System.currentTimeMillis()) =
+        dao.softDeleteById(id, at)
+
     suspend fun insert(transaction: Transaction) = dao.insert(transaction)
 
     suspend fun update(transaction: Transaction) = dao.update(transaction)
@@ -63,6 +71,11 @@ class OfferRepository @Inject constructor(
     suspend fun getOfferByPriceOnce(price: Int): Offer? = dao.getOfferByPriceOnce(price)
 
     suspend fun getOffer(id: String): Offer? = dao.getById(id)
+
+    // Parity C — Hybrid tag + relay routing.
+    fun offersByTag(tag: String): Flow<List<Offer>> = dao.getByTag(tag)
+
+    fun offersByRelay(device: String): Flow<List<Offer>> = dao.getByRelayDevice(device)
 
     suspend fun insert(offer: Offer) = dao.insert(offer)
 

@@ -9,8 +9,8 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
     entities = [Transaction::class, Offer::class, Customer::class, AutoReply::class],
-    version = 2,
-    exportSchema = false
+    version = 3,
+    exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
 
@@ -58,6 +58,31 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * v2 → v3 (Parity C — Hybrid schema): add Hybrid columns without
+         * deleting existing data. All columns are nullable or carry a
+         * NOT NULL DEFAULT so old rows migrate cleanly:
+         * - transactions: internalRetries, externalRetries (0),
+         *   deletedAt + responseMessage (NULL).
+         * - offers: tag + relayDevice (NULL).
+         */
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE `transactions` " +
+                        "ADD COLUMN `internalRetries` INTEGER NOT NULL DEFAULT 0"
+                )
+                db.execSQL(
+                    "ALTER TABLE `transactions` " +
+                        "ADD COLUMN `externalRetries` INTEGER NOT NULL DEFAULT 0"
+                )
+                db.execSQL("ALTER TABLE `transactions` ADD COLUMN `deletedAt` INTEGER")
+                db.execSQL("ALTER TABLE `transactions` ADD COLUMN `responseMessage` TEXT")
+                db.execSQL("ALTER TABLE `offers` ADD COLUMN `tag` TEXT")
+                db.execSQL("ALTER TABLE `offers` ADD COLUMN `relayDevice` TEXT")
+            }
+        }
+
         fun getDatabase(context: Context): AppDatabase =
             INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -65,7 +90,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "bingwa_score.db"
                 )
-                    .addMigrations(MIGRATION_1_2)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                     .fallbackToDestructiveMigration()
                     .build()
                     .also { INSTANCE = it }

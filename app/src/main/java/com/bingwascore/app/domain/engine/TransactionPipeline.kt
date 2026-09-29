@@ -510,19 +510,39 @@ class TransactionPipeline @Inject constructor(
     )
 
     /**
-     * Dev/test hook (Audit G8 "Simulate Payment"): feeds a fake INCOMING
-     * M-Pesa confirmation into the real pipeline — match -> dial -> status ->
-     * reply — with zero real money. No-op when any field is blank/invalid.
+     * Dev/test hook (Audit G8 "Simulate Payment", Parity C verified): feeds a
+     * fake INCOMING M-Pesa confirmation into the real pipeline — match ->
+     * dial -> status -> reply — with zero real money. No-op when any field is
+     * blank/invalid.
+     *
+     * The generated body uses the EXACT Hybrid wire format so it survives the
+     * new [SmsParser] regexes:
+     * - 10-char receipt head + " Confirmed" (receipt regex).
+     * - "Ksh<amount>" (amount regex `Ksh([\d,]+\.\d{2})`).
+     * - "from [Name] [Phone]" with a 10-digit phone (from/phone regex).
+     * - "on D/M/YY at H:MM AM/PM" stamp (time regex).
+     * Verified: `SmsParser.classify(body) == INCOMING_PAYMENT` before the
+     * string is handed to [onMpesaReceived], which creates the transaction
+     * and triggers the auto-reply flow.
      */
     suspend fun simulateIncomingPayment(phone: String, name: String, amount: Double) {
         try {
             if (phone.isBlank() || amount <= 0.0) return
-            val payer = name.ifBlank { "Test Payer" }
-            val receipt = "SIM${(100000000L + (Math.random() * 899999999L).toLong())}"
-            val body = "$receipt Confirmed.on 29/9/26 at 12:00 PM" +
+            val payer = name.ifBlank { "Test Payer" }.trim().ifBlank { "Test Payer" }
+            // Exactly 10 uppercase-alnum chars so `([A-Z0-9]{10})\s+Confirmed` hits.
+            val receipt = "SIM%07d".format((Math.random() * 9_999_999L).toLong())
+            val body = "$receipt Confirmed. on 29/9/26 at 12:00 PM " +
                 "Ksh${String.format(java.util.Locale.ROOT, "%.2f", amount)} received from " +
-                "$payer $phone. New M-PESA balance is KES 1,000.00."
-            Timber.d("Simulating incoming payment phone=%s amount=%.2f", phone, amount)
+                "$payer $phone, on 29/9/26 at 12:01 PM. New M-PESA balance is KES 1,000.00."
+            val type = SmsParser.classify(body)
+            Timber.d(
+                "Simulating incoming payment phone=%s amount=%.2f receipt=%s type=%s",
+                phone, amount, receipt, type
+            )
+            if (type != SmsParser.SmsType.INCOMING_PAYMENT) {
+                Timber.w("Simulated body failed INCOMING gate: %s", body)
+                return
+            }
             onMpesaReceived("MPESA", body)
         } catch (t: Throwable) {
             Timber.e(t, "simulateIncomingPayment failed")

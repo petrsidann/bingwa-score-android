@@ -46,6 +46,24 @@ class SmsParserTest {
     }
 
     @Test
+    fun simulatePaymentBody_passesIncomingGate() {
+        // Parity C: exact string built by TransactionPipeline.simulateIncomingPayment
+        // ("from [Name] [Phone]... Ksh[Amount]...") must classify INCOMING and
+        // parse name/phone/amount via the Hybrid regexes.
+        val receipt = "SIM1234567"
+        val body = "$receipt Confirmed. on 29/9/26 at 12:00 PM " +
+            "Ksh20.00 received from JOHN DOE 0712345678, on 29/9/26 at 12:01 PM. " +
+            "New M-PESA balance is KES 1,000.00."
+        assertEquals(SmsParser.SmsType.INCOMING_PAYMENT, SmsParser.classify(body))
+        val parsed = SmsParser.parse("MPESA", body)!!
+        assertEquals(SmsParser.SmsType.INCOMING_PAYMENT, parsed.type)
+        assertEquals(20.0, parsed.amount!!, 0.001)
+        assertEquals("0712345678", parsed.phone)
+        assertEquals("JOHN DOE", parsed.name)
+        assertEquals(receipt, parsed.receipt)
+    }
+
+    @Test
     fun classify_commissionAndCompletion() {
         assertEquals(
             SmsParser.SmsType.COMMISSION,

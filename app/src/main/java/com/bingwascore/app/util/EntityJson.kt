@@ -25,6 +25,11 @@ fun Transaction.toJson(): JSONObject = JSONObject().apply {
     put("retryCount", retryCount)
     put("isAutoRenewal", isAutoRenewal)
     put("parentTransactionId", parentTransactionId ?: JSONObject.NULL)
+    // Parity C — Hybrid columns (defaults keep old backups importable).
+    put("internalRetries", internalRetries)
+    put("externalRetries", externalRetries)
+    put("deletedAt", deletedAt ?: JSONObject.NULL)
+    put("responseMessage", responseMessage ?: JSONObject.NULL)
 }
 
 fun transactionFromJson(o: JSONObject): Transaction = Transaction(
@@ -44,7 +49,12 @@ fun transactionFromJson(o: JSONObject): Transaction = Transaction(
     retryCount = o.optInt("retryCount", 0),
     isAutoRenewal = o.optBoolean("isAutoRenewal", false),
     parentTransactionId =
-        if (o.isNull("parentTransactionId")) null else o.optString("parentTransactionId")
+        if (o.isNull("parentTransactionId")) null else o.optString("parentTransactionId"),
+    // Parity C — Hybrid columns (missing keys default for pre-C backups).
+    internalRetries = o.optInt("internalRetries", 0),
+    externalRetries = o.optInt("externalRetries", 0),
+    deletedAt = if (o.isNull("deletedAt")) null else o.optLong("deletedAt"),
+    responseMessage = if (o.isNull("responseMessage")) null else o.optString("responseMessage")
 )
 
 // ---- Offer ----
@@ -66,6 +76,9 @@ fun Offer.toJson(): JSONObject = JSONObject().apply {
     put("ussdTimeoutMillis", ussdTimeoutMillis)
     put("autoReschedule", autoReschedule)
     put("autoRescheduleRunTime", autoRescheduleRunTime)
+    // Parity C — Hybrid columns.
+    put("tag", tag ?: JSONObject.NULL)
+    put("relayDevice", relayDevice ?: JSONObject.NULL)
 }
 
 fun offerFromJson(o: JSONObject): Offer = Offer(
@@ -85,7 +98,10 @@ fun offerFromJson(o: JSONObject): Offer = Offer(
     retryIntervalMins = o.optInt("retryIntervalMins", 5),
     ussdTimeoutMillis = o.optLong("ussdTimeoutMillis", 15000L),
     autoReschedule = o.optBoolean("autoReschedule", false),
-    autoRescheduleRunTime = o.optString("autoRescheduleRunTime", "08:00")
+    autoRescheduleRunTime = o.optString("autoRescheduleRunTime", "08:00"),
+    // Parity C — Hybrid columns (missing keys default for pre-C backups).
+    tag = if (o.isNull("tag")) null else o.optString("tag"),
+    relayDevice = if (o.isNull("relayDevice")) null else o.optString("relayDevice")
 )
 
 // ---- Customer ----

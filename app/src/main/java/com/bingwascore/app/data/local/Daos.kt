@@ -44,11 +44,21 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions WHERE id = :id LIMIT 1")
     suspend fun getById(id: String): Transaction?
 
+    @Query("SELECT * FROM transactions WHERE id = :id AND deletedAt IS NULL LIMIT 1")
+    suspend fun getLiveById(id: String): Transaction?
+
+    @Query("SELECT * FROM transactions WHERE deletedAt IS NULL ORDER BY createdAt DESC")
+    fun getLiveTransactions(): Flow<List<Transaction>>
+
     @Query("SELECT * FROM transactions WHERE id = :id LIMIT 1")
     fun getByIdFlow(id: String): Flow<Transaction?>
 
     @Query("SELECT COUNT(*) FROM transactions")
     suspend fun count(): Int
+
+    // Parity C — Hybrid soft delete: tombstone instead of a hard delete.
+    @Query("UPDATE transactions SET deletedAt = :at WHERE id = :id")
+    suspend fun softDeleteById(id: String, at: Long)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(transaction: Transaction)
@@ -86,6 +96,14 @@ interface OfferDao {
 
     @Query("SELECT * FROM offers WHERE id = :id LIMIT 1")
     suspend fun getById(id: String): Offer?
+
+    // Parity C — Hybrid tag bucket (OfferTag OFFER_1..OFFER_4).
+    @Query("SELECT * FROM offers WHERE tag = :tag AND isActive = 1 ORDER BY price ASC")
+    fun getByTag(tag: String): Flow<List<Offer>>
+
+    // Parity C — Hybrid Connect relay routing.
+    @Query("SELECT * FROM offers WHERE relayDevice = :device ORDER BY price ASC")
+    fun getByRelayDevice(device: String): Flow<List<Offer>>
 
     @Query("SELECT COUNT(*) FROM offers")
     suspend fun count(): Int

@@ -36,7 +36,16 @@ data class Transaction(
     val errorMessage: String? = null,
     val retryCount: Int = 0,
     val isAutoRenewal: Boolean = false,
-    val parentTransactionId: String? = null
+    val parentTransactionId: String? = null,
+    // ── Parity C (Hybrid schema): split retry counters ──
+    /** Internal (engine/validation) retry attempts — Hybrid `internalRetries`. */
+    val internalRetries: Int = 0,
+    /** External (USSD dial / network) retry attempts — Hybrid `externalRetries`. */
+    val externalRetries: Int = 0,
+    /** Soft-delete tombstone (epoch millis) — Hybrid `deletedAt`; null = live row. */
+    val deletedAt: Long? = null,
+    /** Raw USSD/SMS reply text captured for this transaction — Hybrid `responseMessage`. */
+    val responseMessage: String? = null
 )
 
 /** A purchasable Safaricom bundle exposed in the Offers tab / dialer. */
@@ -60,7 +69,12 @@ data class Offer(
     val retryIntervalMins: Int = 5,
     val ussdTimeoutMillis: Long = 15000L,
     val autoReschedule: Boolean = false,
-    val autoRescheduleRunTime: String = "08:00"
+    val autoRescheduleRunTime: String = "08:00",
+    // ── Parity C (Hybrid schema) ──
+    /** Offer tag bucket (Hybrid OfferTag OFFER_1..OFFER_4) — null = untagged. */
+    val tag: String? = null,
+    /** Hybrid Connect relay device id/name that should serve this offer — null = local. */
+    val relayDevice: String? = null
 )
 
 /** A customer identified by phone number. */
