@@ -1,13 +1,25 @@
 package com.bingwascore.app.data.local
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
 /**
  * A single airtime/bundle purchase attempt.
  * [status] is one of [com.bingwascore.app.domain.TransactionStatus] values, stored as String.
+ *
+ * Indices: status-filtered lists (incl. scheduled jobs ordered by scheduledAt),
+ * per-phone duplicate checks, and createdAt-ordered feeds.
  */
-@Entity(tableName = "transactions")
+@Entity(
+    tableName = "transactions",
+    indices = [
+        Index("status", "createdAt"),
+        Index("status", "scheduledAt"),
+        Index("phoneNumber"),
+        Index("createdAt")
+    ]
+)
 data class Transaction(
     @PrimaryKey val id: String,
     val phoneNumber: String,
@@ -28,7 +40,10 @@ data class Transaction(
 )
 
 /** A purchasable Safaricom bundle exposed in the Offers tab / dialer. */
-@Entity(tableName = "offers")
+@Entity(
+    tableName = "offers",
+    indices = [Index("isActive")]
+)
 data class Offer(
     @PrimaryKey val id: String,
     val name: String,
@@ -49,7 +64,10 @@ data class Offer(
 )
 
 /** A customer identified by phone number. */
-@Entity(tableName = "customers")
+@Entity(
+    tableName = "customers",
+    indices = [Index("isBlacklisted")]
+)
 data class Customer(
     @PrimaryKey val phoneNumber: String,
     val name: String? = null,
@@ -58,7 +76,10 @@ data class Customer(
 )
 
 /** A canned SMS reply template used by the auto-reply engine. */
-@Entity(tableName = "auto_replies")
+@Entity(
+    tableName = "auto_replies",
+    indices = [Index("type")]
+)
 data class AutoReply(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val title: String,
