@@ -12,6 +12,7 @@ import androidx.work.workDataOf
 import com.bingwascore.app.data.local.AppDatabase
 import com.bingwascore.app.data.local.Transaction
 import com.bingwascore.app.engagebot.EngageBotSessionLifecycle
+import com.bingwascore.app.utils.CsvEscapes
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
@@ -70,17 +71,14 @@ class DailyArchiveWorker(
                         row.mpesaReceipt.orEmpty(), row.errorMessage.orEmpty(),
                         row.retryCount.toString(), row.isAutoRenewal.toString(),
                         row.parentTransactionId.orEmpty()
-                    ).joinToString(",") { csvEscape(it) }
+                    ).joinToString(",") { CsvEscapes.escape(it) }
                 )
             }
         }
         return file
     }
 
-    private fun csvEscape(value: String): String =
-        if (value.contains(',') || value.contains('"') || value.contains('\n')) {
-            "\"" + value.replace("\"", "\"\"") + "\""
-        } else value
+    private fun csvEscape(value: String): String = CsvEscapes.escape(value)
 
     private fun startOfTodayMillis(): Long =
         Calendar.getInstance().apply {

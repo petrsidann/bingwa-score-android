@@ -44,6 +44,12 @@ class AuthorizedSendersStore @Inject constructor(
 
     fun contains(rawNumber: String): Boolean = normalize(rawNumber) in readSenders()
 
+    /** Synchronous snapshot for the SMS hot path (never suspends). */
+    fun snapshot(): Set<String> = readSenders()
+
+    /** True when no trusted senders are configured (gate defaults open). */
+    fun isEmpty(): Boolean = readSenders().isEmpty()
+
     private fun readSenders(): Set<String> =
         prefs.getStringSet(KEY_SENDERS, emptySet()).orEmpty().toSortedSet()
 

@@ -84,6 +84,8 @@ import com.bingwascore.app.ui.theme.EmeraldGreen
 import com.bingwascore.app.ui.theme.brandBrush
 import com.bingwascore.app.ui.theme.BrandColors
 import com.bingwascore.app.ui.theme.ErrorRed
+import com.bingwascore.app.ui.theme.FaintDivider
+import com.bingwascore.app.ui.theme.DotTrack
 import com.bingwascore.app.ui.theme.Gold
 import com.bingwascore.app.ui.theme.NightBlack
 import com.bingwascore.app.ui.theme.Orange500
@@ -404,7 +406,7 @@ private fun ModeChip(
                 modifier = Modifier
                     .size(10.dp)
                     .clip(CircleShape)
-                    .background(if (active) EmeraldGreen else Color(0x40FFFFFF))
+                    .background(if (active) EmeraldGreen else DotTrack)
             )
             Spacer(modifier = Modifier.width(10.dp))
             Column {
@@ -632,7 +634,7 @@ private fun RecentActivity(transactions: List<Transaction>) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(1.dp)
-                        .background(Color(0x0DFFFFFF))
+                        .background(FaintDivider)
                 )
                 Spacer(modifier = Modifier.height(12.dp))
             }

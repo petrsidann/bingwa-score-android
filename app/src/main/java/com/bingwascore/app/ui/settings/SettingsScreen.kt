@@ -1,6 +1,7 @@
 package com.bingwascore.app.ui.settings
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -31,6 +32,10 @@ import androidx.compose.material.icons.rounded.PrivacyTip
 import androidx.compose.material.icons.rounded.SaveAlt
 import androidx.compose.material.icons.rounded.SimCard
 import androidx.compose.material.icons.rounded.SystemUpdateAlt
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material.icons.rounded.Science
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -57,6 +62,7 @@ import com.bingwascore.app.ui.components.GlassCard
 import com.bingwascore.app.ui.components.GlassExplanationDialog
 import com.bingwascore.app.ui.components.GradientButton
 import com.bingwascore.app.util.screenEnter
+import com.bingwascore.app.ui.theme.GlassBorder
 import com.bingwascore.app.ui.theme.GlassFill
 import com.bingwascore.app.ui.theme.BingwaOrange
 import com.bingwascore.app.ui.theme.EmeraldGreen
@@ -70,6 +76,7 @@ private enum class SettingsPage(val title: String) {
     APPEARANCE("Appearance"),
     PROCESSING_MODE("Processing Mode"),
     SIM_SELECTION("SIM Selection"),
+    SIMULATE_PAYMENT("Simulate Payment"),
     BACKUP_RESTORE("Backup & Restore"),
     UPDATES("Check For Updates"),
     ABOUT("About"),
@@ -112,6 +119,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
                     SettingsPage.APPEARANCE -> AppearancePage(viewModel)
                     SettingsPage.PROCESSING_MODE -> ProcessingModePage(viewModel)
                     SettingsPage.SIM_SELECTION -> SimSelectionPage(viewModel)
+                    SettingsPage.SIMULATE_PAYMENT -> SimulatePaymentPage(viewModel)
                     SettingsPage.BACKUP_RESTORE -> BackupRestorePage(viewModel)
                     SettingsPage.UPDATES -> UpdatesPage(viewModel)
                     SettingsPage.ABOUT -> AboutPage(viewModel)
@@ -160,6 +168,15 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
                 title = "SIM Selection",
                 subtitle = "Line used for dialing and balance checks",
                 onClick = { currentPage = SettingsPage.SIM_SELECTION }
+            )
+            SettingsRow(
+                icon = Icons.Rounded.Science,
+                title = "Simulate Payment",
+                subtitle = "Dev test: fake M-Pesa credit, zero real money",
+                trailing = {
+                    DevChip()
+                },
+                onClick = { currentPage = SettingsPage.SIMULATE_PAYMENT }
             )
 
             SectionLabel("General")
@@ -237,6 +254,7 @@ private fun SettingsRow(
     icon: ImageVector,
     title: String,
     subtitle: String,
+    trailing: (@Composable () -> Unit)? = null,
     onClick: () -> Unit
 ) {
     GlassCard(
@@ -267,6 +285,10 @@ private fun SettingsRow(
                 Text(subtitle, color = White.copy(alpha = 0.5f), fontSize = 11.sp)
             }
             Spacer(modifier = Modifier.width(8.dp))
+            if (trailing != null) {
+                trailing()
+                Spacer(modifier = Modifier.width(8.dp))
+            }
             Icon(
                 imageVector = Icons.Rounded.ChevronRight,
                 contentDescription = null,
@@ -382,6 +404,93 @@ private fun SimSelectionPage(viewModel: SettingsViewModel) {
     )
 }
 
+/**
+ * Dev test bench (Audit G8): phone/name/amount inputs feed a fake INCOMING
+ * M-Pesa confirmation into the real engine so match -> dial -> status ->
+ * reply is testable with zero real money.
+ */
+@Composable
+private fun SimulatePaymentPage(viewModel: SettingsViewModel) {
+    val result by viewModel.simulateResult.collectAsStateWithLifecycle()
+
+    var phone by remember { mutableStateOf("") }
+    var payerName by remember { mutableStateOf("") }
+    var amountText by remember { mutableStateOf("") }
+
+    PageTitle("Simulate Payment")
+    PageIntro("Dev test bench — feeds a fake INCOMING M-Pesa credit into the real pipeline. No real money moves.")
+    GlassCard(modifier = Modifier.fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("DEV", color = NightBlack, fontSize = 10.sp, fontWeight = FontWeight.Bold,
+                modifier = Modifier.clip(CircleShape).background(BingwaOrange).padding(horizontal = 8.dp, vertical = 3.dp))
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Simulate Payment", color = White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            "Phone, payer name and amount become a fake \"received from\" SMS. The engine matches an offer, dials, updates status and replies — exactly like a real payment.",
+            color = White.copy(alpha = 0.55f),
+            fontSize = 12.sp
+        )
+        Spacer(modifier = Modifier.height(14.dp))
+        SimulateField(value = phone, onValueChange = { phone = it }, hint = "e.g. 0712345678")
+        Spacer(modifier = Modifier.height(10.dp))
+        SimulateField(value = payerName, onValueChange = { payerName = it }, hint = "Payer name e.g. JOHN DOE")
+        Spacer(modifier = Modifier.height(10.dp))
+        SimulateField(value = amountText, onValueChange = { amountText = it.filter { c -> c.isDigit() || c == '.' } }, hint = "Amount e.g. 20")
+        Spacer(modifier = Modifier.height(14.dp))
+        GradientButton(
+            text = "Run Simulation",
+            onClick = {
+                viewModel.simulatePayment(phone, payerName, amountText.toDoubleOrNull() ?: 0.0)
+            }
+        )
+        result?.let {
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(it, color = EmeraldGreen, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+        }
+    }
+}
+
+@Composable
+private fun SimulateField(value: String, onValueChange: (String) -> Unit, hint: String) {
+    val shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(GlassFill)
+            .border(1.dp, GlassBorder, shape)
+            .padding(horizontal = 14.dp, vertical = 13.dp)
+    ) {
+        BasicTextField(
+            value = value,
+            onValueChange = onValueChange,
+            singleLine = true,
+            textStyle = TextStyle(color = White, fontSize = 14.sp),
+            cursorBrush = SolidColor(BingwaOrange),
+            modifier = Modifier.fillMaxWidth()
+        )
+        if (value.isEmpty()) {
+            Text(hint, color = White.copy(alpha = 0.4f), fontSize = 14.sp)
+        }
+    }
+}
+
+@Composable
+private fun DevChip() {
+    Text(
+        "DEV",
+        color = NightBlack,
+        fontSize = 10.sp,
+        fontWeight = FontWeight.Bold,
+        modifier = Modifier
+            .clip(CircleShape)
+            .background(BingwaOrange)
+            .padding(horizontal = 8.dp, vertical = 3.dp)
+    )
+}
+
 
 @Composable
 private fun BackupRestorePage(viewModel: SettingsViewModel) {
@@ -475,6 +584,7 @@ private fun UpdatesPage(viewModel: SettingsViewModel) {
     val context = LocalContext.current
 
     PageTitle("Check For Updates")
+    PageIntro("Compare this build against the latest GitHub release.")
     GlassCard(
         modifier = Modifier
             .fillMaxWidth()
@@ -534,6 +644,7 @@ private fun UpdatesPage(viewModel: SettingsViewModel) {
 @Composable
 private fun AboutPage(viewModel: SettingsViewModel) {
     PageTitle("About")
+    PageIntro("What Bingwa Score is and which build is installed.")
     GlassCard(modifier = Modifier.fillMaxWidth()) {
         Text("Bingwa Score", color = White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(2.dp))

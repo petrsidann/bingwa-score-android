@@ -45,3 +45,19 @@ val GlassFillStrong = Color(0x22FFFFFF)
 
 /** Strong glass border — emphasized rows, dividers (white ≈20%). */
 val GlassBorderStrong = Color(0x33FFFFFF)
+
+/** Active-dot track (white 25%) — replaces raw Color(0x40FFFFFF). */
+val DotTrack = Color(0x40FFFFFF)
+
+/** Faint divider (white ≈5%) — replaces raw Color(0x0DFFFFFF). */
+val FaintDivider = Color(0x0DFFFFFF)
+
+// ─── Light scheme anchors ────────────────────────────────────────────────────
+/** Light-mode screen background. */
+val LightBackground = Color(0xFFF4F6F5)
+
+/** Light-mode card surface. */
+val LightSurface = Color(0xFFFFFFFF)
+
+/** Ink drawn on top of the orange→amber brand gradient. */
+val OnBrandInk = Color(0xFF0A0A0F)

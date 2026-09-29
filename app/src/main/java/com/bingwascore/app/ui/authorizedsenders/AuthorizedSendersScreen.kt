@@ -53,6 +53,8 @@ import com.bingwascore.app.ui.theme.GlassFill
 import com.bingwascore.app.ui.theme.Amber
 import com.bingwascore.app.ui.theme.BingwaOrange
 import com.bingwascore.app.ui.theme.EmeraldGreen
+import com.bingwascore.app.ui.theme.ErrorRed
+import com.bingwascore.app.ui.theme.OnBrandInk
 import com.bingwascore.app.ui.theme.brandBrush
 import com.bingwascore.app.ui.theme.ErrorRed
 import com.bingwascore.app.ui.theme.NightBlack
@@ -173,7 +175,7 @@ private fun SenderInput(value: String, onValueChange: (String) -> Unit, onSubmit
             Icon(
                 imageVector = Icons.Rounded.Add,
                 contentDescription = "Add trusted number",
-                tint = Color(0xFF0A0A0F),
+                tint = OnBrandInk,
                 modifier = Modifier.size(24.dp)
             )
         }

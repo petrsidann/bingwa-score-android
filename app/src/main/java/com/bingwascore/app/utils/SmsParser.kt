@@ -33,8 +33,27 @@ object SmsParser {
         val amount: Double?,
         val phone: String?,
         val name: String?,
-        val sender: String
+        val sender: String,
+        val type: SmsType = SmsType.INCOMING_PAYMENT
     )
+
+    /**
+     * Functional truth for the SMS pipeline (Audit G8):
+     *
+     * - INCOMING_PAYMENT: "received from" — the ONLY type the pipeline acts on.
+     * - OUTGOING_PAYMENT: "sent to" / "you have sent" / "withdrawn" — ignored
+     *   completely downstream (no transaction, no reply).
+     * - COMMISSION: Safaricom commission summaries.
+     * - COMPLETION: "successfully recommended" bundle confirmations.
+     * - UNKNOWN: anything else.
+     */
+    enum class SmsType {
+        INCOMING_PAYMENT,
+        OUTGOING_PAYMENT,
+        COMMISSION,
+        COMPLETION,
+        UNKNOWN
+    }
 
     // "UHNRD47VMC Confirmed" — 10-char receipt right before the "Confirmed".
     private val receiptPattern =
@@ -55,6 +74,23 @@ object SmsParser {
     // "Total Commission this week is Ksh.1825.1"
     private val commissionPattern =
         Pattern.compile("Commission.*?(?:KSH?|KES)\\.?\\s*([0-9][0-9,]*(?:\\.[0-9]+)?)", Pattern.CASE_INSENSITIVE)
+
+    /**
+     * Classifies an SMS body into its functional [SmsType] WITHOUT parsing
+     * amounts or phones. Outgoing markers win over incoming markers so a
+     * mixed/rubbish body can never slip into the money pipeline.
+     */
+    fun classify(body: String): SmsType {
+        val lower = body.lowercase(java.util.Locale.ROOT)
+        return when {
+            lower.contains("sent to") || lower.contains("you have sent") ||
+                lower.contains("withdrawn") -> SmsType.OUTGOING_PAYMENT
+            lower.contains("received from") -> SmsType.INCOMING_PAYMENT
+            lower.contains("commission") -> SmsType.COMMISSION
+            lower.contains("successfully recommended") -> SmsType.COMPLETION
+            else -> SmsType.UNKNOWN
+        }
+    }
 
     /**
      * Parses an inbound SMS as an M-Pesa confirmation. Returns null (never
@@ -81,7 +117,7 @@ object SmsParser {
             val name = namePattern.matcher(body).let {
                 if (it.find()) it.group(1)?.trim() else null
             }
-            return MpesaMessage(receipt, amount, phone, name, sender)
+            return MpesaMessage(receipt, amount, phone, name, sender, type = classify(body))
         } catch (t: Throwable) {
             Timber.e(t, "SmsParser.parse crashed for %s", sender)
             return null

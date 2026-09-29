@@ -39,6 +39,7 @@ import com.bingwascore.app.ui.components.EmptyState
 import com.bingwascore.app.ui.components.GlassCard
 import com.bingwascore.app.util.screenEnter
 import com.bingwascore.app.ui.theme.EmeraldGreen
+import com.bingwascore.app.ui.theme.OnBrandInk
 import com.bingwascore.app.ui.theme.brandBrush
 import com.bingwascore.app.ui.theme.NightBlack
 import com.bingwascore.app.ui.theme.TealBlue
@@ -109,7 +110,7 @@ private fun BlacklistRow(
             ) {
                 Text(
                     (customer.name ?: customer.phoneNumber).take(1).uppercase(),
-                    color = Color(0xFF0A0A0F),
+                    color = OnBrandInk,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold
                 )

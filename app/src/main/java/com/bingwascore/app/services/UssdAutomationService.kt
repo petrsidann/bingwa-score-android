@@ -185,15 +185,12 @@ class UssdAutomationService : Service() {
     /**
      * Maps a raw USSD reply onto a [TransactionStatus]:
      * "already recommended" first, then generic failure keywords, else success.
+     *
+     * Extracted to [UssdResponses] so unit tests can cover it on the JVM
+     * without instantiating this Service.
      */
-    private fun classifyResponse(response: String): TransactionStatus {
-        val body = response.lowercase(Locale.ROOT)
-        return when {
-            body.contains("already recommended") -> TransactionStatus.FAILED_ALREADY_RECOMMENDED
-            FAILURE_KEYWORDS.any { body.contains(it) } -> TransactionStatus.FAILED
-            else -> TransactionStatus.SUCCESSFUL
-        }
-    }
+    private fun classifyResponse(response: String): TransactionStatus =
+        UssdResponses.classify(response)
 
     /**
      * Routes the terminal status into the pipeline: it persists the final

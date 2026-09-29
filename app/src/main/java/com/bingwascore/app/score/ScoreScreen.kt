@@ -48,6 +48,7 @@ import com.bingwascore.app.ui.theme.Motion
 import com.bingwascore.app.ui.theme.Amber
 import com.bingwascore.app.ui.theme.Bronze
 import com.bingwascore.app.ui.theme.EmeraldGreen
+import com.bingwascore.app.ui.theme.FaintDivider
 import com.bingwascore.app.ui.theme.Gold
 import com.bingwascore.app.ui.theme.NightBlack
 import com.bingwascore.app.ui.theme.Orange500
@@ -161,7 +162,7 @@ private fun AchievementCard(a: Achievement, enterDelayMillis: Int, modifier: Mod
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier = Modifier.size(40.dp).clip(CircleShape)
-                    .background(if (a.unlocked) EmeraldGreen.copy(alpha = 0.15f) else Color(0x0DFFFFFF)),
+                    .background(if (a.unlocked) EmeraldGreen.copy(alpha = 0.15f) else FaintDivider),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(

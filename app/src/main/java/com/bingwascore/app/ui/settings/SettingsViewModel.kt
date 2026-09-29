@@ -9,6 +9,7 @@ import com.bingwascore.app.BuildConfig
 import com.bingwascore.app.data.preferences.UserPreferences
 import com.bingwascore.app.domain.AppProcessingMode
 import com.bingwascore.app.domain.ThemeMode
+import com.bingwascore.app.domain.engine.TransactionPipeline
 import com.bingwascore.app.updates.UpdateChecker
 import com.bingwascore.app.updates.UpdateState
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -32,7 +33,8 @@ sealed interface UpdateCheckState {
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val userPreferences: UserPreferences
+    private val userPreferences: UserPreferences,
+    private val pipeline: TransactionPipeline
 ) : ViewModel() {
 
     val themeMode: StateFlow<ThemeMode> = userPreferences.themeMode
@@ -51,6 +53,31 @@ class SettingsViewModel @Inject constructor(
     val updateUrl: StateFlow<String?> = _updateUrl.asStateFlow()
 
     val appVersion: String = BuildConfig.APP_VERSION
+
+    private val _simulateResult = MutableStateFlow<String?>(null)
+    val simulateResult: StateFlow<String?> = _simulateResult.asStateFlow()
+
+    /**
+     * Dev hook (Audit G8): feeds a fake INCOMING payment into the real engine
+     * so match -> dial -> status -> reply is testable with zero real money.
+     */
+    fun simulatePayment(phone: String, name: String, amount: Double) {
+        viewModelScope.launch {
+            try {
+                val cleanPhone = phone.trim()
+                if (cleanPhone.isBlank() || amount <= 0.0) {
+                    _simulateResult.value = "Enter a phone number and an amount above 0."
+                    return@launch
+                }
+                pipeline.simulateIncomingPayment(cleanPhone, name.trim(), amount)
+                _simulateResult.value =
+                    "Simulated Ksh ${"%.2f".format(amount)} from $cleanPhone — watch Transactions."
+            } catch (t: Throwable) {
+                Timber.e(t, "simulatePayment failed")
+                _simulateResult.value = "Simulation failed: ${t.message}"
+            }
+        }
+    }
 
     fun setThemeMode(value: ThemeMode) {
         viewModelScope.launch { userPreferences.setThemeMode(value) }

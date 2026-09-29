@@ -5,23 +5,22 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
 import com.bingwascore.app.domain.ThemeMode
 
 private val DarkColors = darkColorScheme(
     primary = BingwaOrange,
     secondary = Amber,
     tertiary = OrangeDark,
-    background = Color(0xFF0A0A0F),
-    surface = Color(0xFF12121A)
+    background = NightBlack,
+    surface = SurfaceDark
 )
 
 private val LightColors = lightColorScheme(
     primary = BingwaOrange,
     secondary = Amber,
     tertiary = OrangeDark,
-    background = Color(0xFFF4F6F5),
-    surface = Color(0xFFFFFFFF)
+    background = LightBackground,
+    surface = LightSurface
 )
 
 /**

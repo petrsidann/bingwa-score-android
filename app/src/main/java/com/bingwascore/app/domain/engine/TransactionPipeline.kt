@@ -6,6 +6,7 @@ import android.os.Build
 import android.telephony.SmsManager
 import com.bingwascore.app.data.local.Offer
 import com.bingwascore.app.data.local.Transaction
+import com.bingwascore.app.data.preferences.AuthorizedSendersStore
 import com.bingwascore.app.data.preferences.UserPreferences
 import com.bingwascore.app.data.repository.AutoReplyRepository
 import com.bingwascore.app.data.repository.CustomerRepository
@@ -45,6 +46,7 @@ class TransactionPipeline @Inject constructor(
     private val customerRepository: CustomerRepository,
     private val autoReplyRepository: AutoReplyRepository,
     private val userPreferences: UserPreferences,
+    private val authorizedSenders: AuthorizedSendersStore,
     private val engageBot: EngageBotSessionLifecycle
 ) {
 
@@ -53,13 +55,37 @@ class TransactionPipeline @Inject constructor(
     // ------------------------------------------------------------------
 
     /**
-     * An M-Pesa credit landed. Blacklist check -> CANCELLED + reply; paused
-     * bot -> PAUSED + reply; no offer matching the price -> UNMATCHED + reply;
-     * recent successful duplicate -> engage/fallback; else insert PENDING and
-     * kick off the USSD automation.
+     * An M-Pesa credit landed. Functional truth (Audit G8):
+     *
+     * - Acts ONLY on INCOMING_PAYMENT ("received from"). OUTGOING_PAYMENT
+     *   ("sent to"/"you have sent"/"withdrawn") is ignored completely — no
+     *   transaction row, no auto-reply.
+     * - Authorized-senders gate: when the trusted list is non-empty, SMS from
+     *   any other sender are IGNORED with no reply.
+     * - Auto-replies always go to the parsed PAYER phone, never to [sender].
+     * - Engage Bot triggers only on INCOMING duplicates.
+     *
+     * Blacklist check -> CANCELLED + reply; paused bot -> PAUSED + reply; no
+     * offer matching the price -> UNMATCHED + reply; recent successful
+     * duplicate -> engage/fallback; else insert PENDING and kick off the USSD
+     * automation.
      */
     suspend fun onMpesaReceived(sender: String, body: String) {
         try {
+            // 0a. SMS truth gate: OUTGOING (sent to / withdrawn) is ignored
+            //     completely — no transaction, no reply.
+            val smsType = SmsParser.classify(body)
+            if (smsType != SmsParser.SmsType.INCOMING_PAYMENT) {
+                Timber.d("Ignoring non-incoming SMS type=%s sender=%s", smsType, sender)
+                return
+            }
+
+            // 0b. Authorized-senders gate: a non-empty trusted list means any
+            //     other sender is IGNORED with no reply.
+            if (!isSenderAuthorized(sender)) {
+                Timber.w("Ignoring SMS from unauthorized sender=%s", sender)
+                return
+            }
             val parsed = parseMpesa(sender, body) ?: run {
                 Timber.w("M-Pesa SMS could not be parsed: %s", body)
                 return
@@ -463,6 +489,51 @@ class TransactionPipeline @Inject constructor(
         val name: String?,
         val amount: Double?
     )
+
+    /**
+     * Dev/test hook (Audit G8 "Simulate Payment"): feeds a fake INCOMING
+     * M-Pesa confirmation into the real pipeline — match -> dial -> status ->
+     * reply — with zero real money. No-op when any field is blank/invalid.
+     */
+    suspend fun simulateIncomingPayment(phone: String, name: String, amount: Double) {
+        try {
+            if (phone.isBlank() || amount <= 0.0) return
+            val payer = name.ifBlank { "Test Payer" }
+            val receipt = "SIM${(100000000L + (Math.random() * 899999999L).toLong())}"
+            val body = "$receipt Confirmed.on 29/9/26 at 12:00 PM" +
+                "Ksh${String.format(java.util.Locale.ROOT, "%.2f", amount)} received from " +
+                "$payer $phone. New M-PESA balance is KES 1,000.00."
+            Timber.d("Simulating incoming payment phone=%s amount=%.2f", phone, amount)
+            onMpesaReceived("MPESA", body)
+        } catch (t: Throwable) {
+            Timber.e(t, "simulateIncomingPayment failed")
+        }
+    }
+
+    /**
+     * Authorized-senders gate. Empty trusted list = allow everything (default
+     * open). Non-empty list = only listed senders pass. Reads are synchronous
+     * SharedPreferences hits so the SMS path stays fast and never suspends.
+     */
+    private fun isSenderAuthorized(sender: String): Boolean {
+        return try {
+            val trusted = authorizedSenders.snapshot()
+            if (trusted.isEmpty()) return true
+            val upper = sender.uppercase(java.util.Locale.ROOT)
+            if (upper.contains("MPESA")) {
+                trusted.any { it.uppercase(java.util.Locale.ROOT).contains("MPESA") }
+            } else {
+                trusted.any { entry ->
+                    entry.equals(sender, ignoreCase = true) ||
+                        sender.contains(entry, ignoreCase = true) ||
+                        entry.contains(sender, ignoreCase = true)
+                }
+            }
+        } catch (t: Throwable) {
+            Timber.e(t, "Authorized-sender check failed — allowing by default")
+            true
+        }
+    }
 
     private fun parseMpesa(sender: String, body: String): ParsedMpesa? {
         val message = SmsParser.parse(sender, body) ?: return null

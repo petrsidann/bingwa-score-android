@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.bingwascore.app.data.local.Transaction
 import com.bingwascore.app.data.repository.TransactionRepository
 import com.bingwascore.app.domain.TransactionStatus
+import com.bingwascore.app.utils.CsvEscapes
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -190,15 +191,10 @@ class TransactionsViewModel @Inject constructor(
                     tx.errorMessage.orEmpty(),
                     tx.retryCount.toString(),
                     tx.isAutoRenewal.toString()
-                ).joinToString(",") { csvEscape(it) }
+                ).joinToString(",") { CsvEscapes.escape(it) }
             }
         }
 
-        private fun csvEscape(value: String): String =
-            if (value.contains(',') || value.contains('"') || value.contains('\n')) {
-                "\"" + value.replace("\"", "\"\"") + "\""
-            } else {
-                value
-            }
+        private fun csvEscape(value: String): String = CsvEscapes.escape(value)
     }
 }

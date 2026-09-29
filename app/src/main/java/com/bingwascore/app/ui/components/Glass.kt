@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.sp
 import com.bingwascore.app.ui.theme.GlassBorderStrong
 import com.bingwascore.app.ui.theme.GlassFill
 import com.bingwascore.app.ui.theme.BrandColors
+import com.bingwascore.app.ui.theme.OnBrandInk
 
 /**
  * Frosted glass card. Every card fades + slides in on composition; when
@@ -106,7 +107,7 @@ fun GradientButton(
             },
         contentAlignment = Alignment.Center
     ) {
-        Text(text, color = Color(0xFF0A0A0F), fontWeight = FontWeight.Bold, fontSize = 17.sp)
+        Text(text, color = OnBrandInk, fontWeight = FontWeight.Bold, fontSize = 17.sp)
     }
 }
 
