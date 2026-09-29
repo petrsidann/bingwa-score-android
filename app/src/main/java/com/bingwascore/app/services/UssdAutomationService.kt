@@ -183,11 +183,10 @@ class UssdAutomationService : Service() {
     }
 
     /**
-     * Maps a raw USSD reply onto a [TransactionStatus]:
-     * "already recommended" first, then generic failure keywords, else success.
-     *
-     * Extracted to [UssdResponses] so unit tests can cover it on the JVM
-     * without instantiating this Service.
+     * Maps a raw USSD reply onto a [TransactionStatus] via [UssdResponses]
+     * (Parity Block B Hybrid truth: exact SUCCESS regex + 10 failure
+     * literals). Extracted to [UssdResponses] so unit tests can cover it on
+     * the JVM without instantiating this Service.
      */
     private fun classifyResponse(response: String): TransactionStatus =
         UssdResponses.classify(response)
@@ -227,6 +226,9 @@ class UssdAutomationService : Service() {
 
         private const val DEFAULT_USSD_TIMEOUT_MILLIS = 20_000L
 
+        // Legacy keyword list kept for reference; classification lives in
+        // UssdResponses (Parity Block B Hybrid truth).
+        @Suppress("unused")
         private val FAILURE_KEYWORDS = listOf("failed", "error", "invalid", "not allowed")
     }
 }

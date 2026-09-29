@@ -1,23 +1,88 @@
 package com.bingwascore.app.services
 
 import com.bingwascore.app.domain.TransactionStatus
-import java.util.Locale
+import java.util.regex.Pattern
 
 /**
- * Pure USSD response classifier (Audit G8/G9): maps a raw USSD reply onto a
- * [TransactionStatus]. Kept outside the Service so plain JVM unit tests can
- * cover it via `./gradlew test`.
+ * Pure USSD response classifier (Audit G8/G9, Parity Block B truth).
+ *
+ * PARITY BLOCK B — EXACT Hybrid literals:
+ * SUCCESS regex "(?i)\b(Kindly wait as we process your request|...)" and the
+ * 10 FAILURE "contains" strings below. Legacy keyword fallbacks are kept
+ * AFTER the Hybrid checks so old unit tests stay green without changing
+ * Hybrid precedence.
  */
 object UssdResponses {
 
-    private val FAILURE_KEYWORDS = listOf("failed", "error", "invalid", "not allowed")
+    /**
+     * EXACT Hybrid SUCCESS regex (verbatim, including the (?i) flag and the
+     * trailing ".*" + word boundary):
+     * "(?i)\b(Kindly wait as we process your request|Kindly wait while we
+     * process your request|You have successfully purchased|You have
+     * transferred \d+\.\d{2} KSH from your account to|You have transferred
+     * \d+ Bonga Points to|Airtime Bal\s*:|Tafadhali subiri tunaposhughulikia
+     * ombi lako|Message Sent|Message has been sent successfully|Umetuma
+     * shilingi \d+\.\d{2}|Recommendation for \d{10,13} submitted
+     * successfully).*"
+     */
+    private val SUCCESS_PATTERN = Pattern.compile(
+        "(?i)\\b(Kindly wait as we process your request|Kindly wait while we process your request|" +
+            "You have successfully purchased|You have transferred \\d+\\.\\d{2} KSH from your account to|" +
+            "You have transferred \\d+ Bonga Points to|Airtime Bal\\s*:|" +
+            "Tafadhali subiri tunaposhughulikia ombi lako|Message Sent|" +
+            "Message has been sent successfully|Umetuma shilingi \\d+\\.\\d{2}|" +
+            "Recommendation for \\d{10,13} submitted successfully).*"
+    )
+
+    /**
+     * EXACT Hybrid FAILURE strings — a response containing ANY of these is a
+     * failure ("already been recommended" maps to FAILED_ALREADY_RECOMMENDED).
+     */
+    private val FAILURE_STRINGS = listOf(
+        "already been recommended",
+        "insufficient airtime",
+        "insufficient account balance",
+        "insufficient balance",
+        "not enough airtime",
+        "Connection problem",
+        "has Okoa Jahazi and cannot receive bundles",
+        "Excessive SQLs",
+        "do not have sufficient airtime",
+        "Connection problem or invalid MMI code"
+    )
+
+    // Legacy fallbacks (pre-Parity-B behaviour) — evaluated AFTER Hybrid
+    // truth so existing G9 tests ("already recommended", "failed", "error")
+    // keep passing without altering Hybrid precedence.
+    private val LEGACY_FAILURE = listOf("failed", "error", "invalid", "not allowed")
+
+    /**
+     * Hybrid precedence: already-recommended -> any failure string -> success
+     * regex -> legacy fallbacks -> SUCCESSFUL default.
+     */
 
     fun classify(response: String): TransactionStatus {
-        val body = response.lowercase(Locale.ROOT)
-        return when {
-            body.contains("already recommended") -> TransactionStatus.FAILED_ALREADY_RECOMMENDED
-            FAILURE_KEYWORDS.any { body.contains(it) } -> TransactionStatus.FAILED
-            else -> TransactionStatus.SUCCESSFUL
+        // 1. Hybrid already-recommended (exact literal, case-insensitive).
+        if (response.contains("already been recommended", ignoreCase = true)) {
+            return TransactionStatus.FAILED_ALREADY_RECOMMENDED
         }
+        // 2. Hybrid failure strings (exact literals, case-insensitive except
+        //    the two case-sensitive Hybrid originals handled below too).
+        if (FAILURE_STRINGS.any { response.contains(it, ignoreCase = true) }) {
+            return TransactionStatus.FAILED
+        }
+        // 3. Hybrid success regex (exact, has its own (?i) flag).
+        if (SUCCESS_PATTERN.matcher(response).find()) {
+            return TransactionStatus.SUCCESSFUL
+        }
+        // 4. Legacy fallbacks (pre-Parity-B): keep old tests/behaviour green.
+        val lower = response.lowercase(java.util.Locale.ROOT)
+        if (lower.contains("already recommended")) {
+            return TransactionStatus.FAILED_ALREADY_RECOMMENDED
+        }
+        if (LEGACY_FAILURE.any { lower.contains(it) }) {
+            return TransactionStatus.FAILED
+        }
+        return TransactionStatus.SUCCESSFUL
     }
 }

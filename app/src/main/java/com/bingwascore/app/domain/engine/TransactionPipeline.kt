@@ -376,6 +376,13 @@ class TransactionPipeline @Inject constructor(
         }
     }
 
+    /**
+     * PARITY BLOCK B — Hybrid placeholder engine. Delegates to
+     * [AutoReplyEngine] (exact Hybrid `@key?='default'` regex logic) and then
+     * applies the legacy `<key>` tokens so pre-existing templates keep
+     * rendering. Replacement data: name/firstName, phone, amount, offer,
+     * receipt.
+     */
     private fun fillPlaceholders(
         message: String,
         firstName: String?,
@@ -383,12 +390,24 @@ class TransactionPipeline @Inject constructor(
         amount: Double,
         offerName: String,
         mpesaCode: String
-    ): String = message
+    ): String {
+        val hybrid = AutoReplyEngine.render(
+            message,
+            AutoReplyEngine.TxData(
+                firstName = firstName,
+                phone = phone,
+                amount = formatAmount(amount),
+                offerName = offerName,
+                receipt = mpesaCode
+            )
+        )
+        return hybrid
         .replace("<firstName>", firstName ?: "customer")
         .replace("<phone>", phone)
         .replace("<amount>", formatAmount(amount))
         .replace("<offerName>", offerName)
         .replace("<mpesaCode>", mpesaCode)
+    }
 
     private fun fallbackFor(type: String): String = when (type) {
         TransactionStatus.SUCCESSFUL.value ->
