@@ -1,4 +1,4 @@
-﻿package com.bingwascore.app.ui.onboarding
+package com.bingwascore.app.ui.onboarding
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -34,10 +34,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bingwascore.app.ui.components.GradientButton
-import com.bingwascore.app.ui.theme.EmeraldGreen
+import com.bingwascore.app.ui.theme.BingwaOrange
 import com.bingwascore.app.ui.theme.brandBrush
 import com.bingwascore.app.ui.theme.NightBlack
-import com.bingwascore.app.ui.theme.TealBlue
 import com.bingwascore.app.ui.theme.White
 
 private data class OnboardingSlide(val icon: ImageVector, val title: String, val body: String)
@@ -90,7 +89,7 @@ fun OnboardingCarousel(
             slides.forEachIndexed { index, _ ->
                 Box(modifier = Modifier.padding(horizontal = 4.dp)
                     .size(if (index == page) 10.dp else 8.dp).clip(CircleShape)
-                    .background(if (index == page) EmeraldGreen else White.copy(alpha = 0.3f)))
+                    .background(if (index == page) BingwaOrange else White.copy(alpha = 0.3f)))
             }
         }
 

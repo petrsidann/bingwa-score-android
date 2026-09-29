@@ -1,4 +1,4 @@
-﻿package com.bingwascore.app.ui.home
+package com.bingwascore.app.ui.home
 
 import android.Manifest
 import android.content.Context
@@ -77,6 +77,8 @@ import com.bingwascore.app.ui.components.GlassExplanationDialog
 import com.bingwascore.app.ui.components.GradientButton
 import com.bingwascore.app.ui.components.HapticSwitch
 import com.bingwascore.app.ui.components.shimmer
+import com.bingwascore.app.ui.theme.Amber
+import com.bingwascore.app.ui.theme.BingwaOrange
 import com.bingwascore.app.ui.theme.EmeraldGreen
 import com.bingwascore.app.ui.theme.brandBrush
 import com.bingwascore.app.ui.theme.BrandColors
@@ -334,7 +336,7 @@ private fun HealthBanner(missingCount: Int, onFix: () -> Unit, onOpenSettings: (
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             "Denied before? Open system settings",
-            color = TealBlue,
+            color = Amber,
             fontSize = 12.sp,
             modifier = Modifier
                 .align(Alignment.CenterHorizontally)
@@ -377,7 +379,7 @@ private fun AirtimeBalanceCard(
             Icon(
                 imageVector = Icons.Rounded.Refresh,
                 contentDescription = "Refresh balance",
-                tint = EmeraldGreen,
+                tint = BingwaOrange,
                 modifier = Modifier
                     .size(22.dp)
                     .graphicsLayer { rotationZ = if (balanceLoading) refreshAngle else 0f }

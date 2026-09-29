@@ -44,6 +44,7 @@ import com.bingwascore.app.domain.score.Achievement
 import com.bingwascore.app.domain.score.ScoreState
 import com.bingwascore.app.ui.components.AnimatedRing
 import com.bingwascore.app.ui.components.GlassCard
+import com.bingwascore.app.ui.theme.Amber
 import com.bingwascore.app.ui.theme.Bronze
 import com.bingwascore.app.ui.theme.EmeraldGreen
 import com.bingwascore.app.ui.theme.Gold
@@ -51,7 +52,6 @@ import com.bingwascore.app.ui.theme.NightBlack
 import com.bingwascore.app.ui.theme.Orange500
 import com.bingwascore.app.ui.theme.Platinum
 import com.bingwascore.app.ui.theme.Silver
-import com.bingwascore.app.ui.theme.TealBlue
 import com.bingwascore.app.ui.theme.White
 import com.bingwascore.app.util.screenEnter
 import kotlinx.coroutines.delay
@@ -91,7 +91,7 @@ fun ScoreScreen(viewModel: ScoreViewModel = hiltViewModel()) {
         Spacer(modifier = Modifier.height(16.dp))
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             StatChip("Success Rate", "${(state.successRate * 100).toInt()}%", EmeraldGreen, Modifier.weight(1f))
-            StatChip("Commission", "Ksh ${state.totalCommission.toInt()}", TealBlue, Modifier.weight(1f))
+            StatChip("Commission", "Ksh ${state.totalCommission.toInt()}", Amber, Modifier.weight(1f))
         }
         Spacer(modifier = Modifier.height(12.dp))
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -125,7 +125,7 @@ private fun LevelBadge(levelName: String) {
         "Silver" -> Silver
         "Gold" -> Gold
         "Platinum" -> Platinum
-        else -> EmeraldGreen
+        else -> Amber
     }
     Box(
         modifier = Modifier.clip(RoundedCornerShape(20.dp))

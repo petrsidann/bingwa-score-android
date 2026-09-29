@@ -37,9 +37,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bingwascore.app.ui.components.GlassCard
 import com.bingwascore.app.ui.components.GradientButton
+import com.bingwascore.app.ui.theme.Amber
 import com.bingwascore.app.ui.theme.EmeraldGreen
 import com.bingwascore.app.ui.theme.NightBlack
-import com.bingwascore.app.ui.theme.TealBlue
 import com.bingwascore.app.ui.theme.White
 import com.bingwascore.app.util.screenEnter
 
@@ -71,9 +71,9 @@ fun ReferralScreen(viewModel: ReferralViewModel = hiltViewModel()) {
                     }.padding(horizontal = 12.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Rounded.ContentCopy, contentDescription = "Copy", tint = TealBlue, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Rounded.ContentCopy, contentDescription = "Copy", tint = Amber, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Copy", color = TealBlue, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                    Text("Copy", color = Amber, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                 }
             }
             Spacer(modifier = Modifier.height(12.dp))

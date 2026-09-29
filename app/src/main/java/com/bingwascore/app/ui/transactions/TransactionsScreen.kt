@@ -62,12 +62,13 @@ import com.bingwascore.app.ui.components.EmptyState
 import com.bingwascore.app.ui.components.GlassCard
 import com.bingwascore.app.ui.components.pressScale
 import com.bingwascore.app.util.screenEnter
+import com.bingwascore.app.ui.theme.Amber
+import com.bingwascore.app.ui.theme.BingwaOrange
 import com.bingwascore.app.ui.theme.EmeraldGreen
 import com.bingwascore.app.ui.theme.ErrorRed
 import com.bingwascore.app.ui.theme.NightBlack
 import com.bingwascore.app.ui.theme.Orange500
 import com.bingwascore.app.ui.theme.SurfaceDark
-import com.bingwascore.app.ui.theme.TealBlue
 import com.bingwascore.app.ui.theme.White
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -324,7 +325,7 @@ private fun TransactionDetailSheet(
         Spacer(modifier = Modifier.height(16.dp))
 
         if (canRetry(transaction.status)) {
-            SheetAction(Icons.Rounded.Refresh, "Retry now", TealBlue, onRetry)
+            SheetAction(Icons.Rounded.Refresh, "Retry now", Amber, onRetry)
             Spacer(modifier = Modifier.height(10.dp))
         }
         if (canComplete(transaction.status)) {
@@ -402,10 +403,10 @@ private fun FilterChip(label: String, selected: Boolean, onClick: () -> Unit) {
         modifier = Modifier
             .pressScale(interactionSource)
             .clip(shape)
-            .background(if (selected) EmeraldGreen.copy(alpha = 0.18f) else Color(0x14FFFFFF))
+            .background(if (selected) BingwaOrange.copy(alpha = 0.18f) else Color(0x14FFFFFF))
             .border(
                 1.dp,
-                if (selected) EmeraldGreen.copy(alpha = 0.55f) else Color(0x1FFFFFFF),
+                if (selected) BingwaOrange.copy(alpha = 0.55f) else Color(0x1FFFFFFF),
                 shape
             )
             .clickable(
@@ -417,7 +418,7 @@ private fun FilterChip(label: String, selected: Boolean, onClick: () -> Unit) {
     ) {
         Text(
             label,
-            color = if (selected) EmeraldGreen else White.copy(alpha = 0.65f),
+            color = if (selected) BingwaOrange else White.copy(alpha = 0.65f),
             fontSize = 12.sp,
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
         )
@@ -446,7 +447,7 @@ private fun ExportButton(onClick: () -> Unit) {
             Icon(
                 imageVector = Icons.Rounded.FileDownload,
                 contentDescription = null,
-                tint = EmeraldGreen,
+                tint = BingwaOrange,
                 modifier = Modifier.size(18.dp)
             )
             Spacer(modifier = Modifier.width(6.dp))
@@ -463,7 +464,7 @@ private fun ExportButton(onClick: () -> Unit) {
 private fun statusColor(status: String): Color = when (status) {
     TransactionStatus.SUCCESSFUL.value -> EmeraldGreen
     TransactionStatus.FAILED.value, TransactionStatus.FAILED_ALREADY_RECOMMENDED.value -> ErrorRed
-    TransactionStatus.SCHEDULED.value -> TealBlue
+    TransactionStatus.SCHEDULED.value -> Amber
     else -> Orange500
 }
 

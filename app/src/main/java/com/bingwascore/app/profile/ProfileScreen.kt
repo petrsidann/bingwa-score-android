@@ -1,4 +1,4 @@
-﻿package com.bingwascore.app.profile
+package com.bingwascore.app.profile
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -39,6 +39,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bingwascore.app.ui.components.GlassCard
 import com.bingwascore.app.ui.components.HapticSwitch
+import com.bingwascore.app.ui.theme.Amber
 import com.bingwascore.app.ui.theme.Bronze
 import com.bingwascore.app.ui.theme.BingwaOrange
 import com.bingwascore.app.ui.theme.EmeraldGreen
@@ -124,7 +125,7 @@ private fun LevelBadge(levelName: String) {
         "Silver" -> Silver
         "Gold" -> Gold
         "Platinum" -> Platinum
-        else -> EmeraldGreen
+        else -> Amber
     }
     Box(
         modifier = Modifier.clip(RoundedCornerShape(16.dp))

@@ -38,7 +38,7 @@ import androidx.compose.ui.unit.sp
 import com.bingwascore.app.ui.components.AmbientBackground
 import com.bingwascore.app.ui.components.GlassCard
 import com.bingwascore.app.ui.components.GradientButton
-import com.bingwascore.app.ui.theme.EmeraldGreen
+import com.bingwascore.app.ui.theme.BingwaOrange
 import com.bingwascore.app.ui.theme.NightBlack
 import com.bingwascore.app.ui.theme.White
 import com.bingwascore.app.util.screenEnter
@@ -154,7 +154,7 @@ private fun GlassField(
             textStyle = TextStyle(color = Color.White, fontSize = 16.sp),
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
             visualTransformation = if (isPassword) PasswordVisualTransformation() else VisualTransformation.None,
-            cursorBrush = SolidColor(EmeraldGreen),
+            cursorBrush = SolidColor(BingwaOrange),
             modifier = Modifier.fillMaxWidth()
         )
         if (value.isEmpty()) {

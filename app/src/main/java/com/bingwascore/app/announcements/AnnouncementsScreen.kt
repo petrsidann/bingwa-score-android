@@ -32,7 +32,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bingwascore.app.ui.components.GlassCard
-import com.bingwascore.app.ui.theme.EmeraldGreen
+import com.bingwascore.app.ui.theme.Amber
 import com.bingwascore.app.ui.theme.NightBlack
 import com.bingwascore.app.ui.theme.Orange500
 import com.bingwascore.app.ui.theme.White
@@ -74,7 +74,7 @@ private fun AnnouncementCard(a: Announcement, enterDelayMillis: Int, modifier: M
             Text(a.date, color = White.copy(alpha = 0.45f), fontSize = 11.sp, modifier = Modifier.weight(1f))
             if (a.unread) {
                 Spacer(modifier = Modifier.width(6.dp))
-                Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(EmeraldGreen))
+                Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(Amber))
             }
         }
         Spacer(modifier = Modifier.height(8.dp))

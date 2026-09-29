@@ -37,10 +37,11 @@ import com.bingwascore.app.ui.components.GlassCard
 import com.bingwascore.app.ui.components.GradientButton
 import com.bingwascore.app.ui.components.HapticSwitch
 import com.bingwascore.app.util.screenEnter
+import com.bingwascore.app.ui.theme.Amber
+import com.bingwascore.app.ui.theme.BingwaOrange
 import com.bingwascore.app.ui.theme.EmeraldGreen
 import com.bingwascore.app.ui.theme.ErrorRed
 import com.bingwascore.app.ui.theme.NightBlack
-import com.bingwascore.app.ui.theme.TealBlue
 import com.bingwascore.app.ui.theme.White
 
 /** My Store: the agent's public storefront link with a live toggle. */
@@ -76,7 +77,7 @@ fun MyStoreScreen(viewModel: MyStoreViewModel = hiltViewModel()) {
             Icon(
                 Icons.Rounded.Share,
                 contentDescription = "Share store",
-                tint = EmeraldGreen,
+                tint = BingwaOrange,
                 modifier = Modifier
                     .size(36.dp)
                     .clip(RoundedCornerShape(10.dp))
@@ -101,7 +102,7 @@ fun MyStoreScreen(viewModel: MyStoreViewModel = hiltViewModel()) {
                 Icon(
                     imageVector = Icons.Rounded.Storefront,
                     contentDescription = null,
-                    tint = EmeraldGreen,
+                    tint = BingwaOrange,
                     modifier = Modifier.size(34.dp)
                 )
                 Spacer(modifier = Modifier.height(12.dp))
@@ -116,7 +117,7 @@ fun MyStoreScreen(viewModel: MyStoreViewModel = hiltViewModel()) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     "bingwascore.com/store/${MyStoreViewModel.slugify(userName)}",
-                    color = TealBlue,
+                    color = Amber,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -163,8 +164,8 @@ private fun StoreLinkCard(
                 onCheckedChange = onToggle,
                 colors = SwitchDefaults.colors(
                     checkedThumbColor = NightBlack,
-                    checkedTrackColor = EmeraldGreen,
-                    checkedBorderColor = EmeraldGreen,
+                    checkedTrackColor = BingwaOrange,
+                    checkedBorderColor = BingwaOrange,
                     uncheckedThumbColor = White.copy(alpha = 0.7f),
                     uncheckedTrackColor = Color(0x22FFFFFF),
                     uncheckedBorderColor = Color(0x33FFFFFF)
@@ -185,7 +186,7 @@ private fun StoreLinkCard(
             Icon(
                 imageVector = Icons.Rounded.Link,
                 contentDescription = null,
-                tint = TealBlue,
+                tint = Amber,
                 modifier = Modifier.size(18.dp)
             )
             Spacer(modifier = Modifier.width(10.dp))

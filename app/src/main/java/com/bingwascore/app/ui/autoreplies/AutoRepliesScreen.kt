@@ -48,12 +48,13 @@ import com.bingwascore.app.ui.components.EmptyState
 import com.bingwascore.app.ui.components.GlassCard
 import com.bingwascore.app.ui.components.HapticSwitch
 import com.bingwascore.app.util.screenEnter
+import com.bingwascore.app.ui.theme.Amber
+import com.bingwascore.app.ui.theme.BingwaOrange
 import com.bingwascore.app.ui.theme.EmeraldGreen
 import com.bingwascore.app.ui.theme.ErrorRed
 import com.bingwascore.app.ui.theme.NightBlack
 import com.bingwascore.app.ui.theme.Orange500
 import com.bingwascore.app.ui.theme.SurfaceDark
-import com.bingwascore.app.ui.theme.TealBlue
 import com.bingwascore.app.ui.theme.White
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -117,8 +118,8 @@ fun AutoRepliesScreen(viewModel: AutoRepliesViewModel = hiltViewModel()) {
                             onCheckedChange = { viewModel.setEngageBotActive(it) },
                             colors = SwitchDefaults.colors(
                                 checkedThumbColor = NightBlack,
-                                checkedTrackColor = EmeraldGreen,
-                                checkedBorderColor = EmeraldGreen,
+                                checkedTrackColor = BingwaOrange,
+                                checkedBorderColor = BingwaOrange,
                                 uncheckedThumbColor = White.copy(alpha = 0.7f),
                                 uncheckedTrackColor = Color(0x22FFFFFF),
                                 uncheckedBorderColor = Color(0x33FFFFFF)
@@ -208,7 +209,7 @@ private fun TemplateCard(
                     Text(
                         template.type.replace('_', ' ').lowercase()
                             .replaceFirstChar { it.uppercase() },
-                        color = TealBlue,
+                        color = Amber,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.SemiBold,
                         modifier = Modifier
@@ -231,8 +232,8 @@ private fun TemplateCard(
                 onCheckedChange = { onToggle() },
                 colors = SwitchDefaults.colors(
                     checkedThumbColor = NightBlack,
-                    checkedTrackColor = EmeraldGreen,
-                    checkedBorderColor = EmeraldGreen,
+                    checkedTrackColor = BingwaOrange,
+                    checkedBorderColor = BingwaOrange,
                     uncheckedThumbColor = White.copy(alpha = 0.7f),
                     uncheckedTrackColor = Color(0x22FFFFFF),
                     uncheckedBorderColor = Color(0x33FFFFFF)
@@ -297,7 +298,7 @@ private fun DialogField(label: String, value: String, onValueChange: (String) ->
                 value = value,
                 onValueChange = onValueChange,
                 textStyle = TextStyle(color = White, fontSize = 14.sp),
-                cursorBrush = SolidColor(EmeraldGreen),
+                cursorBrush = SolidColor(BingwaOrange),
                 modifier = Modifier.fillMaxWidth()
             )
         }
@@ -308,7 +309,7 @@ private fun DialogField(label: String, value: String, onValueChange: (String) ->
 private fun BotLogRow(log: BotLog) {
     val timeFormat = remember { SimpleDateFormat("HH:mm:ss", Locale.getDefault()) }
     val kindColor = when (log.kind) {
-        BotLogKind.ENGAGE -> TealBlue
+        BotLogKind.ENGAGE -> Amber
         BotLogKind.SUCCESS -> EmeraldGreen
         BotLogKind.INVALID -> Orange500
         BotLogKind.ERROR -> ErrorRed

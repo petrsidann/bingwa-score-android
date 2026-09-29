@@ -57,6 +57,7 @@ import com.bingwascore.app.ui.components.GlassCard
 import com.bingwascore.app.ui.components.GlassExplanationDialog
 import com.bingwascore.app.ui.components.GradientButton
 import com.bingwascore.app.util.screenEnter
+import com.bingwascore.app.ui.theme.BingwaOrange
 import com.bingwascore.app.ui.theme.EmeraldGreen
 import com.bingwascore.app.ui.theme.NightBlack
 import com.bingwascore.app.ui.theme.White
@@ -248,13 +249,13 @@ private fun SettingsRow(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(CircleShape)
-                    .background(EmeraldGreen.copy(alpha = 0.12f)),
+                    .background(BingwaOrange.copy(alpha = 0.12f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = EmeraldGreen,
+                    tint = BingwaOrange,
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -299,7 +300,7 @@ private fun OptionCard(
                 Icon(
                     imageVector = Icons.Rounded.CheckCircle,
                     contentDescription = "Selected",
-                    tint = EmeraldGreen,
+                    tint = BingwaOrange,
                     modifier = Modifier.size(22.dp)
                 )
             } else {

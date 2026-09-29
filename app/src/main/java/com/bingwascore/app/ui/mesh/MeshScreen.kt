@@ -38,6 +38,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bingwascore.app.ui.components.GlassCard
 import com.bingwascore.app.ui.components.GradientButton
 import com.bingwascore.app.util.screenEnter
+import com.bingwascore.app.ui.theme.BingwaOrange
 import com.bingwascore.app.ui.theme.EmeraldGreen
 import com.bingwascore.app.ui.theme.ErrorRed
 import com.bingwascore.app.ui.theme.NightBlack
@@ -90,7 +91,7 @@ fun MeshScreen(viewModel: MeshViewModel = hiltViewModel()) {
                     Icon(
                         imageVector = Icons.Rounded.DeviceHub,
                         contentDescription = null,
-                        tint = EmeraldGreen,
+                        tint = BingwaOrange,
                         modifier = Modifier.size(22.dp)
                     )
                 }
@@ -195,7 +196,7 @@ private fun MeshUrlField(value: String, onValueChange: (String) -> Unit) {
                 onValueChange = onValueChange,
                 singleLine = true,
                 textStyle = TextStyle(color = White, fontSize = 13.sp),
-                cursorBrush = SolidColor(EmeraldGreen),
+                cursorBrush = SolidColor(BingwaOrange),
                 modifier = Modifier.fillMaxWidth()
             )
             if (value.isEmpty()) {

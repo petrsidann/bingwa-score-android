@@ -10,11 +10,15 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -23,11 +27,12 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
 import com.bingwascore.app.ui.components.AmbientBackground
-import com.bingwascore.app.ui.theme.EmeraldGreen
+import com.bingwascore.app.ui.theme.Amber
+import com.bingwascore.app.ui.theme.BingwaOrange
 import com.bingwascore.app.ui.theme.Motion
 import com.bingwascore.app.ui.theme.NightBlack
-import com.bingwascore.app.ui.theme.TealBlue
 import com.bingwascore.app.ui.theme.White
 import com.bingwascore.app.util.screenEnter
 import kotlinx.coroutines.delay
@@ -41,13 +46,15 @@ import kotlinx.coroutines.launch
  * [AmbientBackground] blobs drift slowly.
  */
 @Composable
-fun SplashScreen(onNavigateToLogin: () -> Unit) {
+fun SplashScreen(target: String?, onFinish: (String) -> Unit) {
     val logoScale = remember { Animatable(0.8f) }
     val logoAlpha = remember { Animatable(0f) }
     val wordAlpha = remember { Animatable(0f) }
     val wordOffset = remember { Animatable(24f) }
     val taglineAlpha = remember { Animatable(0f) }
     val taglineOffset = remember { Animatable(16f) }
+    val currentTarget by rememberUpdatedState(target)
+    val currentOnFinish by rememberUpdatedState(onFinish)
 
     LaunchedEffect(Unit) {
         // Logo: fade in + springy scale-up
@@ -65,7 +72,13 @@ fun SplashScreen(onNavigateToLogin: () -> Unit) {
         launch { taglineOffset.animateTo(0f, tween(250)) }
         delay(200)
 
-        onNavigateToLogin()
+        // Hold the reveal until UserPreferences resolves (a frame or two at most).
+        var resolved = currentTarget
+        while (resolved == null) {
+            delay(50)
+            resolved = currentTarget
+        }
+        currentOnFinish(resolved)
     }
 
     Box(
@@ -76,7 +89,10 @@ fun SplashScreen(onNavigateToLogin: () -> Unit) {
     ) {
         AmbientBackground()
 
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(
+            modifier = Modifier.align(Alignment.Center),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
             Box(
                 modifier = Modifier
                     .graphicsLayer {
@@ -86,14 +102,23 @@ fun SplashScreen(onNavigateToLogin: () -> Unit) {
                     }
                     .size(96.dp)
                     .clip(RoundedCornerShape(28.dp))
-                    .background(Brush.linearGradient(listOf(EmeraldGreen, TealBlue))),
+                    .background(Brush.linearGradient(listOf(BingwaOrange, Amber))),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     "B",
-                    color = NightBlack,
+                    color = White,
                     fontSize = 44.sp,
                     fontWeight = FontWeight.ExtraBold
+                )
+                // Small amber spark dot, top-right — mirrors the app icon.
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(top = 7.dp, end = 7.dp)
+                        .size(9.dp)
+                        .clip(CircleShape)
+                        .background(Amber)
                 )
             }
 

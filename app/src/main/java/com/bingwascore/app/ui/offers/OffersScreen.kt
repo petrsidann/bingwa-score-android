@@ -1,4 +1,4 @@
-﻿package com.bingwascore.app.ui.offers
+package com.bingwascore.app.ui.offers
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -61,12 +61,12 @@ import com.bingwascore.app.ui.components.GradientButton
 import com.bingwascore.app.ui.components.HapticSwitch
 import com.bingwascore.app.ui.components.pressScale
 import com.bingwascore.app.util.screenEnter
+import com.bingwascore.app.ui.theme.BingwaOrange
 import com.bingwascore.app.ui.theme.EmeraldGreen
 import com.bingwascore.app.ui.theme.brandBrush
 import com.bingwascore.app.ui.theme.ErrorRed
 import com.bingwascore.app.ui.theme.NightBlack
 import com.bingwascore.app.ui.theme.SurfaceDark
-import com.bingwascore.app.ui.theme.TealBlue
 import com.bingwascore.app.ui.theme.White
 
 /** Statuses a fallback dial rule can trigger on. */
@@ -232,8 +232,8 @@ private fun OfferCard(
                 onCheckedChange = { onToggle() },
                 colors = SwitchDefaults.colors(
                     checkedThumbColor = NightBlack,
-                    checkedTrackColor = EmeraldGreen,
-                    checkedBorderColor = EmeraldGreen,
+                    checkedTrackColor = BingwaOrange,
+                    checkedBorderColor = BingwaOrange,
                     uncheckedThumbColor = White.copy(alpha = 0.7f),
                     uncheckedTrackColor = Color(0x22FFFFFF),
                     uncheckedBorderColor = Color(0x33FFFFFF)
@@ -373,7 +373,7 @@ private fun SheetTextField(
                     onValueChange = onValueChange,
                     singleLine = true,
                     textStyle = TextStyle(color = White, fontSize = 14.sp),
-                    cursorBrush = SolidColor(EmeraldGreen),
+                    cursorBrush = SolidColor(BingwaOrange),
                     modifier = Modifier.fillMaxWidth()
                 )
                 if (value.isEmpty() && placeholder.isNotEmpty()) {
@@ -408,8 +408,8 @@ private fun SwitchRow(label: String, checked: Boolean, onCheckedChange: (Boolean
             onCheckedChange = onCheckedChange,
             colors = SwitchDefaults.colors(
                 checkedThumbColor = NightBlack,
-                checkedTrackColor = EmeraldGreen,
-                checkedBorderColor = EmeraldGreen,
+                checkedTrackColor = BingwaOrange,
+                checkedBorderColor = BingwaOrange,
                 uncheckedThumbColor = White.copy(alpha = 0.7f),
                 uncheckedTrackColor = Color(0x22FFFFFF),
                 uncheckedBorderColor = Color(0x33FFFFFF)

@@ -11,12 +11,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.bingwascore.app.ui.theme.EmeraldGreen
+import com.bingwascore.app.ui.theme.BingwaOrange
 import com.bingwascore.app.ui.theme.White
 
 /**
  * A Material-3 [AlertDialog] themed to read like a frosted glass panel:
- * translucent container, rounded corners and a green confirm action.
+ * translucent container, rounded corners and a brand-orange confirm action.
  *
  * Used to explain *why* Advanced Mode needs the accessibility service before
  * sending the user to the system picker (see Home / Settings processing-mode flow).
@@ -35,7 +35,7 @@ fun GlassExplanationDialog(
             TextButton(onClick = onConfirm) {
                 Text(
                     confirmText,
-                    color = EmeraldGreen,
+                    color = BingwaOrange,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold
                 )

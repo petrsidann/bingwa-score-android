@@ -1,4 +1,4 @@
-﻿package com.bingwascore.app.ui.dialer
+package com.bingwascore.app.ui.dialer
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -47,11 +47,11 @@ import com.bingwascore.app.data.local.Offer
 import com.bingwascore.app.ui.components.GradientButton
 import com.bingwascore.app.ui.components.pressScale
 import com.bingwascore.app.util.screenEnter
+import com.bingwascore.app.ui.theme.BingwaOrange
 import com.bingwascore.app.ui.theme.EmeraldGreen
 import com.bingwascore.app.ui.theme.brandBrush
 import com.bingwascore.app.ui.theme.ErrorRed
 import com.bingwascore.app.ui.theme.NightBlack
-import com.bingwascore.app.ui.theme.TealBlue
 import com.bingwascore.app.ui.theme.White
 
 /** Full-screen quick dialer opened from the glass bottom bar call FAB. */
@@ -188,7 +188,7 @@ private fun GlassPhoneField(value: String, onValueChange: (String) -> Unit) {
                         fontWeight = FontWeight.SemiBold,
                         letterSpacing = 1.sp
                     ),
-                    cursorBrush = SolidColor(EmeraldGreen),
+                    cursorBrush = SolidColor(BingwaOrange),
                     modifier = Modifier.fillMaxWidth()
                 )
                 if (value.isEmpty()) {

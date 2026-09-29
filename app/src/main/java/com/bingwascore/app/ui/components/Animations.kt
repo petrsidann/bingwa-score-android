@@ -34,7 +34,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.bingwascore.app.ui.theme.EmeraldGreen
+import com.bingwascore.app.ui.theme.Amber
 import com.bingwascore.app.ui.theme.White
 import com.bingwascore.app.util.screenEnter
 import kotlinx.coroutines.delay
@@ -126,7 +126,7 @@ fun EmptyState(
     title: String,
     message: String,
     modifier: Modifier = Modifier,
-    iconTint: Color = EmeraldGreen
+    iconTint: Color = Amber
 ) {
     GlassCard(modifier = modifier.fillMaxWidth()) {
         Column(

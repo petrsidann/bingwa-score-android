@@ -106,12 +106,14 @@ import com.bingwascore.app.data.preferences.UserPreferences
 import androidx.compose.material.icons.rounded.Campaign
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.EmojiEvents
-import com.bingwascore.app.ui.theme.EmeraldGreen
+import com.bingwascore.app.ui.theme.Amber
+import com.bingwascore.app.ui.theme.BingwaOrange
 import com.bingwascore.app.ui.theme.Motion
 import com.bingwascore.app.ui.theme.NightBlack
 import com.bingwascore.app.ui.theme.SurfaceDark
-import com.bingwascore.app.ui.theme.TealBlue
 import com.bingwascore.app.ui.theme.White
+import androidx.compose.runtime.collectAsState
+import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
 
 object Routes {
@@ -125,26 +127,37 @@ object Routes {
 @Composable
 fun AppNavHost() {
     val navController = rememberNavController()
+    val splashViewModel: SplashViewModel = hiltViewModel()
+    val scope = rememberCoroutineScope()
+    val startDestination by splashViewModel.startDestination.collectAsState(initial = null)
 
     NavHost(
         navController = navController,
         startDestination = Routes.SPLASH
     ) {
         composable(Routes.SPLASH) {
-            SplashScreen(
-                onNavigateToLogin = {
-                    navController.navigate(Routes.ONBOARDING) {
-                        popUpTo(Routes.SPLASH) { inclusive = true }
-                    }
+            // Single decision point: splash -> onboarding (first launch only) -> login -> main.
+            val targetRoute = when (startDestination) {
+                StartDestination.Onboarding -> Routes.ONBOARDING
+                StartDestination.Login -> Routes.LOGIN
+                StartDestination.Main -> Routes.MAIN
+                null -> null
+            }
+            SplashScreen(target = targetRoute, onFinish = { route ->
+                navController.navigate(route) {
+                    popUpTo(Routes.SPLASH) { inclusive = true }
+                    launchSingleTop = true
                 }
-            )
+            })
         }
         composable(Routes.ONBOARDING) {
             var page by remember { mutableStateOf(0) }
             OnboardingCarousel(
                 onGetStarted = {
+                    scope.launch { splashViewModel.markOnboardingDone() }
                     navController.navigate(Routes.LOGIN) {
                         popUpTo(Routes.ONBOARDING) { inclusive = true }
+                        launchSingleTop = true
                     }
                 },
                 page = page,
@@ -250,7 +263,7 @@ fun MainScreen() {
                         Icon(
                             imageVector = entry.icon,
                             contentDescription = entry.label,
-                            tint = if (selected) EmeraldGreen else White.copy(alpha = 0.6f),
+                            tint = if (selected) BingwaOrange else White.copy(alpha = 0.6f),
                             modifier = Modifier.size(22.dp)
                         )
                         Spacer(modifier = Modifier.size(14.dp))
@@ -263,7 +276,7 @@ fun MainScreen() {
                         )
                         // Unread dot for Announcements
                         if (index == ANNOUNCEMENTS_DRAWER_INDEX) {
-                            Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(EmeraldGreen))
+                            Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(Amber))
                         }
                     }
                 }
@@ -400,7 +413,7 @@ private fun GlassBottomBar(selected: Int, onSelect: (Int) -> Unit, onDialer: () 
                 .width(pillWidth)
                 .height(50.dp)
                 .clip(RoundedCornerShape(14.dp))
-                .background(Brush.horizontalGradient(listOf(EmeraldGreen, TealBlue)))
+                .background(Brush.horizontalGradient(listOf(BingwaOrange, Amber)))
         )
 
         Row(
@@ -427,7 +440,7 @@ private fun GlassBottomBar(selected: Int, onSelect: (Int) -> Unit, onDialer: () 
                             scaleY = 1f + 0.35f * glow
                         }
                         .clip(CircleShape)
-                        .background(EmeraldGreen.copy(alpha = 0.5f))
+                        .background(Amber.copy(alpha = 0.5f))
                 )
                 // Main FAB — gradient, press-scale 0.98, press feedback
                 Box(
@@ -436,7 +449,7 @@ private fun GlassBottomBar(selected: Int, onSelect: (Int) -> Unit, onDialer: () 
                         .size(54.dp)
                         .pressScale(fabInteraction)
                         .clip(CircleShape)
-                        .background(Brush.linearGradient(listOf(EmeraldGreen, TealBlue)))
+                        .background(Brush.linearGradient(listOf(BingwaOrange, Amber)))
                         .clickable(
                             interactionSource = fabInteraction,
                             indication = null,
@@ -463,7 +476,7 @@ private fun GlassBottomBar(selected: Int, onSelect: (Int) -> Unit, onDialer: () 
 private fun BottomNavItem(icon: ImageVector, label: String, selected: Boolean, onClick: () -> Unit) {
     val interactionSource = remember { MutableInteractionSource() }
     val iconTint by animateColorAsState(
-        targetValue = if (selected) EmeraldGreen else White.copy(alpha = 0.55f),
+        targetValue = if (selected) BingwaOrange else White.copy(alpha = 0.55f),
         animationSpec = spring(dampingRatio = Motion.DAMPING),
         label = "navIconTint"
     )

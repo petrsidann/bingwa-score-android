@@ -1,4 +1,4 @@
-﻿package com.bingwascore.app.ui.customers
+package com.bingwascore.app.ui.customers
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -46,11 +46,10 @@ import com.bingwascore.app.ui.components.EmptyState
 import com.bingwascore.app.ui.components.GlassCard
 import com.bingwascore.app.ui.components.HapticSwitch
 import com.bingwascore.app.util.screenEnter
-import com.bingwascore.app.ui.theme.EmeraldGreen
+import com.bingwascore.app.ui.theme.BingwaOrange
 import com.bingwascore.app.ui.theme.brandBrush
 import com.bingwascore.app.ui.theme.ErrorRed
 import com.bingwascore.app.ui.theme.NightBlack
-import com.bingwascore.app.ui.theme.TealBlue
 import com.bingwascore.app.ui.theme.White
 import java.util.Locale
 
@@ -202,7 +201,7 @@ private fun GlassSearchField(value: String, onValueChange: (String) -> Unit) {
                     onValueChange = onValueChange,
                     singleLine = true,
                     textStyle = TextStyle(color = White, fontSize = 15.sp),
-                    cursorBrush = SolidColor(EmeraldGreen),
+                    cursorBrush = SolidColor(BingwaOrange),
                     modifier = Modifier.fillMaxWidth()
                 )
                 if (value.isEmpty()) {

@@ -34,7 +34,7 @@ import com.bingwascore.app.ui.components.EmptyState
 import com.bingwascore.app.ui.components.GlassCard
 import com.bingwascore.app.ui.components.HapticSwitch
 import com.bingwascore.app.util.screenEnter
-import com.bingwascore.app.ui.theme.EmeraldGreen
+import com.bingwascore.app.ui.theme.BingwaOrange
 import com.bingwascore.app.ui.theme.ErrorRed
 import com.bingwascore.app.ui.theme.NightBlack
 import com.bingwascore.app.ui.theme.Orange500
@@ -160,8 +160,8 @@ private fun RenewalCard(
                 onCheckedChange = { onToggle() },
                 colors = SwitchDefaults.colors(
                     checkedThumbColor = NightBlack,
-                    checkedTrackColor = EmeraldGreen,
-                    checkedBorderColor = EmeraldGreen,
+                    checkedTrackColor = BingwaOrange,
+                    checkedBorderColor = BingwaOrange,
                     uncheckedThumbColor = White.copy(alpha = 0.7f),
                     uncheckedTrackColor = Color(0x22FFFFFF),
                     uncheckedBorderColor = Color(0x33FFFFFF)

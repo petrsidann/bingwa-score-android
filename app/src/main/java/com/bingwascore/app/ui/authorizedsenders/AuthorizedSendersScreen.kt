@@ -1,4 +1,4 @@
-﻿package com.bingwascore.app.ui.authorizedsenders
+package com.bingwascore.app.ui.authorizedsenders
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -48,6 +48,8 @@ import com.bingwascore.app.ui.components.EmptyState
 import com.bingwascore.app.ui.components.GlassCard
 import com.bingwascore.app.ui.components.pressScale
 import com.bingwascore.app.util.screenEnter
+import com.bingwascore.app.ui.theme.Amber
+import com.bingwascore.app.ui.theme.BingwaOrange
 import com.bingwascore.app.ui.theme.EmeraldGreen
 import com.bingwascore.app.ui.theme.brandBrush
 import com.bingwascore.app.ui.theme.ErrorRed
@@ -144,7 +146,7 @@ private fun SenderInput(value: String, onValueChange: (String) -> Unit, onSubmit
                     onValueChange = onValueChange,
                     singleLine = true,
                     textStyle = TextStyle(color = White, fontSize = 14.sp),
-                    cursorBrush = SolidColor(EmeraldGreen),
+                    cursorBrush = SolidColor(BingwaOrange),
                     modifier = Modifier.fillMaxWidth()
                 )
                 if (value.isEmpty()) {
@@ -190,7 +192,7 @@ private fun SenderRow(number: String, enterDelayMillis: Int, onRemove: () -> Uni
                 Icon(
                     imageVector = Icons.Rounded.VerifiedUser,
                     contentDescription = null,
-                    tint = TealBlue,
+                    tint = Amber,
                     modifier = Modifier.size(18.dp)
                 )
             }
