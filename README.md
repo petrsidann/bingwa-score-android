@@ -114,4 +114,31 @@ Grab the signed `app-release.apk` from the
 [Actions artifacts](https://github.com/petrsidann/bingwa-score-android/actions) and
 share it with agents via Bluetooth, WhatsApp, or a USB cable. Because it is signed,
 agents can install it directly and receive updates by installing newer release
-APKs over the existing app. 
+APKs over the existing app.
+
+## Manual test script — Simulate Payment trace (Audit G8/G10)
+
+No real money moves. On a debug or release build:
+
+1. Seed an offer: **Offers** → add an offer priced exactly **Ksh 20.00**.
+2. Open **Settings → Simulate Payment** (DEV chip).
+3. Enter phone `0712345678`, name `TEST USER`, amount `20` → **Run Simulation**.
+4. Expect a *"Simulated Ksh 20.00 …"* confirmation line under the button.
+5. Open **Transactions** → a new `SIM…` row appears (PENDING → PROCESSING →
+   SUCCESSFUL/FAILED after the USSD step).
+6. **Truth checks**: an M-Pesa SMS with *"sent to"* or *"withdrawn"* must create
+   **no** transaction and send **no** reply. Only *"received from"* creates work.
+7. Authorized-senders gate: **Authorized Senders** → add `MPESA`, then a payment
+   SMS from any other sender must be ignored with no reply. Remove all senders
+   to return to default-open.
+
+## Parity vs Bingwa Hybrid (assessment, 2026-09-29)
+
+| Area | Bingwa Score (this app) | Hybrid | Gap |
+|---|---|---|---|
+| M-Pesa intake | `SmsParser.classify` → INCOMING only; OUTGOING ignored; replies to payer phone | same truth model | ✅ parity |
+| Offer matching | amount == price | amount == price + fallback rules | minor — fallback rules deferred |
+| USSD dial | `UssdAutomationService` + accessibility auto-tap | same | ✅ parity |
+| Engage bot | duplicate-INCOMING trigger, session Q&A, timeout worker | same | ✅ parity |
+| Tests | `SmsParser`/`UssdResponses`/`CsvEscapes`/`ScoreEngine`/`botLogColor` unit tests | device tests | ✅ JVM parity; no device farm |
+
