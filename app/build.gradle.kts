@@ -127,6 +127,15 @@ dependencies {
     implementation(libs.moshi)
     ksp(libs.moshi.codegen)
 
+    // MEGA B — network layer: Ktor client on the OkHttp engine, plus WebSocket
+    // and SSE. Everything is gated behind RemoteConfig and OfflineFallback, so
+    // the app is fully functional with none of these ever firing.
+    implementation(libs.ktor.client.core)
+    implementation(libs.ktor.client.okhttp)
+    implementation(libs.ktor.client.websockets)
+    implementation(libs.ktor.client.content.negotiation)
+    implementation(libs.ktor.serialization.json)
+
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.coroutines.core)
 
@@ -142,6 +151,7 @@ dependencies {
     implementation("androidx.biometric:biometric:1.1.0")
 
     testImplementation("junit:junit:4.13.2")
+    testImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
     androidTestImplementation(platform(libs.androidx.compose.bom))

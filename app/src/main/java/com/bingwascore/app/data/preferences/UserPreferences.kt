@@ -57,6 +57,8 @@ class UserPreferences @Inject constructor(
         /** MEGA A — inbound message routing switches (both default ON). */
         val PROCESS_MPESA_MESSAGES = booleanPreferencesKey("process_mpesa_messages")
         val PROCESS_SITELINK_MESSAGES = booleanPreferencesKey("process_sitelink_messages")
+        /** MEGA B — the push token, stored locally even when no server exists. */
+        val FCM_TOKEN = stringPreferencesKey("fcm_token")
     }
 
     val isLoggedIn: Flow<Boolean> = context.dataStore.data.map { it[Keys.IS_LOGGED_IN] ?: false }
@@ -81,6 +83,9 @@ class UserPreferences @Inject constructor(
 
     val processSitelinkMessages: Flow<Boolean> =
         context.dataStore.data.map { it[Keys.PROCESS_SITELINK_MESSAGES] ?: true }
+
+    /** MEGA B — the locally-stored push token (empty until FCM delivers one). */
+    val fcmToken: Flow<String> = context.dataStore.data.map { it[Keys.FCM_TOKEN] ?: "" }
     val storeLink: Flow<String> = context.dataStore.data.map { it[Keys.STORE_LINK] ?: "" }
     val storeActive: Flow<Boolean> = context.dataStore.data.map { it[Keys.STORE_ACTIVE] ?: false }
     val deviceId: Flow<String> = context.dataStore.data.map { it[Keys.DEVICE_ID] ?: "" }
@@ -143,6 +148,8 @@ class UserPreferences @Inject constructor(
 
     suspend fun setProcessSitelinkMessages(value: Boolean) =
         edit { it[Keys.PROCESS_SITELINK_MESSAGES] = value }
+
+    suspend fun setFcmToken(value: String) = edit { it[Keys.FCM_TOKEN] = value }
 
     suspend fun setStoreLink(value: String) = edit { it[Keys.STORE_LINK] = value }
 

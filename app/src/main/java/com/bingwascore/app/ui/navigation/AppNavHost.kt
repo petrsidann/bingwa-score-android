@@ -100,6 +100,8 @@ import com.bingwascore.app.util.rememberHaptics
 import com.bingwascore.app.profile.ProfileScreen
 import com.bingwascore.app.referral.ReferralScreen
 import com.bingwascore.app.announcements.AnnouncementsScreen
+import com.bingwascore.app.ui.auth.EmailOtpScreen
+import com.bingwascore.app.ui.auth.PinSetupScreen
 import com.bingwascore.app.ui.coupons.RedeemCouponScreen
 import com.bingwascore.app.ui.onboarding.OnboardingCarousel
 import androidx.compose.material.icons.rounded.Redeem
@@ -122,6 +124,8 @@ object Routes {
     const val SPLASH = "splash"
     const val ONBOARDING = "onboarding"
     const val LOGIN = "login"
+    const val EMAIL_OTP = "email_otp"
+    const val PIN_SETUP = "pin_setup"
     const val SETUP_CHECKLIST = "setup_checklist"
     const val MAIN = "main"
 }
@@ -175,7 +179,34 @@ fun AppNavHost() {
                     navController.navigate(Routes.SETUP_CHECKLIST) {
                         popUpTo(Routes.LOGIN) { inclusive = true }
                     }
+                },
+                onCreateAccount = {
+                    navController.navigate(Routes.PIN_SETUP)
                 }
+            )
+        }
+
+        // MEGA B — server-backed auth scaffolds. Reachable today, fully
+        // functional offline; they flip to real once BASE_URL + keys land.
+        composable(Routes.EMAIL_OTP) {
+            EmailOtpScreen(
+                onVerified = {
+                    navController.navigate(Routes.SETUP_CHECKLIST) {
+                        popUpTo(Routes.EMAIL_OTP) { inclusive = true }
+                    }
+                },
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.PIN_SETUP) {
+            PinSetupScreen(
+                onComplete = {
+                    navController.navigate(Routes.SETUP_CHECKLIST) {
+                        popUpTo(Routes.PIN_SETUP) { inclusive = true }
+                    }
+                },
+                onBack = { navController.popBackStack() }
             )
         }
         composable(Routes.SETUP_CHECKLIST) {
