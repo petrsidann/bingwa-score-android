@@ -64,7 +64,7 @@ fun EngageBotScreen(viewModel: EngageBotViewModel = hiltViewModel()) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text("Engage Bot", color = White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                Text("Autopilot", color = White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
                 Text(
                     if (isEnabled) "Bot is live — asking customers who the bundle is for"
                     else "Bot is paused — flip the switch to start engaging",

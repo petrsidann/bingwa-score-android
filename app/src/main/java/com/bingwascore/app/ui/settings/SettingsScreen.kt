@@ -64,6 +64,8 @@ import com.bingwascore.app.ui.components.GlassExplanationDialog
 import com.bingwascore.app.ui.components.GradientButton
 import com.bingwascore.app.util.rememberHaptics
 import com.bingwascore.app.util.screenEnter
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import com.bingwascore.app.ui.theme.GlassBorder
 import com.bingwascore.app.ui.theme.GlassFill
 import com.bingwascore.app.ui.theme.BingwaOrange
@@ -93,6 +95,9 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
     var currentPage by remember { mutableStateOf<SettingsPage?>(null) }
 
     val showAdvancedExplanation by viewModel.showAdvancedExplanation.collectAsStateWithLifecycle()
+    // MEGA A — inbound routing switches.
+    val processMpesaMessages by viewModel.processMpesaMessages.collectAsStateWithLifecycle()
+    val processSitelinkMessages by viewModel.processSitelinkMessages.collectAsStateWithLifecycle()
     if (showAdvancedExplanation) {
         GlassExplanationDialog(
             title = "Advanced Mode",
@@ -153,7 +158,25 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
                 )
             }
 
-            SectionLabel("Preferences")
+            // MEGA A — inbound message routing switches. Turning M-Pesa off is
+            // the panic switch; SiteLink narrows the engine to one channel.
+            SectionLabel("Message processing")
+            GlassCard(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
+                SettingsSwitchRow(
+                    title = "Process M-Pesa Messages",
+                    subtitle = "Read inbound M-Pesa payment alerts and auto-dial offers",
+                    checked = processMpesaMessages,
+                    onCheckedChange = viewModel::setProcessMpesaMessages
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+                SettingsSwitchRow(
+                    title = "Process SiteLink Messages",
+                    subtitle = "Handle SiteLink storefront order messages",
+                    checked = processSitelinkMessages,
+                    onCheckedChange = viewModel::setProcessSitelinkMessages
+                )
+            }
+            Spacer(modifier = Modifier.height(18.dp))
             SettingsRow(
                 icon = Icons.Rounded.Palette,
                 title = "Appearance",
@@ -238,6 +261,40 @@ private fun PageHeader(title: String, onBack: () -> Unit) {
         )
         Spacer(modifier = Modifier.width(6.dp))
         Text(title, color = White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+    }
+}
+
+/**
+ * MEGA A — a labelled on/off row. Same glass chrome as [SettingsRow] but with a
+ * switch instead of a chevron, used for the inbound message-routing toggles.
+ */
+@Composable
+private fun SettingsSwitchRow(
+    title: String,
+    subtitle: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(title, color = White, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+            Text(
+                subtitle,
+                color = White.copy(alpha = 0.5f),
+                fontSize = 11.sp
+            )
+        }
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = BingwaOrange,
+                uncheckedThumbColor = White.copy(alpha = 0.6f),
+                checkedTrackColor = BingwaOrange.copy(alpha = 0.35f),
+                uncheckedTrackColor = GlassFill,
+                uncheckedBorderColor = GlassBorder
+            )
+        )
     }
 }
 
@@ -671,7 +728,7 @@ private fun AboutPage(viewModel: SettingsViewModel) {
         Spacer(modifier = Modifier.height(10.dp))
         Text(
             "Bingwa Score helps airtime agents sell Safaricom bundles faster: one-tap dialing, " +
-                "auto renewals, botted replies and commission tracking — all on your phone.",
+                "auto renewals, smart follow-up and commission tracking — all on your phone.",
             color = White.copy(alpha = 0.6f),
             fontSize = 13.sp
         )

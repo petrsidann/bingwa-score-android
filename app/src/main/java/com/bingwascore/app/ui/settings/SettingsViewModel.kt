@@ -43,6 +43,21 @@ class SettingsViewModel @Inject constructor(
     val processingMode: StateFlow<AppProcessingMode> = userPreferences.processingMode
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AppProcessingMode.EXPRESS)
 
+    /** MEGA A — inbound routing switches shown on the Settings main page. */
+    val processMpesaMessages: StateFlow<Boolean> = userPreferences.processMpesaMessages
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
+
+    val processSitelinkMessages: StateFlow<Boolean> = userPreferences.processSitelinkMessages
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
+
+    fun setProcessMpesaMessages(value: Boolean) {
+        viewModelScope.launch { userPreferences.setProcessMpesaMessages(value) }
+    }
+
+    fun setProcessSitelinkMessages(value: Boolean) {
+        viewModelScope.launch { userPreferences.setProcessSitelinkMessages(value) }
+    }
+
     val simSelection: StateFlow<String> = userPreferences.simSelection
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), UserPreferences.SIM_1)
 

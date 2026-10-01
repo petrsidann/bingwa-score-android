@@ -9,6 +9,8 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.bingwascore.app.domain.AppProcessingMode
+import com.bingwascore.app.domain.AppState
+import com.bingwascore.app.domain.ProcessingActivity
 import com.bingwascore.app.domain.ThemeMode
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
@@ -47,6 +49,14 @@ class UserPreferences @Inject constructor(
         val REFERRAL_COUNT = stringPreferencesKey("referral_count")
         val ONBOARDING_DONE = booleanPreferencesKey("onboarding_done")
         val ANNOUNCEMENTS_SEEDED = booleanPreferencesKey("announcements_seeded")
+        // ── MEGA A — startup gate + aliveness ──
+        /** Mirrors their APP_STATE key: STATE_RUNNING / STATE_STOPPED / STATE_SETUP. */
+        val APP_STATE = stringPreferencesKey("app_state")
+        /** Engine activity shown on the persistent notification (idle/dialing/reply). */
+        val ENGINE_ACTIVITY = stringPreferencesKey("app_processing_mode")
+        /** MEGA A — inbound message routing switches (both default ON). */
+        val PROCESS_MPESA_MESSAGES = booleanPreferencesKey("process_mpesa_messages")
+        val PROCESS_SITELINK_MESSAGES = booleanPreferencesKey("process_sitelink_messages")
     }
 
     val isLoggedIn: Flow<Boolean> = context.dataStore.data.map { it[Keys.IS_LOGGED_IN] ?: false }
@@ -59,6 +69,18 @@ class UserPreferences @Inject constructor(
         context.dataStore.data.map { AppProcessingMode.fromValue(it[Keys.APP_PROCESSING_MODE]) }
     val engageBotActive: Flow<Boolean> =
         context.dataStore.data.map { it[Keys.ENGAGE_BOT_ACTIVE] ?: false }
+
+    /**
+     * MEGA A — inbound message routing. Both default ON so the engine behaves
+     * exactly as before until an agent deliberately narrows it; turning M-Pesa
+     * off is the panic switch, SiteLink off keeps the agent focused on one
+     * channel.
+     */
+    val processMpesaMessages: Flow<Boolean> =
+        context.dataStore.data.map { it[Keys.PROCESS_MPESA_MESSAGES] ?: true }
+
+    val processSitelinkMessages: Flow<Boolean> =
+        context.dataStore.data.map { it[Keys.PROCESS_SITELINK_MESSAGES] ?: true }
     val storeLink: Flow<String> = context.dataStore.data.map { it[Keys.STORE_LINK] ?: "" }
     val storeActive: Flow<Boolean> = context.dataStore.data.map { it[Keys.STORE_ACTIVE] ?: false }
     val deviceId: Flow<String> = context.dataStore.data.map { it[Keys.DEVICE_ID] ?: "" }
@@ -86,6 +108,23 @@ class UserPreferences @Inject constructor(
     val announcementsSeeded: Flow<Boolean> =
         context.dataStore.data.map { it[Keys.ANNOUNCEMENTS_SEEDED] ?: false }
 
+    /**
+     * MEGA A — cold-start gate. `STATE_RUNNING` only once the Setup Checklist
+     * has been fully satisfied, which is what lets [ValidateStartupUseCase]
+     * route straight to Home on subsequent launches.
+     */
+    val appState: Flow<AppState> =
+        context.dataStore.data.map { AppState.fromValue(it[Keys.APP_STATE]) }
+
+    /** What the engine is doing right now — drives the persistent notification. */
+    val processingActivity: Flow<ProcessingActivity> =
+        context.dataStore.data.map { ProcessingActivity.fromValue(it[Keys.ENGINE_ACTIVITY]) }
+
+    suspend fun setAppState(value: AppState) = edit { it[Keys.APP_STATE] = value.value }
+
+    suspend fun setProcessingActivity(value: ProcessingActivity) =
+        edit { it[Keys.ENGINE_ACTIVITY] = value.value }
+
     suspend fun setLoggedIn(value: Boolean) = edit { it[Keys.IS_LOGGED_IN] = value }
 
     suspend fun setUserName(value: String) = edit { it[Keys.USER_NAME] = value }
@@ -98,6 +137,12 @@ class UserPreferences @Inject constructor(
         edit { it[Keys.APP_PROCESSING_MODE] = value.value }
 
     suspend fun setEngageBotActive(value: Boolean) = edit { it[Keys.ENGAGE_BOT_ACTIVE] = value }
+
+    suspend fun setProcessMpesaMessages(value: Boolean) =
+        edit { it[Keys.PROCESS_MPESA_MESSAGES] = value }
+
+    suspend fun setProcessSitelinkMessages(value: Boolean) =
+        edit { it[Keys.PROCESS_SITELINK_MESSAGES] = value }
 
     suspend fun setStoreLink(value: String) = edit { it[Keys.STORE_LINK] = value }
 

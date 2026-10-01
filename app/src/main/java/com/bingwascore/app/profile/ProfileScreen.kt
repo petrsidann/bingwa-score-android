@@ -47,6 +47,13 @@ import com.bingwascore.app.ui.theme.brandBrush
 import com.bingwascore.app.ui.theme.Gold
 import com.bingwascore.app.ui.theme.NightBlack
 import com.bingwascore.app.ui.theme.Platinum
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.TextStyle
+import com.bingwascore.app.ui.components.GradientButton
+import com.bingwascore.app.ui.theme.ErrorRed
+import com.bingwascore.app.ui.theme.GlassFill
 import com.bingwascore.app.ui.theme.Silver
 import com.bingwascore.app.ui.theme.White
 import com.bingwascore.app.util.screenEnter
@@ -66,6 +73,7 @@ fun ProfileScreen(
     val levelName by viewModel.levelName.collectAsStateWithLifecycle()
     val score by viewModel.score.collectAsStateWithLifecycle()
     val engineEnabled by viewModel.engineEnabled.collectAsStateWithLifecycle()
+    val editState by viewModel.editState.collectAsStateWithLifecycle()
 
     Column(
         modifier = Modifier.fillMaxSize().screenEnter().background(NightBlack).verticalScroll(rememberScrollState())
@@ -74,6 +82,9 @@ fun ProfileScreen(
             Text("Profile", color = White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
             Text("Your agent account", color = White.copy(alpha = 0.5f), fontSize = 12.sp)
         }
+
+        // MEGA A — the profile is EDITABLE and persisted, not a static card.
+        // Level and score stay read-only because they are earned, not typed.
         GlassCard(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
@@ -81,19 +92,63 @@ fun ProfileScreen(
                         .background(brandBrush()),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(userName.take(1).uppercase(), color = NightBlack, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                    Text(
+                        (if (editState.isEditing) editState.name else userName)
+                            .ifBlank { "B" }.take(1).uppercase(),
+                        color = NightBlack, fontSize = 22.sp, fontWeight = FontWeight.Bold
+                    )
                 }
                 Spacer(modifier = Modifier.width(14.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(userName, color = White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                    Text(phone.ifEmpty { "No phone set" }, color = White.copy(alpha = 0.5f), fontSize = 12.sp)
+                    if (editState.isEditing) {
+                        ProfileField("Name", editState.name, viewModel::updateName)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        ProfileField("Phone", editState.phone, viewModel::updatePhone)
+                    } else {
+                        Text(userName, color = White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                        Text(
+                            phone.ifEmpty { "No phone set" },
+                            color = White.copy(alpha = 0.5f),
+                            fontSize = 12.sp
+                        )
+                    }
                     Spacer(modifier = Modifier.height(6.dp))
                     LevelBadge(levelName)
                 }
             }
+
             Spacer(modifier = Modifier.height(12.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("Score: $score pts", color = White.copy(alpha = 0.7f), fontSize = 13.sp)
+            }
+
+            // Inline validation + save state, exactly like the offer settings form.
+            editState.errorMessage?.let {
+                Spacer(modifier = Modifier.height(10.dp))
+                Text(it, color = ErrorRed, fontSize = 12.sp)
+            }
+            editState.savedMessage?.let {
+                Spacer(modifier = Modifier.height(10.dp))
+                Text(it, color = EmeraldGreen, fontSize = 12.sp)
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+            if (editState.isEditing) {
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    GradientButton(
+                        text = if (editState.isSaving) "Saving…" else "Save",
+                        enabled = !editState.isSaving,
+                        onClick = viewModel::saveProfile,
+                        modifier = Modifier.weight(1f)
+                    )
+                    GradientButton(
+                        text = "Cancel",
+                        onClick = viewModel::cancelEditing,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            } else {
+                GradientButton(text = "Edit Profile", onClick = viewModel::startEditing)
             }
         }
         Spacer(modifier = Modifier.height(16.dp))
@@ -108,13 +163,33 @@ fun ProfileScreen(
             }
         }
         Spacer(modifier = Modifier.height(16.dp))
-        ProfileMenuRow("My Store", Icons.Rounded.Storefront, onMyStore)
+        ProfileMenuRow("Agent Portal", Icons.Rounded.Storefront, onMyStore)
         ProfileMenuRow("Refer & Earn", Icons.Rounded.Share, onReferEarn)
         ProfileMenuRow("Settings", Icons.Rounded.Settings, onSettings)
-        ProfileMenuRow("Authorized Senders", Icons.Rounded.VerifiedUser, onAuthorizedSenders)
-        ProfileMenuRow("Blacklist", Icons.Rounded.Block, onBlacklist)
+        ProfileMenuRow("Trusted Partners", Icons.Rounded.VerifiedUser, onAuthorizedSenders)
+        ProfileMenuRow("Blocked Contacts", Icons.Rounded.Block, onBlacklist)
         ProfileMenuRow("About", Icons.Rounded.Info, onAbout)
         Spacer(modifier = Modifier.height(24.dp))
+    }
+}
+
+@Composable
+private fun ProfileField(label: String, value: String, onValueChange: (String) -> Unit) {
+    Column {
+        Text(label, color = White.copy(alpha = 0.45f), fontSize = 10.sp)
+        Spacer(modifier = Modifier.height(4.dp))
+        BasicTextField(
+            value = value,
+            onValueChange = onValueChange,
+            singleLine = true,
+            textStyle = TextStyle(color = White, fontSize = 14.sp),
+            cursorBrush = SolidColor(BingwaOrange),
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(10.dp))
+                .background(GlassFill)
+                .padding(horizontal = 10.dp, vertical = 9.dp)
+        )
     }
 }
 

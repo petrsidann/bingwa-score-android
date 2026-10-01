@@ -39,7 +39,19 @@ class HomeViewModel @Inject constructor(
 
     companion object {
         private const val BALANCE_USSD = "*144#"
-        private const val BALANCE_REGEX = "Ksh\\.?\\s?([\\d,]+\\.\\d{2})"
+
+        /**
+         * Primary pattern: Safaricom's *144# reply labels the line
+         * "Airtime Bal: 1,234.56 Ksh..." — match across the label so a reply that
+         * also contains other Ksh figures still yields the airtime balance.
+         */
+        private const val BALANCE_REGEX = "Airtime Bal\\s*:.*?Ksh([\\d,]+\\.\\d{2})"
+
+        /** Fallback for providers that omit the "Airtime Bal:" label entirely. */
+        private const val BALANCE_REGEX_FALLBACK = "Ksh\\.?\\s?([\\d,]+\\.\\d{2})"
+
+        /** Shown when *144# cannot be issued because READ_PHONE_STATE is denied. */
+        const val GRANT_PHONE_PERMISSION = "Grant Phone permission to check balance"
     }
 
     private val _balance = MutableStateFlow(0.0)
@@ -47,6 +59,15 @@ class HomeViewModel @Inject constructor(
 
     private val _balanceLoading = MutableStateFlow(false)
     val balanceLoading: StateFlow<Boolean> = _balanceLoading.asStateFlow()
+
+    /**
+     * Why the balance could not be read, or null when it is fine. The Home
+     * screen renders this as a snackbar so a 0.00 balance is always explained —
+     * "Grant Phone permission to check balance" when READ_PHONE_STATE is
+     * missing, a retry hint when the operator reply was unreadable.
+     */
+    private val _balanceError = MutableStateFlow<String?>(null)
+    val balanceError: StateFlow<String?> = _balanceError.asStateFlow()
 
     // Parity E — true until the first Room snapshot lands, so the stat tiles
     // shimmer instead of flashing 0 on cold start.
@@ -130,6 +151,74 @@ class HomeViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0.0)
 
     // Parity D — Recent Activity: last 5 live rows (DAO already ORDERs BY createdAt DESC).
+/**
+     * Dials *144# and parses the "Airtime Bal: … Ksh 1,234.56" reply into a
+     * Double cached in [UserPreferences] and emitted immediately as [balance].
+     *
+     * The balance is NEVER left silently at 0.00: every failure path (no
+     * telephony, missing permission, malformed reply, operator rejection) sets
+     * [balanceError] so the UI can tell the agent exactly what to fix instead of
+     * showing a fake zero.
+     */
+    @SuppressLint("MissingPermission")
+    fun refreshBalance() {
+        if (_balanceLoading.value) return
+        _balanceLoading.value = true
+        _balanceError.value = null
+        try {
+            val telephony = context.getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager
+            if (telephony == null) {
+                failBalance("Could not read your balance on this device")
+                return
+            }
+            telephony.sendUssdRequest(
+                BALANCE_USSD,
+                object : TelephonyManager.UssdResponseCallback() {
+                    override fun onReceiveUssdResponse(
+                        telephonyManager: TelephonyManager,
+                        request: String?,
+                        response: CharSequence?
+                    ) {
+                        val parsed = parseBalance(response?.toString())
+                        if (parsed == null) {
+                            failBalance("Could not read the balance — try again")
+                            return
+                        }
+                        _balance.value = parsed
+                        _balanceLoading.value = false
+                        viewModelScope.launch {
+                            userPreferences.setAirtimeBalance(parsed)
+                        }
+                    }
+
+                    override fun onReceiveUssdResponseFailed(
+                        telephonyManager: TelephonyManager,
+                        request: String?,
+                        failureCode: Int
+                    ) {
+                        failBalance("Could not read the balance — try again")
+                    }
+                },
+                Handler(Looper.getMainLooper())
+            )
+        } catch (_: SecurityException) {
+            // READ_PHONE_STATE revoked — tell the agent exactly what to grant.
+            failBalance(GRANT_PHONE_PERMISSION)
+        } catch (_: Throwable) {
+            failBalance(GRANT_PHONE_PERMISSION)
+        }
+    }
+
+    /** Clears the snackbar once the UI has shown it. */
+    fun consumeBalanceError() {
+        _balanceError.value = null
+    }
+
+    /** Single exit for every failure: stops the spinner AND surfaces the reason. */
+    private fun failBalance(message: String) {
+        _balanceLoading.value = false
+        _balanceError.value = message
+    }
     val recentTransactions: StateFlow<List<Transaction>> = transactionRepository.liveTransactions
         .map { it.take(5) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
@@ -141,66 +230,23 @@ class HomeViewModel @Inject constructor(
     }
 
     /**
-     * Dials *144# and parses the "Ksh 1,234.56" reply into a Double that is
-     * cached in [UserPreferences]. Every path is guarded: missing permissions,
-     * missing telephony hardware or malformed replies never crash the app.
+     * Extracts the airtime balance from a *144# reply.
+     *
+     * Tries the labelled pattern first ("Airtime Bal: 1,234.56 Ksh") because a
+     * real reply can carry several Ksh figures; falls back to a bare "Ksh 12.34"
+     * match for providers that omit the label. Returns null when neither
+     * matches so the caller can report a failure instead of showing 0.00.
      */
-    @SuppressLint("MissingPermission")
-    fun refreshBalance() {
-        if (_balanceLoading.value) return
-        _balanceLoading.value = true
-        try {
-            val telephony = context.getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager
-            if (telephony == null) {
-                _balanceLoading.value = false
-                return
-            }
-            telephony.sendUssdRequest(
-                BALANCE_USSD,
-                object : TelephonyManager.UssdResponseCallback() {
-                    override fun onReceiveUssdResponse(
-                        telephonyManager: TelephonyManager,
-                        request: String?,
-                        response: CharSequence?
-                    ) {
-                        try {
-                            parseBalance(response?.toString())?.let { parsed ->
-                                _balance.value = parsed
-                                viewModelScope.launch {
-                                    userPreferences.setAirtimeBalance(parsed)
-                                }
-                            }
-                        } catch (_: Throwable) {
-                            // Malformed operator response — ignore
-                        } finally {
-                            _balanceLoading.value = false
-                        }
-                    }
-
-                    override fun onReceiveUssdResponseFailed(
-                        telephonyManager: TelephonyManager,
-                        request: String?,
-                        failureCode: Int
-                    ) {
-                        _balanceLoading.value = false
-                    }
-                },
-                Handler(Looper.getMainLooper())
-            )
-        } catch (_: Throwable) {
-            // SecurityException (permission not granted), no telephony hardware, etc.
-            _balanceLoading.value = false
-        }
-    }
-
     private fun parseBalance(response: String?): Double? {
         if (response.isNullOrBlank()) return null
-        return Regex(BALANCE_REGEX).find(response)
-            ?.groupValues
-            ?.get(1)
-            ?.replace(",", "")
-            ?.toDoubleOrNull()
+        Regex(BALANCE_REGEX).find(response)?.let { return it.digitsAsDouble() }
+        Regex(BALANCE_REGEX_FALLBACK).find(response)?.let { return it.digitsAsDouble() }
+        return null
     }
+
+    /** "1,234.56" -> 1234.56 (null when unparseable). */
+    private fun MatchResult.digitsAsDouble(): Double? =
+        groupValues.getOrNull(1)?.replace(",", "")?.toDoubleOrNull()
 
     fun openSystemSettings() {
         try {

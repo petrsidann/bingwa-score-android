@@ -81,8 +81,62 @@ data class Offer(
      * multi-select without any per-dial confirmation dialog. When false the
      * batch dial asks once for the whole "advanced" group.
      */
-    val silentBatch: Boolean = false
-)
+    val silentBatch: Boolean = false,
+    // ── MEGA A — full per-offer personality ──
+    /**
+     * Offer type bucket (AIRTIME / DATA / SMS / COMBO). Drives which tab of the
+     * Agent Portal an offer is listed under and how the completion message is
+     * worded. Defaults to [TYPE_DATA] so existing offers keep their behaviour.
+     */
+    val type: String = TYPE_DATA,
+    /**
+     * Per-offer USSD timeout in SECONDS. The engine multiplies by 1000 when it
+     * arms the watchdog — the UI edits seconds (a human-friendly unit) while the
+     * engine works in millis.
+     */
+    val ussdTimeoutSeconds: Int = 20,
+    /**
+     * When true, a USSD failure caused by the network ("No network", "Unable to
+     * process", "Try again later") is treated as retryable even when the offer
+     * has [autoRetry] switched off.
+     */
+    val autoRetryConnectionProblems: Boolean = false,
+    /**
+     * Locally edited and not yet synced to the server. Set by the offer editor
+     * and cleared once a push lands — lets PART B's sync skip dirty rows until
+     * the backend is actually configured.
+     */
+    val isDirty: Boolean = false
+) {
+    /**
+     * True when this offer is redeemable with a promo code on the Redeem Coupon
+     * screen. Derived from the tag bucket so it needs no extra column: tagging
+     * an offer [TAG_COUPON] is what makes it appear there.
+     */
+    val isCoupon: Boolean get() = tag == TAG_COUPON
+
+    companion object {
+        /** Tag value that marks an offer as coupon-redeemable. */
+        const val TAG_COUPON = "COUPON"
+
+        const val TYPE_AIRTIME = "AIRTIME"
+        const val TYPE_DATA = "DATA"
+        const val TYPE_SMS = "SMS"
+        const val TYPE_COMBO = "COMBO"
+
+        /** Types offered in the editor's type dropdown. */
+        val TYPES = listOf(TYPE_AIRTIME, TYPE_DATA, TYPE_SMS, TYPE_COMBO)
+
+        /**
+         * Effective dial timeout in millis. Prefers the per-offer
+         * [ussdTimeoutSeconds]; falls back to the legacy [ussdTimeoutMillis] when
+         * an offer predates the seconds field and was never edited.
+         */
+        fun timeoutMillisFor(offer: Offer): Long =
+            if (offer.ussdTimeoutSeconds > 0) offer.ussdTimeoutSeconds * 1000L
+            else offer.ussdTimeoutMillis
+    }
+}
 
 /** A customer identified by phone number. */
 @Entity(

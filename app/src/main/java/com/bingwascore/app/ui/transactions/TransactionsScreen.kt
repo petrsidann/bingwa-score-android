@@ -28,6 +28,7 @@ import androidx.compose.material.icons.automirrored.rounded.ReceiptLong
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.FileDownload
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material.icons.rounded.SearchOff
@@ -92,6 +93,11 @@ fun TransactionsScreen(viewModel: TransactionsViewModel = hiltViewModel()) {
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     var selectedTransaction by remember { mutableStateOf<Transaction?>(null) }
 
+    // MEGA A — the Ghost Queue multi-select.
+    val selectedIds by viewModel.selectedIds.collectAsStateWithLifecycle()
+    val hasSelection by viewModel.hasSelection.collectAsStateWithLifecycle()
+    val allSelected = transactions.isNotEmpty() && selectedIds.size == transactions.size
+
     LaunchedEffect(Unit) {
         viewModel.events.collect { message ->
             Toast.makeText(context, message, Toast.LENGTH_LONG).show()
@@ -113,11 +119,29 @@ fun TransactionsScreen(viewModel: TransactionsViewModel = hiltViewModel()) {
             Column(modifier = Modifier.weight(1f)) {
                 Text("Transactions", color = White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
                 Text(
-                    "${transactions.size} record(s)",
+                    if (hasSelection) {
+                        "${selectedIds.size} in Ghost Queue"
+                    } else {
+                        "${transactions.size} record(s)"
+                    },
                     color = White.copy(alpha = 0.5f),
                     fontSize = 12.sp
                 )
             }
+
+            // MEGA A — Select All lives beside Export so batch work is one tap.
+            if (!isLoading && transactions.isNotEmpty()) {
+                SelectAllChip(
+                    label = if (allSelected) "Clear" else "Select All",
+                    active = hasSelection,
+                    onClick = {
+                        haptics.tick()
+                        viewModel.toggleSelectAll()
+                    }
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+            }
+
             ExportButton(onClick = viewModel::exportCsv)
         }
 
@@ -132,6 +156,8 @@ fun TransactionsScreen(viewModel: TransactionsViewModel = hiltViewModel()) {
                     onClick = {
                         haptics.tick()
                         viewModel.setFilter(filter)
+                        // Rows hidden by the new filter must leave the queue.
+                        viewModel.pruneSelection()
                     }
                 )
             }
@@ -170,14 +196,45 @@ fun TransactionsScreen(viewModel: TransactionsViewModel = hiltViewModel()) {
                         TransactionRow(
                             transaction = transaction,
                             enterDelayMillis = 0,
+                            // A long-press ticks the row into the Ghost Queue;
+                            // a plain tap still opens the detail sheet.
                             onClick = {
-                                haptics.tick()
-                                selectedTransaction = transaction
+                                if (transaction.id in selectedIds) {
+                                    haptics.tick()
+                                    viewModel.toggleSelection(transaction.id)
+                                } else {
+                                    haptics.tick()
+                                    selectedTransaction = transaction
+                                }
+                            },
+                            onLongClick = {
+                                haptics.press()
+                                viewModel.toggleSelection(transaction.id)
                             }
                         )
                     }
                 }
             }
+        }
+
+        // MEGA A — the Ghost Queue action bar: batch retry / complete / export
+        // over every ticked row, then the queue empties itself.
+        if (hasSelection) {
+            GhostQueueBar(
+                count = selectedIds.size,
+                onRetry = {
+                    haptics.press()
+                    viewModel.forEachSelected { viewModel.retry(it) }
+                },
+                onComplete = {
+                    haptics.press()
+                    viewModel.forEachSelected { viewModel.complete(it) }
+                },
+                onClear = {
+                    haptics.tick()
+                    viewModel.clearSelection()
+                }
+            )
         }
     }
 
@@ -214,6 +271,109 @@ fun TransactionsScreen(viewModel: TransactionsViewModel = hiltViewModel()) {
  * a red tombstone rail and, once past the threshold, soft-deletes the record
  * (with a haptic thud) so the live list drops it immediately.
  */
+@Composable
+private fun SelectAllChip(label: String, active: Boolean, onClick: () -> Unit) {
+    val interactionSource = remember { MutableInteractionSource() }
+    Box(
+        modifier = Modifier
+            .pressScale(interactionSource)
+            .clip(RoundedCornerShape(10.dp))
+            .background(if (active) BingwaOrange.copy(alpha = 0.18f) else GlassFill)
+            .border(
+                1.dp,
+                if (active) BingwaOrange.copy(alpha = 0.55f) else GlassBorder,
+                RoundedCornerShape(10.dp)
+            )
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            )
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+    ) {
+        Text(
+            label,
+            color = if (active) BingwaOrange else White.copy(alpha = 0.75f),
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold
+        )
+    }
+}
+
+/**
+ * MEGA A — the Ghost Queue bar. Anchored under the list whenever rows are
+ * ticked, so batch retry/complete is reachable without leaving the screen.
+ */
+@Composable
+private fun GhostQueueBar(
+    count: Int,
+    onRetry: () -> Unit,
+    onComplete: () -> Unit,
+    onClear: () -> Unit
+) {
+    GlassCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 10.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    "Ghost Queue",
+                    color = White,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    "$count selected",
+                    color = White.copy(alpha = 0.55f),
+                    fontSize = 11.sp
+                )
+            }
+            GhostQueueAction("Retry", Icons.Rounded.Refresh, onRetry)
+            Spacer(modifier = Modifier.width(8.dp))
+            GhostQueueAction("Complete", Icons.Rounded.CheckCircle, onComplete)
+            Spacer(modifier = Modifier.width(8.dp))
+            GhostQueueAction("Clear", Icons.Rounded.Close, onClear)
+        }
+    }
+}
+
+@Composable
+private fun GhostQueueAction(
+    label: String,
+    icon: ImageVector,
+    onClick: () -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .pressScale(interactionSource)
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            )
+            .padding(horizontal = 10.dp, vertical = 6.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = label,
+            tint = BingwaOrange,
+            modifier = Modifier.size(18.dp)
+        )
+        Spacer(modifier = Modifier.height(2.dp))
+        Text(
+            label,
+            color = White.copy(alpha = 0.75f),
+            fontSize = 10.sp,
+            fontWeight = FontWeight.SemiBold
+        )
+    }
+}
+
 @Composable
 private fun SwipeToDeleteRow(
     index: Int,
@@ -304,12 +464,18 @@ private fun TransactionSkeleton() {
 }
 
 @Composable
-private fun TransactionRow(transaction: Transaction, enterDelayMillis: Int, onClick: () -> Unit) {
+private fun TransactionRow(
+    transaction: Transaction,
+    enterDelayMillis: Int,
+    onClick: () -> Unit,
+    onLongClick: (() -> Unit)? = null
+) {
     val color = statusColor(transaction.status)
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
         cornerRadius = 18.dp,
         onClick = onClick,
+        onLongClick = onLongClick,
         enterDelayMillis = enterDelayMillis
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {

@@ -68,6 +68,9 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.LaunchedEffect
 import com.bingwascore.app.data.local.Transaction
 import com.bingwascore.app.domain.TransactionStatus
 import com.bingwascore.app.ui.components.AmbientBackground
@@ -120,6 +123,17 @@ fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
     val engineEnabled by viewModel.engineEnabled.collectAsStateWithLifecycle()
     val botPaused by viewModel.botPaused.collectAsStateWithLifecycle()
     val showAdvancedExplanation by viewModel.showAdvancedExplanation.collectAsStateWithLifecycle()
+    val balanceError by viewModel.balanceError.collectAsStateWithLifecycle()
+
+    // MEGA A — the balance is never silently 0.00: any failure surfaces as a
+    // snackbar (e.g. "Grant Phone permission to check balance") then clears.
+    val snackbarHostState = remember { SnackbarHostState() }
+    LaunchedEffect(balanceError) {
+        balanceError?.let { message ->
+            snackbarHostState.showSnackbar(message)
+            viewModel.consumeBalanceError()
+        }
+    }
 
     var balanceVisible by remember { mutableStateOf(true) }
     var missingPermissions by remember { mutableStateOf(computeMissingPermissions(context)) }
@@ -238,7 +252,7 @@ fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
             )
                         ModeChip(
                 modifier = Modifier.weight(1f),
-                title = "Auto Bot",
+                title = "Autopilot",
                 subtitle = if (botPaused) "PAUSED" else "ACTIVE",
                 active = !botPaused,
                 onClick = { viewModel.togglePause() }
@@ -274,6 +288,14 @@ fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
 
         Spacer(modifier = Modifier.height(24.dp))
         }
+
+        // Anchored bottom — never covers the balance card, always visible.
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(horizontal = 20.dp, vertical = 24.dp)
+        )
     }
 
     // Celebrations overlay: confetti on first daily success + level-up dialog

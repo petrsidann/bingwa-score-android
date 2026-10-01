@@ -1,11 +1,14 @@
 package com.bingwascore.app.ui.screens
 
+import androidx.biometric.BiometricManager
+import androidx.biometric.BiometricPrompt
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -13,12 +16,21 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Backspace
+import androidx.compose.material.icons.rounded.Fingerprint
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -28,6 +40,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -35,6 +48,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.fragment.app.FragmentActivity
 import com.bingwascore.app.ui.components.AmbientBackground
 import com.bingwascore.app.ui.components.GlassCard
 import com.bingwascore.app.ui.components.GradientButton
@@ -43,15 +57,73 @@ import com.bingwascore.app.ui.theme.GlassFill
 import com.bingwascore.app.ui.theme.BingwaOrange
 import com.bingwascore.app.ui.theme.NightBlack
 import com.bingwascore.app.ui.theme.White
+import com.bingwascore.app.ui.components.pressScale
 import com.bingwascore.app.util.screenEnter
+import java.util.concurrent.Executor
 
 @Composable
 fun LoginScreen(
     onSignIn: () -> Unit = {},
     onCreateAccount: () -> Unit = {}
 ) {
+    val context = LocalContext.current
     var phone by remember { mutableStateOf("") }
     var pin by remember { mutableStateOf("") }
+
+    // MEGA A — a numeric keypad with a fingerprint affordance. Biometrics is a
+    // shortcut for the *same* sign-in action; if the device has no sensor (or
+    // enrolment fails) we simply fall back to typing the PIN below.
+    val activity = context as? FragmentActivity
+    val biometricAvailable = remember {
+        runCatching {
+            val manager = BiometricManager.from(context)
+            manager.canAuthenticate(
+                BiometricManager.Authenticators.BIOMETRIC_WEAK
+            ) == BiometricManager.BIOMETRIC_SUCCESS
+        }.getOrDefault(false)
+    }
+
+    // The prompt is remembered across recompositions so a rotation mid-prompt
+    // does not leak a second BiometricPrompt instance.
+    val biometricPrompt = remember(activity) {
+        activity?.let {
+            val executor: Executor = androidx.core.content.ContextCompat.getMainExecutor(it)
+            BiometricPrompt(
+                it,
+                executor,
+                object : BiometricPrompt.AuthenticationCallback() {
+                    override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+                        onSignIn()
+                    }
+
+                    // A failed/cancelled fingerprint must never block the PIN path —
+                    // the user can still type their PIN and press Sign In.
+                    override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                        pin = ""
+                    }
+                }
+            )
+        }
+    }
+
+    fun launchBiometric() {
+        val prompt = biometricPrompt ?: return
+        runCatching {
+            prompt.authenticate(
+                BiometricPrompt.PromptInfo.Builder()
+                    .setTitle("Sign in to Bingwa Score")
+                    .setSubtitle("Confirm it's you to continue")
+                    .setNegativeButtonText("Use PIN")
+                    .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_WEAK)
+                    .build()
+            )
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        // Offer the sensor once on entry when the device supports it.
+        if (biometricAvailable) launchBiometric()
+    }
 
         Box(
         modifier = Modifier
@@ -100,10 +172,47 @@ fun LoginScreen(
 
             GlassField(
                 value = pin,
-                onValueChange = { pin = it },
+                onValueChange = { if (it.length <= MAX_PIN_LENGTH) pin = it },
                 hint = "PIN",
                 isPassword = true,
                 keyboardType = KeyboardType.NumberPassword
+            )
+
+            // MEGA A — fingerprint shortcut. Tapping it re-opens the sensor;
+            // it is purely an accelerator, the PIN path below always works.
+            if (biometricAvailable) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(52.dp)
+                            .clip(CircleShape)
+                            .background(GlassFill)
+                            .border(1.dp, GlassBorder, CircleShape)
+                            .clickable { launchBiometric() },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Fingerprint,
+                            contentDescription = "Sign in with fingerprint",
+                            tint = BingwaOrange,
+                            modifier = Modifier.size(26.dp)
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            PinKeypad(
+                pin = pin,
+                onDigit = { digit ->
+                    if (pin.length < MAX_PIN_LENGTH) pin += digit
+                },
+                onBackspace = { if (pin.isNotEmpty()) pin = pin.dropLast(1) }
             )
         }
 
@@ -166,5 +275,114 @@ private fun GlassField(
                 fontSize = 16.sp
             )
         }
+    }
+}
+
+/** PINs are capped at 6 digits so the keypad and field can never disagree. */
+private const val MAX_PIN_LENGTH = 6
+
+/**
+ * MEGA A — the login keypad: a 3x4 glass grid with a filled PIN readout, so a
+ * user with no fingerprint sensor (or who cancels the prompt) has a complete,
+ * obvious way in without ever opening the system keyboard.
+ */
+@Composable
+private fun PinKeypad(
+    pin: String,
+    onDigit: (Char) -> Unit,
+    onBackspace: () -> Unit
+) {
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // Filled / empty PIN dots.
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            repeat(MAX_PIN_LENGTH) { index ->
+                val filled = index < pin.length
+                Box(
+                    modifier = Modifier
+                        .size(12.dp)
+                        .clip(CircleShape)
+                        .background(if (filled) BingwaOrange else GlassFill)
+                        .border(1.dp, GlassBorder, CircleShape)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(18.dp))
+
+        val rows = listOf(
+            listOf("1", "2", "3"),
+            listOf("4", "5", "6"),
+            listOf("7", "8", "9")
+        )
+        rows.forEach { row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                row.forEach { digit ->
+                    KeypadKey(label = digit) {
+                        try {
+                            haptic.performHapticFeedback(
+                                androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove
+                            )
+                        } catch (_: Throwable) {
+                            // Haptics are optional polish; never block the tap.
+                        }
+                        onDigit(digit.first())
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            Spacer(modifier = Modifier.size(64.dp))
+            KeypadKey(label = "0") { onDigit('0') }
+            Box(
+                modifier = Modifier
+                    .size(64.dp)
+                    .clip(CircleShape)
+                    .background(GlassFill)
+                    .border(1.dp, GlassBorder, CircleShape)
+                    .clickable { onBackspace() },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Backspace,
+                    contentDescription = "Delete",
+                    tint = White.copy(alpha = 0.7f),
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+        }
+    }
+}
+
+/** One round glass key. Press-scale 0.98 for the same tactile feel as the app. */
+@Composable
+private fun KeypadKey(label: String, onClick: () -> Unit) {
+    val interactionSource = remember { MutableInteractionSource() }
+    Box(
+        modifier = Modifier
+            .size(64.dp)
+            .pressScale(interactionSource)
+            .clip(CircleShape)
+            .background(GlassFill)
+            .border(1.dp, GlassBorder, CircleShape)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            label,
+            color = White,
+            fontSize = 20.sp,
+            fontWeight = FontWeight.SemiBold
+        )
     }
 }

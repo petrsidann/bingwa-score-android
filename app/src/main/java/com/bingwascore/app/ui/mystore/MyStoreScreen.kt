@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.bingwascore.app.ui.components.EmptyState
 import com.bingwascore.app.ui.components.GlassCard
 import com.bingwascore.app.ui.components.GradientButton
 import com.bingwascore.app.ui.components.HapticSwitch
@@ -47,12 +48,20 @@ import com.bingwascore.app.ui.theme.ErrorRed
 import com.bingwascore.app.ui.theme.NightBlack
 import com.bingwascore.app.ui.theme.White
 
-/** My Store: the agent's public storefront link with a live toggle. */
+/**
+ * Agent Portal — the agent's public storefront.
+ *
+ * Named for what it actually is (a shopfront they can share), and given a REAL
+ * empty state: a portal with nothing in it is not a broken screen, it is an
+ * instruction to add the first offer.
+ */
 @Composable
 fun MyStoreScreen(viewModel: MyStoreViewModel = hiltViewModel()) {
     val storeLink by viewModel.storeLink.collectAsStateWithLifecycle()
     val isActive by viewModel.isActive.collectAsStateWithLifecycle()
     val userName by viewModel.userName.collectAsStateWithLifecycle()
+    val activeOffers by viewModel.activeOffers.collectAsStateWithLifecycle()
+    val isEmpty by viewModel.isEmpty.collectAsStateWithLifecycle()
 
     val context = LocalContext.current
 
@@ -69,7 +78,7 @@ fun MyStoreScreen(viewModel: MyStoreViewModel = hiltViewModel()) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text("My Store", color = White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                Text("Agent Portal", color = White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
                 Text(
                     if (storeLink.isEmpty()) "Create your public storefront link"
                     else "Your storefront is ${if (isActive) "live" else "paused"}",
@@ -93,6 +102,19 @@ fun MyStoreScreen(viewModel: MyStoreViewModel = hiltViewModel()) {
                         context.startActivity(Intent.createChooser(send, "Share via"))
                     }
                     .padding(6.dp)
+            )
+        }
+
+        // MEGA A — the real empty state. A storefront with nothing to sell is
+        // the very first thing a new agent hits, so it must say what to do.
+        if (isEmpty) {
+            EmptyState(
+                icon = Icons.Rounded.Storefront,
+                title = "No offers yet — add one to start selling",
+                message = "Your Agent Portal shows every active offer. Create your " +
+                    "first bundle on the Offers tab and it appears here instantly, " +
+                    "ready to share with customers.",
+                modifier = Modifier.padding(horizontal = 20.dp)
             )
         }
 
@@ -133,6 +155,17 @@ fun MyStoreScreen(viewModel: MyStoreViewModel = hiltViewModel()) {
                 isActive = isActive,
                 onToggle = viewModel::setActive,
                 onDelete = viewModel::deleteStore
+            )
+        }
+
+        // Live catalogue count so the portal is never just a link.
+        if (!isEmpty) {
+            Spacer(modifier = Modifier.height(18.dp))
+            Text(
+                "${activeOffers.size} active ${if (activeOffers.size == 1) "offer" else "offers"} on sale",
+                color = White.copy(alpha = 0.55f),
+                fontSize = 12.sp,
+                modifier = Modifier.padding(horizontal = 20.dp)
             )
         }
     }

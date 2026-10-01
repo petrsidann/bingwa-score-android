@@ -85,4 +85,24 @@ object UssdResponses {
         }
         return TransactionStatus.SUCCESSFUL
     }
+
+    /**
+     * Network-class failure — the bundle was not rejected by the operator, the
+     * request simply never reached it. Offers with
+     * [com.bingwascore.app.data.local.Offer.autoRetryConnectionProblems] treat
+     * these as retryable instead of dropping the sale.
+     */
+    private val CONNECTION_PROBLEM_STRINGS = listOf(
+        "Connection problem",
+        "No network",
+        "Network problem",
+        "Unable to process",
+        "Try again later",
+        "Service unavailable",
+        "invalid MMI code"
+    )
+
+    /** True when [response] is a network/transport failure rather than a rejection. */
+    fun isConnectionProblem(response: String): Boolean =
+        CONNECTION_PROBLEM_STRINGS.any { response.contains(it, ignoreCase = true) }
 }

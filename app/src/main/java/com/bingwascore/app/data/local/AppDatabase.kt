@@ -12,7 +12,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         Transaction::class, Offer::class, Customer::class, AutoReply::class,
         AgentCommission::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -116,6 +116,34 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * v4 → v5 (MEGA A — per-offer personality). Adds the four columns that let
+         * each offer carry its own engine behaviour:
+         * - `type` — AIRTIME/DATA/SMS/COMBO bucket (Agent Portal grouping).
+         * - `ussdTimeoutSeconds` — per-offer watchdog timeout in seconds.
+         * - `autoRetryConnectionProblems` — retry even when autoRetry is off.
+         * - `isDirty` — locally edited, not yet synced (PART B gate).
+         *
+         * Every column is NOT NULL with a default so existing rows migrate in
+         * place with no data loss and no destructive fallback.
+         */
+        private val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE `offers` ADD COLUMN `type` TEXT NOT NULL DEFAULT 'DATA'"
+                )
+                db.execSQL(
+                    "ALTER TABLE `offers` ADD COLUMN `ussdTimeoutSeconds` INTEGER NOT NULL DEFAULT 20"
+                )
+                db.execSQL(
+                    "ALTER TABLE `offers` ADD COLUMN `autoRetryConnectionProblems` INTEGER NOT NULL DEFAULT 0"
+                )
+                db.execSQL(
+                    "ALTER TABLE `offers` ADD COLUMN `isDirty` INTEGER NOT NULL DEFAULT 0"
+                )
+            }
+        }
+
         fun getDatabase(context: Context): AppDatabase =
             INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -123,7 +151,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "bingwa_score.db"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                     .fallbackToDestructiveMigration()
                     .build()
                     .also { INSTANCE = it }

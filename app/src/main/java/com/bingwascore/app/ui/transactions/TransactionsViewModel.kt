@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -65,6 +66,56 @@ class TransactionsViewModel @Inject constructor(
 
     private val _events = MutableSharedFlow<String>(extraBufferCapacity = 1)
     val events: SharedFlow<String> = _events.asSharedFlow()
+
+    /**
+     * MEGA A — the Ghost Queue: the set of transaction ids the agent has ticked
+     * for a batch action. This IS the multi-select that ships as "Select All",
+     * so the batch bar can drive retry/complete/export across many rows at once.
+     */
+    private val _selectedIds = MutableStateFlow<Set<String>>(emptySet())
+    val selectedIds: StateFlow<Set<String>> = _selectedIds.asStateFlow()
+
+    /** True whenever at least one row is ticked — drives the batch action bar. */
+    val hasSelection: StateFlow<Boolean> = _selectedIds
+        .map { it.isNotEmpty() }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
+    /** Ticks or unticks one row. */
+    fun toggleSelection(id: String) {
+        _selectedIds.value = _selectedIds.value.let { current ->
+            if (id in current) current - id else current + id
+        }
+    }
+
+    /**
+     * Selects every row currently visible, or clears the selection when
+     * everything is already selected. Uses the live [transactions] so it always
+     * means "all of what I can actually see", never a stale snapshot.
+     */
+    fun toggleSelectAll() {
+        val visible = transactions.value.map { it.id }.toSet()
+        _selectedIds.value = if (_selectedIds.value.containsAll(visible)) emptySet() else visible
+    }
+
+    /** Drops any ticked id that no longer exists (deleted/filtered away). */
+    fun pruneSelection() {
+        val visible = transactions.value.map { it.id }.toSet()
+        _selectedIds.value = _selectedIds.value.intersect(visible)
+    }
+
+    /** Clears the Ghost Queue after a batch action completes. */
+    fun clearSelection() {
+        _selectedIds.value = emptySet()
+    }
+
+    /** Applies [action] to every ticked row, then clears the selection. */
+    fun forEachSelected(action: (Transaction) -> Unit) {
+        val ids = _selectedIds.value
+        viewModelScope.launch {
+            transactions.value.filter { it.id in ids }.forEach(action)
+            clearSelection()
+        }
+    }
 
     init {
         viewModelScope.launch {

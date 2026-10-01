@@ -92,7 +92,7 @@ fun AuthorizedSendersScreen(viewModel: AuthorizedSendersViewModel = hiltViewMode
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp, vertical = 16.dp)
         ) {
-            Text("Authorized Senders", color = White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Text("Trusted Partners", color = White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
             Text(
                 "${senders.size} trusted number(s)",
                 color = White.copy(alpha = 0.5f),

@@ -97,6 +97,8 @@ fun OffersScreen(viewModel: OffersViewModel = hiltViewModel()) {
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     // Parity F — batch dial + duplicate-rule feedback.
     val ruleError by viewModel.ruleError.collectAsStateWithLifecycle()
+    // MEGA A — Offer Settings form state (isLoading + inline errorMessage).
+    val settingsState by viewModel.settingsState.collectAsStateWithLifecycle()
     val isBatching by viewModel.isBatching.collectAsStateWithLifecycle()
     val lastDialPhone by viewModel.lastDialPhone.collectAsStateWithLifecycle()
 
@@ -287,22 +289,33 @@ fun OffersScreen(viewModel: OffersViewModel = hiltViewModel()) {
     settingsOffer?.let { offer ->
         OfferSettingsSheet(
             offer = offer,
+            settingsState = settingsState,
             onDismiss = { settingsOffer = null },
-            onSave = { updated ->
-                viewModel.saveSettings(
-                    offer = updated,
-                    strictMode = updated.strictMode,
-                    autoRetry = updated.autoRetry,
-                    numberOfRetries = updated.numberOfRetries,
-                    retryIntervalMins = updated.retryIntervalMins,
-                    ussdTimeoutMillis = updated.ussdTimeoutMillis,
-                    autoReschedule = updated.autoReschedule,
-                    autoRescheduleRunTime = updated.autoRescheduleRunTime,
-                    completionMessage = updated.completionMessage,
-                    tag = updated.tag,
-                    relayDevice = updated.relayDevice
+            onClearError = { viewModel.clearSettingsError() },
+            onSave = { retries, intervalMins, timeoutSeconds, reschedule, runTime,
+                      completionMsg, type, strict, retry, retryNetwork, silent,
+                      tagValue, relay ->
+                viewModel.saveOfferSettings(
+                    offer = offer,
+                    numberOfRetries = retries,
+                    retryIntervalMins = intervalMins,
+                    ussdTimeoutSeconds = timeoutSeconds,
+                    autoReschedule = reschedule,
+                    rescheduleTime = runTime,
+                    completionMessage = completionMsg,
+                    type = type,
+                    strictMode = strict,
+                    autoRetry = retry,
+                    autoRetryConnectionProblems = retryNetwork,
+                    silentBatch = silent,
+                    tag = tagValue,
+                    relayDevice = relay
                 )
-                settingsOffer = null
+                // Only dismiss once the write actually succeeded — the sheet
+                // stays open showing the inline error otherwise.
+                if (settingsState.errorMessage == null && !settingsState.isLoading) {
+                    settingsOffer = null
+                }
             }
         )
     }
@@ -569,7 +582,8 @@ private fun AddOfferSheet(onDismiss: () -> Unit, onAdd: (name: String, price: In
             SheetTextField(
                 label = "Price (Ksh)",
                 value = price,
-                onValueChange = { price = it.filter { char -> char.isDigit() } }
+                onValueChange = { price = it.filter { char -> char.isDigit() } },
+                placeholder = "Price e.g. 20"
             )
             SheetTextField(
                 label = "USSD code",
@@ -665,18 +679,44 @@ private fun SwitchRow(label: String, checked: Boolean, onCheckedChange: (Boolean
 }
 
 @Composable
-private fun OfferSettingsSheet(offer: Offer, onDismiss: () -> Unit, onSave: (Offer) -> Unit) {
+private fun OfferSettingsSheet(
+    offer: Offer,
+    settingsState: OfferSettingsState,
+    onDismiss: () -> Unit,
+    onSave: (
+        numberOfRetries: String,
+        retryIntervalMins: String,
+        ussdTimeoutSeconds: String,
+        autoReschedule: Boolean,
+        rescheduleTime: String,
+        completionMessage: String,
+        type: String,
+        strictMode: Boolean,
+        autoRetry: Boolean,
+        autoRetryConnectionProblems: Boolean,
+        silentBatch: Boolean,
+        tag: String?,
+        relayDevice: String?
+    ) -> Unit,
+    onClearError: () -> Unit
+) {
     var strictMode by remember { mutableStateOf(offer.strictMode) }
     var autoRetry by remember { mutableStateOf(offer.autoRetry) }
     var numberOfRetries by remember { mutableStateOf(offer.numberOfRetries.toString()) }
     var retryIntervalMins by remember { mutableStateOf(offer.retryIntervalMins.toString()) }
-    var ussdTimeout by remember { mutableStateOf(offer.ussdTimeoutMillis.toString()) }
+    // MEGA A — the form edits SECONDS; the engine multiplies by 1000.
+    var ussdTimeoutSeconds by remember {
+        mutableStateOf((offer.ussdTimeoutSeconds.takeIf { it > 0 } ?: 20).toString())
+    }
     var autoReschedule by remember { mutableStateOf(offer.autoReschedule) }
     var rescheduleTime by remember { mutableStateOf(offer.autoRescheduleRunTime) }
     var completionMessage by remember { mutableStateOf(offer.completionMessage.orEmpty()) }
     // Parity F — silent batch dial flag (no per-dial confirmation).
     var silentBatch by remember { mutableStateOf(offer.silentBatch) }
-    // Parity D — Hybrid tag + relay editors (OfferSettingsScreen parity).
+    // MEGA A — per-offer personality: type bucket + network-retry opt-in.
+    var type by remember { mutableStateOf(offer.type) }
+    var retryConnectionProblems by remember { mutableStateOf(offer.autoRetryConnectionProblems) }
+    // Parity D — tag + relay editors (offer grouping).
     var tag by remember { mutableStateOf(offer.tag.orEmpty()) }
     var relayDevice by remember { mutableStateOf(offer.relayDevice.orEmpty()) }
 
@@ -691,10 +731,31 @@ private fun OfferSettingsSheet(offer: Offer, onDismiss: () -> Unit, onSave: (Off
             Text(offer.name, color = White.copy(alpha = 0.5f), fontSize = 12.sp)
             Spacer(modifier = Modifier.height(14.dp))
 
+            // MEGA A — type bucket chips (Airtime / Data / SMS / Combo).
+            Text("Type", color = White.copy(alpha = 0.55f), fontSize = 11.sp)
+            Spacer(modifier = Modifier.height(6.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Offer.TYPES.forEach { option ->
+                    TagOptionChip(
+                        label = option.lowercase().replaceFirstChar { it.uppercase() },
+                        selected = type == option
+                    ) {
+                        type = option
+                        onClearError()
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+
             SwitchRow("Strict mode", strictMode) { strictMode = it }
+            Text(
+                "Never resell this bundle once Safaricom says the customer was already recommended it.",
+                color = White.copy(alpha = 0.45f),
+                fontSize = 11.sp
+            )
+            Spacer(modifier = Modifier.height(8.dp))
             SwitchRow("Auto retry", autoRetry) { autoRetry = it }
-            // Parity F — silent batch dial opt-in.
-            SwitchRow("Silent batch dial", silentBatch) { silentBatch = it }
+            SwitchRow("Retry network problems", retryConnectionProblems) { retryConnectionProblems = it }
             Text(
                 "Silent offers are queued straight away in a batch dial — no per-dial confirmation.",
                 color = White.copy(alpha = 0.45f),
@@ -712,16 +773,22 @@ private fun OfferSettingsSheet(offer: Offer, onDismiss: () -> Unit, onSave: (Off
                 onValueChange = { retryIntervalMins = it.filter { char -> char.isDigit() } }
             )
             SheetTextField(
-                label = "USSD timeout (ms)",
-                value = ussdTimeout,
-                onValueChange = { ussdTimeout = it.filter { char -> char.isDigit() } }
+                label = "USSD timeout (seconds)",
+                value = ussdTimeoutSeconds,
+                onValueChange = {
+                    ussdTimeoutSeconds = it.filter { char -> char.isDigit() }
+                    onClearError()
+                }
             )
             SwitchRow("Auto reschedule", autoReschedule) { autoReschedule = it }
             if (autoReschedule) {
                 SheetTextField(
                     label = "Run time (HH:mm)",
                     value = rescheduleTime,
-                    onValueChange = { rescheduleTime = it },
+                    onValueChange = {
+                        rescheduleTime = it
+                        onClearError()
+                    },
                     placeholder = "08:00"
                 )
             }
@@ -745,30 +812,43 @@ private fun OfferSettingsSheet(offer: Offer, onDismiss: () -> Unit, onSave: (Off
             Spacer(modifier = Modifier.height(12.dp))
 
             SheetTextField(
-                label = "Relay device (Hybrid Connect, optional)",
+                label = "Relay device (optional)",
                 value = relayDevice,
                 onValueChange = { relayDevice = it },
                 placeholder = "e.g. relay-01 — blank = dial locally"
             )
 
             Spacer(modifier = Modifier.height(16.dp))
+
+            // MEGA A — inline form feedback: a red error or a green confirmation
+            // rendered above the button, so a failed save can never look saved.
+            settingsState.errorMessage?.let { message ->
+                Text(message, color = ErrorRed, fontSize = 12.sp)
+                Spacer(modifier = Modifier.height(10.dp))
+            }
+            settingsState.savedMessage?.let { message ->
+                Text(message, color = EmeraldGreen, fontSize = 12.sp)
+                Spacer(modifier = Modifier.height(10.dp))
+            }
+
             GradientButton(
-                text = "Save settings",
+                text = if (settingsState.isLoading) "Saving…" else "Save settings",
+                enabled = !settingsState.isLoading,
                 onClick = {
                     onSave(
-                        offer.copy(
-                            strictMode = strictMode,
-                            autoRetry = autoRetry,
-                            numberOfRetries = numberOfRetries.toIntOrNull() ?: offer.numberOfRetries,
-                            retryIntervalMins = retryIntervalMins.toIntOrNull() ?: offer.retryIntervalMins,
-                            ussdTimeoutMillis = ussdTimeout.toLongOrNull() ?: offer.ussdTimeoutMillis,
-                            autoReschedule = autoReschedule,
-                            autoRescheduleRunTime = rescheduleTime.ifBlank { offer.autoRescheduleRunTime },
-                            completionMessage = completionMessage.ifBlank { null },
-                            tag = tag.ifBlank { null },
-                            relayDevice = relayDevice.ifBlank { null },
-                            silentBatch = silentBatch
-                        )
+                        numberOfRetries,
+                        retryIntervalMins,
+                        ussdTimeoutSeconds,
+                        autoReschedule,
+                        rescheduleTime,
+                        completionMessage,
+                        type,
+                        strictMode,
+                        autoRetry,
+                        retryConnectionProblems,
+                        silentBatch,
+                        tag,
+                        relayDevice
                     )
                 }
             )

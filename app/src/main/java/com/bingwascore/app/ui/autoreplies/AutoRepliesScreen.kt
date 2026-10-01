@@ -74,7 +74,7 @@ fun AutoRepliesScreen(viewModel: AutoRepliesViewModel = hiltViewModel()) {
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp, vertical = 16.dp)
         ) {
-            Text("Botted Replies", color = White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Text("Smart Follow-Up", color = White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
             Text(
                 "${templates.size} template(s)",
                 color = White.copy(alpha = 0.5f),

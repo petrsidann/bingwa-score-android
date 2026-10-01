@@ -15,8 +15,10 @@ import com.bingwascore.app.data.repository.CustomerRepository
 import com.bingwascore.app.data.repository.OfferRepository
 import com.bingwascore.app.data.repository.TransactionRepository
 import com.bingwascore.app.domain.InvalidSenderException
+import com.bingwascore.app.domain.ProcessingActivity
 import com.bingwascore.app.domain.TransactionStatus
 import com.bingwascore.app.engagebot.EngageBotSessionLifecycle
+import com.bingwascore.app.services.EngineService
 import com.bingwascore.app.services.UssdAutomationService
 import com.bingwascore.app.utils.SmsParser
 import com.bingwascore.app.workers.Schedulers
@@ -53,6 +55,13 @@ class TransactionPipeline @Inject constructor(
     private val commissionRepository: AgentCommissionRepository,
     private val engageBot: EngageBotSessionLifecycle
 ) {
+
+    /**
+     * Long-lived scope for fire-and-forget bookkeeping that must land even when
+     * the triggering SMS/call path returns immediately (e.g. recording a dial
+     * that never started).
+     */
+    private val backgroundScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     // ------------------------------------------------------------------
     // Inbound entry points
@@ -463,6 +472,9 @@ class TransactionPipeline @Inject constructor(
             }
             smsManager.sendTextMessage(phone, null, body, null, null)
             Timber.d("Reply sent to %s: %s", phone, body)
+            // MEGA A — the notification reads "Processing transaction" while the
+            // confirmation SMS goes out, matching the engine's real activity.
+            EngineService.setProcessing(ProcessingActivity.SENDING_REPLY)
         } catch (t: Throwable) {
             // Missing SEND_SMS runtime permission, no SIM, invalid number, etc.
             Timber.e(t, "Failed to send reply to %s", phone)
@@ -472,17 +484,53 @@ class TransactionPipeline @Inject constructor(
     // ------------------------------------------------------------------
     // Helpers
     // ------------------------------------------------------------------
-
-    private fun startUssdAutomation(transaction: Transaction) {
-        try {
+/**
+     * Starts a USSD dial for [transaction] and reports whether the service was
+     * actually launched.
+     *
+     * Public so every dial entry point — the dialer FAB, the Offers batch, the
+     * retry worker — funnels through ONE code path instead of hand-building its
+     * own Intent. Extras always carry the code, the transaction id and the
+     * customer phone, which is what [UssdAutomationService] requires.
+     *
+     * Returns false (never throws) when the platform refuses to start the
+     * service, so callers can surface a message instead of hanging.
+     */
+    fun startDial(transaction: Transaction): Boolean {
+        return try {
+            Timber.tag(ENGINE_TAG).i(
+                "startDial tx=%s offer=%s code=%s",
+                transaction.id, transaction.offerName, transaction.ussdCode
+            )
             context.startService(
                 Intent(context, UssdAutomationService::class.java)
                     .putExtra(UssdAutomationService.EXTRA_USSD_CODE, transaction.ussdCode)
                     .putExtra(UssdAutomationService.EXTRA_TRANSACTION_ID, transaction.id)
                     .putExtra(UssdAutomationService.EXTRA_CUSTOMER_PHONE, transaction.phoneNumber)
             )
+            true
         } catch (t: Throwable) {
-            Timber.e(t, "Failed to start USSD automation for %s", transaction.id)
+            Timber.tag(ENGINE_TAG).e(t, "startDial failed for %s", transaction.id)
+            false
+        }
+    }
+
+    private fun startUssdAutomation(transaction: Transaction) {
+        if (!startDial(transaction)) {
+            // The service refused to start — mark the row so the list never sits
+            // on a permanent PENDING that nothing will ever resolve.
+            backgroundScope.launch {
+                runCatching {
+                    transactionRepository.getLiveTransaction(transaction.id)?.let {
+                        transactionRepository.update(
+                            it.copy(
+                                status = TransactionStatus.FAILED.value,
+                                errorMessage = "Could not start the dial engine"
+                            )
+                        )
+                    }
+                }
+            }
         }
     }
 
@@ -642,6 +690,9 @@ class TransactionPipeline @Inject constructor(
     }
 
     companion object {
+        /** Logcat tag for every engine decision — `adb logcat -s ENGINE`. */
+        const val ENGINE_TAG = "ENGINE"
+
         /** How far back a duplicate check looks. */
         private const val DUPLICATE_WINDOW_MILLIS = 12L * 60 * 60 * 1000
     }
