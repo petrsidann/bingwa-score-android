@@ -81,6 +81,7 @@ import com.bingwascore.app.ui.autoreplies.AutoRepliesScreen
 import com.bingwascore.app.ui.authorizedsenders.AuthorizedSendersScreen
 import com.bingwascore.app.ui.blacklist.BlacklistScreen
 import com.bingwascore.app.ui.components.ScreenTransition
+import com.bingwascore.app.ui.components.glassSurface
 import com.bingwascore.app.ui.components.pressScale
 import com.bingwascore.app.ui.customers.CustomersScreen
 import com.bingwascore.app.ui.dialer.DialerScreen
@@ -97,6 +98,10 @@ import com.bingwascore.app.ui.subscriptions.SubscriptionsScreen
 import com.bingwascore.app.ui.transactions.TransactionsScreen
 import com.bingwascore.app.score.ScoreScreen
 import com.bingwascore.app.util.rememberHaptics
+import androidx.compose.material.icons.rounded.Groups
+import androidx.compose.material.icons.rounded.QrCodeScanner
+import com.bingwascore.app.ui.community.CommunityScreen
+import com.bingwascore.app.ui.qr.QrScannerScreen
 import com.bingwascore.app.profile.ProfileScreen
 import com.bingwascore.app.referral.ReferralScreen
 import com.bingwascore.app.announcements.AnnouncementsScreen
@@ -111,6 +116,7 @@ import androidx.compose.material.icons.rounded.EmojiEvents
 import com.bingwascore.app.ui.theme.GlassBorderStrong
 import com.bingwascore.app.ui.theme.GlassFill
 import com.bingwascore.app.ui.theme.Amber
+import com.bingwascore.app.ui.theme.BingwaType
 import com.bingwascore.app.ui.theme.BingwaOrange
 import com.bingwascore.app.ui.theme.Motion
 import com.bingwascore.app.ui.theme.NightBlack
@@ -243,6 +249,8 @@ private const val REDEEM_COUPON_DRAWER_INDEX = 9
 private const val SETTINGS_DRAWER_INDEX = 10
 private const val ANNOUNCEMENTS_DRAWER_INDEX = 11
 private const val COMMISSION_PULSE_DRAWER_INDEX = 12
+private const val COMMUNITY_DRAWER_INDEX = 13
+private const val QR_SCANNER_DRAWER_INDEX = 14
 
 private val drawerEntries = listOf(
     DrawerEntry("Customers", Icons.Rounded.People),
@@ -257,7 +265,9 @@ private val drawerEntries = listOf(
     DrawerEntry("Redeem Coupon", Icons.Rounded.Redeem),
     DrawerEntry("Settings", Icons.Rounded.Settings),
     DrawerEntry("Announcements", Icons.Rounded.Campaign),
-    DrawerEntry("Commission Pulse", Icons.Rounded.EmojiEvents)
+    DrawerEntry("Commission Pulse", Icons.Rounded.EmojiEvents),
+    DrawerEntry("Community", Icons.Rounded.Groups),
+    DrawerEntry("QR Scanner", Icons.Rounded.QrCodeScanner)
 )
 
 /**
@@ -354,6 +364,8 @@ fun MainScreen() {
                 selectedDrawerIndex == SETTINGS_DRAWER_INDEX -> "settings"
                 selectedDrawerIndex == ANNOUNCEMENTS_DRAWER_INDEX -> "announcements"
                 selectedDrawerIndex == COMMISSION_PULSE_DRAWER_INDEX -> "commissionpulse"
+                selectedDrawerIndex == COMMUNITY_DRAWER_INDEX -> "community"
+                selectedDrawerIndex == QR_SCANNER_DRAWER_INDEX -> "qrscanner"
                 else -> when (selectedTab) {
                     0 -> "home"
                     1 -> "offers"
@@ -385,6 +397,8 @@ fun MainScreen() {
                         "settings" -> SettingsScreen()
                         "announcements" -> AnnouncementsScreen()
                         "commissionpulse" -> ScoreScreen()
+                        "community" -> CommunityScreen()
+                        "qrscanner" -> QrScannerScreen()
                         "referral" -> ReferralScreen()
                         "home" -> HomeScreen()
                         "offers" -> OffersScreen()
@@ -432,9 +446,7 @@ private fun GlassBottomBar(selected: Int, onSelect: (Int) -> Unit, onDialer: () 
             .fillMaxWidth()
             .navigationBarsPadding()
             .padding(horizontal = 16.dp, vertical = 10.dp)
-            .clip(shape)
-            .background(GlassFill)
-            .border(1.dp, Brush.verticalGradient(listOf(GlassBorderStrong, Color.Transparent)), shape)
+            .glassSurface(shape = shape)
     ) {
         // 5 logical slots: Home | Offers | FAB | Transactions | Profile
         val slotWidth = maxWidth / 5f
@@ -551,7 +563,7 @@ private fun BottomNavItem(icon: ImageVector, label: String, selected: Boolean, o
         Text(
             label,
             color = labelColor,
-            fontSize = 10.sp,
+            fontSize = BingwaType.Micro,
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
         )
     }

@@ -48,6 +48,7 @@ import com.bingwascore.app.ui.components.HapticSwitch
 import com.bingwascore.app.util.screenEnter
 import com.bingwascore.app.ui.theme.GlassBorderStrong
 import com.bingwascore.app.ui.theme.GlassFillStrong
+import com.bingwascore.app.ui.theme.Motion
 import com.bingwascore.app.ui.theme.GlassBorder
 import com.bingwascore.app.ui.theme.GlassFill
 import com.bingwascore.app.ui.theme.BingwaOrange
@@ -101,9 +102,11 @@ fun CustomersScreen(viewModel: CustomersViewModel = hiltViewModel()) {
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 itemsIndexed(customers, key = { _, customer -> customer.phoneNumber }) { index, customer ->
+                    // PREMIUM LOCK — cascade each row in; GlassCard's
+                    // enterAnimation does the fade + slide for us.
                     CustomerRow(
                         customer = customer,
-                        enterDelayMillis = minOf(index, 6) * 35,
+                        enterDelayMillis = minOf(index, 6) * Motion.STAGGER,
                         onToggle = { viewModel.toggleBlacklisted(customer) }
                     )
                 }

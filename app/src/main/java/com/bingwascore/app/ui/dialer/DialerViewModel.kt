@@ -11,6 +11,7 @@ import com.bingwascore.app.data.repository.OfferRepository
 import com.bingwascore.app.data.repository.TransactionRepository
 import com.bingwascore.app.domain.BatchDialPlanner
 import com.bingwascore.app.domain.TransactionStatus
+import com.bingwascore.app.domain.engine.TransactionPipeline
 import com.bingwascore.app.services.UssdAutomationService
 import com.bingwascore.app.util.formatPhoneToTenDigits
 import com.bingwascore.app.util.isTenDigitPhone
@@ -118,6 +119,14 @@ class DialerViewModel @Inject constructor(
                 }
                 try {
                     context.startService(intent)
+                    // PREMIUM LOCK — the single line that proves the dial left
+                    // the app. Traceable with: adb logcat -s ENGINE
+                    Timber.tag(TransactionPipeline.ENGINE_TAG).i(
+                        "Dial fired: %s for %s (tx %s)",
+                        dialCode,
+                        phoneValue,
+                        transactionId
+                    )
                 } catch (t: Throwable) {
                     Timber.e(t, "Failed to start UssdAutomationService")
                     _feedback.value = DialerFeedback("Could not start the dialer service", isError = true)

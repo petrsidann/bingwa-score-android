@@ -793,7 +793,7 @@ private fun EngineToggleCard(enabled: Boolean, onToggle: () -> Unit) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    "Purchase Engine",
+                    "Bingwa Autopilot",
                     color = White,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold

@@ -41,8 +41,11 @@ object BatchDialPlanner {
     fun confirmationMessage(offers: List<Offer>): String =
         confirmationTargets(offers).joinToString(separator = "\n") { "- ${it.name}" }
 
-    /** "Queued 3 silent dials" — the toast shown once the queue is running. */
-    fun queuedMessage(queued: Int): String = "Queued $queued silent dials"
+    /**
+     * PREMIUM LOCK — "Ghost Queue": the toast shown once the queue is running.
+     * Runs in the background, one dial at a time, with no per-dial prompts.
+     */
+    fun queuedMessage(queued: Int): String = "Ghost Queue running — $queued dial(s) queued"
 
     /**
      * Expands the customer number into [ussdCode] (`ph`, and legacy `BH`, both

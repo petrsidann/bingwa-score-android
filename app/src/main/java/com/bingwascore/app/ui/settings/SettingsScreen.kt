@@ -81,7 +81,7 @@ private enum class SettingsPage(val title: String) {
     APPEARANCE("Appearance"),
     PROCESSING_MODE("Processing Mode"),
     SIM_SELECTION("SIM Selection"),
-    SIMULATE_PAYMENT("Simulate Payment"),
+    SIMULATE_PAYMENT("Test Drive"),
     BACKUP_RESTORE("Backup & Restore"),
     UPDATES("Check For Updates"),
     ABOUT("About"),
@@ -197,8 +197,8 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
             )
             SettingsRow(
                 icon = Icons.Rounded.Science,
-                title = "Simulate Payment",
-                subtitle = "Dev test: fake M-Pesa credit, zero real money",
+                title = "Test Drive",
+                subtitle = "Sandbox: simulate an M-Pesa credit, zero real money",
                 trailing = {
                     DevChip()
                 },
@@ -484,14 +484,14 @@ private fun SimulatePaymentPage(viewModel: SettingsViewModel) {
     var payerName by remember { mutableStateOf("") }
     var amountText by remember { mutableStateOf("") }
 
-    PageTitle("Simulate Payment")
-    PageIntro("Dev test bench — feeds a fake INCOMING M-Pesa credit into the real pipeline. No real money moves.")
+    PageTitle("Test Drive")
+    PageIntro("Sandbox — feeds a simulated INCOMING M-Pesa credit into the real pipeline. No real money moves.")
     GlassCard(modifier = Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("DEV", color = NightBlack, fontSize = 10.sp, fontWeight = FontWeight.Bold,
                 modifier = Modifier.clip(CircleShape).background(BingwaOrange).padding(horizontal = 8.dp, vertical = 3.dp))
             Spacer(modifier = Modifier.width(8.dp))
-            Text("Simulate Payment", color = White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+            Text("Test Drive", color = White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
         }
         Spacer(modifier = Modifier.height(4.dp))
         Text(
@@ -759,8 +759,8 @@ private fun PrivacyPage() {
                 "only. We do not sell or share your customer list with third parties.",
             "SMS permissions are used solely to detect operator confirmations and to run your " +
                 "auto-reply engine on the senders you authorize.",
-            "Deleting the app removes all local data, including the blacklist and authorized " +
-                "senders."
+            "Deleting the app removes all local data, including your Blocked Contacts and " +
+                "Trusted Partners."
         )
     )
 }

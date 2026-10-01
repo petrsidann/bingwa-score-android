@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.bingwascore.app.ui.components.AmbientBackground
 import com.bingwascore.app.ui.components.GlassCard
 import com.bingwascore.app.ui.components.HapticSwitch
 import com.bingwascore.app.ui.theme.Amber
@@ -75,9 +76,15 @@ fun ProfileScreen(
     val engineEnabled by viewModel.engineEnabled.collectAsStateWithLifecycle()
     val editState by viewModel.editState.collectAsStateWithLifecycle()
 
-    Column(
-        modifier = Modifier.fillMaxSize().screenEnter().background(NightBlack).verticalScroll(rememberScrollState())
+    Box(
+        modifier = Modifier.fillMaxSize().screenEnter().background(NightBlack)
     ) {
+        // PREMIUM LOCK — ambient blobs behind the glass cards on Profile.
+        AmbientBackground()
+
+        Column(
+            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())
+        ) {
         Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp)) {
             Text("Profile", color = White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
             Text("Your agent account", color = White.copy(alpha = 0.5f), fontSize = 12.sp)
@@ -155,7 +162,7 @@ fun ProfileScreen(
         GlassCard(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Purchase Engine", color = White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                    Text("Bingwa Autopilot", color = White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                     Text(if (engineEnabled) "Running" else "Stopped",
                         color = if (engineEnabled) EmeraldGreen else White.copy(alpha = 0.5f), fontSize = 12.sp)
                 }
@@ -170,6 +177,7 @@ fun ProfileScreen(
         ProfileMenuRow("Blocked Contacts", Icons.Rounded.Block, onBlacklist)
         ProfileMenuRow("About", Icons.Rounded.Info, onAbout)
         Spacer(modifier = Modifier.height(24.dp))
+        }
     }
 }
 

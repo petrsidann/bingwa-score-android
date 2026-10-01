@@ -85,7 +85,7 @@ class BatchDialPlannerTest {
 
     @Test
     fun queuedMessage_matchesToastCopy() {
-        assertEquals("Queued 3 silent dials", BatchDialPlanner.queuedMessage(3))
+        assertEquals("Ghost Queue running — 3 dial(s) queued", BatchDialPlanner.queuedMessage(3))
     }
 
     @Test

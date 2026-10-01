@@ -61,6 +61,7 @@ import com.bingwascore.app.data.local.Offer
 import com.bingwascore.app.data.preferences.OfferTransitionRule
 import com.bingwascore.app.domain.BatchDialPlanner
 import com.bingwascore.app.domain.TransactionStatus
+import com.bingwascore.app.ui.components.AmbientBackground
 import com.bingwascore.app.ui.components.EmptyState
 import com.bingwascore.app.ui.components.GlassCard
 import com.bingwascore.app.ui.components.GradientButton
@@ -131,6 +132,10 @@ fun OffersScreen(viewModel: OffersViewModel = hiltViewModel()) {
             .screenEnter()
             .background(NightBlack)
     ) {
+        // PREMIUM LOCK — drifting amber/orange blobs behind the list so the
+        // glass cards have something to actually refract.
+        AmbientBackground()
+
         Column(modifier = Modifier.fillMaxSize()) {
             Column(
                 modifier = Modifier
@@ -168,7 +173,7 @@ fun OffersScreen(viewModel: OffersViewModel = hiltViewModel()) {
                     itemsIndexed(offers, key = { _, offer -> offer.id }) { index, offer ->
                         OfferCard(
                             offer = offer,
-                            enterDelayMillis = minOf(index, 6) * 35,
+                            enterDelayMillis = minOf(index, 6) * Motion.STAGGER,
                             selectionMode = selectionMode,
                             selected = offer.id in selectedIds,
                             onToggle = { viewModel.toggleActive(offer) },
@@ -245,7 +250,7 @@ fun OffersScreen(viewModel: OffersViewModel = hiltViewModel()) {
             text = {
                 Column {
                     Text(
-                        "These offers are not marked SILENT, so they will dial one after the other:",
+                        "These offers are not marked SILENT, so the Ghost Queue will dial them one after the other:",
                         color = White.copy(alpha = 0.6f),
                         fontSize = 12.sp
                     )
@@ -757,7 +762,7 @@ private fun OfferSettingsSheet(
             SwitchRow("Auto retry", autoRetry) { autoRetry = it }
             SwitchRow("Retry network problems", retryConnectionProblems) { retryConnectionProblems = it }
             Text(
-                "Silent offers are queued straight away in a batch dial — no per-dial confirmation.",
+                "Silent offers are queued straight away in the Ghost Queue — no per-dial confirmation.",
                 color = White.copy(alpha = 0.45f),
                 fontSize = 11.sp
             )
@@ -1142,7 +1147,7 @@ private fun BatchDialBar(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    "$count selected — $silentCount silent",
+                    "$count selected — $silentCount run silently",
                     color = White,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold
@@ -1172,7 +1177,7 @@ private fun BatchDialBar(
             placeholder = "0712345678"
         )
         GradientButton(
-            text = "Dial $count Silent",
+            text = "Ghost Queue ×$count",
             loading = isBatching,
             enabled = count > 0,
             onClick = onDial

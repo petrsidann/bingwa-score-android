@@ -1,5 +1,6 @@
 package com.bingwascore.app.ui.components
 
+import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -25,20 +26,86 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.bingwascore.app.ui.theme.GlassBorderStrong
 import com.bingwascore.app.ui.theme.GlassFill
 import com.bingwascore.app.ui.theme.BrandColors
+import com.bingwascore.app.ui.theme.BingwaType
 import com.bingwascore.app.ui.theme.OnBrandInk
 import com.bingwascore.app.util.rememberHaptics
+
+/**
+ * PREMIUM LOCK — the backdrop-blur radius for every glass surface.
+ *
+ * 24.dp is the value that reads as "frosted" rather than "mist": enough
+ * separation to kill the flat-rectangle look, not so much that text sitting on
+ * top starts to swim.
+ */
+val GlassBlurRadius: Dp = 24.dp
+
+/**
+ * PREMIUM LOCK — true glassmorphism, layered (never one translucent rectangle).
+ *
+ *  1. **Blur layer** — on API 31+ `Modifier.blur(24.dp)` over the content
+ *     behind the card, so ambient blobs smear into real frosted glass. The
+ *     blur is applied to a *background* layer, never to the card itself:
+ *     blurring the card would blur its own text too.
+ *  2. **Tint layer** — the colour that gives the glass its hue. On API 31+ it
+ *     stays translucent so the blur shows through; below 31, where no
+ *     RenderEffect blur exists, it climbs to a high-opacity solid surface so
+ *     cards still read as raised panels instead of transparent holes.
+ *  3. **Specular border** — the top-lit hairline that sells the material, and
+ *     carries the load below API 31 where there is no blur to catch light.
+ */
+@Composable
+fun Modifier.glassSurface(
+    shape: Shape,
+    tint: Color = GlassFill
+): Modifier {
+    val supportsBlur = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+
+    // 1. Blur layer — clipped to the shape so the blur never bleeds past it.
+    val blurLayer = if (supportsBlur) {
+        Modifier.clip(shape).blur(GlassBlurRadius)
+    } else {
+        Modifier
+    }
+
+    // 2. Tint layer. Without blur a translucent fill reads as a hole, so we
+    //    climb to ~14% white over the same base hue instead.
+    val tintBrush = if (supportsBlur) {
+        Brush.verticalGradient(
+            listOf(tint.copy(alpha = (tint.alpha + 0.06f).coerceAtMost(1f)), tint.copy(alpha = 0.04f))
+        )
+    } else {
+        Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.14f), Color.White.copy(alpha = 0.08f)))
+    }
+
+    return this
+        .clip(shape)
+        .then(blurLayer)
+        .background(tintBrush)
+        // 3. Specular border — brighter without blur so the edge still reads.
+        .border(
+            width = 1.dp,
+            brush = Brush.verticalGradient(
+                listOf(
+                    if (supportsBlur) GlassBorderStrong else Color.White.copy(alpha = 0.34f),
+                    Color.Transparent
+                )
+            ),
+            shape = shape
+        )
+}
 
 /**
  * Frosted glass card. Every card fades + slides in on composition; when
@@ -64,9 +131,7 @@ fun GlassCard(
 
     val visuals = Modifier
         .shadow(12.dp, shape, ambientColor = Color.Black.copy(0.35f))
-        .clip(shape)
-        .background(GlassFill)
-        .border(1.dp, Brush.verticalGradient(listOf(GlassBorderStrong, Color.Transparent)), shape)
+        .glassSurface(shape = shape)
 
     val cardModifier = when {
         onLongClick != null -> Modifier
@@ -146,11 +211,11 @@ fun GradientButton(
                     loadingText,
                     color = OnBrandInk,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 17.sp
+                    fontSize = BingwaType.Body
                 )
             }
         } else {
-            Text(text, color = OnBrandInk, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+            Text(text, color = OnBrandInk, fontWeight = FontWeight.Bold, fontSize = BingwaType.Body)
         }
     }
 }

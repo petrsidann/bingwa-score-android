@@ -105,7 +105,7 @@ class EngineService : Service() {
             "Bingwa Engine",
             NotificationManager.IMPORTANCE_LOW
         ).apply {
-            description = "Keeps the Bingwa purchase engine alive in the background."
+            description = "Keeps Bingwa Autopilot alive in the background."
             setShowBadge(false)
         }
         manager.createNotificationChannel(channel)
