@@ -92,6 +92,7 @@ import com.bingwascore.app.ui.components.PrimaryButton
 import com.bingwascore.app.ui.components.SecondaryButton
 import com.bingwascore.app.ui.components.ShimmerBlock
 import com.bingwascore.app.ui.components.pressScale
+import com.bingwascore.app.ui.showcase.DemoChip
 import com.bingwascore.app.ui.theme.AccentBlue
 import com.bingwascore.app.ui.theme.BgBlack
 import com.bingwascore.app.ui.theme.Bubble
@@ -520,8 +521,12 @@ private fun SelectionTopBar(
             enter = fadeIn(tween(Motion.FADE)) + scaleIn(initialScale = 0.8f),
             exit = fadeOut(tween(Motion.FADE)) + scaleOut(targetScale = 0.8f)
         ) {
-            TextButton(onClick = onExport) {
-                Text("Export", color = AccentBlue, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                DemoChip()
+                Spacer(modifier = Modifier.width(8.dp))
+                TextButton(onClick = onExport) {
+                    Text("Export", color = AccentBlue, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                }
             }
         }
     }

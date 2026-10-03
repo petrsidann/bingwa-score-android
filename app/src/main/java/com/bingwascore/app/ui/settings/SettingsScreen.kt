@@ -70,6 +70,7 @@ import androidx.compose.material3.SwitchDefaults
 import com.bingwascore.app.ui.theme.Hairline
 import com.bingwascore.app.ui.theme.Bubble
 import com.bingwascore.app.ui.theme.AccentBlue
+import com.bingwascore.app.ui.theme.TextDim
 import com.bingwascore.app.ui.theme.TextGrey
 import com.bingwascore.app.ui.theme.TickGreen
 import com.bingwascore.app.ui.theme.FailRed
@@ -778,6 +779,44 @@ private fun PrivacyPage() {
     )
 }
 
+/** One Showcase action row — the third affordance S3 asks for. */
+@Composable
+private fun ShowcaseActionRow(
+    title: String,
+    subtitle: String,
+    enabled: Boolean,
+    destructive: Boolean = false,
+    onClick: () -> Unit
+) {
+    BubbleCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 10.dp),
+        cornerRadius = 18.dp,
+        onClick = onClick
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    title,
+                    color = if (enabled) TextWhite else TextGrey,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(subtitle, color = TextGrey, fontSize = 12.sp)
+            }
+            if (destructive) {
+                Text(
+                    "Exit",
+                    color = FailRed,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
+    }
+}
+
 /**
  * SHOWCASE S1 — the switch that decides which database this install uses.
  *
@@ -830,6 +869,39 @@ private fun ShowcasePage() {
             )
         }
     }
+
+    ShowcaseActionRow(
+                title = "Reseed demo data",
+                subtitle = "Wipe the demo database and rebuild it from scratch",
+                enabled = enabled,
+                onClick = {
+                    haptics.press()
+                    ShowcaseController.requestDemoReseed(context)
+                    pendingRestart = true
+                }
+            )
+
+            ShowcaseActionRow(
+                title = "Exit showcase",
+                subtitle = "Leave the demo and go back to your own database",
+                enabled = enabled,
+                destructive = true,
+                onClick = {
+                    haptics.press()
+                    enabled = false
+                    ShowcaseController.setEnabled(context, false)
+                    pendingRestart = false
+                }
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Text(
+                "Demo traffic is generated on this device only: no USSD is dialled, no " +
+                    "SMS is sent, and nothing leaves the phone.",
+                color = TextDim,
+                fontSize = 12.sp
+            )
 
     if (pendingRestart != null) {
         androidx.compose.material3.AlertDialog(

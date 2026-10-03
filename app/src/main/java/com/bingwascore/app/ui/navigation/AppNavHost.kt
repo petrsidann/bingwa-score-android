@@ -120,6 +120,7 @@ import com.bingwascore.app.ui.theme.Bubble
 import com.bingwascore.app.ui.theme.PendGrey
 import com.bingwascore.app.ui.theme.BingwaType
 import com.bingwascore.app.ui.theme.TextGrey
+import com.bingwascore.app.ui.showcase.DemoChip
 import com.bingwascore.app.ui.theme.AccentBlue
 import com.bingwascore.app.ui.theme.Motion
 import com.bingwascore.app.ui.theme.BgBlack
@@ -294,13 +295,19 @@ fun MainScreen() {
         drawerContent = {
             ModalDrawerSheet(drawerContainerColor = Raised) {
                 Spacer(modifier = Modifier.height(28.dp))
-                Text(
-                    "Bingwa Score",
-                    color = TextWhite,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(horizontal = 24.dp)
-                )
+                Row(
+                    modifier = Modifier.padding(horizontal = 24.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "Bingwa Score",
+                        color = TextWhite,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    DemoChip()
+                }
                 Spacer(modifier = Modifier.height(12.dp))
                 drawerEntries.forEachIndexed { index, entry ->
                     val selected = selectedDrawerIndex == index
