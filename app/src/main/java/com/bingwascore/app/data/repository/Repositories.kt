@@ -38,6 +38,11 @@ class TransactionRepository @Inject constructor(
     suspend fun softDelete(id: String, at: Long = System.currentTimeMillis()) =
         dao.softDeleteById(id, at)
 
+    /** R3 — clears a soft-delete tombstone so "Undo" really puts the row back. */
+    suspend fun restore(id: String) {
+        dao.getById(id)?.let { dao.update(it.copy(deletedAt = null)) }
+    }
+
     suspend fun insert(transaction: Transaction) = dao.insert(transaction)
 
     suspend fun update(transaction: Transaction) = dao.update(transaction)

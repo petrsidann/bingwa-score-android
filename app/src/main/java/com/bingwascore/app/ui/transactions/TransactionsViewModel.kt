@@ -169,6 +169,54 @@ class TransactionsViewModel @Inject constructor(
         }
     }
 
+    /**
+     * R3 — batch soft delete. Returns the rows it removed so the screen can
+     * offer a real Undo instead of a dead-end toast.
+     */
+    fun softDeleteSelected(onDone: (List<Transaction>) -> Unit) {
+        val ids = _selectedIds.value
+        if (ids.isEmpty()) return
+        viewModelScope.launch {
+            val removed = transactions.value.filter { it.id in ids }
+            try {
+                removed.forEach { transactionRepository.softDelete(it.id) }
+                clearSelection()
+                onDone(removed)
+            } catch (t: Throwable) {
+                Timber.e(t, "Batch soft delete failed")
+                _events.tryEmit("Could not delete those transactions")
+            }
+        }
+    }
+
+    /**
+     * R3 — pull-to-refresh. Room is the source of truth, so a refresh is a
+     * deliberate read of the live list: it re-subscribes and keeps the spinner
+     * honest for a beat so the gesture reads as work, not a flicker.
+     */
+    fun refresh() {
+        viewModelScope.launch {
+            try {
+                transactionRepository.liveTransactions.first()
+            } catch (t: Throwable) {
+                Timber.e(t, "Pull-to-refresh failed")
+            }
+        }
+    }
+
+    /** R3 — Undo for a soft delete: clears the tombstone on every id given. */
+    fun restoreAll(transactions: List<Transaction>) {
+        viewModelScope.launch {
+            transactions.forEach { transactionRepository.restore(it.id) }
+        }
+    }
+
+    /** R3 — re-queue every selected row in one pass. */
+    fun retrySelected() {
+        forEachSelected { retry(it) }
+        clearSelection()
+    }
+
     /** Re-queue the transaction: back to PENDING with a bumped retry count. */
     fun retry(transaction: Transaction) {
         viewModelScope.launch {
