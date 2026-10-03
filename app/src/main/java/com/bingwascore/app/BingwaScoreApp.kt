@@ -3,6 +3,7 @@ package com.bingwascore.app
 import android.app.Application
 import com.bingwascore.app.data.local.AppDatabase
 import com.bingwascore.app.data.local.DatabaseSeeder
+import com.bingwascore.app.data.local.DbNameHolder
 import com.bingwascore.app.data.preferences.UserPreferences
 import com.bingwascore.app.services.EngineService
 import com.bingwascore.app.util.CrashHandler
@@ -29,10 +30,15 @@ class BingwaScoreApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+
+        // SHOWCASE S1 — must be the very first thing: it decides which database
+        // file Room will open, and Room is built by Hilt right after this.
+        DbNameHolder.loadFrom(this)
+
         CrashHandler.init(this)
         if (BuildConfig.DEBUG) Timber.plant(Timber.DebugTree())
 
-        Timber.d("Bingwa Score online")
+        Timber.d("Bingwa Score online (showcase=%s, db=%s)", DbNameHolder.showcaseMode, DbNameHolder.dbName)
 
         Schedulers.scheduleAll(this)
 

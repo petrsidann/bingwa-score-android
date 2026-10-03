@@ -7,6 +7,65 @@ import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
+/**
+ * SHOWCASE S1 — which database file this process talks to.
+ *
+ * Showcase Mode runs on a completely separate database so a demo can never touch
+ * real agent data, and switching the mode only requires a restart because the
+ * flag is read **once**, here, before Room builds anything.
+ *
+ * Read order is guaranteed by [BingwaScoreApp.onCreate], which calls
+ * [loadFrom] before any Hilt graph (and therefore any Room instance) exists.
+ */
+object DbNameHolder {
+
+    const val REAL_DB = "bingwa_score.db"
+    const val DEMO_DB = "bingwa_score_demo.db"
+
+    /** Mirror of the persisted flag, read once at process start. */
+    @Volatile
+    var showcaseMode: Boolean = false
+        private set
+
+    /** The file name Room must use — never branch on [showcaseMode] anywhere else. */
+    val dbName: String
+        get() = if (showcaseMode) DEMO_DB else REAL_DB
+
+    /**
+     * Called exactly once from Application.onCreate, before Room is initialised.
+     * Uses a dedicated SharedPreferences file so it is readable synchronously —
+     * a DataStore read would be too late.
+     */
+    fun loadFrom(context: Context) {
+        showcaseMode = prefs(context).getBoolean(KEY_SHOWCASE, false)
+    }
+
+    /** Persists the flag. The database itself is only swapped on the next launch. */
+    fun persist(context: Context, enabled: Boolean) {
+        prefs(context).edit().putBoolean(KEY_SHOWCASE, enabled).apply()
+    }
+
+    /** True on the very first ever launch, used to offer demo data up front. */
+    fun isFirstEverLaunch(context: Context): Boolean =
+        !prefs(context).contains(KEY_SEEN_FIRST_LAUNCH)
+
+    fun markFirstLaunchSeen(context: Context) {
+        prefs(context).edit().putBoolean(KEY_SEEN_FIRST_LAUNCH, true).apply()
+    }
+
+    /** Wipes only the demo database file so Showcase can reseed from scratch. */
+    fun deleteDemoDatabase(context: Context) {
+        context.deleteDatabase(DEMO_DB)
+    }
+
+    private fun prefs(context: Context) =
+        context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+
+    private const val PREFS_NAME = "bingwa_showcase"
+    private const val KEY_SHOWCASE = "showcase_mode"
+    private const val KEY_SEEN_FIRST_LAUNCH = "seen_first_launch"
+}
+
 @Database(
     entities = [
         Transaction::class, Offer::class, Customer::class, AutoReply::class,
@@ -149,7 +208,7 @@ abstract class AppDatabase : RoomDatabase() {
                 INSTANCE ?: Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,
-                    "bingwa_score.db"
+                    DbNameHolder.dbName
                 )
                     .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                     .fallbackToDestructiveMigration()

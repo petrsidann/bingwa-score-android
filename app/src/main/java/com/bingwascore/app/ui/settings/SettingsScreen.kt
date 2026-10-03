@@ -55,7 +55,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.bingwascore.app.data.local.DbNameHolder
 import com.bingwascore.app.data.preferences.UserPreferences
+import com.bingwascore.app.data.showcase.ShowcaseController
 import com.bingwascore.app.domain.AppProcessingMode
 import com.bingwascore.app.domain.ThemeMode
 import com.bingwascore.app.ui.components.BubbleCard
@@ -68,6 +70,7 @@ import androidx.compose.material3.SwitchDefaults
 import com.bingwascore.app.ui.theme.Hairline
 import com.bingwascore.app.ui.theme.Bubble
 import com.bingwascore.app.ui.theme.AccentBlue
+import com.bingwascore.app.ui.theme.TextGrey
 import com.bingwascore.app.ui.theme.TickGreen
 import com.bingwascore.app.ui.theme.FailRed
 import com.bingwascore.app.ui.theme.BgBlack
@@ -85,7 +88,8 @@ private enum class SettingsPage(val title: String) {
     UPDATES("Check For Updates"),
     ABOUT("About"),
     TERMS("Terms of Service"),
-    PRIVACY("Privacy Policy")
+    PRIVACY("Privacy Policy"),
+    SHOWCASE("Showcase Mode")
 }
 
 /** Settings hub with glass rows plus its own sub-pages. */
@@ -132,6 +136,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
                     SettingsPage.ABOUT -> AboutPage(viewModel)
                     SettingsPage.TERMS -> TermsPage()
                     SettingsPage.PRIVACY -> PrivacyPage()
+                    SettingsPage.SHOWCASE -> ShowcasePage()
                 }
                 Spacer(modifier = Modifier.height(24.dp))
             }
@@ -234,6 +239,16 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
                 title = "Privacy",
                 subtitle = "How your data is handled",
                 onClick = { currentPage = SettingsPage.PRIVACY }
+            )
+            SettingsRow(
+                icon = Icons.Rounded.Science,
+                title = "Showcase Mode",
+                subtitle = if (DbNameHolder.showcaseMode) {
+                    "On — running on live demo data"
+                } else {
+                    "Explore with a separate demo database"
+                },
+                onClick = { currentPage = SettingsPage.SHOWCASE }
             )
             Spacer(modifier = Modifier.height(24.dp))
         }
@@ -760,6 +775,148 @@ private fun PrivacyPage() {
             "Deleting the app removes all local data, including your Blocked Contacts and " +
                 "Trusted Partners."
         )
+    )
+}
+
+/**
+ * SHOWCASE S1 — the switch that decides which database this install uses.
+ *
+ * The change cannot take effect live (Room has already opened a file), so the
+ * dialog says so plainly and the restart is explicit.
+ */
+@Composable
+private fun ShowcasePage() {
+    val context = LocalContext.current
+    val haptics = rememberHaptics()
+    var enabled by remember { mutableStateOf(DbNameHolder.showcaseMode) }
+    var pendingRestart by remember { mutableStateOf<Boolean?>(null) }
+
+    PageTitle("Showcase Mode")
+    PageIntro(
+        "Run the app on a separate demo database filled with realistic data and a " +
+            "live simulator. Your real data is never touched."
+    )
+
+    BubbleCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 18.dp) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    "Demo data + live simulator",
+                    color = TextWhite,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    if (enabled) "On — using ${DbNameHolder.DEMO_DB}" else "Off — using ${DbNameHolder.REAL_DB}",
+                    color = TextGrey,
+                    fontSize = 12.sp
+                )
+            }
+            androidx.compose.material3.Switch(
+                checked = enabled,
+                onCheckedChange = { value ->
+                    haptics.tick()
+                    enabled = value
+                    ShowcaseController.setEnabled(context, value)
+                    pendingRestart = value
+                },
+                colors = androidx.compose.material3.SwitchDefaults.colors(
+                    checkedThumbColor = AccentBlue,
+                    checkedTrackColor = AccentBlue.copy(alpha = 0.35f),
+                    uncheckedThumbColor = TextGrey,
+                    uncheckedTrackColor = Bubble,
+                    uncheckedBorderColor = Hairline
+                )
+            )
+        }
+    }
+
+    if (pendingRestart != null) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { pendingRestart = null },
+            containerColor = Bubble,
+            title = { Text("Restart to apply", color = TextWhite, fontWeight = FontWeight.Bold) },
+            text = {
+                Text(
+                    "Showcase Mode switches to a different database, so Bingwa Score " +
+                        "needs to restart before the change takes effect.",
+                    color = TextGrey,
+                    fontSize = 14.sp
+                )
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = {
+                    ShowcaseController.restart(context)
+                }) { Text("Restart now", color = AccentBlue, fontWeight = FontWeight.SemiBold) }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { pendingRestart = null }) {
+                    Text("Later", color = TextGrey)
+                }
+            }
+        )
+    }
+}
+
+/**
+ * SHOWCASE S1 — first ever launch. Offer the demo reel before the agent commits
+ * to an empty app; "No" simply leaves the flag off forever after.
+ */
+@Composable
+fun FirstLaunchShowcaseOffer(onDecided: () -> Unit) {
+    val context = LocalContext.current
+    val haptics = rememberHaptics()
+
+    var show by remember {
+        mutableStateOf(DbNameHolder.isFirstEverLaunch(context))
+    }
+
+    if (!show) {
+        LaunchedEffect(Unit) { onDecided() }
+        return
+    }
+
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = {
+            DbNameHolder.markFirstLaunchSeen(context)
+            show = false
+            onDecided()
+        },
+        containerColor = Bubble,
+        title = {
+            Text(
+                "Explore with live demo data first?",
+                color = TextWhite,
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Text(
+                "Showcase Mode fills a separate demo database with customers, offers " +
+                    "and transactions, then keeps them moving while you watch. Your " +
+                    "real data stays untouched and you can switch off any time.",
+                color = TextGrey,
+                fontSize = 14.sp
+            )
+        },
+        confirmButton = {
+            androidx.compose.material3.TextButton(onClick = {
+                haptics.success()
+                DbNameHolder.markFirstLaunchSeen(context)
+                ShowcaseController.setEnabled(context, true)
+                show = false
+                ShowcaseController.restart(context)
+            }) { Text("Yes, show me", color = AccentBlue, fontWeight = FontWeight.SemiBold) }
+        },
+        dismissButton = {
+            androidx.compose.material3.TextButton(onClick = {
+                haptics.tick()
+                DbNameHolder.markFirstLaunchSeen(context)
+                ShowcaseController.setEnabled(context, false)
+                show = false
+                onDecided()
+            }) { Text("No thanks", color = TextGrey) }
+        }
     )
 }
 

@@ -10,6 +10,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bingwascore.app.data.preferences.UserPreferences
 import com.bingwascore.app.domain.ThemeMode
 import com.bingwascore.app.ui.navigation.AppNavHost
+import com.bingwascore.app.ui.settings.FirstLaunchShowcaseOffer
 import com.bingwascore.app.ui.theme.BingwaScoreTheme
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -33,6 +34,8 @@ class MainActivity : FragmentActivity() {
                 .collectAsStateWithLifecycle(initialValue = ThemeMode.DARK)
             BingwaScoreTheme(themeMode = themeMode) {
                 AppNavHost()
+                // SHOWCASE S1 — first ever launch offers the demo reel.
+                FirstLaunchShowcaseOffer(onDecided = {})
             }
         }
     }
