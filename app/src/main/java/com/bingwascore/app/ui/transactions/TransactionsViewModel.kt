@@ -40,8 +40,26 @@ enum class TransactionFilter(val label: String) {
     LAST_30_DAYS("30d"),
     COMPLETED("Completed"),
     FAILED("Failed"),
+    PENDING("Pending"),
     SCHEDULED("Scheduled"),
-    UNMATCHED("Unmatched")
+    UNMATCHED("Unmatched");
+
+    companion object {
+        /**
+         * R2 — Home counters drill straight into a filtered list, so a raw Room
+         * status has to resolve to a chip. Anything unknown falls back to ALL.
+         */
+        fun fromStatus(status: String?): TransactionFilter = when (status) {
+            TransactionStatus.SUCCESSFUL.value -> COMPLETED
+            TransactionStatus.FAILED.value,
+            TransactionStatus.FAILED_ALREADY_RECOMMENDED.value -> FAILED
+            TransactionStatus.PENDING.value,
+            TransactionStatus.PROCESSING.value -> PENDING
+            TransactionStatus.SCHEDULED.value -> SCHEDULED
+            TransactionStatus.UNMATCHED.value -> UNMATCHED
+            else -> ALL
+        }
+    }
 }
 
 @HiltViewModel

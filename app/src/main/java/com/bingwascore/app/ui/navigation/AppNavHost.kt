@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -81,7 +82,7 @@ import com.bingwascore.app.ui.autoreplies.AutoRepliesScreen
 import com.bingwascore.app.ui.authorizedsenders.AuthorizedSendersScreen
 import com.bingwascore.app.ui.blacklist.BlacklistScreen
 import com.bingwascore.app.ui.components.ScreenTransition
-import com.bingwascore.app.ui.components.bubbleSurface
+import com.bingwascore.app.ui.components.pressScale
 import com.bingwascore.app.ui.components.pressScale
 import com.bingwascore.app.ui.customers.CustomersScreen
 import com.bingwascore.app.ui.dialer.DialerScreen
@@ -95,6 +96,7 @@ import com.bingwascore.app.ui.screens.SplashScreen
 import com.bingwascore.app.ui.onboarding.SetupChecklistScreen
 import com.bingwascore.app.ui.settings.SettingsScreen
 import com.bingwascore.app.ui.subscriptions.SubscriptionsScreen
+import com.bingwascore.app.ui.transactions.TransactionFilter
 import com.bingwascore.app.ui.transactions.TransactionsScreen
 import com.bingwascore.app.score.ScoreScreen
 import com.bingwascore.app.util.rememberHaptics
@@ -117,6 +119,7 @@ import com.bingwascore.app.ui.theme.Hairline
 import com.bingwascore.app.ui.theme.Bubble
 import com.bingwascore.app.ui.theme.PendGrey
 import com.bingwascore.app.ui.theme.BingwaType
+import com.bingwascore.app.ui.theme.TextGrey
 import com.bingwascore.app.ui.theme.AccentBlue
 import com.bingwascore.app.ui.theme.Motion
 import com.bingwascore.app.ui.theme.BgBlack
@@ -281,6 +284,8 @@ fun MainScreen() {
     var selectedDrawerIndex by remember { mutableStateOf(-1) }
     var showDialer by remember { mutableStateOf(false) }
     var showReferral by remember { mutableStateOf(false) }
+    // R2: Home counters hand a status filter over to the Transactions tab.
+    var transactionFilter by remember { mutableStateOf(TransactionFilter.ALL) }
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
@@ -339,8 +344,9 @@ fun MainScreen() {
                 WindowInsetsSides.Top + WindowInsetsSides.Horizontal
             ),
             bottomBar = {
-                GlassBottomBar(
+                BottomNavBar(
                     selected = selectedTab,
+                    dialerOpen = showDialer,
                     onSelect = {
                         selectedTab = it
                         selectedDrawerIndex = -1
@@ -400,9 +406,13 @@ fun MainScreen() {
                         "community" -> CommunityScreen()
                         "qrscanner" -> QrScannerScreen()
                         "referral" -> ReferralScreen()
-                        "home" -> HomeScreen()
+                        "home" -> HomeScreen(onOpenTransactions = { status ->
+                    transactionFilter = TransactionFilter.fromStatus(status)
+                    selectedTab = 3
+                    selectedDrawerIndex = -1
+                })
                         "offers" -> OffersScreen()
-                        "transactions" -> TransactionsScreen()
+                        "transactions" -> TransactionsScreen(initialFilter = transactionFilter)
                         "profile" -> ProfileScreen(
                             onMyStore = { selectedDrawerIndex = AGENT_PORTAL_DRAWER_INDEX },
                             onReferEarn = { showReferral = true },
@@ -425,146 +435,89 @@ fun MainScreen() {
         }
     }
 }
-
+/**
+ * REBRAND R2 — the MT5 shell bar.
+ *
+ * Solid `#000000`, five equal tabs, icon + 11sp label. Active = accent blue,
+ * inactive = grey. No FAB, no floating pill, no gap, no blur: the bar is a rail,
+ * not a floating object.
+ */
 @Composable
-private fun GlassBottomBar(selected: Int, onSelect: (Int) -> Unit, onDialer: () -> Unit) {
-    val shape = RoundedCornerShape(28.dp)
-    val fabInteraction = remember { MutableInteractionSource() }
+private fun BottomNavBar(
+    selected: Int,
+    dialerOpen: Boolean,
+    onSelect: (Int) -> Unit,
+    onDialer: () -> Unit
+) {
     val haptics = rememberHaptics()
-    val tick = { haptics.tick() }
 
-    // Infinite pulsing glow for the dialer FAB
-    val glowTransition = rememberInfiniteTransition(label = "fabGlow")
-    val glow by glowTransition.animateFloat(
-        initialValue = 0f, targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(Motion.GLOW), RepeatMode.Reverse),
-        label = "fabGlowPulse"
-    )
-
-    BoxWithConstraints(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
+            .background(BgBlack)
             .navigationBarsPadding()
-            .padding(horizontal = 16.dp, vertical = 10.dp)
-            .bubbleSurface(shape = shape)
+            .padding(vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        // 5 logical slots: Home | Offers | FAB | Transactions | Profile
-        val slotWidth = maxWidth / 5f
-        val pillWidth = slotWidth * 0.6f
-        val pillOffset by animateDpAsState(
-            targetValue = slotWidth * selected + (slotWidth - pillWidth) / 2f,
-            animationSpec = spring(dampingRatio = Motion.DAMPING),
-            label = "pillOffset"
-        )
-
-        // Animated pill behind the selected tab
-        Box(
-            modifier = Modifier
-                .offset(x = pillOffset, y = 8.dp)
-                .width(pillWidth)
-                .height(50.dp)
-                .clip(RoundedCornerShape(14.dp))
-                .background(Brush.horizontalGradient(listOf(AccentBlue, PendGrey)))
-        )
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(66.dp)
-                .padding(horizontal = 6.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            BottomNavItem(Icons.Rounded.Home, "Home", selected == 0) { tick(); onSelect(0) }
-            BottomNavItem(Icons.Rounded.LocalOffer, "Offers", selected == 1) { tick(); onSelect(1) }
-
-            // Dialer FAB — infinite pulsing glow behind the gradient button
-            Box(modifier = Modifier.size(54.dp)) {
-                // Glow ring that breathes behind the FAB
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .size(54.dp)
-                        .graphicsLayer {
-                            alpha = 0.25f + 0.15f * glow
-                            scaleX = 1f + 0.35f * glow
-                            scaleY = 1f + 0.35f * glow
-                        }
-                        .clip(CircleShape)
-                        .background(PendGrey.copy(alpha = 0.5f))
-                )
-                // Main FAB — gradient, press-scale 0.98, press feedback
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .size(54.dp)
-                        .pressScale(fabInteraction)
-                        .clip(CircleShape)
-                        .background(Brush.linearGradient(listOf(AccentBlue, PendGrey)))
-                        .clickable(
-                            interactionSource = fabInteraction,
-                            indication = null,
-                            onClick = { haptics.press(); onDialer() }
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.Call,
-                        contentDescription = "Dialer",
-                        tint = BgBlack,
-                        modifier = Modifier.size(26.dp)
-                    )
-                }
-            }
-
-            BottomNavItem(Icons.AutoMirrored.Rounded.ReceiptLong, "Transactions", selected == 3) { tick(); onSelect(3) }
-            BottomNavItem(Icons.Rounded.Person, "Profile", selected == 4) { tick(); onSelect(4) }
+        NavTab(Icons.Rounded.Home, "Home", selected == 0) {
+            haptics.tick(); onSelect(0)
+        }
+        NavTab(Icons.Rounded.LocalOffer, "Offers", selected == 1) {
+            haptics.tick(); onSelect(1)
+        }
+        NavTab(Icons.Rounded.Call, "Dial", dialerOpen) {
+            haptics.press(); onDialer()
+        }
+        NavTab(Icons.AutoMirrored.Rounded.ReceiptLong, "Transactions", selected == 3) {
+            haptics.tick(); onSelect(3)
+        }
+        NavTab(Icons.Rounded.Person, "Profile", selected == 4) {
+            haptics.tick(); onSelect(4)
         }
     }
 }
 
 @Composable
-private fun BottomNavItem(icon: ImageVector, label: String, selected: Boolean, onClick: () -> Unit) {
+private fun RowScope.NavTab(
+    icon: ImageVector,
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
     val interactionSource = remember { MutableInteractionSource() }
-    val iconTint by animateColorAsState(
-        targetValue = if (selected) AccentBlue else TextWhite.copy(alpha = 0.55f),
+    val tint by animateColorAsState(
+        targetValue = if (selected) AccentBlue else TextGrey,
         animationSpec = spring(dampingRatio = Motion.DAMPING),
-        label = "navIconTint"
+        label = "navTint"
     )
-    val labelColor by animateColorAsState(
-        targetValue = if (selected) TextWhite else TextWhite.copy(alpha = 0.55f),
-        animationSpec = spring(dampingRatio = Motion.DAMPING),
-        label = "navLabelColor"
-    )
-    val labelWeight by animateFloatAsState(
-        targetValue = if (selected) 1f else 0.5f,
-        animationSpec = spring(dampingRatio = Motion.DAMPING),
-        label = "navLabelWeight"
-    )
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
         modifier = Modifier
+            .weight(1f)
             .pressScale(interactionSource)
-            .clip(RoundedCornerShape(16.dp))
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
                 onClick = onClick
             )
-            .padding(horizontal = 8.dp, vertical = 6.dp)
+            .padding(vertical = 6.dp)
     ) {
         Icon(
             imageVector = icon,
             contentDescription = label,
-            tint = iconTint,
+            tint = tint,
             modifier = Modifier.size(22.dp)
         )
         Spacer(modifier = Modifier.height(3.dp))
         Text(
             label,
-            color = labelColor,
+            color = tint,
             fontSize = BingwaType.Micro,
+            maxLines = 1,
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
         )
     }
 }
+

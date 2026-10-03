@@ -121,6 +121,18 @@ class HomeViewModel @Inject constructor(
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
+    /** R2 — the third Home counter: everything still queued, dialing or scheduled. */
+    val pendingCount: StateFlow<Int> = transactionRepository
+        .liveTransactions
+        .map { list ->
+            list.count {
+                it.status == TransactionStatus.PENDING.value ||
+                    it.status == TransactionStatus.PROCESSING.value ||
+                    it.status == TransactionStatus.SCHEDULED.value
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+
     val airtimeUsedToday: StateFlow<Double> = transactionRepository.liveTransactions
         .map { list ->
             val startOfDay = startOfDayMillis()
@@ -221,6 +233,14 @@ class HomeViewModel @Inject constructor(
     }
     val recentTransactions: StateFlow<List<Transaction>> = transactionRepository.liveTransactions
         .map { it.take(5) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /**
+     * R2 — the FULL activity list under the "Transactions" header, straight from
+     * the live DAO (soft-deleted rows excluded), newest first, all the way back
+     * to the oldest transaction the agent has.
+     */
+    val allTransactions: StateFlow<List<Transaction>> = transactionRepository.liveTransactions
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     init {

@@ -85,7 +85,10 @@ import java.util.Date
 import java.util.Locale
 
 @Composable
-fun TransactionsScreen(viewModel: TransactionsViewModel = hiltViewModel()) {
+fun TransactionsScreen(
+    initialFilter: TransactionFilter = TransactionFilter.ALL,
+    viewModel: TransactionsViewModel = hiltViewModel()
+) {
     val context = LocalContext.current
     val haptics = rememberHaptics()
     val transactions by viewModel.transactions.collectAsStateWithLifecycle()
@@ -97,6 +100,11 @@ fun TransactionsScreen(viewModel: TransactionsViewModel = hiltViewModel()) {
     val selectedIds by viewModel.selectedIds.collectAsStateWithLifecycle()
     val hasSelection by viewModel.hasSelection.collectAsStateWithLifecycle()
     val allSelected = transactions.isNotEmpty() && selectedIds.size == transactions.size
+
+    LaunchedEffect(initialFilter) {
+        // R2 — arriving from a Home counter applies that filter on entry.
+        viewModel.setFilter(initialFilter)
+    }
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { message ->
