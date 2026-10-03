@@ -7,8 +7,10 @@ import android.os.IBinder
 import android.os.Looper
 import android.telephony.SubscriptionManager
 import android.telephony.TelephonyManager
+import com.bingwascore.app.data.local.DbNameHolder
 import com.bingwascore.app.data.local.Offer
 import com.bingwascore.app.data.preferences.UserPreferences
+import com.bingwascore.app.data.showcase.DemoCatalog
 import com.bingwascore.app.data.repository.OfferRepository
 import com.bingwascore.app.data.repository.TransactionRepository
 import com.bingwascore.app.domain.ProcessingActivity
@@ -20,11 +22,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.util.Locale
+import java.util.Random
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 
@@ -159,6 +163,11 @@ class UssdAutomationService : Service() {
     }
 
     private fun runUssd(ussdCode: String, transactionId: String, customerPhone: String?) {
+        // SHOWCASE S2 — the demo never reaches the radio; a scripted reply stands in.
+        if (DbNameHolder.showcaseMode) {
+            runFakeUssd(ussdCode, transactionId)
+            return
+        }
         serviceScope.launch {
             val personality = resolvePersonality(transactionId)
             log.i(
@@ -193,6 +202,47 @@ class UssdAutomationService : Service() {
         } catch (t: Throwable) {
             log.e(t, "Failed to read offer personality for %s", transactionId)
             OfferPersonality.DEFAULT
+        }
+    }
+
+    /**
+     * SHOWCASE S2 — the fake dialer.
+     *
+     * While Showcase Mode is on the app never touches the radio: no USSD is
+     * dialled and no SMS is sent. Instead the reply arrives on a 2–4 second timer
+     * with a real Hybrid response string that the production classifier reads:
+     *  - ~80% success (matched by the real success regex),
+     *  - 12% "already been recommended" (the strict-mode rejection),
+     *  - 8% "Connection problem" (the retry path).
+     *
+     * The transaction still walks the real status machine, so the rows on screen
+     * behave exactly as they do in production.
+     */
+    private fun runFakeUssd(ussdCode: String, transactionId: String) {
+        val personality = serviceScope.async {
+            resolvePersonality(transactionId)
+        }
+        serviceScope.launch {
+            val personalityNow = runCatching { personality.await() }.getOrNull()
+                ?: OfferPersonality.DEFAULT
+            val delayMillis = 2_000L + (Random(System.nanoTime()).nextDouble() * 2_000.0).toLong()
+            delay(delayMillis)
+
+            val offerName = runCatching {
+                transactionRepository.getLiveTransaction(transactionId)?.offerName
+            }.getOrNull() ?: "bundle"
+
+            val roll = Random(System.nanoTime()).nextInt(100)
+            val reply = when {
+                roll < 12 -> DemoCatalog.ussdAlreadyRecommendedReply()
+                roll < 20 -> DemoCatalog.ussdConnectionProblemReply()
+                else -> DemoCatalog.ussdSuccessReply(offerName)
+            }
+
+            log.i("USSD: [demo] fake reply for %s after %sms: %s", transactionId, delayMillis, reply)
+            val status = classifyResponse(reply, personalityNow)
+            finalizeTransaction(transactionId, status, null)
+            stopSelf()
         }
     }
 

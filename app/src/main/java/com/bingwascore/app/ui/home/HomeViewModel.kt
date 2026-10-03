@@ -12,7 +12,9 @@ import android.telephony.SubscriptionManager
 import android.telephony.TelephonyManager
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.bingwascore.app.data.local.DbNameHolder
 import com.bingwascore.app.data.local.Transaction
+import com.bingwascore.app.data.showcase.DemoCatalog
 import com.bingwascore.app.data.preferences.UserPreferences
 import com.bingwascore.app.data.repository.TransactionRepository
 import com.bingwascore.app.domain.AppProcessingMode
@@ -22,6 +24,7 @@ import com.bingwascore.app.services.EngineService
 import com.bingwascore.app.services.UssdResponses
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -194,6 +197,11 @@ class HomeViewModel @Inject constructor(
      */
     @SuppressLint("MissingPermission")
     fun refreshBalance() {
+        // SHOWCASE S2 — in demo mode the balance is simulated; no USSD is dialled.
+        if (DbNameHolder.showcaseMode) {
+            simulatedBalanceRefresh()
+            return
+        }
         if (_balanceLoading.value) return
         _balanceLoading.value = true
         _balanceError.value = null
@@ -230,6 +238,19 @@ class HomeViewModel @Inject constructor(
                 failBalance(UssdResponses.failureReason(code))
             }
         })
+    }
+
+    /** SHOWCASE S2 — simulated *144#: a short pause, then a random-walk balance. */
+    private fun simulatedBalanceRefresh() {
+        if (_balanceLoading.value) return
+        _balanceLoading.value = true
+        viewModelScope.launch {
+            delay(900)
+            val next = DemoCatalog.simulatedBalance(_balance.value, java.util.Random(System.nanoTime()))
+            _balance.value = next
+            _balanceLoading.value = false
+            userPreferences.setAirtimeBalance(next)
+        }
     }
 
     /** Issues the USSD on the main looper, exactly like the dial path does. */
