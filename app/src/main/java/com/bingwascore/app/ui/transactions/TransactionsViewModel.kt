@@ -169,6 +169,16 @@ class TransactionsViewModel @Inject constructor(
         }
     }
 
+    /** R4 — corrects a mistyped USSD code from the detail sheet. */
+    fun updateUssd(transaction: Transaction, code: String) {
+        val clean = code.trim()
+        if (clean.isEmpty() || clean == transaction.ussdCode) return
+        viewModelScope.launch {
+            transactionRepository.update(transaction.copy(ussdCode = clean))
+            _events.tryEmit("USSD code updated")
+        }
+    }
+
     /**
      * R3 — batch soft delete. Returns the rows it removed so the screen can
      * offer a real Undo instead of a dead-end toast.

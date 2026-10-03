@@ -47,7 +47,13 @@ import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.animation.core.Animatable
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.unit.IntOffset
+import com.bingwascore.app.ui.theme.Raised
+import kotlin.math.roundToInt
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -130,6 +136,8 @@ fun TransactionsScreen(
     val hasSelection by viewModel.hasSelection.collectAsStateWithLifecycle()
 
     var selectedTransaction by remember { mutableStateOf<Transaction?>(null) }
+    // R4 — "View all from this number" prefills the list search.
+    var phoneFilter by remember { mutableStateOf<String?>(null) }
     var isRefreshing by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val pullState = rememberPullToRefreshState { isRefreshing }
@@ -190,7 +198,12 @@ fun TransactionsScreen(
             }
 Box(modifier = Modifier.fillMaxSize().nestedScroll(pullState.nestedScrollConnection)) {
                 TransactionBody(
-                    transactions = transactions,
+                    transactions = remember(transactions, phoneFilter) {
+                        if (phoneFilter == null) transactions
+                        else transactions.filter { it.phoneNumber == phoneFilter }
+                    },
+                    phoneFilter = phoneFilter,
+                    onClearPhoneFilter = { phoneFilter = null },
                     selectedFilter = selectedFilter,
                     isLoading = isLoading,
                     hasSelection = hasSelection,
@@ -248,18 +261,98 @@ Box(modifier = Modifier.fillMaxSize().nestedScroll(pullState.nestedScrollConnect
         )
     }
 
-    selectedTransaction?.let { transaction ->
-        ModalBottomSheet(
-            onDismissRequest = { selectedTransaction = null },
-            containerColor = Bubble
-        ) {
-            TransactionDetailSheet(
-                transaction = transaction,
-                onRetry = { viewModel.retry(transaction); selectedTransaction = null },
-                onComplete = { viewModel.complete(transaction); selectedTransaction = null },
-                onSchedule = { viewModel.schedule(transaction); selectedTransaction = null },
-                onDelete = { viewModel.delete(transaction); selectedTransaction = null }
+    // REBRAND R4 — the focus sheet. The list behind it dims toward black (a
+    // focus shift, not a modal veil) and the sheet itself can be dragged down.
+    if (selectedTransaction != null) {
+        val dim by animateFloatAsState(
+            targetValue = 1f,
+            animationSpec = tween(180),
+            label = "focusDim"
+        )
+        val sheetOffset = remember { Animatable(0f) }
+
+        Box(modifier = Modifier.fillMaxSize()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(BgBlack.copy(alpha = dim * 0.92f))
+                    .clickable(
+                        indication = null,
+                        interactionSource = remember { MutableInteractionSource() }
+                    ) { selectedTransaction = null }
             )
+
+            val sheet = selectedTransaction ?: return@Box
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .fillMaxHeight(0.85f)
+                    .offset { IntOffset(0, sheetOffset.value.roundToInt()) }
+                    .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
+                    .background(Raised)
+                    .pointerInput(Unit) {
+                        val heightPx = size.height.toFloat()
+                        detectVerticalDragGestures(
+                            onDragEnd = {
+                                scope.launch {
+                                    val shouldClose = sheetOffset.value > heightPx * 0.2f
+                                    if (shouldClose) {
+                                        sheetOffset.animateTo(
+                                            heightPx,
+                                            spring(dampingRatio = 0.9f, stiffness = 500f)
+                                        )
+                                        selectedTransaction = null
+                                    } else {
+                                        sheetOffset.animateTo(
+                                            0f,
+                                            spring(dampingRatio = 0.6f)
+                                        )
+                                    }
+                                }
+                            },
+                            onVerticalDrag = { _, dragAmount ->
+                                scope.launch {
+                                    sheetOffset.snapTo(
+                                        (sheetOffset.value + dragAmount).coerceAtLeast(0f)
+                                    )
+                                }
+                            }
+                        )
+                    }
+            ) {
+                // Drag handle + header: long-pressing the header also dismisses.
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp, bottom = 4.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .width(40.dp)
+                            .height(4.dp)
+                            .clip(RoundedCornerShape(2.dp))
+                            .background(Hairline)
+                    )
+                }
+
+                TransactionFocusSheet(
+                    transaction = sheet,
+                    stats = remember(sheet.id, transactions.size) {
+                        clientStatsFor(transactions, sheet.phoneNumber)
+                    },
+                    onRetry = { viewModel.retry(sheet); selectedTransaction = null },
+                    onComplete = { viewModel.complete(sheet); selectedTransaction = null },
+                    onSchedule = { viewModel.schedule(sheet); selectedTransaction = null },
+                    onDelete = { viewModel.delete(sheet); selectedTransaction = null },
+                    onEditUssd = { code -> viewModel.updateUssd(sheet, code) },
+                    onViewAllFromNumber = {
+                        phoneFilter = sheet.phoneNumber
+                        selectedTransaction = null
+                    }
+                )
+            }
         }
     }
 }
@@ -269,6 +362,8 @@ Box(modifier = Modifier.fillMaxSize().nestedScroll(pullState.nestedScrollConnect
 @Composable
 private fun TransactionBody(
     transactions: List<Transaction>,
+    phoneFilter: String?,
+    onClearPhoneFilter: () -> Unit,
     selectedFilter: TransactionFilter,
     isLoading: Boolean,
     hasSelection: Boolean,
@@ -296,7 +391,33 @@ private fun TransactionBody(
 
         else -> {
             val grouped = remember(transactions) { groupByDay(transactions) }
-            LazyColumn(
+            Column(modifier = Modifier.fillMaxSize()) {
+                if (phoneFilter != null) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            "$phoneFilter",
+                            color = AccentBlue,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Text(
+                            "Clear search",
+                            color = TextGrey,
+                            fontSize = 12.sp,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable(onClick = onClearPhoneFilter)
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+                LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(
                     start = 20.dp,
@@ -317,6 +438,7 @@ private fun TransactionBody(
                             onLongClick = { onRowLongClick(transaction) }
                         )
                     }
+                }
                 }
             }
         }
@@ -705,226 +827,3 @@ private fun relativeTime(millis: Long): String {
         else -> dayFormat.format(Date(millis))
     }
 }
-
-/** "1,234.56" — always two decimals, no locale surprises. */
-private fun money(value: Double): String = String.format(Locale.US, "%,.2f", value)
-
-@Composable
-private fun TransactionDetailSheet(
-    transaction: Transaction,
-    onRetry: () -> Unit,
-    onComplete: () -> Unit,
-    onSchedule: () -> Unit,
-    onDelete: () -> Unit
-) {
-    val iso = remember { SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault()) }
-    val color = statusColor(transaction.status)
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp)
-            .padding(bottom = 28.dp)
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier
-                    .size(46.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(color.copy(alpha = 0.12f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = statusIcon(transaction.status),
-                    contentDescription = null,
-                    tint = color,
-                    modifier = Modifier.size(22.dp)
-                )
-            }
-            Spacer(modifier = Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    transaction.customerName ?: transaction.phoneNumber,
-                    color = TextWhite,
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    transaction.phoneNumber,
-                    color = TextWhite.copy(alpha = 0.5f),
-                    fontSize = 12.sp
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(18.dp))
-                .background(Bubble)
-                .border(1.dp, Hairline, RoundedCornerShape(18.dp))
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            DetailRow(
-                "Status",
-                transaction.status.lowercase(Locale.ROOT)
-                    .replaceFirstChar { it.uppercase(Locale.ROOT) }
-            )
-            DetailRow("Offer", transaction.offerName)
-            DetailRow("Amount", formatKsh(transaction.amount))
-            DetailRow("Commission", formatKsh(transaction.commission))
-            DetailRow("USSD", transaction.ussdCode)
-            DetailRow("Created", iso.format(Date(transaction.createdAt)))
-            transaction.scheduledAt?.let {
-                DetailRow("Scheduled for", iso.format(Date(it)))
-            }
-            transaction.mpesaReceipt?.let { DetailRow("M-Pesa receipt", it) }
-            // Parity C hybrid field: the raw USSD/MPesa reply that closed the row.
-            transaction.responseMessage
-                ?.takeIf { it.isNotBlank() }
-                ?.let { DetailRow("Response", it) }
-            transaction.errorMessage?.let { DetailRow("Error", it) }
-            DetailRow("Retries", transaction.retryCount.toString())
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        if (canRetry(transaction.status)) {
-            SheetAction(Icons.Rounded.Refresh, "Retry now", PendGrey, onRetry)
-            Spacer(modifier = Modifier.height(10.dp))
-        }
-        if (canComplete(transaction.status)) {
-            SheetAction(Icons.Rounded.CheckCircle, "Mark as completed", TickGreen, onComplete)
-            Spacer(modifier = Modifier.height(10.dp))
-        }
-        if (canSchedule(transaction.status)) {
-            SheetAction(
-                Icons.Rounded.Schedule,
-                "Schedule tomorrow 01:00",
-                PendGrey,
-                onSchedule
-            )
-            Spacer(modifier = Modifier.height(10.dp))
-        }
-        SheetAction(Icons.Rounded.DeleteOutline, "Delete transaction", FailRed, onDelete)
-    }
-}
-
-@Composable
-private fun ColumnScope.DetailRow(label: String, value: String) {
-    Row {
-        Text(
-            label,
-            color = TextWhite.copy(alpha = 0.5f),
-            fontSize = 12.sp,
-            modifier = Modifier.weight(1f)
-        )
-        Text(
-            value,
-            color = TextWhite,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.SemiBold,
-            textAlign = TextAlign.End,
-            modifier = Modifier.weight(2.2f)
-        )
-    }
-}
-
-@Composable
-private fun SheetAction(icon: ImageVector, label: String, tint: Color, onClick: () -> Unit) {
-    val shape = RoundedCornerShape(14.dp)
-    val interactionSource = remember { MutableInteractionSource() }
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .pressScale(interactionSource)
-            .clip(shape)
-            .background(Bubble)
-            .border(1.dp, Hairline, shape)
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick
-            )
-            .padding(horizontal = 14.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = tint,
-            modifier = Modifier.size(20.dp)
-        )
-        Spacer(modifier = Modifier.width(12.dp))
-        Text(label, color = TextWhite, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-    }
-}
-
-@Composable
-private fun ExportButton(onClick: () -> Unit) {
-    val shape = RoundedCornerShape(14.dp)
-    val interactionSource = remember { MutableInteractionSource() }
-    Box(
-        modifier = Modifier
-            .pressScale(interactionSource)
-            .clip(shape)
-            .background(Bubble)
-            .border(1.dp, Hairline, shape)
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick
-            )
-            .padding(horizontal = 14.dp, vertical = 10.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = Icons.Rounded.FileDownload,
-                contentDescription = null,
-                tint = AccentBlue,
-                modifier = Modifier.size(18.dp)
-            )
-            Spacer(modifier = Modifier.width(6.dp))
-            Text(
-                "CSV",
-                color = TickGreen,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold
-            )
-        }
-    }
-}
-
-/** Parity E — status visuals come from the shared [StatusColors] palette. */
-private fun statusColor(status: String): Color = StatusColors.color(status)
-
-private fun statusIcon(status: String): ImageVector = StatusColors.icon(status)
-
-private fun canRetry(status: String): Boolean =
-    status != TransactionStatus.SUCCESSFUL.value &&
-        status != TransactionStatus.SCHEDULED.value
-
-private fun canComplete(status: String): Boolean =
-    status != TransactionStatus.SUCCESSFUL.value
-
-private fun canSchedule(status: String): Boolean =
-    status != TransactionStatus.SCHEDULED.value
-
-private fun formatKsh(value: Double): String =
-    "Ksh " + String.format(Locale.US, "%,.2f", value)
-
-private fun timeAgo(then: Long, now: Long = System.currentTimeMillis()): String {
-    val minutes = (now - then) / 60_000
-    return when {
-        minutes < 1 -> "Just now"
-        minutes < 60 -> "${minutes}m ago"
-        minutes < 24 * 60 -> "${minutes / 60}h ago"
-        minutes < 30 * 24 * 60 -> "${minutes / (24 * 60)}d ago"
-        else -> "${minutes / (30 * 24 * 60)}mo ago"
-    }
-}
-
