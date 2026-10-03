@@ -125,6 +125,8 @@ fun HomeScreen(
 
     var valuesVisible by remember { mutableStateOf(false) }
     var permissionsMissing by remember { mutableStateOf(missingPermissions(context)) }
+    // R5 — manual balance entry, offered whenever the network gives up.
+    var manualEntryFor by remember { mutableStateOf<Double?>(null) }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -133,13 +135,19 @@ fun HomeScreen(
 
     LaunchedEffect(balanceError) {
         val message = balanceError ?: return@LaunchedEffect
+        // R5 — the reason is a sentence now; the escape hatch is the action.
         val result = snackbarHostState.showSnackbar(
             message = message,
-            actionLabel = "Retry",
+            actionLabel = "Open Settings",
             duration = SnackbarDuration.Long
         )
         viewModel.consumeBalanceError()
-        if (result == SnackbarResult.ActionPerformed) viewModel.refreshBalance()
+        if (result == SnackbarResult.ActionPerformed) {
+            openAppSettings(context)
+        } else {
+            // Dismissed: the agent may know the balance better than the network does.
+            manualEntryFor = balance
+        }
     }
 
     LaunchedEffect(Unit) {
@@ -197,12 +205,65 @@ fun HomeScreen(
 
             item { SectionHeader("Transactions", "${transactions.size} total") }
 
+            item { Spacer(modifier = Modifier.height(4.dp)) }
+
             items(transactions, key = { it.id }) { tx -> HomeTransactionRow(tx) }
         }
 
         SnackbarHost(
             hostState = snackbarHostState,
             modifier = Modifier.align(Alignment.BottomCenter)
+        )
+    }
+
+    // R5 — the last resort when USSD will not answer: type the balance in.
+    val manualFor = manualEntryFor
+    if (manualFor != null) {
+        var entry by remember { mutableStateOf("") }
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { manualEntryFor = null },
+            containerColor = Bubble,
+            title = {
+                Text("Enter balance manually", color = TextWhite, fontWeight = FontWeight.Bold)
+            },
+            text = {
+                androidx.compose.material3.TextField(
+                    value = entry,
+                    onValueChange = { entry = it.filter { c -> c.isDigit() || c == '.' } },
+                    singleLine = true,
+                    placeholder = {
+                        Text("0.00", color = TextDim)
+                    },
+                    colors = androidx.compose.material3.TextFieldDefaults.colors(
+                        focusedTextColor = TextWhite,
+                        unfocusedTextColor = TextWhite
+                    )
+                )
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = {
+                    entry.toDoubleOrNull()?.let { viewModel.setManualBalance(it) }
+                    manualEntryFor = null
+                }) {
+                    Text("Save", color = AccentBlue, fontWeight = FontWeight.SemiBold)
+                }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { manualEntryFor = null }) {
+                    Text("Cancel", color = TextGrey)
+                }
+            }
+        )
+    }
+}
+
+/** Sends the agent to this app's system page — the fastest route to permissions. */
+private fun openAppSettings(context: Context) {
+    runCatching {
+        context.startActivity(
+            android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                .setData(android.net.Uri.fromParts("package", context.packageName, null))
+                .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
         )
     }
 }

@@ -68,7 +68,27 @@ fun DialerScreen(onClose: () -> Unit, viewModel: DialerViewModel = hiltViewModel
     val selectedOfferId by viewModel.selectedOfferId.collectAsStateWithLifecycle()
     val feedback by viewModel.feedback.collectAsStateWithLifecycle()
     val isDialing by viewModel.isDialing.collectAsStateWithLifecycle()
+    val missingPermissions by viewModel.missingPermissions.collectAsStateWithLifecycle()
     val haptics = rememberHaptics()
+
+    // REBRAND R5 — the dial cannot work without these, so we ask up front instead
+    // of letting a service fail silently in the background.
+    val permissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()
+    ) { granted -> granted.values.forEach { if (it) haptics.tick() } }
+
+    LaunchedEffect(Unit) {
+        val missing = viewModel.missingDialPermissions()
+        if (missing.isNotEmpty()) {
+            haptics.error()
+            permissionLauncher.launch(
+                arrayOf(
+                    android.Manifest.permission.CALL_PHONE,
+                    android.Manifest.permission.READ_PHONE_STATE
+                )
+            )
+        }
+    }
 
     // Parity E — every dial outcome gets a tactile confirmation.
     LaunchedEffect(feedback) {

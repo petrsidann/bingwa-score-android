@@ -5,8 +5,10 @@ import android.content.Intent
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.telephony.SubscriptionManager
 import android.telephony.TelephonyManager
 import com.bingwascore.app.data.local.Offer
+import com.bingwascore.app.data.preferences.UserPreferences
 import com.bingwascore.app.data.repository.OfferRepository
 import com.bingwascore.app.data.repository.TransactionRepository
 import com.bingwascore.app.domain.ProcessingActivity
@@ -15,6 +17,8 @@ import com.bingwascore.app.domain.engine.TransactionPipeline
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
@@ -41,6 +45,7 @@ class UssdAutomationService : Service() {
     @Inject lateinit var transactionRepository: TransactionRepository
     @Inject lateinit var offerRepository: OfferRepository
     @Inject lateinit var transactionPipeline: TransactionPipeline
+    @Inject lateinit var userPreferences: UserPreferences
 
     /** Cancellable scope for intent handling + watchdog, tied to the service lifetime. */
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -85,10 +90,29 @@ class UssdAutomationService : Service() {
         }
     }
 
+    /**
+     * R5 — the dial holds a foreground notification for its whole life. Without
+     * this the platform kills the service mid-USSD and nothing ever fires.
+     */
+    private fun ussdNotification(): android.app.Notification =
+        androidx.core.app.NotificationCompat.Builder(this, EngineService.CHANNEL_ID)
+            .setContentTitle("Dialing")
+            .setContentText("Sending a USSD request…")
+            .setSmallIcon(com.bingwascore.app.R.drawable.ic_launcher_foreground)
+            .setOngoing(true)
+            .setPriority(androidx.core.app.NotificationCompat.PRIORITY_LOW)
+            .setShowWhen(false)
+            .build()
+
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         try {
+            // REBRAND R5 — a started service that never promotes itself is killed
+            // on Android 8+ and the dial simply never fires. Promote first, then
+            // do any work.
+            runCatching { startForeground(NOTIFICATION_ID, ussdNotification()) }
+
             val ussdCode = intent?.getStringExtra(EXTRA_USSD_CODE)
             val transactionId = intent?.getStringExtra(EXTRA_TRANSACTION_ID)
             val customerPhone = intent?.getStringExtra(EXTRA_CUSTOMER_PHONE)
@@ -180,60 +204,105 @@ class UssdAutomationService : Service() {
         try {
             val telephony = getSystemService(TELEPHONY_SERVICE) as? TelephonyManager
             if (telephony == null) {
-                log.w("Telephony service unavailable for transaction %s", transactionId)
+                log.w("USSD: telephony unavailable for transaction %s", transactionId)
                 finalizeTransaction(transactionId, TransactionStatus.FAILED, "Telephony service unavailable")
                 stopSelf()
                 return
             }
 
+            // REBRAND R5 — dual-SIM aware. The Settings SIM choice wins when it
+            // points at a real subscription; otherwise the system default is used.
+            val subscriptionId = resolveSubscriptionId()
+            val scoped = runCatching { telephony.createForSubscriptionId(subscriptionId) }
+                .getOrDefault(telephony)
+            log.i(
+                "USSD: sending %s on subscription %s (scoped=%s) for tx=%s",
+                ussdCode, subscriptionId, scoped !== telephony, transactionId
+            )
+
             startTimeoutWatchdog(transactionId, personality)
 
-            telephony.sendUssdRequest(
-                ussdCode,
-                object : TelephonyManager.UssdResponseCallback() {
-                    override fun onReceiveUssdResponse(
-                        telephonyManager: TelephonyManager,
-                        request: String?,
-                        response: CharSequence?
-                    ) {
-                        try {
-                            val body = response?.toString().orEmpty()
-                            val status = classifyResponse(body, personality)
-                            log.d("USSD response for %s -> %s: %s", transactionId, status.value, body)
-                            finalizeTransaction(transactionId, status, null)
-                        } catch (t: Throwable) {
-                            log.e(t, "Failed handling USSD response for %s", transactionId)
-                            finalizeTransaction(transactionId, TransactionStatus.FAILED, "Response error: ${t.message}")
-                        } finally {
-                            stopSelf()
+            // REBRAND R5 — sendUssdRequest must be issued on the main looper.
+            withContext(Dispatchers.Main) {
+                scoped.sendUssdRequest(
+                    ussdCode,
+                    object : TelephonyManager.UssdResponseCallback() {
+                        override fun onReceiveUssdResponse(
+                            telephonyManager: TelephonyManager,
+                            request: String?,
+                            response: CharSequence?
+                        ) {
+                            try {
+                                val body = response?.toString().orEmpty()
+                                val status = classifyResponse(body, personality)
+                                log.d("USSD: response for %s -> %s: %s", transactionId, status.value, body)
+                                finalizeTransaction(transactionId, status, null)
+                            } catch (t: Throwable) {
+                                log.e(t, "USSD: failed handling response for %s", transactionId)
+                                finalizeTransaction(transactionId, TransactionStatus.FAILED, "Response error: ${t.message}")
+                            } finally {
+                                stopSelf()
+                            }
                         }
-                    }
 
-                    override fun onReceiveUssdResponseFailed(
-                        telephonyManager: TelephonyManager,
-                        request: String?,
-                        failureCode: Int
-                    ) {
-                        try {
-                            log.w("USSD request failed for %s (code %d)", transactionId, failureCode)
-                            finalizeTransaction(
-                                transactionId,
-                                TransactionStatus.FAILED,
-                                "USSD request failed (code $failureCode)"
-                            )
-                        } catch (t: Throwable) {
-                            log.e(t, "Failed handling USSD failure for %s", transactionId)
-                        } finally {
-                            stopSelf()
+                        override fun onReceiveUssdResponseFailed(
+                            telephonyManager: TelephonyManager,
+                            request: String?,
+                            failureCode: Int
+                        ) {
+                            try {
+                                // R5 — no more "failed code 1": the agent gets a
+                                // sentence they can act on, and it lands on the row.
+                                val reason = UssdResponses.failureReason(failureCode)
+                                log.w("USSD: request failed for %s (code %d): %s", transactionId, failureCode, reason)
+                                finalizeTransaction(transactionId, TransactionStatus.FAILED, reason)
+                            } catch (t: Throwable) {
+                                log.e(t, "USSD: failed handling failure for %s", transactionId)
+                            } finally {
+                                stopSelf()
+                            }
                         }
-                    }
-                },
-                Handler(Looper.getMainLooper())
-            )
+                    },
+                    Handler(Looper.getMainLooper())
+                )
+            }
         } catch (t: Throwable) {
-            log.e(t, "sendUssdRequest threw for transaction %s", transactionId)
+            log.e(t, "USSD: sendUssdRequest threw for transaction %s", transactionId)
             finalizeTransaction(transactionId, TransactionStatus.FAILED, "USSD error: ${t.message}")
             stopSelf()
+        }
+    }
+
+    /**
+     * REBRAND R5 — resolves the subscription the dial should ride on.
+     *
+     * Settings picks SIM 1 or SIM 2; we map that onto the subscription id the
+     * platform actually exposes, validate it, and fall back to the system
+     * default when it is missing or invalid (the classic silent-dial killer on
+     * dual-SIM handsets).
+     */
+    private suspend fun resolveSubscriptionId(): Int {
+        val fallback = runCatching {
+            SubscriptionManager.getDefaultSubscriptionId()
+        }.getOrDefault(-1)
+        val selected = runCatching {
+            userPreferences.simSelection.first()
+        }.getOrDefault(UserPreferences.SIM_1)
+        val preferred = if (selected == UserPreferences.SIM_2) 1 else 0
+
+        return if (preferred == 0) {
+            fallback
+        } else {
+            val slots = runCatching {
+                getSystemService(SubscriptionManager::class.java)?.activeSubscriptionInfoList
+            }.getOrNull()
+            val second = slots?.getOrNull(preferred)?.subscriptionId
+            if (second != null && second != SubscriptionManager.INVALID_SUBSCRIPTION_ID) {
+                second
+            } else {
+                log.w("USSD: SIM 2 selected but no second subscription — using default %s", fallback)
+                fallback
+            }
         }
     }
 
@@ -314,6 +383,9 @@ class UssdAutomationService : Service() {
         const val EXTRA_CUSTOMER_PHONE = "CUSTOMER_PHONE"
 
         private const val DEFAULT_USSD_TIMEOUT_MILLIS = 20_000L
+
+        /** R5 — the dial must hold a foreground notification to survive. */
+        private const val NOTIFICATION_ID = 0x4E47_0002 // "NG02"
 
         // Legacy keyword list kept for reference; classification lives in
         // UssdResponses (Parity Block B Hybrid truth).

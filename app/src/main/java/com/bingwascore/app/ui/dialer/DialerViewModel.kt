@@ -2,6 +2,7 @@ package com.bingwascore.app.ui.dialer
 
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bingwascore.app.data.local.Offer
@@ -16,6 +17,7 @@ import com.bingwascore.app.services.UssdAutomationService
 import com.bingwascore.app.util.formatPhoneToTenDigits
 import com.bingwascore.app.util.isTenDigitPhone
 import dagger.hilt.android.lifecycle.HiltViewModel
+import androidx.core.content.ContextCompat
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -54,7 +56,13 @@ class DialerViewModel @Inject constructor(
 
     // Parity E — drives the "Dialing…" spinner on the gradient CTA.
     private val _isDialing = MutableStateFlow(false)
+
+    // R5 — non-empty when the dial is blocked on a runtime permission; the
+    // screen turns this into a redirect straight to the system prompt.
+    private val _missingPermissions = MutableStateFlow<List<String>>(emptyList())
     val isDialing: StateFlow<Boolean> = _isDialing.asStateFlow()
+
+    val missingPermissions: StateFlow<List<String>> = _missingPermissions.asStateFlow()
 
     fun setPhone(value: String) {
         _phone.value = value.filter { it.isDigit() }.take(12)
@@ -75,7 +83,7 @@ class DialerViewModel @Inject constructor(
         _feedback.value = null
     }
 
-    /** Resolves the dial code, records a PENDING transaction and fires the USSD service. */
+    /** Resolves the dial code, records a PROCESSING transaction and fires the USSD service. */
     fun dialNow() {
         if (_isDialing.value) return
         val offer = offers.value.firstOrNull { it.id == _selectedOfferId.value }
@@ -91,12 +99,27 @@ class DialerViewModel @Inject constructor(
             return
         }
 
+        // REBRAND R5 — check the two runtime permissions before anything is
+        // written. Without them sendUssdRequest throws SecurityException deep
+        // inside a service the agent cannot see, which is why "dial never fires".
+        val missing = missingDialPermissions()
+        if (missing.isNotEmpty()) {
+            _feedback.value = DialerFeedback(
+                "Grant ${missing.joinToString(" and ")} to dial",
+                isError = true
+            )
+            _missingPermissions.value = missing
+            return
+        }
+
         val dialCode = BatchDialPlanner.expand(offer.ussdCode, phoneValue)
         val transactionId = "tx_${UUID.randomUUID()}"
 
         viewModelScope.launch {
             _isDialing.value = true
             try {
+                // R5 — the row flips to PROCESSING as it is written, so the list
+                // shows work in flight the instant the dial is accepted.
                 transactionRepository.insert(
                     Transaction(
                         id = transactionId,
@@ -107,7 +130,7 @@ class DialerViewModel @Inject constructor(
                         ussdCode = dialCode,
                         amount = offer.price.toDouble(),
                         commission = offer.price * 0.1,
-                        status = TransactionStatus.PENDING.value,
+                        status = TransactionStatus.PROCESSING.value,
                         createdAt = System.currentTimeMillis()
                     )
                 )
@@ -118,18 +141,19 @@ class DialerViewModel @Inject constructor(
                     putExtra(UssdAutomationService.EXTRA_CUSTOMER_PHONE, phoneValue)
                 }
                 try {
-                    context.startService(intent)
-                    // PREMIUM LOCK — the single line that proves the dial left
-                    // the app. Traceable with: adb logcat -s ENGINE
-                    Timber.tag(TransactionPipeline.ENGINE_TAG).i(
-                        "Dial fired: %s for %s (tx %s)",
+                    // R5 — startForegroundService, not startService: a plain start
+                    // is refused once the app leaves the foreground.
+                    androidx.core.content.ContextCompat.startForegroundService(context, intent)
+                    Timber.tag(USSD_TAG).i(
+                        "USSD: dial fired %s for %s (tx %s)",
                         dialCode,
                         phoneValue,
                         transactionId
                     )
                 } catch (t: Throwable) {
-                    Timber.e(t, "Failed to start UssdAutomationService")
+                    Timber.e(t, "USSD: failed to start UssdAutomationService")
                     _feedback.value = DialerFeedback("Could not start the dialer service", isError = true)
+                    transactionRepository.softDelete(transactionId)
                     return@launch
                 }
 
@@ -140,8 +164,7 @@ class DialerViewModel @Inject constructor(
                 } catch (t: Throwable) {
                     Timber.e(t, "Could not persist the last dialled phone")
                 }
-                _feedback.value =
-                    DialerFeedback("Dialing ${offer.name} for $phoneValue — watch for the USSD reply", isError = false)
+                _feedback.value = DialerFeedback("Dialing $dialCode", isError = false)
             } catch (t: Throwable) {
                 Timber.e(t, "Dial failed")
                 _feedback.value = DialerFeedback("Dial failed: ${t.message}", isError = true)
@@ -149,5 +172,23 @@ class DialerViewModel @Inject constructor(
                 _isDialing.value = false
             }
         }
+    }
+
+    /**
+     * R5 — the permissions the dial path genuinely needs. Exposed so the screen
+     * can send the agent straight to the system prompt instead of failing later.
+     */
+    fun missingDialPermissions(): List<String> = REQUIRED_DIAL_PERMISSIONS.filter {
+        ContextCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED
+    }
+
+    companion object {
+        /** Every USSD log line uses this tag: `adb logcat -s USSD`. */
+        const val USSD_TAG = "USSD"
+
+        private val REQUIRED_DIAL_PERMISSIONS = arrayOf(
+            android.Manifest.permission.CALL_PHONE,
+            android.Manifest.permission.READ_PHONE_STATE
+        )
     }
 }

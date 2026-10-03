@@ -7,6 +7,8 @@ import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
+import android.content.pm.PackageManager
+import android.telephony.SubscriptionManager
 import android.telephony.TelephonyManager
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -15,7 +17,9 @@ import com.bingwascore.app.data.preferences.UserPreferences
 import com.bingwascore.app.data.repository.TransactionRepository
 import com.bingwascore.app.domain.AppProcessingMode
 import com.bingwascore.app.domain.TransactionStatus
+import androidx.core.content.ContextCompat
 import com.bingwascore.app.services.EngineService
+import com.bingwascore.app.services.UssdResponses
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -40,6 +44,14 @@ class HomeViewModel @Inject constructor(
     companion object {
         private const val BALANCE_USSD = "*144#"
 
+        /** R5 — shared logcat tag for the whole USSD surface. */
+        const val USSD_TAG = "USSD"
+
+        private val BALANCE_PERMISSIONS = arrayOf(
+            android.Manifest.permission.READ_PHONE_STATE,
+            android.Manifest.permission.CALL_PHONE
+        )
+
         /**
          * Primary pattern: Safaricom's *144# reply labels the line
          * "Airtime Bal: 1,234.56 Ksh..." — match across the label so a reply that
@@ -53,6 +65,14 @@ class HomeViewModel @Inject constructor(
         /** Shown when *144# cannot be issued because READ_PHONE_STATE is denied. */
         const val GRANT_PHONE_PERMISSION = "Grant Phone permission to check balance"
     }
+
+    /** R5 — every USSD log line carries this tag: db logcat -s USSD. */
+    private val ussdTag = Timber.tag(USSD_TAG)
+    private val mainHandler = Handler(Looper.getMainLooper())
+
+    /** R5 — the SIM the agent picked, cached so the balance read can use it sync. */
+    private val simSelection: StateFlow<String> = userPreferences.simSelection
+        .stateIn(viewModelScope, SharingStarted.Eagerly, UserPreferences.SIM_1)
 
     private val _balance = MutableStateFlow(0.0)
     val balance: StateFlow<Double> = _balance.asStateFlow()
@@ -164,60 +184,128 @@ class HomeViewModel @Inject constructor(
 
     // Parity D — Recent Activity: last 5 live rows (DAO already ORDERs BY createdAt DESC).
 /**
-     * Dials *144# and parses the "Airtime Bal: … Ksh 1,234.56" reply into a
-     * Double cached in [UserPreferences] and emitted immediately as [balance].
+     * REBRAND R5 — dials *144# and parses the "Airtime Bal: … Ksh 1,234.56"
+     * reply into a Double cached in [UserPreferences] and emitted as [balance].
      *
-     * The balance is NEVER left silently at 0.00: every failure path (no
-     * telephony, missing permission, malformed reply, operator rejection) sets
-     * [balanceError] so the UI can tell the agent exactly what to fix instead of
-     * showing a fake zero.
+     * The old version reported "failed code 1" verbatim and gave up. Now the
+     * failure code becomes a sentence, a failure is retried exactly once on the
+     * default subscription, and a second failure surfaces the reason so the agent
+     * is never stuck at 0.00 with no way out.
      */
     @SuppressLint("MissingPermission")
     fun refreshBalance() {
         if (_balanceLoading.value) return
         _balanceLoading.value = true
         _balanceError.value = null
-        try {
-            val telephony = context.getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager
-            if (telephony == null) {
-                failBalance("Could not read your balance on this device")
-                return
-            }
-            telephony.sendUssdRequest(
-                BALANCE_USSD,
-                object : TelephonyManager.UssdResponseCallback() {
-                    override fun onReceiveUssdResponse(
-                        telephonyManager: TelephonyManager,
-                        request: String?,
-                        response: CharSequence?
-                    ) {
-                        val parsed = parseBalance(response?.toString())
-                        if (parsed == null) {
-                            failBalance("Could not read the balance — try again")
-                            return
-                        }
-                        _balance.value = parsed
-                        _balanceLoading.value = false
-                        viewModelScope.launch {
-                            userPreferences.setAirtimeBalance(parsed)
-                        }
-                    }
 
-                    override fun onReceiveUssdResponseFailed(
-                        telephonyManager: TelephonyManager,
-                        request: String?,
-                        failureCode: Int
-                    ) {
-                        failBalance("Could not read the balance — try again")
-                    }
-                },
-                Handler(Looper.getMainLooper())
-            )
-        } catch (_: SecurityException) {
-            // READ_PHONE_STATE revoked — tell the agent exactly what to grant.
+        val telephony = context.getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager
+        if (telephony == null) {
+            failBalance("Could not read your balance on this device")
+            return
+        }
+        if (missingBalancePermissions().isNotEmpty()) {
             failBalance(GRANT_PHONE_PERMISSION)
-        } catch (_: Throwable) {
-            failBalance(GRANT_PHONE_PERMISSION)
+            return
+        }
+
+        // R5 — Settings picks the SIM; the default subscription is the fallback.
+        val requested = simSelection.value
+        val defaultSub = runCatching { SubscriptionManager.getDefaultSubscriptionId() }.getOrDefault(-1)
+        val preferredSub = resolveSimSubscription(requested, defaultSub)
+        val scoped = preferredSub?.let { runCatching { telephony.createForSubscriptionId(it) }.getOrNull() }
+            ?: telephony
+        Timber.tag(USSD_TAG).i("USSD: balance request on subscription %s", preferredSub ?: defaultSub)
+
+        sendBalanceRequest(scoped, "sim=$requested", onFailure = { code ->
+            Timber.tag(USSD_TAG).w("USSD: balance failed on %s (code %d)", requested, code)
+            if (preferredSub != null && preferredSub != defaultSub) {
+                // Retry once on the default subscription before giving up.
+                val fallback = runCatching { telephony.createForSubscriptionId(defaultSub) }
+                    .getOrDefault(telephony)
+                Timber.tag(USSD_TAG).i("USSD: retrying balance on default subscription %s", defaultSub)
+                sendBalanceRequest(fallback, "default=$defaultSub", onFailure = { retryCode ->
+                    failBalance(UssdResponses.failureReason(retryCode))
+                })
+            } else {
+                failBalance(UssdResponses.failureReason(code))
+            }
+        })
+    }
+
+    /** Issues the USSD on the main looper, exactly like the dial path does. */
+    private fun sendBalanceRequest(
+        manager: TelephonyManager,
+        label: String,
+        onFailure: (Int) -> Unit
+    ) {
+        try {
+            mainHandler.post {
+                try {
+                    manager.sendUssdRequest(
+                        BALANCE_USSD,
+                        object : TelephonyManager.UssdResponseCallback() {
+                            override fun onReceiveUssdResponse(
+                                telephonyManager: TelephonyManager,
+                                request: String?,
+                                response: CharSequence?
+                            ) {
+                                val parsed = parseBalance(response?.toString())
+                                if (parsed == null) {
+                                    Timber.tag(USSD_TAG).w("USSD: unreadable balance reply: %s", response)
+                                    failBalance("Could not read the balance — try again")
+                                    return
+                                }
+                                Timber.tag(USSD_TAG).i("USSD: balance ok (%s) = %.2f", label, parsed)
+                                _balance.value = parsed
+                                _balanceLoading.value = false
+                                viewModelScope.launch { userPreferences.setAirtimeBalance(parsed) }
+                            }
+
+                            override fun onReceiveUssdResponseFailed(
+                                telephonyManager: TelephonyManager,
+                                request: String?,
+                                failureCode: Int
+                            ) {
+                                onFailure(failureCode)
+                            }
+                        },
+                        mainHandler
+                    )
+                } catch (t: Throwable) {
+                    Timber.e(t, "USSD: balance request threw")
+                    failBalance("Could not read the balance — try again")
+                }
+            }
+        } catch (t: Throwable) {
+            Timber.e(t, "USSD: could not post balance request")
+            failBalance("Could not read the balance — try again")
+        }
+    }
+
+    /** Maps "SIM 1" / "SIM 2" onto a real subscription id, or null to use default. */
+    private fun resolveSimSubscription(selected: String, defaultSub: Int): Int? {
+        if (selected != UserPreferences.SIM_2) return defaultSub
+        val slots = runCatching {
+            context.getSystemService(SubscriptionManager::class.java)?.activeSubscriptionInfoList
+        }.getOrNull()
+        return slots?.getOrNull(1)?.subscriptionId
+            ?.takeIf { it != SubscriptionManager.INVALID_SUBSCRIPTION_ID }
+    }
+
+    private fun missingBalancePermissions(): List<String> = BALANCE_PERMISSIONS.filter {
+        ContextCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED
+    }
+
+    /**
+     * R5 — manual entry fallback: when the network will not answer, the agent can
+     * type the balance they already know and the app stops lying about it.
+     */
+    fun setManualBalance(value: Double) {
+        if (value <= 0.0) return
+        viewModelScope.launch {
+            _balance.value = value
+            userPreferences.setAirtimeBalance(value)
+            _balanceError.value = null
         }
     }
 

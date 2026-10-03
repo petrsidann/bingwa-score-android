@@ -69,9 +69,25 @@ class UssdAccessibilityService : AccessibilityService() {
                 try {
                     // Debounce: window-content events arrive in bursts; without this
                     // guard the same dialog could be tapped twice in quick succession.
-                    if (System.currentTimeMillis() - lastTapAt < TAP_DEBOUNCE_MILLIS) return@launch
-                    if (userPreferences.processingMode.first() == AppProcessingMode.ADVANCED) {
-                        tapPositiveAction(root)
+                    val sinceLast = System.currentTimeMillis() - lastTapAt
+                    if (sinceLast < TAP_DEBOUNCE_MILLIS) {
+                        Timber.tag("USSD").d(
+                            "USSD: auto-tap skipped (debounced, %dms since last)", sinceLast
+                        )
+                        return@launch
+                    }
+
+                    // R5 — both modes are logged so a field report can say exactly
+                    // which one was running when a tap did or did not happen.
+                    val mode = userPreferences.processingMode.first()
+                    if (mode == AppProcessingMode.ADVANCED) {
+                        Timber.tag("USSD").i("USSD: ADVANCED auto-tap on `%s`", text.take(40))
+                        val tapped = tapPositiveAction(root)
+                        Timber.tag("USSD").i(
+                            "USSD: ADVANCED auto-tap %s", if (tapped) "delivered" else "no button found"
+                        )
+                    } else {
+                        Timber.tag("USSD").i("USSD: EXPRESS — no auto-tap, waiting for the agent")
                     }
                 } catch (t: Throwable) {
                     Timber.e(t, "Advanced-mode USSD tap failed")
@@ -111,7 +127,8 @@ class UssdAccessibilityService : AccessibilityService() {
     }
 
     /** Clicks the first visible positive-action button, if any. */
-    private fun tapPositiveAction(root: AccessibilityNodeInfo) {
+    /** R5 — returns whether a positive action was actually found and clicked. */
+    private fun tapPositiveAction(root: AccessibilityNodeInfo): Boolean {
         val targets = mutableListOf<AccessibilityNodeInfo>()
         collectNodes(root, targets)
 
@@ -131,6 +148,7 @@ class UssdAccessibilityService : AccessibilityService() {
         if (clicked) {
             Timber.d("USSD advanced auto-action fired")
         }
+        return clicked
     }
 
     private fun collectNodes(node: AccessibilityNodeInfo, out: MutableList<AccessibilityNodeInfo>) {

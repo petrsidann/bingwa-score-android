@@ -87,6 +87,26 @@ object UssdResponses {
     }
 
     /**
+     * REBRAND R5 — the plain-English truth behind a USSD failure code.
+     *
+     * `TelephonyManager` reports failures as opaque integers, and "failed code 1"
+     * is the single most confusing message this app used to show. Every failure
+     * now resolves to a sentence an agent can act on.
+     */
+    fun failureReason(failureCode: Int): String = when (failureCode) {
+        // 1 — the radio refused: no service, wrong SIM, or the code is blocked.
+        1 -> "Your network refused the request — check signal and that your SIM can run this code"
+
+        // 2 — the operator understood and rejected the input.
+        2 -> "The operator rejected that input — check the code and try again"
+
+        // 3 — the SIM / network cannot do USSD at all (feature not provisioned).
+        3 -> "This SIM does not support this request"
+
+        else -> "The request could not be completed (code $failureCode)"
+    }
+
+    /**
      * Network-class failure — the bundle was not rejected by the operator, the
      * request simply never reached it. Offers with
      * [com.bingwascore.app.data.local.Offer.autoRetryConnectionProblems] treat
