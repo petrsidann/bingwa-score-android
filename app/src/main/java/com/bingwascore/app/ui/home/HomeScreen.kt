@@ -120,6 +120,7 @@ fun HomeScreen(
     val balance by viewModel.balance.collectAsStateWithLifecycle()
     val balanceLoading by viewModel.balanceLoading.collectAsStateWithLifecycle()
     val balanceError by viewModel.balanceError.collectAsStateWithLifecycle()
+    val statsLoading by viewModel.statsLoading.collectAsStateWithLifecycle()
     val engineEnabled by viewModel.engineEnabled.collectAsStateWithLifecycle()
     val transactions by viewModel.allTransactions.collectAsStateWithLifecycle()
 
@@ -207,7 +208,21 @@ fun HomeScreen(
 
             item { Spacer(modifier = Modifier.height(4.dp)) }
 
-            items(transactions, key = { it.id }) { tx -> HomeTransactionRow(tx) }
+            // R6 — shimmer ONLY where a list is actually loading.
+            if (statsLoading) {
+                items(4) { HomeRowSkeleton() }
+            } else if (transactions.isEmpty()) {
+                item {
+                    Text(
+                        "Nothing yet — every bundle you dial lands here.",
+                        color = TextGrey,
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp)
+                    )
+                }
+            } else {
+                items(transactions, key = { it.id }) { tx -> HomeTransactionRow(tx) }
+            }
         }
 
         SnackbarHost(
@@ -728,6 +743,24 @@ private fun HomeTransactionRow(tx: Transaction) {
                 color = TextWhite,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold
+            )
+        }
+    }
+}
+
+/** R6 — a single shimmering placeholder row; only shown while the list loads. */
+@Composable
+private fun HomeRowSkeleton() {
+    BubbleCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 16.dp) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            com.bingwascore.app.ui.components.ShimmerBlock(
+                modifier = Modifier.width(90.dp),
+                cornerRadius = 8.dp
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            com.bingwascore.app.ui.components.ShimmerBlock(
+                modifier = Modifier.weight(1f),
+                cornerRadius = 8.dp
             )
         }
     }

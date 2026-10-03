@@ -400,6 +400,7 @@ private fun OptionCard(
 @Composable
 private fun AppearancePage(viewModel: SettingsViewModel) {
     val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
+    val haptics = rememberHaptics()
 
     PageTitle("Appearance")
     PageIntro("Pick how Bingwa Score looks on this device. Changes apply instantly.")
@@ -412,7 +413,11 @@ private fun AppearancePage(viewModel: SettingsViewModel) {
                 ThemeMode.BLUE_LIGHT_FILTER -> "Warm dark that tames blue light at night"
             },
             selected = themeMode == mode,
-            onClick = { viewModel.setThemeMode(mode) }
+            onClick = {
+                // R6 — a mode switch is a deliberate act, so it ticks.
+                haptics.tick()
+                viewModel.setThemeMode(mode)
+            }
         )
     }
 }

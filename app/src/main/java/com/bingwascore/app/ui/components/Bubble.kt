@@ -44,7 +44,7 @@ import com.bingwascore.app.util.rememberHaptics
 /**
  * REBRAND R1 — the surface vocabulary.
  *
- * The frosted cards are gone: no backdrop blur, no specular border, no shadow
+ * The old frosted cards are gone: no blur, no specular border, no shadow
  * glow, no drifting ambient blobs. What is left is a *bubble* — one flat fill,
  * one radius, zero tricks — which is what makes the numbers on Home read like a
  * trading terminal instead of a wallpaper.

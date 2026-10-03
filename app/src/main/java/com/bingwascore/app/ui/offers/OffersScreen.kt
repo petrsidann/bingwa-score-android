@@ -338,7 +338,7 @@ fun OffersScreen(viewModel: OffersViewModel = hiltViewModel()) {
 }
 
 /**
- * Parity E — offer-card skeleton: two frosted cards with shimmering bars while
+ * Parity E — offer-card skeleton: two bubble cards with shimmering bars while
  * `isLoading` is true (i.e. before Room delivers its first snapshot).
  */
 @Composable

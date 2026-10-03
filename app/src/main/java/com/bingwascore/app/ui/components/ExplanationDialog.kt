@@ -16,7 +16,7 @@ import com.bingwascore.app.ui.theme.AccentBlue
 import com.bingwascore.app.ui.theme.TextWhite
 
 /**
- * A Material-3 [AlertDialog] themed to read like a frosted glass panel:
+ * A Material-3 [AlertDialog] themed as a solid bubble panel:
  * translucent container, rounded corners and a brand-orange confirm action.
  *
  * Used to explain *why* Advanced Mode needs the accessibility service before

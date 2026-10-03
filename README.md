@@ -23,7 +23,40 @@ your phone.
 - **Update checker** — compares your install to the latest GitHub release.
 - **Crash handler** — writes stack traces to `getExternalFilesDir("crashes")`.
 - **Watchdog** — periodic worker that restarts the engine and re-enqueues schedulers.
-- **Glass UI** — Material 3 dark theme with frosted cards and gradient actions.
+- **Bingwa Score UI** — dark-first terminal aesthetic: flat black canvas, bubble
+  cards, electric-blue actions. No glass, no blur, no gradients.
+
+## Brand
+
+| Token | Hex | Used for |
+| --- | --- | --- |
+| BgBlack | `#000000` | every screen background |
+| Bubble | `#141414` | cards and rows |
+| Raised | `#1C1C1C` | sheets and pressed surfaces |
+| Hairline | `#2A2A2A` | borders and dividers |
+| TextWhite | `#FFFFFF` | titles and values |
+| TextGrey | `#9E9E9E` | metadata |
+| TextDim | `#6B6B6B` | quiet labels |
+| AccentBlue | `#2962FF` | primary actions, selected tabs |
+| ChartBlue | `#3D6FFF` | commission chart line |
+| FailRed | `#FF5252` | failures and delete |
+| PendGrey | `#9E9E9E` | pending / scheduled |
+| TickGreen | `#00C853` | the complete-action tick, and nothing else |
+
+**Display modes** (Settings → Appearance, no light mode):
+- **Dark** — the product truth.
+- **Grayscale** — monochrome: every accent drops to `#BDBDBD`, statuses to greys.
+- **Blue Light Filter** — warm dark for night use (bg `#0A0806`, text `#FFE9C9`,
+  accent `#FFB74D`). CTAs become solid near-black chips with a hairline border.
+
+**Monogram** — one continuous extra-bold white script stroke: a cursive B flowing
+into an S loop that ends on an upward checkmark flick. Used as the launcher icon
+and drawn on-screen at the start of every launch.
+
+## Engine logging
+
+Every USSD decision is tagged: `adb logcat -s USSD` traces dials, balance reads,
+subscription resolution and accessibility auto-taps.
 
 ## Screenshots
 
