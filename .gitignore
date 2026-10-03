@@ -41,3 +41,6 @@ replay_pid*
 
 # Build logs
 build_log.txt
+
+# local tooling scratch
+.freebuff/

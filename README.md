@@ -53,6 +53,34 @@ your phone.
 into an S loop that ends on an upward checkmark flick. Used as the launcher icon
 and drawn on-screen at the start of every launch.
 
+## Showcase Mode (demo reel)
+
+Showcase Mode runs the whole app against a **separate database**
+(`bingwa_score_demo.db`) so a demo can never touch real agent data. Real installs
+keep using `bingwa_score.db`.
+
+Turn it on in **Settings → Showcase Mode** (or accept the offer on first launch)
+and restart. While it is on:
+
+- **Seeded demo month** — 6 customers, 5 offers, 42 transactions across 30 days,
+  4 auto-reply templates, 1 blocked contact and 1 trusted partner.
+- **Live simulator** — every 20–45s a real Hybrid-format M-Pesa confirmation
+  arrives and is fed through the production `SmsParser` and
+  `TransactionPipeline`, so counters climb and rows walk
+  PENDING → PROCESSING → SUCCESSFUL for real. 15% of sales also produce a
+  commission summary; 10% are duplicate payments that route into the Engage Bot.
+- **Fake dialling** — USSD replies arrive on a 2–4s timer (80% success,
+  12% "already been recommended", 8% "Connection problem"). **No USSD is dialled
+  and no SMS is sent.**
+- **Simulated balance** — `*144#` returns a random walk instead of a real read.
+- **Notifications** — one per processed payment: "Ksh X from NAME - offer delivered".
+
+A blue-outlined **DEMO** chip appears in the top bars while it is active. Settings
+also offers **Reseed demo data** and **Exit showcase**.
+
+When Showcase Mode is off, none of the demo code runs: every entry point is
+guarded by the flag (engine start, fake dial, fake balance, seeding, chip).
+
 ## Engine logging
 
 Every USSD decision is tagged: `adb logcat -s USSD` traces dials, balance reads,
