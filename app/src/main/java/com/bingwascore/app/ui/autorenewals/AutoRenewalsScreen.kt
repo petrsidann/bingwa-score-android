@@ -31,17 +31,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bingwascore.app.ui.components.EmptyState
-import com.bingwascore.app.ui.components.GlassCard
+import com.bingwascore.app.ui.components.BubbleCard
 import com.bingwascore.app.ui.components.HapticSwitch
 import com.bingwascore.app.util.screenEnter
-import com.bingwascore.app.ui.theme.GlassBorderStrong
-import com.bingwascore.app.ui.theme.GlassFillStrong
-import com.bingwascore.app.ui.theme.GlassFill
-import com.bingwascore.app.ui.theme.BingwaOrange
-import com.bingwascore.app.ui.theme.ErrorRed
-import com.bingwascore.app.ui.theme.NightBlack
-import com.bingwascore.app.ui.theme.Orange500
-import com.bingwascore.app.ui.theme.White
+import com.bingwascore.app.ui.theme.Hairline
+import com.bingwascore.app.ui.theme.Raised
+import com.bingwascore.app.ui.theme.Bubble
+import com.bingwascore.app.ui.theme.AccentBlue
+import com.bingwascore.app.ui.theme.FailRed
+import com.bingwascore.app.ui.theme.BgBlack
+import com.bingwascore.app.ui.theme.PendGrey
+import com.bingwascore.app.ui.theme.TextWhite
 
 private data class RenewalRow(
     val id: String,
@@ -73,17 +73,17 @@ fun AutoRenewalsScreen() {
         modifier = Modifier
             .fillMaxSize()
             .screenEnter()
-            .background(NightBlack)
+            .background(BgBlack)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp, vertical = 16.dp)
         ) {
-            Text("Auto Renewals", color = White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Text("Auto Renewals", color = TextWhite, fontSize = 22.sp, fontWeight = FontWeight.Bold)
             Text(
                 "${activeStates.count { it.value }} active renewal(s)",
-                color = White.copy(alpha = 0.5f),
+                color = TextWhite.copy(alpha = 0.5f),
                 fontSize = 12.sp
             )
         }
@@ -125,19 +125,19 @@ private fun RenewalCard(
     enterDelayMillis: Int,
     onToggle: () -> Unit
 ) {
-    GlassCard(modifier = Modifier.fillMaxWidth(), enterDelayMillis = enterDelayMillis) {
+    BubbleCard(modifier = Modifier.fillMaxWidth(), enterDelayMillis = enterDelayMillis) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     renewal.offerName,
-                    color = White,
+                    color = TextWhite,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     renewal.phone,
-                    color = White.copy(alpha = 0.5f),
+                    color = TextWhite.copy(alpha = 0.5f),
                     fontSize = 11.sp
                 )
                 Spacer(modifier = Modifier.height(8.dp))
@@ -153,7 +153,7 @@ private fun RenewalCard(
             Spacer(modifier = Modifier.width(12.dp))
             Text(
                 "Ksh ${renewal.price}",
-                color = White.copy(alpha = 0.7f),
+                color = TextWhite.copy(alpha = 0.7f),
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold
             )
@@ -162,12 +162,12 @@ private fun RenewalCard(
                 checked = isActive,
                 onCheckedChange = { onToggle() },
                 colors = SwitchDefaults.colors(
-                    checkedThumbColor = NightBlack,
-                    checkedTrackColor = BingwaOrange,
-                    checkedBorderColor = BingwaOrange,
-                    uncheckedThumbColor = White.copy(alpha = 0.7f),
-                    uncheckedTrackColor = GlassFillStrong,
-                    uncheckedBorderColor = GlassBorderStrong
+                    checkedThumbColor = BgBlack,
+                    checkedTrackColor = AccentBlue,
+                    checkedBorderColor = AccentBlue,
+                    uncheckedThumbColor = TextWhite.copy(alpha = 0.7f),
+                    uncheckedTrackColor = Raised,
+                    uncheckedBorderColor = Hairline
                 )
             )
         }
@@ -177,9 +177,9 @@ private fun RenewalCard(
 @Composable
 private fun CountdownChip(label: String, urgent: Boolean) {
     val color = when {
-        urgent -> ErrorRed
-        label.startsWith("Renews") -> Orange500
-        else -> White.copy(alpha = 0.5f)
+        urgent -> FailRed
+        label.startsWith("Renews") -> PendGrey
+        else -> TextWhite.copy(alpha = 0.5f)
     }
     Text(
         label,
@@ -188,7 +188,7 @@ private fun CountdownChip(label: String, urgent: Boolean) {
         fontWeight = FontWeight.SemiBold,
         modifier = Modifier
             .clip(RoundedCornerShape(10.dp))
-            .background(GlassFill)
+            .background(Bubble)
             .padding(horizontal = 10.dp, vertical = 4.dp)
     )
 }

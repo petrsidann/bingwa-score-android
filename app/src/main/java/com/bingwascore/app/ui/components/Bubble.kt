@@ -1,6 +1,5 @@
 package com.bingwascore.app.ui.components
 
-import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -26,100 +25,52 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.bingwascore.app.ui.theme.GlassBorderStrong
-import com.bingwascore.app.ui.theme.GlassFill
-import com.bingwascore.app.ui.theme.BrandColors
+import com.bingwascore.app.ui.theme.Bubble
 import com.bingwascore.app.ui.theme.BingwaType
-import com.bingwascore.app.ui.theme.OnBrandInk
+import com.bingwascore.app.ui.theme.CtaBorder
+import com.bingwascore.app.ui.theme.CtaFill
+import com.bingwascore.app.ui.theme.CtaInk
+import com.bingwascore.app.ui.theme.Hairline
+import com.bingwascore.app.ui.theme.Raised
 import com.bingwascore.app.util.rememberHaptics
 
 /**
- * PREMIUM LOCK — the backdrop-blur radius for every glass surface.
+ * REBRAND R1 — the surface vocabulary.
  *
- * 24.dp is the value that reads as "frosted" rather than "mist": enough
- * separation to kill the flat-rectangle look, not so much that text sitting on
- * top starts to swim.
+ * The frosted cards are gone: no backdrop blur, no specular border, no shadow
+ * glow, no drifting ambient blobs. What is left is a *bubble* — one flat fill,
+ * one radius, zero tricks — which is what makes the numbers on Home read like a
+ * trading terminal instead of a wallpaper.
  */
-val GlassBlurRadius: Dp = 24.dp
 
-/**
- * PREMIUM LOCK — true glassmorphism, layered (never one translucent rectangle).
- *
- *  1. **Blur layer** — on API 31+ `Modifier.blur(24.dp)` over the content
- *     behind the card, so ambient blobs smear into real frosted glass. The
- *     blur is applied to a *background* layer, never to the card itself:
- *     blurring the card would blur its own text too.
- *  2. **Tint layer** — the colour that gives the glass its hue. On API 31+ it
- *     stays translucent so the blur shows through; below 31, where no
- *     RenderEffect blur exists, it climbs to a high-opacity solid surface so
- *     cards still read as raised panels instead of transparent holes.
- *  3. **Specular border** — the top-lit hairline that sells the material, and
- *     carries the load below API 31 where there is no blur to catch light.
- */
+/** The one surface modifier: flat fill, clipped to [shape]. */
 @Composable
-fun Modifier.glassSurface(
+fun Modifier.bubbleSurface(
     shape: Shape,
-    tint: Color = GlassFill
-): Modifier {
-    val supportsBlur = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
-
-    // 1. Blur layer — clipped to the shape so the blur never bleeds past it.
-    val blurLayer = if (supportsBlur) {
-        Modifier.clip(shape).blur(GlassBlurRadius)
-    } else {
-        Modifier
-    }
-
-    // 2. Tint layer. Without blur a translucent fill reads as a hole, so we
-    //    climb to ~14% white over the same base hue instead.
-    val tintBrush = if (supportsBlur) {
-        Brush.verticalGradient(
-            listOf(tint.copy(alpha = (tint.alpha + 0.06f).coerceAtMost(1f)), tint.copy(alpha = 0.04f))
-        )
-    } else {
-        Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.14f), Color.White.copy(alpha = 0.08f)))
-    }
-
-    return this
-        .clip(shape)
-        .then(blurLayer)
-        .background(tintBrush)
-        // 3. Specular border — brighter without blur so the edge still reads.
-        .border(
-            width = 1.dp,
-            brush = Brush.verticalGradient(
-                listOf(
-                    if (supportsBlur) GlassBorderStrong else Color.White.copy(alpha = 0.34f),
-                    Color.Transparent
-                )
-            ),
-            shape = shape
-        )
-}
+    fill: Color = Bubble
+): Modifier = this
+    .clip(shape)
+    .background(fill)
 
 /**
- * Frosted glass card. Every card fades + slides in on composition; when
- * [onClick] is provided the card also springs to 0.98 scale while pressed.
- * [enterDelayMillis] staggers lists (min(index, 6) * 35 reads naturally).
- *
- * Parity F: pass [onLongClick] for gesture-driven cards (Offers multi-select).
- * Tap and long-press are then resolved by a single gesture detector, so a long
- * press can never also fire the tap action.
+ * Flat bubble card. Fades + slides in on composition; when [onClick] is provided
+ * it also springs to 0.98 scale while pressed, and [enterDelayMillis] staggers
+ * lists. Pass [onLongClick] for gesture-driven cards (multi-select rows) — tap
+ * and long-press are then resolved by a single gesture detector so a long press
+ * can never also fire the tap.
  */
 @Composable
-fun GlassCard(
+fun BubbleCard(
     modifier: Modifier = Modifier,
-    cornerRadius: Dp = 24.dp,
+    cornerRadius: Dp = 20.dp,
+    fill: Color = Bubble,
     onClick: (() -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,
     enterDelayMillis: Int = 0,
@@ -129,9 +80,7 @@ fun GlassCard(
     val interactionSource = remember { MutableInteractionSource() }
     val haptics = rememberHaptics()
 
-    val visuals = Modifier
-        .shadow(12.dp, shape, ambientColor = Color.Black.copy(0.35f))
-        .glassSurface(shape = shape)
+    val visuals = Modifier.bubbleSurface(shape = shape, fill = fill)
 
     val cardModifier = when {
         onLongClick != null -> Modifier
@@ -163,16 +112,17 @@ fun GlassCard(
         Column(modifier = Modifier.padding(20.dp)) { content() }
     }
 }
-
 /**
- * Full-width gradient action button with the same 0.98 press-scale feedback.
+ * Primary CTA — solid accent, white bold label, 14dp radius.
  *
- * Parity E: pass [loading] to swap the label for a spinning indicator (e.g.
- * "Dialing…") and block double taps while the work is in flight. The press
- * haptic comes from the shared `Haptics` vocabulary.
+ * In GRAYSCALE / BLUE LIGHT FILTER the accent is no longer a usable hue, so the
+ * button becomes a solid near-black chip separated by a hairline.
+ *
+ * Pass [loading] to swap the label for a spinner (e.g. "Dialing…") and block
+ * double taps while the work is in flight.
  */
 @Composable
-fun GradientButton(
+fun PrimaryButton(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -182,13 +132,18 @@ fun GradientButton(
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val haptics = rememberHaptics()
+    val shape = RoundedCornerShape(14.dp)
+    val fill = if (enabled && !loading) CtaFill else Raised
+    val ink = if (enabled && !loading) CtaInk else CtaInk.copy(alpha = 0.45f)
+
     Box(
         modifier = modifier
             .pressScale(interactionSource)
             .fillMaxWidth()
             .height(56.dp)
-            .clip(RoundedCornerShape(18.dp))
-            .background(Brush.horizontalGradient(BrandColors))
+            .clip(shape)
+            .background(fill)
+            .border(1.dp, CtaBorder, shape)
             .clickable(
                 enabled = enabled && !loading,
                 interactionSource = interactionSource,
@@ -203,27 +158,64 @@ fun GradientButton(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(18.dp),
-                    color = OnBrandInk,
+                    color = ink,
                     strokeWidth = 2.dp
                 )
                 Spacer(modifier = Modifier.width(10.dp))
-                Text(
-                    loadingText,
-                    color = OnBrandInk,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = BingwaType.Body
-                )
+                Text(loadingText, color = ink, fontWeight = FontWeight.Bold, fontSize = BingwaType.Body)
             }
         } else {
-            Text(text, color = OnBrandInk, fontWeight = FontWeight.Bold, fontSize = BingwaType.Body)
+            Text(text, color = ink, fontWeight = FontWeight.Bold, fontSize = BingwaType.Body)
         }
     }
 }
 
 /**
+ * Secondary action — no fill, one hairline. Used for "Cancel", "Later",
+ * "Select All" and everything that must not compete with the primary CTA.
+ */
+@Composable
+fun SecondaryButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val haptics = rememberHaptics()
+    val shape = RoundedCornerShape(14.dp)
+
+    Box(
+        modifier = modifier
+            .pressScale(interactionSource)
+            .fillMaxWidth()
+            .height(56.dp)
+            .clip(shape)
+            .background(Color.Transparent)
+            .border(1.dp, Hairline, shape)
+            .clickable(
+                enabled = enabled,
+                interactionSource = interactionSource,
+                indication = null
+            ) {
+                haptics.tick()
+                onClick()
+            },
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text,
+            color = if (enabled) CtaInk else CtaInk.copy(alpha = 0.4f),
+            fontWeight = FontWeight.SemiBold,
+            fontSize = BingwaType.Body
+        )
+    }
+}
+
+/**
  * Switch with a haptic tick on every toggle. The haptic call is wrapped so a
- * device without haptics (or a framework quirk) can never crash the toggle —
- * the state change always goes through.
+ * device without haptics (or a framework quirk) can never crash the toggle — the
+ * state change always goes through.
  */
 @Composable
 fun HapticSwitch(

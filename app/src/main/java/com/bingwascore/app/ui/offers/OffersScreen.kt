@@ -61,28 +61,27 @@ import com.bingwascore.app.data.local.Offer
 import com.bingwascore.app.data.preferences.OfferTransitionRule
 import com.bingwascore.app.domain.BatchDialPlanner
 import com.bingwascore.app.domain.TransactionStatus
-import com.bingwascore.app.ui.components.AmbientBackground
 import com.bingwascore.app.ui.components.EmptyState
-import com.bingwascore.app.ui.components.GlassCard
-import com.bingwascore.app.ui.components.GradientButton
+import com.bingwascore.app.ui.components.BubbleCard
+import com.bingwascore.app.ui.components.PrimaryButton
 import com.bingwascore.app.ui.components.HapticSwitch
 import com.bingwascore.app.ui.components.ShimmerBlock
 import com.bingwascore.app.ui.components.pressScale
 import com.bingwascore.app.util.rememberHaptics
 import com.bingwascore.app.util.screenEnter
-import com.bingwascore.app.ui.theme.GlassBorderStrong
-import com.bingwascore.app.ui.theme.GlassFillStrong
-import com.bingwascore.app.ui.theme.GlassBorder
-import com.bingwascore.app.ui.theme.GlassFill
-import com.bingwascore.app.ui.theme.BingwaOrange
-import com.bingwascore.app.ui.theme.EmeraldGreen
+import com.bingwascore.app.ui.theme.Hairline
+import com.bingwascore.app.ui.theme.Raised
+import com.bingwascore.app.ui.theme.Hairline
+import com.bingwascore.app.ui.theme.Bubble
+import com.bingwascore.app.ui.theme.AccentBlue
+import com.bingwascore.app.ui.theme.TickGreen
 import com.bingwascore.app.ui.theme.OfferTags
-import com.bingwascore.app.ui.theme.brandBrush
-import com.bingwascore.app.ui.theme.ErrorRed
+import com.bingwascore.app.ui.theme.accentBrush
+import com.bingwascore.app.ui.theme.FailRed
 import com.bingwascore.app.ui.theme.Motion
-import com.bingwascore.app.ui.theme.NightBlack
-import com.bingwascore.app.ui.theme.SurfaceDark
-import com.bingwascore.app.ui.theme.White
+import com.bingwascore.app.ui.theme.BgBlack
+import com.bingwascore.app.ui.theme.Raised
+import com.bingwascore.app.ui.theme.TextWhite
 
 /** Statuses a fallback dial rule can trigger on. */
 private val FALLBACK_STATUSES = listOf(
@@ -130,11 +129,10 @@ fun OffersScreen(viewModel: OffersViewModel = hiltViewModel()) {
         modifier = Modifier
             .fillMaxSize()
             .screenEnter()
-            .background(NightBlack)
+            .background(BgBlack)
     ) {
-        // PREMIUM LOCK — drifting amber/orange blobs behind the list so the
-        // glass cards have something to actually refract.
-        AmbientBackground()
+        // REBRAND R1 — flat black stage; the offer cards are bubbles, so there
+        // is no ambient art left to refract behind them.
 
         Column(modifier = Modifier.fillMaxSize()) {
             Column(
@@ -142,11 +140,11 @@ fun OffersScreen(viewModel: OffersViewModel = hiltViewModel()) {
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp, vertical = 16.dp)
             ) {
-                Text("Offers", color = White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                Text("Offers", color = TextWhite, fontSize = 22.sp, fontWeight = FontWeight.Bold)
                 Text(
                     if (selectionMode) "${selectedOffers.size} selected"
                     else "${offers.size} offer(s)",
-                    color = White.copy(alpha = 0.5f),
+                    color = TextWhite.copy(alpha = 0.5f),
                     fontSize = 12.sp
                 )
             }
@@ -238,11 +236,11 @@ fun OffersScreen(viewModel: OffersViewModel = hiltViewModel()) {
     confirmOffers?.let { targets ->
         AlertDialog(
             onDismissRequest = { confirmOffers = null },
-            containerColor = SurfaceDark,
+            containerColor = Raised,
             title = {
                 Text(
                     "Queue ${targets.size} dials?",
-                    color = White,
+                    color = TextWhite,
                     fontSize = 17.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -251,13 +249,13 @@ fun OffersScreen(viewModel: OffersViewModel = hiltViewModel()) {
                 Column {
                     Text(
                         "These offers are not marked SILENT, so the Ghost Queue will dial them one after the other:",
-                        color = White.copy(alpha = 0.6f),
+                        color = TextWhite.copy(alpha = 0.6f),
                         fontSize = 12.sp
                     )
                     Spacer(modifier = Modifier.height(10.dp))
                     Text(
                         BatchDialPlanner.confirmationMessage(targets),
-                        color = White,
+                        color = TextWhite,
                         fontSize = 13.sp
                     )
                 }
@@ -270,12 +268,12 @@ fun OffersScreen(viewModel: OffersViewModel = hiltViewModel()) {
                         exitSelection()
                     }
                 ) {
-                    Text("Queue anyway", color = BingwaOrange, fontWeight = FontWeight.Bold)
+                    Text("Queue anyway", color = AccentBlue, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { confirmOffers = null }) {
-                    Text("Cancel", color = White.copy(alpha = 0.6f))
+                    Text("Cancel", color = TextWhite.copy(alpha = 0.6f))
                 }
             }
         )
@@ -350,7 +348,7 @@ private fun OfferSkeleton() {
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         items(2) { index ->
-            GlassCard(
+            BubbleCard(
                 modifier = Modifier.fillMaxWidth(),
                 enterDelayMillis = index * Motion.STAGGER
             ) {
@@ -380,7 +378,7 @@ private fun OfferCard(
     onLongPress: () -> Unit = {},
     onSelectToggle: () -> Unit = {}
 ) {
-    GlassCard(
+    BubbleCard(
         modifier = Modifier.fillMaxWidth(),
         onClick = if (selectionMode) onSelectToggle else onOpenSettings,
         // Parity F — long-press anywhere on the card starts multi-select.
@@ -392,7 +390,7 @@ private fun OfferCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         offer.name,
-                        color = White,
+                        color = TextWhite,
                         fontSize = 15.sp,
                         fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.weight(1f, fill = false)
@@ -402,7 +400,7 @@ private fun OfferCard(
                         Icon(
                             imageVector = Icons.Rounded.Verified,
                             contentDescription = "Verified",
-                            tint = EmeraldGreen,
+                            tint = TickGreen,
                             modifier = Modifier.size(16.dp)
                         )
                     }
@@ -426,7 +424,7 @@ private fun OfferCard(
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
                         "Relay: $relay",
-                        color = White.copy(alpha = 0.45f),
+                        color = TextWhite.copy(alpha = 0.45f),
                         fontSize = 11.sp,
                         maxLines = 1
                     )
@@ -435,7 +433,7 @@ private fun OfferCard(
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
                         message,
-                        color = White.copy(alpha = 0.45f),
+                        color = TextWhite.copy(alpha = 0.45f),
                         fontSize = 11.sp,
                         maxLines = 1
                     )
@@ -450,12 +448,12 @@ private fun OfferCard(
                     checked = offer.isActive,
                     onCheckedChange = { onToggle() },
                     colors = SwitchDefaults.colors(
-                        checkedThumbColor = NightBlack,
-                        checkedTrackColor = BingwaOrange,
-                        checkedBorderColor = BingwaOrange,
-                        uncheckedThumbColor = White.copy(alpha = 0.7f),
-                        uncheckedTrackColor = GlassFillStrong,
-                        uncheckedBorderColor = GlassBorderStrong
+                        checkedThumbColor = BgBlack,
+                        checkedTrackColor = AccentBlue,
+                        checkedBorderColor = AccentBlue,
+                        uncheckedThumbColor = TextWhite.copy(alpha = 0.7f),
+                        uncheckedTrackColor = Raised,
+                        uncheckedBorderColor = Hairline
                     )
                 )
                 Spacer(modifier = Modifier.width(8.dp))
@@ -468,7 +466,7 @@ private fun OfferCard(
                     Icon(
                         imageVector = Icons.Rounded.Tune,
                         contentDescription = "Offer actions",
-                        tint = White.copy(alpha = 0.6f),
+                        tint = TextWhite.copy(alpha = 0.6f),
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -483,16 +481,16 @@ private fun TagOptionChip(label: String, selected: Boolean, onClick: () -> Unit)
     val base = if (selected) {
         Modifier
             .clip(shape)
-            .background(brandBrush())
+            .background(accentBrush())
     } else {
         Modifier
             .clip(shape)
-            .background(GlassFill)
-            .border(1.dp, GlassBorder, shape)
+            .background(Bubble)
+            .border(1.dp, Hairline, shape)
     }
     Text(
         label,
-        color = if (selected) NightBlack else White.copy(alpha = 0.75f),
+        color = if (selected) BgBlack else TextWhite.copy(alpha = 0.75f),
         fontSize = 11.sp,
         fontWeight = FontWeight.SemiBold,
         modifier = base.clickable(onClick = onClick).padding(horizontal = 10.dp, vertical = 8.dp)
@@ -504,13 +502,13 @@ private fun TagChip(tag: String) {
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(12.dp))
-            .background(GlassFill)
-            .border(1.dp, GlassBorder, RoundedCornerShape(12.dp))
+            .background(Bubble)
+            .border(1.dp, Hairline, RoundedCornerShape(12.dp))
             .padding(horizontal = 10.dp, vertical = 5.dp)
     ) {
         Text(
             tag,
-            color = White.copy(alpha = 0.8f),
+            color = TextWhite.copy(alpha = 0.8f),
             fontSize = 10.sp,
             fontWeight = FontWeight.Bold
         )
@@ -522,12 +520,12 @@ private fun PriceChip(price: Int) {
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(12.dp))
-            .background(brandBrush())
+            .background(accentBrush())
             .padding(horizontal = 12.dp, vertical = 5.dp)
     ) {
         Text(
             "Ksh $price",
-            color = NightBlack,
+            color = BgBlack,
             fontSize = 12.sp,
             fontWeight = FontWeight.Bold
         )
@@ -543,7 +541,7 @@ private fun AddOfferFab(modifier: Modifier = Modifier, onClick: () -> Unit) {
             .pressScale(interactionSource)
             .size(58.dp)
             .clip(CircleShape)
-            .background(brandBrush())
+            .background(accentBrush())
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
@@ -557,7 +555,7 @@ private fun AddOfferFab(modifier: Modifier = Modifier, onClick: () -> Unit) {
         Icon(
             imageVector = Icons.Rounded.Add,
             contentDescription = "Add offer",
-            tint = NightBlack,
+            tint = BgBlack,
             modifier = Modifier.size(26.dp)
         )
     }
@@ -569,17 +567,17 @@ private fun AddOfferSheet(onDismiss: () -> Unit, onAdd: (name: String, price: In
     var price by remember { mutableStateOf("") }
     var ussdCode by remember { mutableStateOf("") }
 
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = SurfaceDark) {
+    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Raised) {
         Column(
             modifier = Modifier
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp)
                 .padding(bottom = 28.dp)
         ) {
-            Text("Add offer", color = White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Text("Add offer", color = TextWhite, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             Text(
                 "A bundle customers can buy from you",
-                color = White.copy(alpha = 0.5f),
+                color = TextWhite.copy(alpha = 0.5f),
                 fontSize = 12.sp
             )
             Spacer(modifier = Modifier.height(16.dp))
@@ -598,12 +596,12 @@ private fun AddOfferSheet(onDismiss: () -> Unit, onAdd: (name: String, price: In
             )
             Text(
                 "Use \"ph\" where the customer number goes — the dialer swaps it in automatically.",
-                color = White.copy(alpha = 0.45f),
+                color = TextWhite.copy(alpha = 0.45f),
                 fontSize = 11.sp
             )
             Spacer(modifier = Modifier.height(18.dp))
             val valid = name.isNotBlank() && ussdCode.isNotBlank() && price.toIntOrNull() != null
-            GradientButton(
+            PrimaryButton(
                 text = "Add offer",
                 enabled = valid,
                 onClick = { onAdd(name, price.toIntOrNull() ?: 0, ussdCode) }
@@ -621,15 +619,15 @@ private fun SheetTextField(
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
-        Text(label, color = White.copy(alpha = 0.55f), fontSize = 11.sp)
+        Text(label, color = TextWhite.copy(alpha = 0.55f), fontSize = 11.sp)
         Spacer(modifier = Modifier.height(6.dp))
         val shape = RoundedCornerShape(14.dp)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(shape)
-                .background(GlassFill)
-                .border(1.dp, GlassBorder, shape)
+                .background(Bubble)
+                .border(1.dp, Hairline, shape)
                 .padding(horizontal = 14.dp, vertical = 12.dp)
         ) {
             Box {
@@ -637,14 +635,14 @@ private fun SheetTextField(
                     value = value,
                     onValueChange = onValueChange,
                     singleLine = true,
-                    textStyle = TextStyle(color = White, fontSize = 14.sp),
-                    cursorBrush = SolidColor(BingwaOrange),
+                    textStyle = TextStyle(color = TextWhite, fontSize = 14.sp),
+                    cursorBrush = SolidColor(AccentBlue),
                     modifier = Modifier.fillMaxWidth()
                 )
                 if (value.isEmpty() && placeholder.isNotEmpty()) {
                     Text(
                         placeholder,
-                        color = White.copy(alpha = 0.35f),
+                        color = TextWhite.copy(alpha = 0.35f),
                         fontSize = 14.sp
                     )
                 }
@@ -664,7 +662,7 @@ private fun SwitchRow(label: String, checked: Boolean, onCheckedChange: (Boolean
     ) {
         Text(
             label,
-            color = White,
+            color = TextWhite,
             fontSize = 14.sp,
             modifier = Modifier.weight(1f)
         )
@@ -672,12 +670,12 @@ private fun SwitchRow(label: String, checked: Boolean, onCheckedChange: (Boolean
             checked = checked,
             onCheckedChange = onCheckedChange,
             colors = SwitchDefaults.colors(
-                checkedThumbColor = NightBlack,
-                checkedTrackColor = BingwaOrange,
-                checkedBorderColor = BingwaOrange,
-                uncheckedThumbColor = White.copy(alpha = 0.7f),
-                uncheckedTrackColor = GlassFillStrong,
-                uncheckedBorderColor = GlassBorderStrong
+                checkedThumbColor = BgBlack,
+                checkedTrackColor = AccentBlue,
+                checkedBorderColor = AccentBlue,
+                uncheckedThumbColor = TextWhite.copy(alpha = 0.7f),
+                uncheckedTrackColor = Raised,
+                uncheckedBorderColor = Hairline
             )
         )
     }
@@ -725,19 +723,19 @@ private fun OfferSettingsSheet(
     var tag by remember { mutableStateOf(offer.tag.orEmpty()) }
     var relayDevice by remember { mutableStateOf(offer.relayDevice.orEmpty()) }
 
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = SurfaceDark) {
+    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Raised) {
         Column(
             modifier = Modifier
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp)
                 .padding(bottom = 28.dp)
         ) {
-            Text("Offer settings", color = White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-            Text(offer.name, color = White.copy(alpha = 0.5f), fontSize = 12.sp)
+            Text("Offer settings", color = TextWhite, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Text(offer.name, color = TextWhite.copy(alpha = 0.5f), fontSize = 12.sp)
             Spacer(modifier = Modifier.height(14.dp))
 
             // MEGA A — type bucket chips (Airtime / Data / SMS / Combo).
-            Text("Type", color = White.copy(alpha = 0.55f), fontSize = 11.sp)
+            Text("Type", color = TextWhite.copy(alpha = 0.55f), fontSize = 11.sp)
             Spacer(modifier = Modifier.height(6.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Offer.TYPES.forEach { option ->
@@ -755,7 +753,7 @@ private fun OfferSettingsSheet(
             SwitchRow("Strict mode", strictMode) { strictMode = it }
             Text(
                 "Never resell this bundle once Safaricom says the customer was already recommended it.",
-                color = White.copy(alpha = 0.45f),
+                color = TextWhite.copy(alpha = 0.45f),
                 fontSize = 11.sp
             )
             Spacer(modifier = Modifier.height(8.dp))
@@ -763,7 +761,7 @@ private fun OfferSettingsSheet(
             SwitchRow("Retry network problems", retryConnectionProblems) { retryConnectionProblems = it }
             Text(
                 "Silent offers are queued straight away in the Ghost Queue — no per-dial confirmation.",
-                color = White.copy(alpha = 0.45f),
+                color = TextWhite.copy(alpha = 0.45f),
                 fontSize = 11.sp
             )
             Spacer(modifier = Modifier.height(8.dp))
@@ -806,7 +804,7 @@ private fun OfferSettingsSheet(
 
             // Parity D — Hybrid OfferTag bucket (OFFER_1..OFFER_4, optional).
             Spacer(modifier = Modifier.height(4.dp))
-            Text("Offer tag", color = White.copy(alpha = 0.55f), fontSize = 11.sp)
+            Text("Offer tag", color = TextWhite.copy(alpha = 0.55f), fontSize = 11.sp)
             Spacer(modifier = Modifier.height(6.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 TagOptionChip(label = "None", selected = tag.isBlank()) { tag = "" }
@@ -828,15 +826,15 @@ private fun OfferSettingsSheet(
             // MEGA A — inline form feedback: a red error or a green confirmation
             // rendered above the button, so a failed save can never look saved.
             settingsState.errorMessage?.let { message ->
-                Text(message, color = ErrorRed, fontSize = 12.sp)
+                Text(message, color = FailRed, fontSize = 12.sp)
                 Spacer(modifier = Modifier.height(10.dp))
             }
             settingsState.savedMessage?.let { message ->
-                Text(message, color = EmeraldGreen, fontSize = 12.sp)
+                Text(message, color = TickGreen, fontSize = 12.sp)
                 Spacer(modifier = Modifier.height(10.dp))
             }
 
-            GradientButton(
+            PrimaryButton(
                 text = if (settingsState.isLoading) "Saving…" else "Save settings",
                 enabled = !settingsState.isLoading,
                 onClick = {
@@ -875,27 +873,27 @@ private fun OfferActionsSheet(
     var selectedStatus by remember { mutableStateOf(FALLBACK_STATUSES.first()) }
     var selectedTarget by remember { mutableStateOf<Offer?>(null) }
 
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = SurfaceDark) {
+    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Raised) {
         Column(
             modifier = Modifier
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp)
                 .padding(bottom = 28.dp)
         ) {
-            Text("Offer actions", color = White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-            Text(offer.name, color = White.copy(alpha = 0.5f), fontSize = 12.sp)
+            Text("Offer actions", color = TextWhite, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Text(offer.name, color = TextWhite.copy(alpha = 0.5f), fontSize = 12.sp)
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
                 "Fallback rule",
-                color = White,
+                color = TextWhite,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 "When a transaction ends in status X, dial offer Y",
-                color = White.copy(alpha = 0.45f),
+                color = TextWhite.copy(alpha = 0.45f),
                 fontSize = 11.sp
             )
             Spacer(modifier = Modifier.height(10.dp))
@@ -916,7 +914,7 @@ private fun OfferActionsSheet(
             Spacer(modifier = Modifier.height(14.dp))
             Text(
                 "Then dial offer",
-                color = White,
+                color = TextWhite,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold
             )
@@ -926,7 +924,7 @@ private fun OfferActionsSheet(
             if (targets.isEmpty()) {
                 Text(
                     "No other offers available yet.",
-                    color = White.copy(alpha = 0.4f),
+                    color = TextWhite.copy(alpha = 0.4f),
                     fontSize = 12.sp
                 )
             } else {
@@ -945,7 +943,7 @@ private fun OfferActionsSheet(
             }
 
             Spacer(modifier = Modifier.height(16.dp))
-            GradientButton(
+            PrimaryButton(
                 text = "Save fallback rule",
                 enabled = selectedTarget != null,
                 onClick = {
@@ -966,14 +964,14 @@ private fun OfferActionsSheet(
             // reported here in red instead of silently overwriting the old rule.
             if (ruleError != null) {
                 Spacer(modifier = Modifier.height(10.dp))
-                Text(ruleError, color = ErrorRed, fontSize = 12.sp)
+                Text(ruleError, color = FailRed, fontSize = 12.sp)
             }
 
             if (rules.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(20.dp))
                 Text(
                     "Saved rules",
-                    color = White,
+                    color = TextWhite,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -992,17 +990,17 @@ private fun StatusChip(status: TransactionStatus, selected: Boolean, onClick: ()
     val base = if (selected) {
         Modifier
             .clip(shape)
-            .background(brandBrush())
+            .background(accentBrush())
     } else {
         Modifier
             .clip(shape)
-            .background(GlassFill)
-            .border(1.dp, GlassBorder, shape)
+            .background(Bubble)
+            .border(1.dp, Hairline, shape)
     }
     Text(
         status.value.replace('_', ' ').lowercase()
             .replaceFirstChar { it.uppercase() },
-        color = if (selected) NightBlack else White.copy(alpha = 0.75f),
+        color = if (selected) BgBlack else TextWhite.copy(alpha = 0.75f),
         fontSize = 11.sp,
         fontWeight = FontWeight.SemiBold,
         modifier = base.clickable(onClick = onClick).padding(horizontal = 10.dp, vertical = 8.dp)
@@ -1015,25 +1013,25 @@ private fun OfferPickChip(offer: Offer, selected: Boolean, onClick: () -> Unit) 
     val base = if (selected) {
         Modifier
             .clip(shape)
-            .background(brandBrush())
+            .background(accentBrush())
     } else {
         Modifier
             .clip(shape)
-            .background(GlassFill)
-            .border(1.dp, GlassBorder, shape)
+            .background(Bubble)
+            .border(1.dp, Hairline, shape)
     }
     Column(
         modifier = base.clickable(onClick = onClick).padding(horizontal = 12.dp, vertical = 8.dp)
     ) {
         Text(
             offer.name,
-            color = if (selected) NightBlack else White,
+            color = if (selected) BgBlack else TextWhite,
             fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold
         )
         Text(
             "Ksh ${offer.price}",
-            color = if (selected) NightBlack.copy(alpha = 0.7f) else White.copy(alpha = 0.5f),
+            color = if (selected) BgBlack.copy(alpha = 0.7f) else TextWhite.copy(alpha = 0.5f),
             fontSize = 10.sp
         )
     }
@@ -1045,7 +1043,7 @@ private fun RuleRow(rule: OfferTransitionRule, onDelete: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(GlassFill)
+            .background(Bubble)
             .padding(horizontal = 14.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -1053,20 +1051,20 @@ private fun RuleRow(rule: OfferTransitionRule, onDelete: () -> Unit) {
             Text(
                 rule.fromStatus.replace('_', ' ').lowercase()
                     .replaceFirstChar { it.uppercase() },
-                color = ErrorRed,
+                color = FailRed,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.SemiBold
             )
             Text(
                 "Dial ${rule.toOfferName}",
-                color = White,
+                color = TextWhite,
                 fontSize = 12.sp
             )
         }
         Icon(
             imageVector = Icons.Rounded.Delete,
             contentDescription = "Delete rule",
-            tint = White.copy(alpha = 0.55f),
+            tint = TextWhite.copy(alpha = 0.55f),
             modifier = Modifier
                 .clip(CircleShape)
                 .clickable(onClick = onDelete)
@@ -1092,13 +1090,13 @@ private fun SilentChip() {
     Box(
         modifier = Modifier
             .clip(shape)
-            .background(BingwaOrange.copy(alpha = 0.16f))
-            .border(1.dp, BingwaOrange.copy(alpha = 0.55f), shape)
+            .background(AccentBlue.copy(alpha = 0.16f))
+            .border(1.dp, AccentBlue.copy(alpha = 0.55f), shape)
             .padding(horizontal = 8.dp, vertical = 5.dp)
     ) {
         Text(
             "SILENT",
-            color = BingwaOrange,
+            color = AccentBlue,
             fontSize = 9.sp,
             fontWeight = FontWeight.Bold
         )
@@ -1113,15 +1111,15 @@ private fun SelectionCheckbox(checked: Boolean) {
         modifier = Modifier
             .size(24.dp)
             .clip(shape)
-            .background(if (checked) brandBrush() else SolidColor(GlassFill))
-            .border(1.dp, if (checked) BingwaOrange else GlassBorderStrong, shape),
+            .background(if (checked) accentBrush() else SolidColor(Bubble))
+            .border(1.dp, if (checked) AccentBlue else Hairline, shape),
         contentAlignment = Alignment.Center
     ) {
         if (checked) {
             Icon(
                 imageVector = Icons.Rounded.Check,
                 contentDescription = "Selected",
-                tint = NightBlack,
+                tint = BgBlack,
                 modifier = Modifier.size(16.dp)
             )
         }
@@ -1143,25 +1141,25 @@ private fun BatchDialBar(
     onCancel: () -> Unit,
     onDial: () -> Unit
 ) {
-    GlassCard(modifier = modifier.fillMaxWidth()) {
+    BubbleCard(modifier = modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     "$count selected — $silentCount run silently",
-                    color = White,
+                    color = TextWhite,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(
                     "Silent offers dial straight away; the rest ask once.",
-                    color = White.copy(alpha = 0.5f),
+                    color = TextWhite.copy(alpha = 0.5f),
                     fontSize = 10.sp
                 )
             }
             Icon(
                 imageVector = Icons.Rounded.Close,
                 contentDescription = "Cancel selection",
-                tint = White.copy(alpha = 0.6f),
+                tint = TextWhite.copy(alpha = 0.6f),
                 modifier = Modifier
                     .clip(CircleShape)
                     .clickable(onClick = onCancel)
@@ -1176,7 +1174,7 @@ private fun BatchDialBar(
             onValueChange = { raw -> onPhoneChange(raw.filter { it.isDigit() }) },
             placeholder = "0712345678"
         )
-        GradientButton(
+        PrimaryButton(
             text = "Ghost Queue ×$count",
             loading = isBatching,
             enabled = count > 0,

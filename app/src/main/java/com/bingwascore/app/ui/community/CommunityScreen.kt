@@ -37,17 +37,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.bingwascore.app.ui.components.AmbientBackground
 import com.bingwascore.app.ui.components.EmptyState
-import com.bingwascore.app.ui.components.GlassCard
+import com.bingwascore.app.ui.components.BubbleCard
 import com.bingwascore.app.ui.components.ShimmerBlock
-import com.bingwascore.app.ui.theme.Amber
+import com.bingwascore.app.ui.theme.PendGrey
 import com.bingwascore.app.ui.theme.BingwaType
-import com.bingwascore.app.ui.theme.BingwaOrange
-import com.bingwascore.app.ui.theme.EmeraldGreen
-import com.bingwascore.app.ui.theme.NightBlack
+import com.bingwascore.app.ui.theme.AccentBlue
+import com.bingwascore.app.ui.theme.TickGreen
+import com.bingwascore.app.ui.theme.BgBlack
 import com.bingwascore.app.ui.theme.OfferTags
-import com.bingwascore.app.ui.theme.White
+import com.bingwascore.app.ui.theme.TextWhite
 import com.bingwascore.app.util.screenEnter
 
 /**
@@ -67,9 +66,8 @@ fun CommunityScreen(viewModel: CommunityViewModel = hiltViewModel()) {
         modifier = Modifier
             .fillMaxSize()
             .screenEnter()
-            .background(NightBlack)
+            .background(BgBlack)
     ) {
-        AmbientBackground()
 
         Column(modifier = Modifier.fillMaxSize()) {
             Column(
@@ -77,10 +75,10 @@ fun CommunityScreen(viewModel: CommunityViewModel = hiltViewModel()) {
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp, vertical = 16.dp)
             ) {
-                Text("Community", color = White, style = BingwaType.headlineStyle)
+                Text("Community", color = TextWhite, style = BingwaType.headlineStyle)
                 Text(
                     "${listings.size} listing(s) from agents on the relay",
-                    color = White.copy(alpha = 0.5f),
+                    color = TextWhite.copy(alpha = 0.5f),
                     style = BingwaType.captionStyle
                 )
             }
@@ -126,11 +124,11 @@ fun CommunityScreen(viewModel: CommunityViewModel = hiltViewModel()) {
 }
 /**
  * One marketplace card. `enterDelayMillis` drives the shared stagger inside
- * [GlassCard], so the cascade matches every other list in the app.
+ * [BubbleCard], so the cascade matches every other list in the app.
  */
 @Composable
 private fun CommunityCard(listing: CommunityListing, enterDelayMillis: Int) {
-    GlassCard(
+    BubbleCard(
         modifier = Modifier.fillMaxWidth(),
         cornerRadius = 20.dp,
         enterDelayMillis = enterDelayMillis
@@ -142,10 +140,10 @@ private fun CommunityCard(listing: CommunityListing, enterDelayMillis: Int) {
                     .clip(RoundedCornerShape(14.dp))
                     .background(
                         if (listing.isVerified) {
-                            Brush.horizontalGradient(listOf(Amber, BingwaOrange))
+                            Brush.horizontalGradient(listOf(PendGrey, AccentBlue))
                         } else {
                             Brush.horizontalGradient(
-                                listOf(White.copy(alpha = 0.18f), White.copy(alpha = 0.08f))
+                                listOf(TextWhite.copy(alpha = 0.18f), TextWhite.copy(alpha = 0.08f))
                             )
                         }
                     ),
@@ -154,24 +152,24 @@ private fun CommunityCard(listing: CommunityListing, enterDelayMillis: Int) {
                 Icon(
                     imageVector = if (listing.isVerified) Icons.Rounded.Verified else Icons.Rounded.Storefront,
                     contentDescription = null,
-                    tint = if (listing.isVerified) NightBlack else White.copy(alpha = 0.8f),
+                    tint = if (listing.isVerified) BgBlack else TextWhite.copy(alpha = 0.8f),
                     modifier = Modifier.size(24.dp)
                 )
             }
             Spacer(modifier = Modifier.width(14.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(listing.name, color = White, style = BingwaType.labelStyle)
+                Text(listing.name, color = TextWhite, style = BingwaType.labelStyle)
                 Spacer(modifier = Modifier.height(3.dp))
-                Text(listing.seller, color = White.copy(alpha = 0.5f), style = BingwaType.captionStyle)
+                Text(listing.seller, color = TextWhite.copy(alpha = 0.5f), style = BingwaType.captionStyle)
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text(
                     "Ksh ${listing.price}",
-                    color = if (listing.isVerified) Amber else White,
+                    color = if (listing.isVerified) PendGrey else TextWhite,
                     style = BingwaType.labelStyle
                 )
                 Spacer(modifier = Modifier.height(3.dp))
-                Text(listing.tagLabel, color = White.copy(alpha = 0.45f), style = BingwaType.microStyle)
+                Text(listing.tagLabel, color = TextWhite.copy(alpha = 0.45f), style = BingwaType.microStyle)
             }
         }
 
@@ -182,9 +180,9 @@ private fun CommunityCard(listing: CommunityListing, enterDelayMillis: Int) {
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            MetaPill(text = "${listing.validityHours}h data", tint = White.copy(alpha = 0.7f))
-            if (listing.autoRenewable) MetaPill(text = "Auto-renew", tint = EmeraldGreen)
-            if (listing.silentEligible) MetaPill(text = "Ghost Queue", tint = Amber)
+            MetaPill(text = "${listing.validityHours}h data", tint = TextWhite.copy(alpha = 0.7f))
+            if (listing.autoRenewable) MetaPill(text = "Auto-renew", tint = TickGreen)
+            if (listing.silentEligible) MetaPill(text = "Ghost Queue", tint = PendGrey)
         }
     }
 }
@@ -209,17 +207,17 @@ private fun MetaPill(text: String, tint: Color) {
 private fun CommunityFilterChip(label: String, selected: Boolean, onClick: () -> Unit) {
     Text(
         label,
-        color = if (selected) NightBlack else White.copy(alpha = 0.7f),
+        color = if (selected) BgBlack else TextWhite.copy(alpha = 0.7f),
         style = BingwaType.captionStyle,
         fontWeight = FontWeight.SemiBold,
         modifier = Modifier
             .clip(CircleShape)
             .background(
                 if (selected) {
-                    Brush.horizontalGradient(listOf(BingwaOrange, Amber))
+                    Brush.horizontalGradient(listOf(AccentBlue, PendGrey))
                 } else {
                     Brush.horizontalGradient(
-                        listOf(White.copy(alpha = 0.12f), White.copy(alpha = 0.06f))
+                        listOf(TextWhite.copy(alpha = 0.12f), TextWhite.copy(alpha = 0.06f))
                     )
                 }
             )
@@ -238,7 +236,7 @@ private fun CommunitySkeleton() {
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         repeat(3) {
-            GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 20.dp) {
+            BubbleCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 20.dp) {
                 ShimmerBlock(modifier = Modifier.fillMaxWidth())
                 Spacer(modifier = Modifier.height(10.dp))
                 ShimmerBlock(modifier = Modifier.fillMaxWidth(0.6f))

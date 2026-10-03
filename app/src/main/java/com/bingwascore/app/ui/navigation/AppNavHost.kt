@@ -81,7 +81,7 @@ import com.bingwascore.app.ui.autoreplies.AutoRepliesScreen
 import com.bingwascore.app.ui.authorizedsenders.AuthorizedSendersScreen
 import com.bingwascore.app.ui.blacklist.BlacklistScreen
 import com.bingwascore.app.ui.components.ScreenTransition
-import com.bingwascore.app.ui.components.glassSurface
+import com.bingwascore.app.ui.components.bubbleSurface
 import com.bingwascore.app.ui.components.pressScale
 import com.bingwascore.app.ui.customers.CustomersScreen
 import com.bingwascore.app.ui.dialer.DialerScreen
@@ -113,15 +113,15 @@ import androidx.compose.material.icons.rounded.Redeem
 import androidx.compose.material.icons.rounded.Campaign
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.EmojiEvents
-import com.bingwascore.app.ui.theme.GlassBorderStrong
-import com.bingwascore.app.ui.theme.GlassFill
-import com.bingwascore.app.ui.theme.Amber
+import com.bingwascore.app.ui.theme.Hairline
+import com.bingwascore.app.ui.theme.Bubble
+import com.bingwascore.app.ui.theme.PendGrey
 import com.bingwascore.app.ui.theme.BingwaType
-import com.bingwascore.app.ui.theme.BingwaOrange
+import com.bingwascore.app.ui.theme.AccentBlue
 import com.bingwascore.app.ui.theme.Motion
-import com.bingwascore.app.ui.theme.NightBlack
-import com.bingwascore.app.ui.theme.SurfaceDark
-import com.bingwascore.app.ui.theme.White
+import com.bingwascore.app.ui.theme.BgBlack
+import com.bingwascore.app.ui.theme.Raised
+import com.bingwascore.app.ui.theme.TextWhite
 import androidx.compose.runtime.collectAsState
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
@@ -287,11 +287,11 @@ fun MainScreen() {
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
-            ModalDrawerSheet(drawerContainerColor = SurfaceDark) {
+            ModalDrawerSheet(drawerContainerColor = Raised) {
                 Spacer(modifier = Modifier.height(28.dp))
                 Text(
                     "Bingwa Score",
-                    color = White,
+                    color = TextWhite,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(horizontal = 24.dp)
@@ -312,20 +312,20 @@ fun MainScreen() {
                         Icon(
                             imageVector = entry.icon,
                             contentDescription = entry.label,
-                            tint = if (selected) BingwaOrange else White.copy(alpha = 0.6f),
+                            tint = if (selected) AccentBlue else TextWhite.copy(alpha = 0.6f),
                             modifier = Modifier.size(22.dp)
                         )
                         Spacer(modifier = Modifier.size(14.dp))
                         Text(
                             entry.label,
-                            color = if (selected) White else White.copy(alpha = 0.7f),
+                            color = if (selected) TextWhite else TextWhite.copy(alpha = 0.7f),
                             fontSize = 14.sp,
                             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
                             modifier = Modifier.weight(1f)
                         )
                         // Unread dot for Announcements
                         if (index == ANNOUNCEMENTS_DRAWER_INDEX) {
-                            Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(Amber))
+                            Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(PendGrey))
                         }
                     }
                 }
@@ -334,7 +334,7 @@ fun MainScreen() {
         }
     ) {
         Scaffold(
-            containerColor = NightBlack,
+            containerColor = BgBlack,
             contentWindowInsets = WindowInsets.safeDrawing.only(
                 WindowInsetsSides.Top + WindowInsetsSides.Horizontal
             ),
@@ -446,7 +446,7 @@ private fun GlassBottomBar(selected: Int, onSelect: (Int) -> Unit, onDialer: () 
             .fillMaxWidth()
             .navigationBarsPadding()
             .padding(horizontal = 16.dp, vertical = 10.dp)
-            .glassSurface(shape = shape)
+            .bubbleSurface(shape = shape)
     ) {
         // 5 logical slots: Home | Offers | FAB | Transactions | Profile
         val slotWidth = maxWidth / 5f
@@ -464,7 +464,7 @@ private fun GlassBottomBar(selected: Int, onSelect: (Int) -> Unit, onDialer: () 
                 .width(pillWidth)
                 .height(50.dp)
                 .clip(RoundedCornerShape(14.dp))
-                .background(Brush.horizontalGradient(listOf(BingwaOrange, Amber)))
+                .background(Brush.horizontalGradient(listOf(AccentBlue, PendGrey)))
         )
 
         Row(
@@ -491,7 +491,7 @@ private fun GlassBottomBar(selected: Int, onSelect: (Int) -> Unit, onDialer: () 
                             scaleY = 1f + 0.35f * glow
                         }
                         .clip(CircleShape)
-                        .background(Amber.copy(alpha = 0.5f))
+                        .background(PendGrey.copy(alpha = 0.5f))
                 )
                 // Main FAB — gradient, press-scale 0.98, press feedback
                 Box(
@@ -500,7 +500,7 @@ private fun GlassBottomBar(selected: Int, onSelect: (Int) -> Unit, onDialer: () 
                         .size(54.dp)
                         .pressScale(fabInteraction)
                         .clip(CircleShape)
-                        .background(Brush.linearGradient(listOf(BingwaOrange, Amber)))
+                        .background(Brush.linearGradient(listOf(AccentBlue, PendGrey)))
                         .clickable(
                             interactionSource = fabInteraction,
                             indication = null,
@@ -511,7 +511,7 @@ private fun GlassBottomBar(selected: Int, onSelect: (Int) -> Unit, onDialer: () 
                     Icon(
                         imageVector = Icons.Rounded.Call,
                         contentDescription = "Dialer",
-                        tint = NightBlack,
+                        tint = BgBlack,
                         modifier = Modifier.size(26.dp)
                     )
                 }
@@ -527,12 +527,12 @@ private fun GlassBottomBar(selected: Int, onSelect: (Int) -> Unit, onDialer: () 
 private fun BottomNavItem(icon: ImageVector, label: String, selected: Boolean, onClick: () -> Unit) {
     val interactionSource = remember { MutableInteractionSource() }
     val iconTint by animateColorAsState(
-        targetValue = if (selected) BingwaOrange else White.copy(alpha = 0.55f),
+        targetValue = if (selected) AccentBlue else TextWhite.copy(alpha = 0.55f),
         animationSpec = spring(dampingRatio = Motion.DAMPING),
         label = "navIconTint"
     )
     val labelColor by animateColorAsState(
-        targetValue = if (selected) White else White.copy(alpha = 0.55f),
+        targetValue = if (selected) TextWhite else TextWhite.copy(alpha = 0.55f),
         animationSpec = spring(dampingRatio = Motion.DAMPING),
         label = "navLabelColor"
     )

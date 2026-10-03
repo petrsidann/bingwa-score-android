@@ -1,44 +1,50 @@
 package com.bingwascore.app.ui.theme
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.remember
 import com.bingwascore.app.domain.ThemeMode
-
-private val DarkColors = darkColorScheme(
-    primary = BingwaOrange,
-    secondary = Amber,
-    tertiary = OrangeDark,
-    background = NightBlack,
-    surface = SurfaceDark
-)
-
-private val LightColors = lightColorScheme(
-    primary = BingwaOrange,
-    secondary = Amber,
-    tertiary = OrangeDark,
-    background = LightBackground,
-    surface = LightSurface
-)
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.lightColorScheme
 
 /**
- * Dark-first theme. [themeMode] comes from UserPreferences so the Settings
- * toggle takes effect immediately (SYSTEM follows the device setting).
+ * REBRAND R1 — dark-only theming.
+ *
+ * There is no light scheme and no system following: the three display modes all
+ * render on pure black. [BingwaScoreTheme] publishes the active mode to the
+ * colour tokens on every composition, so an Appearance switch repaints the whole
+ * app instantly without a restart.
  */
 @Composable
 fun BingwaScoreTheme(
     themeMode: ThemeMode = ThemeMode.DARK,
     content: @Composable () -> Unit
 ) {
-    val useDark = when (themeMode) {
-        ThemeMode.SYSTEM -> isSystemInDarkTheme()
-        ThemeMode.DARK -> true
-        ThemeMode.LIGHT -> false
+    // SideEffect (not a direct write) keeps the state change outside the
+    // composition pass: the new palette lands on the very next frame.
+    SideEffect { installDisplayMode(themeMode) }
+
+    val scheme = remember(themeMode) {
+        val base = darkColorScheme(
+            primary = AccentBlue,
+            secondary = ChartBlue,
+            tertiary = TickGreen,
+            background = BgBlack,
+            surface = Bubble,
+            onPrimary = CtaInk,
+            error = FailRed,
+            outline = Hairline,
+            onBackground = TextWhite,
+            onSurface = TextWhite
+        )
+        base
     }
+
     MaterialTheme(
-        colorScheme = if (useDark) DarkColors else LightColors,
+        colorScheme = scheme,
+        typography = Typography,
         content = content
     )
 }

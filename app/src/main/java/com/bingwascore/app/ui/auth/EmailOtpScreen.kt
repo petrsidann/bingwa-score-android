@@ -37,16 +37,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.bingwascore.app.ui.components.AmbientBackground
-import com.bingwascore.app.ui.components.GlassCard
-import com.bingwascore.app.ui.components.GradientButton
-import com.bingwascore.app.ui.theme.BingwaOrange
-import com.bingwascore.app.ui.theme.EmeraldGreen
-import com.bingwascore.app.ui.theme.ErrorRed
-import com.bingwascore.app.ui.theme.GlassBorder
-import com.bingwascore.app.ui.theme.GlassFill
-import com.bingwascore.app.ui.theme.NightBlack
-import com.bingwascore.app.ui.theme.White
+import com.bingwascore.app.ui.components.BubbleCard
+import com.bingwascore.app.ui.components.PrimaryButton
+import com.bingwascore.app.ui.theme.AccentBlue
+import com.bingwascore.app.ui.theme.TickGreen
+import com.bingwascore.app.ui.theme.FailRed
+import com.bingwascore.app.ui.theme.Hairline
+import com.bingwascore.app.ui.theme.Bubble
+import com.bingwascore.app.ui.theme.BgBlack
+import com.bingwascore.app.ui.theme.TextWhite
 import com.bingwascore.app.util.screenEnter
 
 /**
@@ -78,9 +77,8 @@ fun EmailOtpScreen(
         modifier = Modifier
             .fillMaxSize()
             .screenEnter()
-            .background(NightBlack)
+            .background(BgBlack)
     ) {
-        AmbientBackground()
 
         Column(
             modifier = Modifier
@@ -92,14 +90,14 @@ fun EmailOtpScreen(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     "Verify your email",
-                    color = White,
+                    color = TextWhite,
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.weight(1f)
                 )
                 Text(
                     "Back",
-                    color = White.copy(alpha = 0.6f),
+                    color = TextWhite.copy(alpha = 0.6f),
                     fontSize = 13.sp,
                     modifier = Modifier
                         .clip(RoundedCornerShape(10.dp))
@@ -115,12 +113,12 @@ fun EmailOtpScreen(
                 } else {
                     "Enter your email and we'll send a one-time code."
                 },
-                color = White.copy(alpha = 0.5f),
+                color = TextWhite.copy(alpha = 0.5f),
                 fontSize = 13.sp
             )
 
             Spacer(modifier = Modifier.height(20.dp))
-            GlassCard(modifier = Modifier.fillMaxWidth()) {
+            BubbleCard(modifier = Modifier.fillMaxWidth()) {
                 OtpField(
                     value = if (state.isAwaitingCode) code else state.email,
                     onValueChange = {
@@ -142,13 +140,13 @@ fun EmailOtpScreen(
                         Icon(
                             Icons.Rounded.MarkEmailRead,
                             contentDescription = null,
-                            tint = EmeraldGreen,
+                            tint = TickGreen,
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             "Code expires in ${state.countdownText}",
-                            color = EmeraldGreen,
+                            color = TickGreen,
                             fontSize = 12.sp
                         )
                     }
@@ -156,11 +154,11 @@ fun EmailOtpScreen(
 
                 state.errorMessage?.let { message ->
                     Spacer(modifier = Modifier.height(10.dp))
-                    Text(message, color = ErrorRed, fontSize = 12.sp)
+                    Text(message, color = FailRed, fontSize = 12.sp)
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
-                GradientButton(
+                PrimaryButton(
                     text = when {
                         state.isLoading -> "Working…"
                         state.isAwaitingCode -> "Verify code"
@@ -193,8 +191,8 @@ private fun OtpField(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
-            .background(GlassFill)
-            .border(1.dp, GlassBorder, RoundedCornerShape(14.dp))
+            .background(Bubble)
+            .border(1.dp, Hairline, RoundedCornerShape(14.dp))
             .padding(horizontal = 14.dp, vertical = 14.dp)
     ) {
         BasicTextField(
@@ -202,18 +200,18 @@ private fun OtpField(
             onValueChange = onValueChange,
             singleLine = true,
             textStyle = TextStyle(
-                color = White,
+                color = TextWhite,
                 fontSize = 16.sp,
                 letterSpacing = if (numeric) 4.sp else 1.sp
             ),
             keyboardOptions = KeyboardOptions(
                 keyboardType = if (numeric) KeyboardType.NumberPassword else KeyboardType.Email
             ),
-            cursorBrush = SolidColor(BingwaOrange),
+            cursorBrush = SolidColor(AccentBlue),
             modifier = Modifier.fillMaxWidth()
         )
         if (value.isEmpty()) {
-            Text(placeholder, color = White.copy(alpha = 0.45f), fontSize = 16.sp)
+            Text(placeholder, color = TextWhite.copy(alpha = 0.45f), fontSize = 16.sp)
         }
     }
 }

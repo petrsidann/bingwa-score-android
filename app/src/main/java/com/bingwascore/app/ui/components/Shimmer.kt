@@ -69,7 +69,7 @@ fun Modifier.shimmer(visible: Boolean): Modifier = if (visible) shimmer() else t
 
 /**
  * Parity E skeleton block: a soft frosted slab with the shimmer sweep on top.
- * Stack a few of these inside a [GlassCard] to build a list skeleton while the
+ * Stack a few of these inside a [BubbleCard] to build a list skeleton while the
  * real rows are still loading.
  */
 @Composable

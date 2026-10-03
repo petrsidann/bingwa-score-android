@@ -26,6 +26,12 @@ object Motion {
     /** Splash: logo & wordmark fade duration. */
     const val SPLASH_FADE: Int = 300
 
+    /** R1 splash: the monogram draws itself on over 900ms via PathMeasure trim. */
+    const val SPLASH_DRAW: Int = 900
+
+    /** R1 splash: whole choreography before the next screen (ms). */
+    const val SPLASH_TOTAL: Int = 1600
+
     /** Splash: wordmark → tagline step duration. */
     const val SPLASH_STEP: Int = 250
 

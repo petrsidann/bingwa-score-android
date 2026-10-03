@@ -49,7 +49,7 @@ fun Modifier.pressScale(
 
 /**
  * Enter transition: fade in + slide up + springy scale. Plays each time the
- * modified node is first composed — every new GlassCard or list row inherits
+ * modified node is first composed — every new BubbleCard or list row inherits
  * the animation automatically.
  */
 @Composable

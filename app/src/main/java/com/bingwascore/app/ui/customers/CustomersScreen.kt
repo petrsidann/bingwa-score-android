@@ -43,19 +43,19 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bingwascore.app.data.local.Customer
 import com.bingwascore.app.ui.components.EmptyState
-import com.bingwascore.app.ui.components.GlassCard
+import com.bingwascore.app.ui.components.BubbleCard
 import com.bingwascore.app.ui.components.HapticSwitch
 import com.bingwascore.app.util.screenEnter
-import com.bingwascore.app.ui.theme.GlassBorderStrong
-import com.bingwascore.app.ui.theme.GlassFillStrong
+import com.bingwascore.app.ui.theme.Hairline
+import com.bingwascore.app.ui.theme.Raised
 import com.bingwascore.app.ui.theme.Motion
-import com.bingwascore.app.ui.theme.GlassBorder
-import com.bingwascore.app.ui.theme.GlassFill
-import com.bingwascore.app.ui.theme.BingwaOrange
-import com.bingwascore.app.ui.theme.brandBrush
-import com.bingwascore.app.ui.theme.ErrorRed
-import com.bingwascore.app.ui.theme.NightBlack
-import com.bingwascore.app.ui.theme.White
+import com.bingwascore.app.ui.theme.Hairline
+import com.bingwascore.app.ui.theme.Bubble
+import com.bingwascore.app.ui.theme.AccentBlue
+import com.bingwascore.app.ui.theme.accentBrush
+import com.bingwascore.app.ui.theme.FailRed
+import com.bingwascore.app.ui.theme.BgBlack
+import com.bingwascore.app.ui.theme.TextWhite
 import java.util.Locale
 
 @Composable
@@ -67,17 +67,17 @@ fun CustomersScreen(viewModel: CustomersViewModel = hiltViewModel()) {
         modifier = Modifier
             .fillMaxSize()
             .screenEnter()
-            .background(NightBlack)
+            .background(BgBlack)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp, vertical = 16.dp)
         ) {
-            Text("Customers", color = White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Text("Customers", color = TextWhite, fontSize = 22.sp, fontWeight = FontWeight.Bold)
             Text(
                 "${customers.size} customer(s)",
-                color = White.copy(alpha = 0.5f),
+                color = TextWhite.copy(alpha = 0.5f),
                 fontSize = 12.sp
             )
             Spacer(modifier = Modifier.height(14.dp))
@@ -102,7 +102,7 @@ fun CustomersScreen(viewModel: CustomersViewModel = hiltViewModel()) {
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 itemsIndexed(customers, key = { _, customer -> customer.phoneNumber }) { index, customer ->
-                    // PREMIUM LOCK — cascade each row in; GlassCard's
+                    // PREMIUM LOCK — cascade each row in; BubbleCard's
                     // enterAnimation does the fade + slide for us.
                     CustomerRow(
                         customer = customer,
@@ -121,7 +121,7 @@ private fun CustomerRow(
     enterDelayMillis: Int,
     onToggle: (Boolean) -> Unit
 ) {
-    GlassCard(
+    BubbleCard(
         modifier = Modifier.fillMaxWidth(),
         cornerRadius = 18.dp,
         enterDelayMillis = enterDelayMillis
@@ -131,13 +131,13 @@ private fun CustomerRow(
                 modifier = Modifier
                     .size(44.dp)
                     .clip(CircleShape)
-                    .background(brandBrush()),
+                    .background(accentBrush()),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     (customer.name ?: customer.phoneNumber).trim().take(1)
                         .uppercase(Locale.ROOT).ifEmpty { "?" },
-                    color = NightBlack,
+                    color = BgBlack,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.ExtraBold
                 )
@@ -146,21 +146,21 @@ private fun CustomerRow(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     customer.name ?: customer.phoneNumber,
-                    color = White,
+                    color = TextWhite,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     customer.phoneNumber,
-                    color = White.copy(alpha = 0.5f),
+                    color = TextWhite.copy(alpha = 0.5f),
                     fontSize = 11.sp
                 )
                 if (customer.isBlacklisted) {
                     Spacer(modifier = Modifier.height(3.dp))
                     Text(
                         "Blacklisted",
-                        color = ErrorRed,
+                        color = FailRed,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -171,12 +171,12 @@ private fun CustomerRow(
                 checked = customer.isBlacklisted,
                 onCheckedChange = onToggle,
                 colors = SwitchDefaults.colors(
-                    checkedThumbColor = White,
-                    checkedTrackColor = ErrorRed,
-                    checkedBorderColor = ErrorRed,
-                    uncheckedThumbColor = White.copy(alpha = 0.7f),
-                    uncheckedTrackColor = GlassFillStrong,
-                    uncheckedBorderColor = GlassBorderStrong
+                    checkedThumbColor = TextWhite,
+                    checkedTrackColor = FailRed,
+                    checkedBorderColor = FailRed,
+                    uncheckedThumbColor = TextWhite.copy(alpha = 0.7f),
+                    uncheckedTrackColor = Raised,
+                    uncheckedBorderColor = Hairline
                 )
             )
         }
@@ -190,15 +190,15 @@ private fun GlassSearchField(value: String, onValueChange: (String) -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(shape)
-            .background(GlassFill)
-            .border(1.dp, GlassBorder, shape)
+            .background(Bubble)
+            .border(1.dp, Hairline, shape)
             .padding(horizontal = 14.dp, vertical = 14.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 imageVector = Icons.Rounded.Search,
                 contentDescription = null,
-                tint = White.copy(alpha = 0.45f),
+                tint = TextWhite.copy(alpha = 0.45f),
                 modifier = Modifier.size(20.dp)
             )
             Spacer(modifier = Modifier.width(10.dp))
@@ -207,14 +207,14 @@ private fun GlassSearchField(value: String, onValueChange: (String) -> Unit) {
                     value = value,
                     onValueChange = onValueChange,
                     singleLine = true,
-                    textStyle = TextStyle(color = White, fontSize = 15.sp),
-                    cursorBrush = SolidColor(BingwaOrange),
+                    textStyle = TextStyle(color = TextWhite, fontSize = 15.sp),
+                    cursorBrush = SolidColor(AccentBlue),
                     modifier = Modifier.fillMaxWidth()
                 )
                 if (value.isEmpty()) {
                     Text(
                         "Search name or phone number",
-                        color = White.copy(alpha = 0.4f),
+                        color = TextWhite.copy(alpha = 0.4f),
                         fontSize = 15.sp
                     )
                 }
@@ -224,7 +224,7 @@ private fun GlassSearchField(value: String, onValueChange: (String) -> Unit) {
                 Icon(
                     imageVector = Icons.Rounded.Close,
                     contentDescription = "Clear search",
-                    tint = White.copy(alpha = 0.5f),
+                    tint = TextWhite.copy(alpha = 0.5f),
                     modifier = Modifier
                         .size(18.dp)
                         .clickable { onValueChange("") }

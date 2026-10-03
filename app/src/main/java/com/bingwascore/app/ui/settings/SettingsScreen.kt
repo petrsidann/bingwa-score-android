@@ -6,7 +6,6 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -59,20 +58,20 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bingwascore.app.data.preferences.UserPreferences
 import com.bingwascore.app.domain.AppProcessingMode
 import com.bingwascore.app.domain.ThemeMode
-import com.bingwascore.app.ui.components.GlassCard
-import com.bingwascore.app.ui.components.GlassExplanationDialog
-import com.bingwascore.app.ui.components.GradientButton
+import com.bingwascore.app.ui.components.BubbleCard
+import com.bingwascore.app.ui.components.ExplanationDialog
+import com.bingwascore.app.ui.components.PrimaryButton
 import com.bingwascore.app.util.rememberHaptics
 import com.bingwascore.app.util.screenEnter
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
-import com.bingwascore.app.ui.theme.GlassBorder
-import com.bingwascore.app.ui.theme.GlassFill
-import com.bingwascore.app.ui.theme.BingwaOrange
-import com.bingwascore.app.ui.theme.EmeraldGreen
-import com.bingwascore.app.ui.theme.ErrorRed
-import com.bingwascore.app.ui.theme.NightBlack
-import com.bingwascore.app.ui.theme.White
+import com.bingwascore.app.ui.theme.Hairline
+import com.bingwascore.app.ui.theme.Bubble
+import com.bingwascore.app.ui.theme.AccentBlue
+import com.bingwascore.app.ui.theme.TickGreen
+import com.bingwascore.app.ui.theme.FailRed
+import com.bingwascore.app.ui.theme.BgBlack
+import com.bingwascore.app.ui.theme.TextWhite
 import com.bingwascore.app.util.BackupManager
 import kotlinx.coroutines.launch
 import java.io.File
@@ -99,7 +98,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
     val processMpesaMessages by viewModel.processMpesaMessages.collectAsStateWithLifecycle()
     val processSitelinkMessages by viewModel.processSitelinkMessages.collectAsStateWithLifecycle()
     if (showAdvancedExplanation) {
-        GlassExplanationDialog(
+        ExplanationDialog(
             title = "Advanced Mode",
             message = "Advanced Mode uses an accessibility service to read and auto-tap USSD screens so Safaricom flows complete on their own. Open the system settings to enable the \"Bingwa Score\" accessibility service, then toggle Advanced back on.",
             onDismiss = { viewModel.dismissAdvancedExplanation() },
@@ -114,7 +113,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
             modifier = Modifier
                 .fillMaxSize()
                 .screenEnter()
-                .background(NightBlack)
+                .background(BgBlack)
         ) {
             PageHeader(title = page.title, onBack = { currentPage = null })
             Column(
@@ -142,7 +141,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
             modifier = Modifier
                 .fillMaxSize()
                 .screenEnter()
-                .background(NightBlack)
+                .background(BgBlack)
                 .verticalScroll(rememberScrollState())
         ) {
             Column(
@@ -150,10 +149,10 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp, vertical = 16.dp)
             ) {
-                Text("Settings", color = White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                Text("Settings", color = TextWhite, fontSize = 22.sp, fontWeight = FontWeight.Bold)
                 Text(
                     "Tune how Bingwa Score behaves",
-                    color = White.copy(alpha = 0.5f),
+                    color = TextWhite.copy(alpha = 0.5f),
                     fontSize = 12.sp
                 )
             }
@@ -161,7 +160,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
             // MEGA A — inbound message routing switches. Turning M-Pesa off is
             // the panic switch; SiteLink narrows the engine to one channel.
             SectionLabel("Message processing")
-            GlassCard(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
+            BubbleCard(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
                 SettingsSwitchRow(
                     title = "Process M-Pesa Messages",
                     subtitle = "Read inbound M-Pesa payment alerts and auto-dial offers",
@@ -252,7 +251,7 @@ private fun PageHeader(title: String, onBack: () -> Unit) {
         Icon(
             imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
             contentDescription = "Back",
-            tint = White,
+            tint = TextWhite,
             modifier = Modifier
                 .clip(CircleShape)
                 .clickable(onClick = onBack)
@@ -260,7 +259,7 @@ private fun PageHeader(title: String, onBack: () -> Unit) {
                 .size(22.dp)
         )
         Spacer(modifier = Modifier.width(6.dp))
-        Text(title, color = White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        Text(title, color = TextWhite, fontSize = 20.sp, fontWeight = FontWeight.Bold)
     }
 }
 
@@ -277,10 +276,10 @@ private fun SettingsSwitchRow(
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Column(modifier = Modifier.weight(1f)) {
-            Text(title, color = White, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+            Text(title, color = TextWhite, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
             Text(
                 subtitle,
-                color = White.copy(alpha = 0.5f),
+                color = TextWhite.copy(alpha = 0.5f),
                 fontSize = 11.sp
             )
         }
@@ -288,11 +287,11 @@ private fun SettingsSwitchRow(
             checked = checked,
             onCheckedChange = onCheckedChange,
             colors = SwitchDefaults.colors(
-                checkedThumbColor = BingwaOrange,
-                uncheckedThumbColor = White.copy(alpha = 0.6f),
-                checkedTrackColor = BingwaOrange.copy(alpha = 0.35f),
-                uncheckedTrackColor = GlassFill,
-                uncheckedBorderColor = GlassBorder
+                checkedThumbColor = AccentBlue,
+                uncheckedThumbColor = TextWhite.copy(alpha = 0.6f),
+                checkedTrackColor = AccentBlue.copy(alpha = 0.35f),
+                uncheckedTrackColor = Bubble,
+                uncheckedBorderColor = Hairline
             )
         )
     }
@@ -302,7 +301,7 @@ private fun SettingsSwitchRow(
 private fun SectionLabel(label: String) {
     Text(
         label.uppercase(),
-        color = White.copy(alpha = 0.4f),
+        color = TextWhite.copy(alpha = 0.4f),
         fontSize = 11.sp,
         fontWeight = FontWeight.SemiBold,
         modifier = Modifier.padding(horizontal = 24.dp, vertical = 6.dp)
@@ -317,7 +316,7 @@ private fun SettingsRow(
     trailing: (@Composable () -> Unit)? = null,
     onClick: () -> Unit
 ) {
-    GlassCard(
+    BubbleCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 20.dp, vertical = 5.dp),
@@ -328,21 +327,21 @@ private fun SettingsRow(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(CircleShape)
-                    .background(BingwaOrange.copy(alpha = 0.12f)),
+                    .background(AccentBlue.copy(alpha = 0.12f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = BingwaOrange,
+                    tint = AccentBlue,
                     modifier = Modifier.size(20.dp)
                 )
             }
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(title, color = White, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                Text(title, color = TextWhite, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                 Spacer(modifier = Modifier.height(1.dp))
-                Text(subtitle, color = White.copy(alpha = 0.5f), fontSize = 11.sp)
+                Text(subtitle, color = TextWhite.copy(alpha = 0.5f), fontSize = 11.sp)
             }
             Spacer(modifier = Modifier.width(8.dp))
             if (trailing != null) {
@@ -352,7 +351,7 @@ private fun SettingsRow(
             Icon(
                 imageVector = Icons.Rounded.ChevronRight,
                 contentDescription = null,
-                tint = White.copy(alpha = 0.4f),
+                tint = TextWhite.copy(alpha = 0.4f),
                 modifier = Modifier.size(20.dp)
             )
         }
@@ -366,7 +365,7 @@ private fun OptionCard(
     selected: Boolean,
     onClick: () -> Unit
 ) {
-    GlassCard(
+    BubbleCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(bottom = 10.dp),
@@ -374,16 +373,16 @@ private fun OptionCard(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(title, color = White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                Text(title, color = TextWhite, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                 Spacer(modifier = Modifier.height(2.dp))
-                Text(description, color = White.copy(alpha = 0.55f), fontSize = 12.sp)
+                Text(description, color = TextWhite.copy(alpha = 0.55f), fontSize = 12.sp)
             }
             Spacer(modifier = Modifier.width(12.dp))
             if (selected) {
                 Icon(
                     imageVector = Icons.Rounded.CheckCircle,
                     contentDescription = "Selected",
-                    tint = BingwaOrange,
+                    tint = AccentBlue,
                     modifier = Modifier.size(22.dp)
                 )
             } else {
@@ -391,7 +390,7 @@ private fun OptionCard(
                     modifier = Modifier
                         .size(22.dp)
                         .clip(CircleShape)
-                        .background(GlassFill)
+                        .background(Bubble)
                 )
             }
         }
@@ -403,25 +402,19 @@ private fun AppearancePage(viewModel: SettingsViewModel) {
     val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
 
     PageTitle("Appearance")
-    PageIntro("Pick how Bingwa Score looks on this device.")
-    OptionCard(
-        title = "Dark",
-        description = "The classic glass-on-black look",
-        selected = themeMode == ThemeMode.DARK,
-        onClick = { viewModel.setThemeMode(ThemeMode.DARK) }
-    )
-    OptionCard(
-        title = "Light",
-        description = "Bright surfaces for outdoor use",
-        selected = themeMode == ThemeMode.LIGHT,
-        onClick = { viewModel.setThemeMode(ThemeMode.LIGHT) }
-    )
-    OptionCard(
-        title = "System",
-        description = "Follow the device setting",
-        selected = themeMode == ThemeMode.SYSTEM,
-        onClick = { viewModel.setThemeMode(ThemeMode.SYSTEM) }
-    )
+    PageIntro("Pick how Bingwa Score looks on this device. Changes apply instantly.")
+    ThemeMode.entries.forEach { mode ->
+        OptionCard(
+            title = mode.label,
+            description = when (mode) {
+                ThemeMode.DARK -> "Black canvas, electric blue actions"
+                ThemeMode.GRAYSCALE -> "Monochrome — every accent drops to grey"
+                ThemeMode.BLUE_LIGHT_FILTER -> "Warm dark that tames blue light at night"
+            },
+            selected = themeMode == mode,
+            onClick = { viewModel.setThemeMode(mode) }
+        )
+    }
 }
 
 @Composable
@@ -486,17 +479,17 @@ private fun SimulatePaymentPage(viewModel: SettingsViewModel) {
 
     PageTitle("Test Drive")
     PageIntro("Sandbox — feeds a simulated INCOMING M-Pesa credit into the real pipeline. No real money moves.")
-    GlassCard(modifier = Modifier.fillMaxWidth()) {
+    BubbleCard(modifier = Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("DEV", color = NightBlack, fontSize = 10.sp, fontWeight = FontWeight.Bold,
-                modifier = Modifier.clip(CircleShape).background(BingwaOrange).padding(horizontal = 8.dp, vertical = 3.dp))
+            Text("DEV", color = BgBlack, fontSize = 10.sp, fontWeight = FontWeight.Bold,
+                modifier = Modifier.clip(CircleShape).background(AccentBlue).padding(horizontal = 8.dp, vertical = 3.dp))
             Spacer(modifier = Modifier.width(8.dp))
-            Text("Test Drive", color = White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+            Text("Test Drive", color = TextWhite, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
         }
         Spacer(modifier = Modifier.height(4.dp))
         Text(
             "Phone, payer name and amount become a fake \"received from\" SMS. The engine matches an offer, dials, updates status and replies — exactly like a real payment.",
-            color = White.copy(alpha = 0.55f),
+            color = TextWhite.copy(alpha = 0.55f),
             fontSize = 12.sp
         )
         Spacer(modifier = Modifier.height(14.dp))
@@ -506,7 +499,7 @@ private fun SimulatePaymentPage(viewModel: SettingsViewModel) {
         Spacer(modifier = Modifier.height(10.dp))
         SimulateField(value = amountText, onValueChange = { amountText = it.filter { c -> c.isDigit() || c == '.' } }, hint = "Amount e.g. 20")
         Spacer(modifier = Modifier.height(14.dp))
-        GradientButton(
+        PrimaryButton(
             text = "Run Simulation",
             onClick = {
                 viewModel.simulatePayment(phone, payerName, amountText.toDoubleOrNull() ?: 0.0)
@@ -516,7 +509,7 @@ private fun SimulatePaymentPage(viewModel: SettingsViewModel) {
             Spacer(modifier = Modifier.height(12.dp))
             Text(
                 it,
-                color = if (simulateFailed) ErrorRed else EmeraldGreen,
+                color = if (simulateFailed) FailRed else TickGreen,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold
             )
@@ -531,20 +524,20 @@ private fun SimulateField(value: String, onValueChange: (String) -> Unit, hint: 
         modifier = Modifier
             .fillMaxWidth()
             .clip(shape)
-            .background(GlassFill)
-            .border(1.dp, GlassBorder, shape)
+            .background(Bubble)
+            .border(1.dp, Hairline, shape)
             .padding(horizontal = 14.dp, vertical = 13.dp)
     ) {
         BasicTextField(
             value = value,
             onValueChange = onValueChange,
             singleLine = true,
-            textStyle = TextStyle(color = White, fontSize = 14.sp),
-            cursorBrush = SolidColor(BingwaOrange),
+            textStyle = TextStyle(color = TextWhite, fontSize = 14.sp),
+            cursorBrush = SolidColor(AccentBlue),
             modifier = Modifier.fillMaxWidth()
         )
         if (value.isEmpty()) {
-            Text(hint, color = White.copy(alpha = 0.4f), fontSize = 14.sp)
+            Text(hint, color = TextWhite.copy(alpha = 0.4f), fontSize = 14.sp)
         }
     }
 }
@@ -553,12 +546,12 @@ private fun SimulateField(value: String, onValueChange: (String) -> Unit, hint: 
 private fun DevChip() {
     Text(
         "DEV",
-        color = NightBlack,
+        color = BgBlack,
         fontSize = 10.sp,
         fontWeight = FontWeight.Bold,
         modifier = Modifier
             .clip(CircleShape)
-            .background(BingwaOrange)
+            .background(AccentBlue)
             .padding(horizontal = 8.dp, vertical = 3.dp)
     )
 }
@@ -594,16 +587,16 @@ private fun BackupRestorePage(viewModel: SettingsViewModel) {
     PageTitle("Backup & Restore")
     PageIntro("Export your transactions, offers, customers and auto-replies to a JSON file, or restore them later. Restoring replaces all current data.")
 
-    GlassCard(modifier = Modifier.fillMaxWidth()) {
-        Text("Export", color = White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+    BubbleCard(modifier = Modifier.fillMaxWidth()) {
+        Text("Export", color = TextWhite, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
         Spacer(modifier = Modifier.height(2.dp))
         Text(
             "Save all your app data to a JSON file in Bingwa Score/backups.",
-            color = White.copy(alpha = 0.55f),
+            color = TextWhite.copy(alpha = 0.55f),
             fontSize = 12.sp
         )
         Spacer(modifier = Modifier.height(14.dp))
-        GradientButton(
+        PrimaryButton(
             text = "Export data",
             onClick = {
                 scope.launch {
@@ -618,16 +611,16 @@ private fun BackupRestorePage(viewModel: SettingsViewModel) {
 
     Spacer(modifier = Modifier.height(12.dp))
 
-    GlassCard(modifier = Modifier.fillMaxWidth()) {
-        Text("Import", color = White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+    BubbleCard(modifier = Modifier.fillMaxWidth()) {
+        Text("Import", color = TextWhite, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
         Spacer(modifier = Modifier.height(2.dp))
         Text(
             "Restore from a previously exported JSON backup. This clears current data first.",
-            color = White.copy(alpha = 0.55f),
+            color = TextWhite.copy(alpha = 0.55f),
             fontSize = 12.sp
         )
         Spacer(modifier = Modifier.height(14.dp))
-        GradientButton(
+        PrimaryButton(
             text = "Import data",
             onClick = { importLauncher.launch("application/json") }
         )
@@ -637,7 +630,7 @@ private fun BackupRestorePage(viewModel: SettingsViewModel) {
         Spacer(modifier = Modifier.height(12.dp))
         Text(
             result,
-            color = if (result.contains("successful") || result.contains("saved")) EmeraldGreen else White,
+            color = if (result.contains("successful") || result.contains("saved")) TickGreen else TextWhite,
             fontSize = 13.sp,
             fontWeight = FontWeight.SemiBold
         )
@@ -657,21 +650,21 @@ private fun UpdatesPage(viewModel: SettingsViewModel) {
 
     PageTitle("Check For Updates")
     PageIntro("Compare this build against the latest GitHub release.")
-    GlassCard(
+    BubbleCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(bottom = 12.dp)
     ) {
-        Text("Current version", color = White.copy(alpha = 0.5f), fontSize = 12.sp)
+        Text("Current version", color = TextWhite.copy(alpha = 0.5f), fontSize = 12.sp)
         Spacer(modifier = Modifier.height(2.dp))
         Text(
             "Bingwa Score v${viewModel.appVersion}",
-            color = White,
+            color = TextWhite,
             fontSize = 16.sp,
             fontWeight = FontWeight.SemiBold
         )
         Spacer(modifier = Modifier.height(16.dp))
-        GradientButton(
+        PrimaryButton(
             text = when (updateState) {
                 is UpdateCheckState.Checking -> "Checking..."
                 else -> "Check For Updates"
@@ -685,13 +678,13 @@ private fun UpdatesPage(viewModel: SettingsViewModel) {
                 Text(
                     if (state.upToDate) "You're on the latest version."
                     else "Update available — download the latest release.",
-                    color = if (state.upToDate) EmeraldGreen else White,
+                    color = if (state.upToDate) TickGreen else TextWhite,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold
                 )
                 if (!state.upToDate && updateUrl != null) {
                     Spacer(modifier = Modifier.height(10.dp))
-                    GradientButton(
+                    PrimaryButton(
                         text = "Open in browser",
                         onClick = {
                             try {
@@ -717,19 +710,19 @@ private fun UpdatesPage(viewModel: SettingsViewModel) {
 private fun AboutPage(viewModel: SettingsViewModel) {
     PageTitle("About")
     PageIntro("What Bingwa Score is and which build is installed.")
-    GlassCard(modifier = Modifier.fillMaxWidth()) {
-        Text("Bingwa Score", color = White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+    BubbleCard(modifier = Modifier.fillMaxWidth()) {
+        Text("Bingwa Score", color = TextWhite, fontSize = 18.sp, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(2.dp))
         Text(
             "Version ${viewModel.appVersion}",
-            color = White.copy(alpha = 0.5f),
+            color = TextWhite.copy(alpha = 0.5f),
             fontSize = 12.sp
         )
         Spacer(modifier = Modifier.height(10.dp))
         Text(
             "Bingwa Score helps airtime agents sell Safaricom bundles faster: one-tap dialing, " +
                 "auto renewals, smart follow-up and commission tracking — all on your phone.",
-            color = White.copy(alpha = 0.6f),
+            color = TextWhite.copy(alpha = 0.6f),
             fontSize = 13.sp
         )
     }
@@ -769,7 +762,7 @@ private fun PrivacyPage() {
 private fun PageTitle(title: String) {
     Text(
         title,
-        color = White,
+        color = TextWhite,
         fontSize = 16.sp,
         fontWeight = FontWeight.SemiBold,
         modifier = Modifier.padding(bottom = 8.dp)
@@ -780,7 +773,7 @@ private fun PageTitle(title: String) {
 private fun PageIntro(text: String) {
     Text(
         text,
-        color = White.copy(alpha = 0.55f),
+        color = TextWhite.copy(alpha = 0.55f),
         fontSize = 12.sp,
         modifier = Modifier.padding(bottom = 12.dp)
     )
@@ -789,10 +782,10 @@ private fun PageIntro(text: String) {
 @Composable
 private fun PolicyBody(title: String, paragraphs: List<String>) {
     PageTitle(title)
-    GlassCard(modifier = Modifier.fillMaxWidth()) {
+    BubbleCard(modifier = Modifier.fillMaxWidth()) {
         paragraphs.forEachIndexed { index, paragraph ->
             if (index > 0) Spacer(modifier = Modifier.height(10.dp))
-            Text(paragraph, color = White.copy(alpha = 0.7f), fontSize = 13.sp)
+            Text(paragraph, color = TextWhite.copy(alpha = 0.7f), fontSize = 13.sp)
         }
     }
 }

@@ -29,15 +29,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.bingwascore.app.ui.components.AmbientBackground
-import com.bingwascore.app.ui.components.GlassCard
-import com.bingwascore.app.ui.components.GradientButton
-import com.bingwascore.app.ui.theme.BingwaOrange
-import com.bingwascore.app.ui.theme.ErrorRed
-import com.bingwascore.app.ui.theme.GlassBorder
-import com.bingwascore.app.ui.theme.GlassFill
-import com.bingwascore.app.ui.theme.NightBlack
-import com.bingwascore.app.ui.theme.White
+import com.bingwascore.app.ui.components.BubbleCard
+import com.bingwascore.app.ui.components.PrimaryButton
+import com.bingwascore.app.ui.theme.AccentBlue
+import com.bingwascore.app.ui.theme.FailRed
+import com.bingwascore.app.ui.theme.Hairline
+import com.bingwascore.app.ui.theme.Bubble
+import com.bingwascore.app.ui.theme.BgBlack
+import com.bingwascore.app.ui.theme.TextWhite
 import com.bingwascore.app.util.screenEnter
 
 /**
@@ -63,9 +62,8 @@ fun PinSetupScreen(
         modifier = Modifier
             .fillMaxSize()
             .screenEnter()
-            .background(NightBlack)
+            .background(BgBlack)
     ) {
-        AmbientBackground()
 
         Column(
             modifier = Modifier
@@ -77,14 +75,14 @@ fun PinSetupScreen(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     "Set up your PIN",
-                    color = White,
+                    color = TextWhite,
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.weight(1f)
                 )
                 Text(
                     "Back",
-                    color = White.copy(alpha = 0.6f),
+                    color = TextWhite.copy(alpha = 0.6f),
                     fontSize = 13.sp,
                     modifier = Modifier
                         .clip(RoundedCornerShape(10.dp))
@@ -96,12 +94,12 @@ fun PinSetupScreen(
             Spacer(modifier = Modifier.height(6.dp))
             Text(
                 "Create an agent account. Your PIN unlocks purchases on this phone.",
-                color = White.copy(alpha = 0.5f),
+                color = TextWhite.copy(alpha = 0.5f),
                 fontSize = 13.sp
             )
 
             Spacer(modifier = Modifier.height(20.dp))
-            GlassCard(modifier = Modifier.fillMaxWidth()) {
+            BubbleCard(modifier = Modifier.fillMaxWidth()) {
                 PinField(
                     label = "Phone number",
                     value = state.phone,
@@ -129,11 +127,11 @@ fun PinSetupScreen(
 
                 state.errorMessage?.let { message ->
                     Spacer(modifier = Modifier.height(12.dp))
-                    Text(message, color = ErrorRed, fontSize = 12.sp)
+                    Text(message, color = FailRed, fontSize = 12.sp)
                 }
 
                 Spacer(modifier = Modifier.height(18.dp))
-                GradientButton(
+                PrimaryButton(
                     text = if (state.isLoading) "Creating…" else "Create account",
                     enabled = state.isSubmittable && !state.isLoading,
                     onClick = viewModel::submit
@@ -152,27 +150,27 @@ private fun PinField(
     placeholder: String
 ) {
     Column {
-        Text(label, color = White.copy(alpha = 0.45f), fontSize = 11.sp)
+        Text(label, color = TextWhite.copy(alpha = 0.45f), fontSize = 11.sp)
         Spacer(modifier = Modifier.height(6.dp))
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(14.dp))
-                .background(GlassFill)
-                .border(1.dp, GlassBorder, RoundedCornerShape(14.dp))
+                .background(Bubble)
+                .border(1.dp, Hairline, RoundedCornerShape(14.dp))
                 .padding(horizontal = 14.dp, vertical = 14.dp)
         ) {
             BasicTextField(
                 value = value,
                 onValueChange = onValueChange,
                 singleLine = true,
-                textStyle = TextStyle(color = White, fontSize = 16.sp, letterSpacing = 1.sp),
+                textStyle = TextStyle(color = TextWhite, fontSize = 16.sp, letterSpacing = 1.sp),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
-                cursorBrush = SolidColor(BingwaOrange),
+                cursorBrush = SolidColor(AccentBlue),
                 modifier = Modifier.fillMaxWidth()
             )
             if (value.isEmpty()) {
-                Text(placeholder, color = White.copy(alpha = 0.45f), fontSize = 15.sp)
+                Text(placeholder, color = TextWhite.copy(alpha = 0.45f), fontSize = 15.sp)
             }
         }
     }

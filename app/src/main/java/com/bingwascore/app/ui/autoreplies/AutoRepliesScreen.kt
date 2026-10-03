@@ -42,18 +42,18 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bingwascore.app.data.local.AutoReply
 import com.bingwascore.app.ui.engagebot.BotLogRow
 import com.bingwascore.app.ui.components.EmptyState
-import com.bingwascore.app.ui.components.GlassCard
+import com.bingwascore.app.ui.components.BubbleCard
 import com.bingwascore.app.ui.components.HapticSwitch
 import com.bingwascore.app.util.screenEnter
-import com.bingwascore.app.ui.theme.GlassBorderStrong
-import com.bingwascore.app.ui.theme.GlassFillStrong
-import com.bingwascore.app.ui.theme.GlassFill
-import com.bingwascore.app.ui.theme.Amber
-import com.bingwascore.app.ui.theme.BingwaOrange
-import com.bingwascore.app.ui.theme.ErrorRed
-import com.bingwascore.app.ui.theme.NightBlack
-import com.bingwascore.app.ui.theme.SurfaceDark
-import com.bingwascore.app.ui.theme.White
+import com.bingwascore.app.ui.theme.Hairline
+import com.bingwascore.app.ui.theme.Raised
+import com.bingwascore.app.ui.theme.Bubble
+import com.bingwascore.app.ui.theme.PendGrey
+import com.bingwascore.app.ui.theme.AccentBlue
+import com.bingwascore.app.ui.theme.FailRed
+import com.bingwascore.app.ui.theme.BgBlack
+import com.bingwascore.app.ui.theme.Raised
+import com.bingwascore.app.ui.theme.TextWhite
 
 /** "Botted Replies": Engage Bot switch, reply templates and bot activity. */
 @Composable
@@ -67,17 +67,17 @@ fun AutoRepliesScreen(viewModel: AutoRepliesViewModel = hiltViewModel()) {
         modifier = Modifier
             .fillMaxSize()
             .screenEnter()
-            .background(NightBlack)
+            .background(BgBlack)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp, vertical = 16.dp)
         ) {
-            Text("Smart Follow-Up", color = White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Text("Smart Follow-Up", color = TextWhite, fontSize = 22.sp, fontWeight = FontWeight.Bold)
             Text(
                 "${templates.size} template(s)",
-                color = White.copy(alpha = 0.5f),
+                color = TextWhite.copy(alpha = 0.5f),
                 fontSize = 12.sp
             )
         }
@@ -87,12 +87,12 @@ fun AutoRepliesScreen(viewModel: AutoRepliesViewModel = hiltViewModel()) {
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item {
-                GlassCard(modifier = Modifier.fillMaxWidth()) {
+                BubbleCard(modifier = Modifier.fillMaxWidth()) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 "Engage Bot",
-                                color = White,
+                                color = TextWhite,
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.SemiBold
                             )
@@ -103,7 +103,7 @@ fun AutoRepliesScreen(viewModel: AutoRepliesViewModel = hiltViewModel()) {
                                 } else {
                                     "Off — no engage messages will be sent"
                                 },
-                                color = White.copy(alpha = 0.5f),
+                                color = TextWhite.copy(alpha = 0.5f),
                                 fontSize = 11.sp
                             )
                         }
@@ -112,12 +112,12 @@ fun AutoRepliesScreen(viewModel: AutoRepliesViewModel = hiltViewModel()) {
                             checked = engageBotActive,
                             onCheckedChange = { viewModel.setEngageBotActive(it) },
                             colors = SwitchDefaults.colors(
-                                checkedThumbColor = NightBlack,
-                                checkedTrackColor = BingwaOrange,
-                                checkedBorderColor = BingwaOrange,
-                                uncheckedThumbColor = White.copy(alpha = 0.7f),
-                                uncheckedTrackColor = GlassFillStrong,
-                                uncheckedBorderColor = GlassBorderStrong
+                                checkedThumbColor = BgBlack,
+                                checkedTrackColor = AccentBlue,
+                                checkedBorderColor = AccentBlue,
+                                uncheckedThumbColor = TextWhite.copy(alpha = 0.7f),
+                                uncheckedTrackColor = Raised,
+                                uncheckedBorderColor = Hairline
                             )
                         )
                     }
@@ -127,7 +127,7 @@ fun AutoRepliesScreen(viewModel: AutoRepliesViewModel = hiltViewModel()) {
             item {
                 Text(
                     "Templates",
-                    color = White.copy(alpha = 0.5f),
+                    color = TextWhite.copy(alpha = 0.5f),
                     fontSize = 12.sp,
                     modifier = Modifier.padding(top = 4.dp)
                 )
@@ -155,7 +155,7 @@ fun AutoRepliesScreen(viewModel: AutoRepliesViewModel = hiltViewModel()) {
                 item {
                     Text(
                         "Bot Activity",
-                        color = White.copy(alpha = 0.5f),
+                        color = TextWhite.copy(alpha = 0.5f),
                         fontSize = 12.sp,
                         modifier = Modifier.padding(top = 8.dp)
                     )
@@ -186,7 +186,7 @@ private fun TemplateCard(
     onToggle: () -> Unit,
     onEdit: () -> Unit
 ) {
-    GlassCard(
+    BubbleCard(
         modifier = Modifier.fillMaxWidth(),
         onClick = onEdit,
         enterDelayMillis = enterDelayMillis
@@ -196,7 +196,7 @@ private fun TemplateCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         template.title,
-                        color = White,
+                        color = TextWhite,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -204,19 +204,19 @@ private fun TemplateCard(
                     Text(
                         template.type.replace('_', ' ').lowercase()
                             .replaceFirstChar { it.uppercase() },
-                        color = Amber,
+                        color = PendGrey,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.SemiBold,
                         modifier = Modifier
                             .clip(RoundedCornerShape(8.dp))
-                            .background(GlassFill)
+                            .background(Bubble)
                             .padding(horizontal = 8.dp, vertical = 2.dp)
                     )
                 }
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     template.message,
-                    color = White.copy(alpha = 0.5f),
+                    color = TextWhite.copy(alpha = 0.5f),
                     fontSize = 12.sp,
                     maxLines = 2
                 )
@@ -226,12 +226,12 @@ private fun TemplateCard(
                 checked = template.isActive,
                 onCheckedChange = { onToggle() },
                 colors = SwitchDefaults.colors(
-                    checkedThumbColor = NightBlack,
-                    checkedTrackColor = BingwaOrange,
-                    checkedBorderColor = BingwaOrange,
-                    uncheckedThumbColor = White.copy(alpha = 0.7f),
-                    uncheckedTrackColor = GlassFillStrong,
-                    uncheckedBorderColor = GlassBorderStrong
+                    checkedThumbColor = BgBlack,
+                    checkedTrackColor = AccentBlue,
+                    checkedBorderColor = AccentBlue,
+                    uncheckedThumbColor = TextWhite.copy(alpha = 0.7f),
+                    uncheckedTrackColor = Raised,
+                    uncheckedBorderColor = Hairline
                 )
             )
         }
@@ -249,9 +249,9 @@ private fun EditTemplateDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = SurfaceDark,
+        containerColor = Raised,
         title = {
-            Text("Edit template", color = White, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+            Text("Edit template", color = TextWhite, fontSize = 17.sp, fontWeight = FontWeight.Bold)
         },
         text = {
             Column {
@@ -265,12 +265,12 @@ private fun EditTemplateDialog(
                 onClick = { onSave(template.copy(title = title.trim(), message = message.trim())) },
                 enabled = title.isNotBlank() && message.isNotBlank()
             ) {
-                Text("Save", color = BingwaOrange, fontWeight = FontWeight.SemiBold)
+                Text("Save", color = AccentBlue, fontWeight = FontWeight.SemiBold)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel", color = White.copy(alpha = 0.6f))
+                Text("Cancel", color = TextWhite.copy(alpha = 0.6f))
             }
         }
     )
@@ -279,21 +279,21 @@ private fun EditTemplateDialog(
 @Composable
 private fun DialogField(label: String, value: String, onValueChange: (String) -> Unit) {
     Column(modifier = Modifier.fillMaxWidth()) {
-        Text(label, color = White.copy(alpha = 0.55f), fontSize = 11.sp)
+        Text(label, color = TextWhite.copy(alpha = 0.55f), fontSize = 11.sp)
         Spacer(modifier = Modifier.height(6.dp))
         val shape = RoundedCornerShape(12.dp)
         androidx.compose.foundation.layout.Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(shape)
-                .background(GlassFill)
+                .background(Bubble)
                 .padding(horizontal = 12.dp, vertical = 10.dp)
         ) {
             BasicTextField(
                 value = value,
                 onValueChange = onValueChange,
-                textStyle = TextStyle(color = White, fontSize = 14.sp),
-                cursorBrush = SolidColor(BingwaOrange),
+                textStyle = TextStyle(color = TextWhite, fontSize = 14.sp),
+                cursorBrush = SolidColor(AccentBlue),
                 modifier = Modifier.fillMaxWidth()
             )
         }

@@ -37,26 +37,25 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.bingwascore.app.ui.components.AmbientBackground
-import com.bingwascore.app.ui.components.GlassCard
+import com.bingwascore.app.ui.components.BubbleCard
 import com.bingwascore.app.ui.components.HapticSwitch
-import com.bingwascore.app.ui.theme.Amber
+import com.bingwascore.app.ui.theme.PendGrey
 import com.bingwascore.app.ui.theme.Bronze
-import com.bingwascore.app.ui.theme.BingwaOrange
-import com.bingwascore.app.ui.theme.EmeraldGreen
-import com.bingwascore.app.ui.theme.brandBrush
+import com.bingwascore.app.ui.theme.AccentBlue
+import com.bingwascore.app.ui.theme.TickGreen
+import com.bingwascore.app.ui.theme.accentBrush
 import com.bingwascore.app.ui.theme.Gold
-import com.bingwascore.app.ui.theme.NightBlack
+import com.bingwascore.app.ui.theme.BgBlack
 import com.bingwascore.app.ui.theme.Platinum
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
-import com.bingwascore.app.ui.components.GradientButton
-import com.bingwascore.app.ui.theme.ErrorRed
-import com.bingwascore.app.ui.theme.GlassFill
+import com.bingwascore.app.ui.components.PrimaryButton
+import com.bingwascore.app.ui.theme.FailRed
+import com.bingwascore.app.ui.theme.Bubble
 import com.bingwascore.app.ui.theme.Silver
-import com.bingwascore.app.ui.theme.White
+import com.bingwascore.app.ui.theme.TextWhite
 import com.bingwascore.app.util.screenEnter
 
 @Composable
@@ -77,32 +76,31 @@ fun ProfileScreen(
     val editState by viewModel.editState.collectAsStateWithLifecycle()
 
     Box(
-        modifier = Modifier.fillMaxSize().screenEnter().background(NightBlack)
+        modifier = Modifier.fillMaxSize().screenEnter().background(BgBlack)
     ) {
         // PREMIUM LOCK — ambient blobs behind the glass cards on Profile.
-        AmbientBackground()
 
         Column(
             modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())
         ) {
         Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp)) {
-            Text("Profile", color = White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-            Text("Your agent account", color = White.copy(alpha = 0.5f), fontSize = 12.sp)
+            Text("Profile", color = TextWhite, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Text("Your agent account", color = TextWhite.copy(alpha = 0.5f), fontSize = 12.sp)
         }
 
         // MEGA A — the profile is EDITABLE and persisted, not a static card.
         // Level and score stay read-only because they are earned, not typed.
-        GlassCard(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
+        BubbleCard(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier.size(54.dp).clip(CircleShape)
-                        .background(brandBrush()),
+                        .background(accentBrush()),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         (if (editState.isEditing) editState.name else userName)
                             .ifBlank { "B" }.take(1).uppercase(),
-                        color = NightBlack, fontSize = 22.sp, fontWeight = FontWeight.Bold
+                        color = BgBlack, fontSize = 22.sp, fontWeight = FontWeight.Bold
                     )
                 }
                 Spacer(modifier = Modifier.width(14.dp))
@@ -112,10 +110,10 @@ fun ProfileScreen(
                         Spacer(modifier = Modifier.height(8.dp))
                         ProfileField("Phone", editState.phone, viewModel::updatePhone)
                     } else {
-                        Text(userName, color = White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                        Text(userName, color = TextWhite, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                         Text(
                             phone.ifEmpty { "No phone set" },
-                            color = White.copy(alpha = 0.5f),
+                            color = TextWhite.copy(alpha = 0.5f),
                             fontSize = 12.sp
                         )
                     }
@@ -126,45 +124,45 @@ fun ProfileScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Score: $score pts", color = White.copy(alpha = 0.7f), fontSize = 13.sp)
+                Text("Score: $score pts", color = TextWhite.copy(alpha = 0.7f), fontSize = 13.sp)
             }
 
             // Inline validation + save state, exactly like the offer settings form.
             editState.errorMessage?.let {
                 Spacer(modifier = Modifier.height(10.dp))
-                Text(it, color = ErrorRed, fontSize = 12.sp)
+                Text(it, color = FailRed, fontSize = 12.sp)
             }
             editState.savedMessage?.let {
                 Spacer(modifier = Modifier.height(10.dp))
-                Text(it, color = EmeraldGreen, fontSize = 12.sp)
+                Text(it, color = TickGreen, fontSize = 12.sp)
             }
 
             Spacer(modifier = Modifier.height(12.dp))
             if (editState.isEditing) {
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    GradientButton(
+                    PrimaryButton(
                         text = if (editState.isSaving) "Saving…" else "Save",
                         enabled = !editState.isSaving,
                         onClick = viewModel::saveProfile,
                         modifier = Modifier.weight(1f)
                     )
-                    GradientButton(
+                    PrimaryButton(
                         text = "Cancel",
                         onClick = viewModel::cancelEditing,
                         modifier = Modifier.weight(1f)
                     )
                 }
             } else {
-                GradientButton(text = "Edit Profile", onClick = viewModel::startEditing)
+                PrimaryButton(text = "Edit Profile", onClick = viewModel::startEditing)
             }
         }
         Spacer(modifier = Modifier.height(16.dp))
-        GlassCard(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
+        BubbleCard(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Bingwa Autopilot", color = White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                    Text("Bingwa Autopilot", color = TextWhite, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                     Text(if (engineEnabled) "Running" else "Stopped",
-                        color = if (engineEnabled) EmeraldGreen else White.copy(alpha = 0.5f), fontSize = 12.sp)
+                        color = if (engineEnabled) TickGreen else TextWhite.copy(alpha = 0.5f), fontSize = 12.sp)
                 }
                 HapticSwitch(checked = engineEnabled, onCheckedChange = { viewModel.toggleEngine() })
             }
@@ -184,18 +182,18 @@ fun ProfileScreen(
 @Composable
 private fun ProfileField(label: String, value: String, onValueChange: (String) -> Unit) {
     Column {
-        Text(label, color = White.copy(alpha = 0.45f), fontSize = 10.sp)
+        Text(label, color = TextWhite.copy(alpha = 0.45f), fontSize = 10.sp)
         Spacer(modifier = Modifier.height(4.dp))
         BasicTextField(
             value = value,
             onValueChange = onValueChange,
             singleLine = true,
-            textStyle = TextStyle(color = White, fontSize = 14.sp),
-            cursorBrush = SolidColor(BingwaOrange),
+            textStyle = TextStyle(color = TextWhite, fontSize = 14.sp),
+            cursorBrush = SolidColor(AccentBlue),
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(10.dp))
-                .background(GlassFill)
+                .background(Bubble)
                 .padding(horizontal = 10.dp, vertical = 9.dp)
         )
     }
@@ -208,28 +206,28 @@ private fun LevelBadge(levelName: String) {
         "Silver" -> Silver
         "Gold" -> Gold
         "Platinum" -> Platinum
-        else -> Amber
+        else -> PendGrey
     }
     Box(
         modifier = Modifier.clip(RoundedCornerShape(16.dp))
             .background(Brush.horizontalGradient(listOf(color, color.copy(alpha = 0.7f))))
             .padding(horizontal = 12.dp, vertical = 4.dp)
     ) {
-        Text(levelName, color = NightBlack, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+        Text(levelName, color = BgBlack, fontSize = 11.sp, fontWeight = FontWeight.Bold)
     }
 }
 
 @Composable
 private fun ProfileMenuRow(label: String, icon: ImageVector, onClick: () -> Unit) {
-    GlassCard(
+    BubbleCard(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp),
         onClick = onClick
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(icon, contentDescription = null, tint = BingwaOrange, modifier = Modifier.size(22.dp))
+            Icon(icon, contentDescription = null, tint = AccentBlue, modifier = Modifier.size(22.dp))
             Spacer(modifier = Modifier.width(14.dp))
-            Text(label, color = White, fontSize = 15.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
-            Icon(Icons.Rounded.ChevronRight, contentDescription = null, tint = White.copy(alpha = 0.4f), modifier = Modifier.size(20.dp))
+            Text(label, color = TextWhite, fontSize = 15.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
+            Icon(Icons.Rounded.ChevronRight, contentDescription = null, tint = TextWhite.copy(alpha = 0.4f), modifier = Modifier.size(20.dp))
         }
     }
 }

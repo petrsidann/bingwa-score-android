@@ -1,56 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  REBRAND R1 — Bingwa Score launcher mark.
+  Deep black rounded square + ONE continuous extra-bold white script stroke
+  (a cursive B flowing into an S loop, ending on an upward checkmark flick).
+  Geometry mirrors com.bingwascore.app.ui.components.Monogram.DATA so the
+  splash and the icon are literally the same drawing.
+-->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- PARITY D — PlayStation-style Bingwa mark.
-         Canvas 108x108 (adaptive safe zone 72x72 center at 18,18-90,90).
-         Background: Orange gradient #FF6D00 -> #FFB300 (diagonal). -->
+    <!-- Deep black rounded square. -->
     <path
-        android:pathData="M0,0 H108 V108 H0 Z">
-        <aapt:attr name="android:fillColor">
-            <gradient
-                android:startX="18"
-                android:startY="18"
-                android:endX="90"
-                android:endY="90"
-                android:type="linear">
-                <item android:offset="0" android:color="#FF6D00" />
-                <item android:offset="1" android:color="#FFB300" />
-            </gradient>
-        </aapt:attr>
-    </path>
+        android:fillColor="#000000"
+        android:pathData="M20,6 H88 A14,14 0 0 1 102,20 V88 A14,14 0 0 1 88,102 H20 A14,14 0 0 1 6,88 V20 A14,14 0 0 1 20,6 Z" />
 
-    <!-- Soft inner shadow for depth (dark orange, bottom edge). -->
+    <!-- The monogram: stroke only, no fill, round caps. -->
     <path
-        android:fillColor="#33000000"
-        android:pathData="M18,78 L18,90 L90,90 L90,78 Z" />
-
-    <!-- Bold geometric white "B", centered in the 72x72 safe zone.
-         Outer silhouette (evenOdd) with two counter bowls. -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:fillType="evenOdd"
-        android:pathData="M38,29 L38,79 L56,79 C65,79 72,72.5 72,64 C72,58.5 69.3,54.2 65.2,51.9 C68.3,49.4 70.2,45.7 70.2,41.6 C70.2,34.4 64.3,29 56.5,29 Z M46,37 L56,37 C59.3,37 61.7,39.1 61.7,42.4 C61.7,45.7 59.3,47.9 56,47.9 L46,47.9 Z M46,56 L55.5,56 C59.4,56 62.4,58.6 62.4,62.6 C62.4,66.6 59.4,69.3 55.5,69.3 L46,69.3 Z" />
-
-    <!-- S-trick: the bottom bowl's lower edge carries a subtle darker-orange
-         "S" shadow ribbon, so the B's lower curve reads as an S in negative
-         space at icon sizes. -->
-    <path
-        android:fillColor="#E65100"
-        android:fillType="evenOdd"
-        android:pathData="M46,64.5 C50,62.5 55,62.8 58.5,64.6 C61.5,66.2 61.8,68.6 58.8,69.6 C55.8,70.6 51,70.2 47.5,71.6 C46.2,72.1 46,70.4 46,69.3 L46,64.5 Z M57.5,63.8 C55.5,63.0 52.0,63.1 49.5,64.2 L49.5,65.6 C52.0,64.6 55.2,64.5 57.0,65.3 Z" />
-
-    <!-- Small amber spark (4-point star), top-right of the B. White halo
-         keeps #FFB300 legible over the orange gradient. -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M74,20 L76.2,27.8 L84,30 L76.2,32.2 L74,40 L71.8,32.2 L64,30 L71.8,27.8 Z" />
-    <path
-        android:fillColor="#FFB300"
-        android:pathData="M74,23.5 L75.3,28.7 L80.5,30 L75.3,31.3 L74,36.5 L72.7,31.3 L67.5,30 L72.7,28.7 Z" />
+        android:pathData="M42,74 C45,62 43,48 41,34 C40,26 51,24 56,29 C61,35 55,43 46,45 C57,44 66,48 67,58 C68,67 59,75 49,74 C58,72 64,66 65,57 C66,50 61,45 65,42 C69,38 73,42 73,47 C73,50 72,52 74,53 C77,52 78,47 80,40 C82,35 83,32 84,30"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="11"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
 </vector>
 

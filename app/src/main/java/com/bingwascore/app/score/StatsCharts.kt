@@ -33,11 +33,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bingwascore.app.ui.theme.Motion
-import com.bingwascore.app.ui.theme.GlassBorder
-import com.bingwascore.app.ui.theme.Amber
-import com.bingwascore.app.ui.theme.BingwaOrange
-import com.bingwascore.app.ui.theme.BrandColors
-import com.bingwascore.app.ui.theme.White
+import com.bingwascore.app.ui.theme.Hairline
+import com.bingwascore.app.ui.theme.PendGrey
+import com.bingwascore.app.ui.theme.AccentBlue
+import com.bingwascore.app.ui.theme.TextWhite
 import kotlinx.coroutines.delay
 
 /**
@@ -82,7 +81,7 @@ fun CommissionLineChart(
         drawPath(
             path = areaPath,
             brush = Brush.verticalGradient(
-                colors = listOf(Amber.copy(alpha = 0.25f), Color.Transparent),
+                colors = listOf(PendGrey.copy(alpha = 0.25f), Color.Transparent),
                 startY = 0f, endY = h
             )
         )
@@ -93,13 +92,13 @@ fun CommissionLineChart(
         }
         drawPath(
             path = linePath,
-            brush = Brush.horizontalGradient(BrandColors),
+            brush = Brush.horizontalGradient(listOf(AccentBlue)),
             style = Stroke(width = 4.dp.toPx(), cap = StrokeCap.Round)
         )
 
         // Dots
         points.forEach { p ->
-            drawCircle(color = White, radius = 4.dp.toPx(), center = p)
+            drawCircle(color = TextWhite, radius = 4.dp.toPx(), center = p)
         }
     }
 }
@@ -129,14 +128,14 @@ fun SuccessRateDonut(
             val r = (this.size.minDimension - stroke) / 2f
             val center = Offset(this.size.width / 2f, this.size.height / 2f)
             drawCircle(
-                color = GlassBorder,
+                color = Hairline,
                 radius = r,
                 center = center,
                 style = Stroke(width = stroke)
             )
             if (sweep > 0f) {
                 drawArc(
-                    brush = Brush.sweepGradient(BrandColors, center),
+                    brush = Brush.sweepGradient(listOf(AccentBlue), center),
                     startAngle = -90f,
                     sweepAngle = 360f * sweep,
                     useCenter = false,
@@ -146,7 +145,7 @@ fun SuccessRateDonut(
         }
         Text(
             "${(clamped * 100).toInt()}%",
-            color = White,
+            color = TextWhite,
             fontSize = 22.sp,
             fontWeight = FontWeight.Bold
         )

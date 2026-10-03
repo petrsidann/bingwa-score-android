@@ -35,13 +35,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.bingwascore.app.ui.components.GlassCard
-import com.bingwascore.app.ui.components.GradientButton
-import com.bingwascore.app.ui.theme.GlassFill
-import com.bingwascore.app.ui.theme.Amber
-import com.bingwascore.app.ui.theme.EmeraldGreen
-import com.bingwascore.app.ui.theme.NightBlack
-import com.bingwascore.app.ui.theme.White
+import com.bingwascore.app.ui.components.BubbleCard
+import com.bingwascore.app.ui.components.PrimaryButton
+import com.bingwascore.app.ui.theme.Bubble
+import com.bingwascore.app.ui.theme.PendGrey
+import com.bingwascore.app.ui.theme.TickGreen
+import com.bingwascore.app.ui.theme.BgBlack
+import com.bingwascore.app.ui.theme.TextWhite
 import com.bingwascore.app.util.screenEnter
 
 @Composable
@@ -52,38 +52,38 @@ fun ReferralScreen(viewModel: ReferralViewModel = hiltViewModel()) {
     val context = LocalContext.current
 
     Column(
-        modifier = Modifier.fillMaxSize().screenEnter().background(NightBlack).verticalScroll(rememberScrollState())
+        modifier = Modifier.fillMaxSize().screenEnter().background(BgBlack).verticalScroll(rememberScrollState())
     ) {
         Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp)) {
-            Text("Refer & Earn", color = White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-            Text("Invite friends and earn rewards", color = White.copy(alpha = 0.5f), fontSize = 12.sp)
+            Text("Refer & Earn", color = TextWhite, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Text("Invite friends and earn rewards", color = TextWhite.copy(alpha = 0.5f), fontSize = 12.sp)
         }
 
-        GlassCard(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
-            Text("Your Referral Code", color = White.copy(alpha = 0.55f), fontSize = 12.sp)
+        BubbleCard(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
+            Text("Your Referral Code", color = TextWhite.copy(alpha = 0.55f), fontSize = 12.sp)
             Spacer(modifier = Modifier.height(8.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(code.ifEmpty { "---" }, color = White, fontSize = 24.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                Text(code.ifEmpty { "---" }, color = TextWhite, fontSize = 24.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
                 Spacer(modifier = Modifier.width(8.dp))
                 Row(
-                    modifier = Modifier.clip(RoundedCornerShape(12.dp)).background(GlassFill).clickable {
+                    modifier = Modifier.clip(RoundedCornerShape(12.dp)).background(Bubble).clickable {
                         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                         clipboard.setPrimaryClip(ClipData.newPlainText("Referral Code", code))
                     }.padding(horizontal = 12.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Rounded.ContentCopy, contentDescription = "Copy", tint = Amber, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Rounded.ContentCopy, contentDescription = "Copy", tint = PendGrey, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Copy", color = Amber, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                    Text("Copy", color = PendGrey, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                 }
             }
             Spacer(modifier = Modifier.height(12.dp))
-            Text("$count friend(s) joined", color = EmeraldGreen, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+            Text("$count friend(s) joined", color = TickGreen, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        GradientButton(
+        PrimaryButton(
             text = "Invite Friends",
             onClick = {
                 viewModel.recordShare()
@@ -99,7 +99,7 @@ fun ReferralScreen(viewModel: ReferralViewModel = hiltViewModel()) {
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        GradientButton(
+        PrimaryButton(
             text = "Share My Store",
             onClick = {
                 viewModel.recordShare()

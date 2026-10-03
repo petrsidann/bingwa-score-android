@@ -27,15 +27,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bingwascore.app.ui.components.EmptyState
-import com.bingwascore.app.ui.components.GlassCard
+import com.bingwascore.app.ui.components.BubbleCard
 import com.bingwascore.app.util.screenEnter
-import com.bingwascore.app.ui.theme.GlassFill
-import com.bingwascore.app.ui.theme.EmeraldGreen
-import com.bingwascore.app.ui.theme.ErrorRed
-import com.bingwascore.app.ui.theme.NightBlack
-import com.bingwascore.app.ui.theme.Orange500
-import com.bingwascore.app.ui.theme.TealBlue
-import com.bingwascore.app.ui.theme.White
+import com.bingwascore.app.ui.theme.Bubble
+import com.bingwascore.app.ui.theme.TickGreen
+import com.bingwascore.app.ui.theme.FailRed
+import com.bingwascore.app.ui.theme.BgBlack
+import com.bingwascore.app.ui.theme.PendGrey
+import com.bingwascore.app.ui.theme.ChartBlue
+import com.bingwascore.app.ui.theme.TextWhite
 
 private data class SubscriptionRow(
     val id: String,
@@ -64,17 +64,17 @@ fun SubscriptionsScreen() {
         modifier = Modifier
             .fillMaxSize()
             .screenEnter()
-            .background(NightBlack)
+            .background(BgBlack)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp, vertical = 16.dp)
         ) {
-            Text("Subscriptions", color = White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Text("Subscriptions", color = TextWhite, fontSize = 22.sp, fontWeight = FontWeight.Bold)
             Text(
                 "${subscriptions.size} subscription(s)",
-                color = White.copy(alpha = 0.5f),
+                color = TextWhite.copy(alpha = 0.5f),
                 fontSize = 12.sp
             )
         }
@@ -109,19 +109,19 @@ private fun SubscriptionCard(
     now: Long,
     enterDelayMillis: Int
 ) {
-    GlassCard(modifier = Modifier.fillMaxWidth(), enterDelayMillis = enterDelayMillis) {
+    BubbleCard(modifier = Modifier.fillMaxWidth(), enterDelayMillis = enterDelayMillis) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     subscription.offerName,
-                    color = White,
+                    color = TextWhite,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     subscription.phone,
-                    color = White.copy(alpha = 0.5f),
+                    color = TextWhite.copy(alpha = 0.5f),
                     fontSize = 11.sp
                 )
                 Spacer(modifier = Modifier.height(8.dp))
@@ -134,7 +134,7 @@ private fun SubscriptionCard(
             Spacer(modifier = Modifier.width(12.dp))
             Text(
                 "Ksh ${subscription.price}",
-                color = White.copy(alpha = 0.7f),
+                color = TextWhite.copy(alpha = 0.7f),
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold
             )
@@ -146,12 +146,12 @@ private fun SubscriptionCard(
 private fun CountdownChip(label: String) {
     Text(
         label,
-        color = Orange500,
+        color = PendGrey,
         fontSize = 11.sp,
         fontWeight = FontWeight.SemiBold,
         modifier = Modifier
             .clip(RoundedCornerShape(10.dp))
-            .background(GlassFill)
+            .background(Bubble)
             .padding(horizontal = 10.dp, vertical = 4.dp)
     )
 }
@@ -160,12 +160,12 @@ private fun CountdownChip(label: String) {
 private fun AutoRenewChip(autoRenew: Boolean) {
     Text(
         if (autoRenew) "Auto-renew ON" else "Auto-renew OFF",
-        color = if (autoRenew) EmeraldGreen else ErrorRed,
+        color = if (autoRenew) TickGreen else FailRed,
         fontSize = 10.sp,
         fontWeight = FontWeight.SemiBold,
         modifier = Modifier
             .clip(RoundedCornerShape(10.dp))
-            .background(GlassFill)
+            .background(Bubble)
             .padding(horizontal = 8.dp, vertical = 4.dp)
     )
 }

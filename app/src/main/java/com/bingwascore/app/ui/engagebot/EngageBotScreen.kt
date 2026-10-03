@@ -30,14 +30,14 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bingwascore.app.engagebot.BotLogKind
 import com.bingwascore.app.ui.components.EmptyState
-import com.bingwascore.app.ui.components.GlassCard
+import com.bingwascore.app.ui.components.BubbleCard
 import com.bingwascore.app.ui.components.HapticSwitch
 import com.bingwascore.app.util.screenEnter
-import com.bingwascore.app.ui.theme.BingwaOrange
-import com.bingwascore.app.ui.theme.GlassBorderStrong
-import com.bingwascore.app.ui.theme.GlassFillStrong
-import com.bingwascore.app.ui.theme.NightBlack
-import com.bingwascore.app.ui.theme.White
+import com.bingwascore.app.ui.theme.AccentBlue
+import com.bingwascore.app.ui.theme.Hairline
+import com.bingwascore.app.ui.theme.Raised
+import com.bingwascore.app.ui.theme.BgBlack
+import com.bingwascore.app.ui.theme.TextWhite
 
 /**
  * Engage Bot: master switch, session stats and live bot activity. The bot
@@ -55,7 +55,7 @@ fun EngageBotScreen(viewModel: EngageBotViewModel = hiltViewModel()) {
         modifier = Modifier
             .fillMaxSize()
             .screenEnter()
-            .background(NightBlack)
+            .background(BgBlack)
     ) {
         Row(
             modifier = Modifier
@@ -64,18 +64,18 @@ fun EngageBotScreen(viewModel: EngageBotViewModel = hiltViewModel()) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text("Autopilot", color = White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                Text("Autopilot", color = TextWhite, fontSize = 22.sp, fontWeight = FontWeight.Bold)
                 Text(
                     if (isEnabled) "Bot is live — asking customers who the bundle is for"
                     else "Bot is paused — flip the switch to start engaging",
-                    color = White.copy(alpha = 0.5f),
+                    color = TextWhite.copy(alpha = 0.5f),
                     fontSize = 12.sp
                 )
             }
             Icon(
                 Icons.Rounded.Bolt,
                 contentDescription = null,
-                tint = if (isEnabled) BingwaOrange else White.copy(alpha = 0.4f),
+                tint = if (isEnabled) AccentBlue else TextWhite.copy(alpha = 0.4f),
                 modifier = Modifier.size(30.dp)
             )
         }
@@ -86,12 +86,12 @@ fun EngageBotScreen(viewModel: EngageBotViewModel = hiltViewModel()) {
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             item {
-                GlassCard(modifier = Modifier.padding(horizontal = 20.dp)) {
+                BubbleCard(modifier = Modifier.padding(horizontal = 20.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 "Engage Bot",
-                                color = White,
+                                color = TextWhite,
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.SemiBold
                             )
@@ -99,7 +99,7 @@ fun EngageBotScreen(viewModel: EngageBotViewModel = hiltViewModel()) {
                             Text(
                                 "After each sale the bot texts the customer to ask which " +
                                     "number the bundle is for, then completes the purchase.",
-                                color = White.copy(alpha = 0.5f),
+                                color = TextWhite.copy(alpha = 0.5f),
                                 fontSize = 12.sp
                             )
                         }
@@ -108,12 +108,12 @@ fun EngageBotScreen(viewModel: EngageBotViewModel = hiltViewModel()) {
                             checked = isEnabled,
                             onCheckedChange = { viewModel.setEnabled(it) },
                             colors = SwitchDefaults.colors(
-                                checkedThumbColor = NightBlack,
-                                checkedTrackColor = BingwaOrange,
-                                checkedBorderColor = BingwaOrange,
-                                uncheckedThumbColor = White.copy(alpha = 0.7f),
-                                uncheckedTrackColor = GlassFillStrong,
-                                uncheckedBorderColor = GlassBorderStrong
+                                checkedThumbColor = BgBlack,
+                                checkedTrackColor = AccentBlue,
+                                checkedBorderColor = AccentBlue,
+                                uncheckedThumbColor = TextWhite.copy(alpha = 0.7f),
+                                uncheckedTrackColor = Raised,
+                                uncheckedBorderColor = Hairline
                             )
                         )
                     }
@@ -143,7 +143,7 @@ fun EngageBotScreen(viewModel: EngageBotViewModel = hiltViewModel()) {
                 item {
                     Text(
                         "Live Activity",
-                        color = White.copy(alpha = 0.5f),
+                        color = TextWhite.copy(alpha = 0.5f),
                         fontSize = 12.sp,
                         modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
                     )
@@ -158,9 +158,9 @@ fun EngageBotScreen(viewModel: EngageBotViewModel = hiltViewModel()) {
 
 @Composable
 private fun StatCard(label: String, value: String, modifier: Modifier = Modifier) {
-    GlassCard(modifier = modifier) {
-        Text(value, color = BingwaOrange, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+    BubbleCard(modifier = modifier) {
+        Text(value, color = AccentBlue, fontSize = 22.sp, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(4.dp))
-        Text(label, color = White.copy(alpha = 0.55f), fontSize = 11.sp)
+        Text(label, color = TextWhite.copy(alpha = 0.55f), fontSize = 11.sp)
     }
 }

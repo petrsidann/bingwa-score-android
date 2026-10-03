@@ -35,15 +35,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.bingwascore.app.ui.components.GlassCard
-import com.bingwascore.app.ui.components.GradientButton
+import com.bingwascore.app.ui.components.BubbleCard
+import com.bingwascore.app.ui.components.PrimaryButton
 import com.bingwascore.app.util.screenEnter
-import com.bingwascore.app.ui.theme.GlassFill
-import com.bingwascore.app.ui.theme.BingwaOrange
-import com.bingwascore.app.ui.theme.EmeraldGreen
-import com.bingwascore.app.ui.theme.ErrorRed
-import com.bingwascore.app.ui.theme.NightBlack
-import com.bingwascore.app.ui.theme.White
+import com.bingwascore.app.ui.theme.Bubble
+import com.bingwascore.app.ui.theme.AccentBlue
+import com.bingwascore.app.ui.theme.TickGreen
+import com.bingwascore.app.ui.theme.FailRed
+import com.bingwascore.app.ui.theme.BgBlack
+import com.bingwascore.app.ui.theme.TextWhite
 
 /** Bingwa Mesh: links this device to a mesh server for multi-device sync. */
 @Composable
@@ -60,23 +60,23 @@ fun MeshScreen(viewModel: MeshViewModel = hiltViewModel()) {
         modifier = Modifier
             .fillMaxSize()
             .screenEnter()
-            .background(NightBlack)
+            .background(BgBlack)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp, vertical = 16.dp)
         ) {
-            Text("Bingwa Mesh", color = White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Text("Bingwa Mesh", color = TextWhite, fontSize = 22.sp, fontWeight = FontWeight.Bold)
             Text(
                 if (connected) "Connected to the mesh network"
                 else "Link this device to the mesh network",
-                color = White.copy(alpha = 0.5f),
+                color = TextWhite.copy(alpha = 0.5f),
                 fontSize = 12.sp
             )
         }
 
-        GlassCard(
+        BubbleCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp)
@@ -86,23 +86,23 @@ fun MeshScreen(viewModel: MeshViewModel = hiltViewModel()) {
                     modifier = Modifier
                         .size(44.dp)
                         .clip(CircleShape)
-                        .background(EmeraldGreen.copy(alpha = 0.15f)),
+                        .background(TickGreen.copy(alpha = 0.15f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.DeviceHub,
                         contentDescription = null,
-                        tint = BingwaOrange,
+                        tint = AccentBlue,
                         modifier = Modifier.size(22.dp)
                     )
                 }
                 Spacer(modifier = Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("DEVICE ID", color = White.copy(alpha = 0.45f), fontSize = 10.sp)
+                    Text("DEVICE ID", color = TextWhite.copy(alpha = 0.45f), fontSize = 10.sp)
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         deviceId.ifEmpty { "Generating..." },
-                        color = White,
+                        color = TextWhite,
                         fontSize = 17.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -113,12 +113,12 @@ fun MeshScreen(viewModel: MeshViewModel = hiltViewModel()) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        GlassCard(
+        BubbleCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp)
         ) {
-            Text("SERVER URL", color = White.copy(alpha = 0.45f), fontSize = 10.sp)
+            Text("SERVER URL", color = TextWhite.copy(alpha = 0.45f), fontSize = 10.sp)
             Spacer(modifier = Modifier.height(8.dp))
             MeshUrlField(
                 value = urlInput,
@@ -129,10 +129,10 @@ fun MeshScreen(viewModel: MeshViewModel = hiltViewModel()) {
             )
             if (error != null) {
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(error.orEmpty(), color = ErrorRed, fontSize = 12.sp)
+                Text(error.orEmpty(), color = FailRed, fontSize = 12.sp)
             }
             Spacer(modifier = Modifier.height(16.dp))
-            GradientButton(
+            PrimaryButton(
                 text = when {
                     connecting -> "Connecting..."
                     connected -> "Disconnect"
@@ -149,7 +149,7 @@ fun MeshScreen(viewModel: MeshViewModel = hiltViewModel()) {
 
 @Composable
 private fun StatusBadge(online: Boolean) {
-    val color = if (online) EmeraldGreen else ErrorRed
+    val color = if (online) TickGreen else FailRed
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
@@ -181,13 +181,13 @@ private fun MeshUrlField(value: String, onValueChange: (String) -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(shape)
-            .background(GlassFill)
+            .background(Bubble)
             .padding(horizontal = 14.dp, vertical = 12.dp)
     ) {
         Icon(
             imageVector = Icons.Rounded.Language,
             contentDescription = null,
-            tint = White.copy(alpha = 0.45f),
+            tint = TextWhite.copy(alpha = 0.45f),
             modifier = Modifier.size(18.dp)
         )
         Spacer(modifier = Modifier.width(10.dp))
@@ -196,14 +196,14 @@ private fun MeshUrlField(value: String, onValueChange: (String) -> Unit) {
                 value = value,
                 onValueChange = onValueChange,
                 singleLine = true,
-                textStyle = TextStyle(color = White, fontSize = 13.sp),
-                cursorBrush = SolidColor(BingwaOrange),
+                textStyle = TextStyle(color = TextWhite, fontSize = 13.sp),
+                cursorBrush = SolidColor(AccentBlue),
                 modifier = Modifier.fillMaxWidth()
             )
             if (value.isEmpty()) {
                 Text(
                     "https://mesh.bingwascore.com",
-                    color = White.copy(alpha = 0.4f),
+                    color = TextWhite.copy(alpha = 0.4f),
                     fontSize = 13.sp
                 )
             }

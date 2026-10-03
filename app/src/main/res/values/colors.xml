@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- REBRAND R1 — the adaptive icon background is pure black; the white
+     monogram in ic_launcher_foreground.xml is the only thing on it. -->
 <resources>
-    <color name="ic_launcher_background">#FF6D00</color>
+    <color name="ic_launcher_background">#000000</color>
     <color name="ic_launcher_foreground">#FFFFFF</color>
+    <color name="brand_background">#000000</color>
+    <color name="brand_accent">#2962FF</color>
 </resources>

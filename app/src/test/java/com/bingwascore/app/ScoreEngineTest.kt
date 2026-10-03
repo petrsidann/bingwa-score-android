@@ -6,10 +6,10 @@ import com.bingwascore.app.domain.TransactionStatus
 import com.bingwascore.app.domain.score.ScoreEngine
 import com.bingwascore.app.engagebot.BotLogKind
 import com.bingwascore.app.ui.engagebot.botLogColor
-import com.bingwascore.app.ui.theme.Amber
-import com.bingwascore.app.ui.theme.EmeraldGreen
-import com.bingwascore.app.ui.theme.ErrorRed
-import com.bingwascore.app.ui.theme.Orange500
+import com.bingwascore.app.ui.theme.PendGrey
+import com.bingwascore.app.ui.theme.TickGreen
+import com.bingwascore.app.ui.theme.FailRed
+import com.bingwascore.app.ui.theme.PendGrey
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -68,9 +68,9 @@ class ScoreEngineTest {
 
     @Test
     fun botLogColor_mapping() {
-        assertEquals(Amber, botLogColor(BotLogKind.ENGAGE))
-        assertEquals(EmeraldGreen, botLogColor(BotLogKind.SUCCESS))
-        assertEquals(Orange500, botLogColor(BotLogKind.INVALID))
-        assertEquals(ErrorRed, botLogColor(BotLogKind.ERROR))
+        assertEquals(PendGrey, botLogColor(BotLogKind.ENGAGE))
+        assertEquals(TickGreen, botLogColor(BotLogKind.SUCCESS))
+        assertEquals(PendGrey, botLogColor(BotLogKind.INVALID))
+        assertEquals(FailRed, botLogColor(BotLogKind.ERROR))
     }
 }

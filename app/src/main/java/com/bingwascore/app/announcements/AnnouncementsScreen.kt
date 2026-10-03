@@ -31,11 +31,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.bingwascore.app.ui.components.GlassCard
-import com.bingwascore.app.ui.theme.Amber
-import com.bingwascore.app.ui.theme.NightBlack
-import com.bingwascore.app.ui.theme.Orange500
-import com.bingwascore.app.ui.theme.White
+import com.bingwascore.app.ui.components.BubbleCard
+import com.bingwascore.app.ui.theme.PendGrey
+import com.bingwascore.app.ui.theme.BgBlack
+import com.bingwascore.app.ui.theme.PendGrey
+import com.bingwascore.app.ui.theme.TextWhite
 import com.bingwascore.app.util.screenEnter
 
 data class Announcement(
@@ -51,11 +51,11 @@ fun AnnouncementsScreen(viewModel: AnnouncementsViewModel = hiltViewModel()) {
     val announcements by viewModel.announcements.collectAsStateWithLifecycle()
 
     Column(
-        modifier = Modifier.fillMaxSize().screenEnter().background(NightBlack).verticalScroll(rememberScrollState())
+        modifier = Modifier.fillMaxSize().screenEnter().background(BgBlack).verticalScroll(rememberScrollState())
     ) {
         Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp)) {
-            Text("Announcements", color = White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-            Text("Tips & updates for agents", color = White.copy(alpha = 0.5f), fontSize = 12.sp)
+            Text("Announcements", color = TextWhite, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Text("Tips & updates for agents", color = TextWhite.copy(alpha = 0.5f), fontSize = 12.sp)
         }
         announcements.forEachIndexed { index, a ->
             AnnouncementCard(a, enterDelayMillis = minOf(index, 6) * 35,
@@ -67,19 +67,19 @@ fun AnnouncementsScreen(viewModel: AnnouncementsViewModel = hiltViewModel()) {
 
 @Composable
 private fun AnnouncementCard(a: Announcement, enterDelayMillis: Int, modifier: Modifier = Modifier) {
-    GlassCard(modifier = modifier, enterDelayMillis = enterDelayMillis) {
+    BubbleCard(modifier = modifier, enterDelayMillis = enterDelayMillis) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Rounded.Campaign, contentDescription = null, tint = Orange500, modifier = Modifier.size(24.dp))
+            Icon(Icons.Rounded.Campaign, contentDescription = null, tint = PendGrey, modifier = Modifier.size(24.dp))
             Spacer(modifier = Modifier.width(10.dp))
-            Text(a.date, color = White.copy(alpha = 0.45f), fontSize = 11.sp, modifier = Modifier.weight(1f))
+            Text(a.date, color = TextWhite.copy(alpha = 0.45f), fontSize = 11.sp, modifier = Modifier.weight(1f))
             if (a.unread) {
                 Spacer(modifier = Modifier.width(6.dp))
-                Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(Amber))
+                Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(PendGrey))
             }
         }
         Spacer(modifier = Modifier.height(8.dp))
-        Text(a.title, color = White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+        Text(a.title, color = TextWhite, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
         Spacer(modifier = Modifier.height(4.dp))
-        Text(a.body, color = White.copy(alpha = 0.6f), fontSize = 13.sp)
+        Text(a.body, color = TextWhite.copy(alpha = 0.6f), fontSize = 13.sp)
     }
 }

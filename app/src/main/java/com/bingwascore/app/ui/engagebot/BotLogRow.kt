@@ -22,23 +22,23 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bingwascore.app.engagebot.BotLog
 import com.bingwascore.app.engagebot.BotLogKind
-import com.bingwascore.app.ui.theme.Amber
-import com.bingwascore.app.ui.theme.EmeraldGreen
-import com.bingwascore.app.ui.theme.ErrorRed
-import com.bingwascore.app.ui.theme.GlassFill
-import com.bingwascore.app.ui.theme.Orange500
-import com.bingwascore.app.ui.theme.White
+import com.bingwascore.app.ui.theme.PendGrey
+import com.bingwascore.app.ui.theme.TickGreen
+import com.bingwascore.app.ui.theme.FailRed
+import com.bingwascore.app.ui.theme.Bubble
+import com.bingwascore.app.ui.theme.PendGrey
+import com.bingwascore.app.ui.theme.TextWhite
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 /** Severity color for a bot activity line — shared across bot screens. */
 fun botLogColor(kind: BotLogKind): Color = when (kind) {
-    BotLogKind.ENGAGE -> Amber
-    BotLogKind.SUCCESS -> EmeraldGreen
-    BotLogKind.INVALID -> Orange500
-    BotLogKind.ERROR -> ErrorRed
-    BotLogKind.INFO -> White.copy(alpha = 0.5f)
+    BotLogKind.ENGAGE -> PendGrey
+    BotLogKind.SUCCESS -> TickGreen
+    BotLogKind.INVALID -> PendGrey
+    BotLogKind.ERROR -> FailRed
+    BotLogKind.INFO -> TextWhite.copy(alpha = 0.5f)
 }
 
 /**
@@ -52,7 +52,7 @@ fun BotLogRow(log: BotLog, modifier: Modifier = Modifier) {
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(GlassFill)
+            .background(Bubble)
             .padding(horizontal = 14.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -64,10 +64,10 @@ fun BotLogRow(log: BotLog, modifier: Modifier = Modifier) {
         )
         Spacer(modifier = Modifier.width(10.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(log.message, color = White.copy(alpha = 0.85f), fontSize = 12.sp)
+            Text(log.message, color = TextWhite.copy(alpha = 0.85f), fontSize = 12.sp)
             Text(
                 timeFormat.format(Date(log.timestamp)),
-                color = White.copy(alpha = 0.4f),
+                color = TextWhite.copy(alpha = 0.4f),
                 fontSize = 10.sp
             )
         }

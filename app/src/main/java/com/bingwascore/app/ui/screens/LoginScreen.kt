@@ -49,14 +49,13 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.fragment.app.FragmentActivity
-import com.bingwascore.app.ui.components.AmbientBackground
-import com.bingwascore.app.ui.components.GlassCard
-import com.bingwascore.app.ui.components.GradientButton
-import com.bingwascore.app.ui.theme.GlassBorder
-import com.bingwascore.app.ui.theme.GlassFill
-import com.bingwascore.app.ui.theme.BingwaOrange
-import com.bingwascore.app.ui.theme.NightBlack
-import com.bingwascore.app.ui.theme.White
+import com.bingwascore.app.ui.components.BubbleCard
+import com.bingwascore.app.ui.components.PrimaryButton
+import com.bingwascore.app.ui.theme.Hairline
+import com.bingwascore.app.ui.theme.Bubble
+import com.bingwascore.app.ui.theme.AccentBlue
+import com.bingwascore.app.ui.theme.BgBlack
+import com.bingwascore.app.ui.theme.TextWhite
 import com.bingwascore.app.ui.components.pressScale
 import com.bingwascore.app.util.screenEnter
 import java.util.concurrent.Executor
@@ -129,9 +128,8 @@ fun LoginScreen(
         modifier = Modifier
             .fillMaxSize()
             .screenEnter()
-            .background(NightBlack)
+            .background(BgBlack)
     ) {
-        AmbientBackground()
 
         Column(
             modifier = Modifier
@@ -145,7 +143,7 @@ fun LoginScreen(
 
         Text(
             "Welcome back",
-            color = White,
+            color = TextWhite,
             fontSize = 28.sp,
             fontWeight = FontWeight.Bold
         )
@@ -154,13 +152,13 @@ fun LoginScreen(
 
         Text(
             "Sign in to continue",
-            color = White.copy(alpha = 0.6f),
+            color = TextWhite.copy(alpha = 0.6f),
             fontSize = 14.sp
         )
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        GlassCard(modifier = Modifier.fillMaxWidth()) {
+        BubbleCard(modifier = Modifier.fillMaxWidth()) {
             GlassField(
                 value = phone,
                 onValueChange = { phone = it },
@@ -190,15 +188,15 @@ fun LoginScreen(
                         modifier = Modifier
                             .size(52.dp)
                             .clip(CircleShape)
-                            .background(GlassFill)
-                            .border(1.dp, GlassBorder, CircleShape)
+                            .background(Bubble)
+                            .border(1.dp, Hairline, CircleShape)
                             .clickable { launchBiometric() },
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.Fingerprint,
                             contentDescription = "Sign in with fingerprint",
-                            tint = BingwaOrange,
+                            tint = AccentBlue,
                             modifier = Modifier.size(26.dp)
                         )
                     }
@@ -218,7 +216,7 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.weight(1f))
 
-        GradientButton(
+        PrimaryButton(
             text = "Sign In",
             onClick = onSignIn,
             modifier = Modifier.fillMaxWidth()
@@ -228,7 +226,7 @@ fun LoginScreen(
 
         Text(
             "Create account",
-            color = White.copy(alpha = 0.6f),
+            color = TextWhite.copy(alpha = 0.6f),
             fontSize = 14.sp,
             modifier = Modifier
                 .align(Alignment.CenterHorizontally)
@@ -254,8 +252,8 @@ private fun GlassField(
         modifier = modifier
             .fillMaxWidth()
             .clip(shape)
-            .background(GlassFill)
-            .border(1.dp, GlassBorder, shape)
+            .background(Bubble)
+            .border(1.dp, Hairline, shape)
             .padding(horizontal = 16.dp, vertical = 16.dp)
     ) {
         BasicTextField(
@@ -265,13 +263,13 @@ private fun GlassField(
             textStyle = TextStyle(color = Color.White, fontSize = 16.sp),
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
             visualTransformation = if (isPassword) PasswordVisualTransformation() else VisualTransformation.None,
-            cursorBrush = SolidColor(BingwaOrange),
+            cursorBrush = SolidColor(AccentBlue),
             modifier = Modifier.fillMaxWidth()
         )
         if (value.isEmpty()) {
             Text(
                 hint,
-                color = White.copy(alpha = 0.45f),
+                color = TextWhite.copy(alpha = 0.45f),
                 fontSize = 16.sp
             )
         }
@@ -306,8 +304,8 @@ private fun PinKeypad(
                     modifier = Modifier
                         .size(12.dp)
                         .clip(CircleShape)
-                        .background(if (filled) BingwaOrange else GlassFill)
-                        .border(1.dp, GlassBorder, CircleShape)
+                        .background(if (filled) AccentBlue else Bubble)
+                        .border(1.dp, Hairline, CircleShape)
                 )
             }
         }
@@ -344,15 +342,15 @@ private fun PinKeypad(
                 modifier = Modifier
                     .size(64.dp)
                     .clip(CircleShape)
-                    .background(GlassFill)
-                    .border(1.dp, GlassBorder, CircleShape)
+                    .background(Bubble)
+                    .border(1.dp, Hairline, CircleShape)
                     .clickable { onBackspace() },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Rounded.Backspace,
                     contentDescription = "Delete",
-                    tint = White.copy(alpha = 0.7f),
+                    tint = TextWhite.copy(alpha = 0.7f),
                     modifier = Modifier.size(22.dp)
                 )
             }
@@ -369,8 +367,8 @@ private fun KeypadKey(label: String, onClick: () -> Unit) {
             .size(64.dp)
             .pressScale(interactionSource)
             .clip(CircleShape)
-            .background(GlassFill)
-            .border(1.dp, GlassBorder, CircleShape)
+            .background(Bubble)
+            .border(1.dp, Hairline, CircleShape)
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
@@ -380,7 +378,7 @@ private fun KeypadKey(label: String, onClick: () -> Unit) {
     ) {
         Text(
             label,
-            color = White,
+            color = TextWhite,
             fontSize = 20.sp,
             fontWeight = FontWeight.SemiBold
         )

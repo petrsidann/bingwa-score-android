@@ -24,10 +24,17 @@ enum class TransactionStatus(val value: String) {
     }
 }
 
-enum class ThemeMode(val value: String) {
-    SYSTEM("SYSTEM"),
-    DARK("DARK"),
-    LIGHT("LIGHT");
+/**
+ * REBRAND R1 — display modes (Settings > Appearance).
+ *
+ * There is no light mode: the product is dark-first, so the three options are
+ * three readings of black. [fromValue] falls back to DARK, which also retires
+ * the old SYSTEM / LIGHT values without a migration.
+ */
+enum class ThemeMode(val value: String, val label: String) {
+    DARK("DARK", "Dark"),
+    GRAYSCALE("GRAYSCALE", "Grayscale"),
+    BLUE_LIGHT_FILTER("BLUE_LIGHT_FILTER", "Blue Light Filter");
 
     companion object {
         fun fromValue(value: String?): ThemeMode =

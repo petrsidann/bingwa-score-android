@@ -43,18 +43,18 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bingwascore.app.domain.score.Achievement
 import com.bingwascore.app.domain.score.ScoreState
 import com.bingwascore.app.ui.components.AnimatedRing
-import com.bingwascore.app.ui.components.GlassCard
+import com.bingwascore.app.ui.components.BubbleCard
 import com.bingwascore.app.ui.theme.Motion
-import com.bingwascore.app.ui.theme.Amber
+import com.bingwascore.app.ui.theme.PendGrey
 import com.bingwascore.app.ui.theme.Bronze
-import com.bingwascore.app.ui.theme.EmeraldGreen
+import com.bingwascore.app.ui.theme.TickGreen
 import com.bingwascore.app.ui.theme.FaintDivider
 import com.bingwascore.app.ui.theme.Gold
-import com.bingwascore.app.ui.theme.NightBlack
-import com.bingwascore.app.ui.theme.Orange500
+import com.bingwascore.app.ui.theme.BgBlack
+import com.bingwascore.app.ui.theme.PendGrey
 import com.bingwascore.app.ui.theme.Platinum
 import com.bingwascore.app.ui.theme.Silver
-import com.bingwascore.app.ui.theme.White
+import com.bingwascore.app.ui.theme.TextWhite
 import com.bingwascore.app.util.screenEnter
 import kotlinx.coroutines.delay
 
@@ -64,19 +64,19 @@ fun ScoreScreen(viewModel: ScoreViewModel = hiltViewModel()) {
     val achievements by viewModel.achievements.collectAsStateWithLifecycle()
 
     Column(
-        modifier = Modifier.fillMaxSize().screenEnter().background(NightBlack).verticalScroll(rememberScrollState())
+        modifier = Modifier.fillMaxSize().screenEnter().background(BgBlack).verticalScroll(rememberScrollState())
     ) {
         Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp)) {
-            Text("My Score", color = White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-            Text("Your agent growth & rewards", color = White.copy(alpha = 0.5f), fontSize = 12.sp)
+            Text("My Score", color = TextWhite, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Text("Your agent growth & rewards", color = TextWhite.copy(alpha = 0.5f), fontSize = 12.sp)
         }
-        GlassCard(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
+        BubbleCard(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
             Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                 Box(contentAlignment = Alignment.Center) {
                     AnimatedRing(progress = state.progress, size = 160.dp)
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         CountUpScore(target = state.score)
-                        Text("points", color = White.copy(alpha = 0.5f), fontSize = 11.sp)
+                        Text("points", color = TextWhite.copy(alpha = 0.5f), fontSize = 11.sp)
                     }
                 }
                 Spacer(modifier = Modifier.height(12.dp))
@@ -84,7 +84,7 @@ fun ScoreScreen(viewModel: ScoreViewModel = hiltViewModel()) {
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     if (state.nextLevelAt == state.score) "Max level!" else "${state.nextLevelAt - state.score} pts to next level",
-                    color = White.copy(alpha = 0.5f), fontSize = 12.sp
+                    color = TextWhite.copy(alpha = 0.5f), fontSize = 12.sp
                 )
                 Spacer(modifier = Modifier.height(10.dp))
                 StreakRow(days = state.streakDays)
@@ -92,16 +92,16 @@ fun ScoreScreen(viewModel: ScoreViewModel = hiltViewModel()) {
         }
         Spacer(modifier = Modifier.height(16.dp))
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            StatChip("Success Rate", "${(state.successRate * 100).toInt()}%", EmeraldGreen, Modifier.weight(1f))
-            StatChip("Commission", "Ksh ${state.totalCommission.toInt()}", Amber, Modifier.weight(1f))
+            StatChip("Success Rate", "${(state.successRate * 100).toInt()}%", TickGreen, Modifier.weight(1f))
+            StatChip("Commission", "Ksh ${state.totalCommission.toInt()}", PendGrey, Modifier.weight(1f))
         }
         Spacer(modifier = Modifier.height(12.dp))
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            StatChip("Transactions", "${state.customersServed}", Orange500, Modifier.weight(1f))
+            StatChip("Transactions", "${state.customersServed}", PendGrey, Modifier.weight(1f))
             StatChip("Customers", "${state.customersServed}", Platinum, Modifier.weight(1f))
         }
         Spacer(modifier = Modifier.height(16.dp))
-        Text("Achievements", color = White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold,
+        Text("Achievements", color = TextWhite, fontSize = 16.sp, fontWeight = FontWeight.SemiBold,
             modifier = Modifier.padding(horizontal = 20.dp))
         Spacer(modifier = Modifier.height(8.dp))
         achievements.forEachIndexed { index, a ->
@@ -117,7 +117,7 @@ private fun CountUpScore(target: Int) {
     var current by remember(target) { mutableStateOf(0) }
     val animated by animateFloatAsState(targetValue = current.toFloat(), animationSpec = tween(Motion.COUNT_UP), label = "scoreCount")
     LaunchedEffect(target) { current = target }
-    Text(animated.toInt().toString(), color = White, fontSize = 32.sp, fontWeight = FontWeight.Bold)
+    Text(animated.toInt().toString(), color = TextWhite, fontSize = 32.sp, fontWeight = FontWeight.Bold)
 }
 
 @Composable
@@ -127,30 +127,30 @@ private fun LevelBadge(levelName: String) {
         "Silver" -> Silver
         "Gold" -> Gold
         "Platinum" -> Platinum
-        else -> Amber
+        else -> PendGrey
     }
     Box(
         modifier = Modifier.clip(RoundedCornerShape(20.dp))
             .background(Brush.horizontalGradient(listOf(color, color.copy(alpha = 0.7f))))
             .padding(horizontal = 16.dp, vertical = 6.dp)
     ) {
-        Text(levelName, color = NightBlack, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+        Text(levelName, color = BgBlack, fontSize = 13.sp, fontWeight = FontWeight.Bold)
     }
 }
 
 @Composable
 private fun StreakRow(days: Int) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Icon(Icons.Rounded.LocalFireDepartment, contentDescription = null, tint = Orange500, modifier = Modifier.size(20.dp))
+        Icon(Icons.Rounded.LocalFireDepartment, contentDescription = null, tint = PendGrey, modifier = Modifier.size(20.dp))
         Spacer(modifier = Modifier.width(6.dp))
-        Text("$days-day streak", color = White, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+        Text("$days-day streak", color = TextWhite, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
     }
 }
 
 @Composable
 private fun StatChip(label: String, value: String, color: Color, modifier: Modifier = Modifier) {
-    GlassCard(modifier = modifier) {
-        Text(label, color = White.copy(alpha = 0.55f), fontSize = 11.sp)
+    BubbleCard(modifier = modifier) {
+        Text(label, color = TextWhite.copy(alpha = 0.55f), fontSize = 11.sp)
         Spacer(modifier = Modifier.height(6.dp))
         Text(value, color = color, fontSize = 18.sp, fontWeight = FontWeight.Bold)
     }
@@ -158,28 +158,28 @@ private fun StatChip(label: String, value: String, color: Color, modifier: Modif
 
 @Composable
 private fun AchievementCard(a: Achievement, enterDelayMillis: Int, modifier: Modifier = Modifier) {
-    GlassCard(modifier = modifier, enterDelayMillis = enterDelayMillis) {
+    BubbleCard(modifier = modifier, enterDelayMillis = enterDelayMillis) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier = Modifier.size(40.dp).clip(CircleShape)
-                    .background(if (a.unlocked) EmeraldGreen.copy(alpha = 0.15f) else FaintDivider),
+                    .background(if (a.unlocked) TickGreen.copy(alpha = 0.15f) else FaintDivider),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     if (a.unlocked) Icons.Rounded.EmojiEvents else Icons.Rounded.Lock,
                     contentDescription = null,
-                    tint = if (a.unlocked) EmeraldGreen else White.copy(alpha = 0.35f),
+                    tint = if (a.unlocked) TickGreen else TextWhite.copy(alpha = 0.35f),
                     modifier = Modifier.size(20.dp)
                 )
             }
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(a.title, color = if (a.unlocked) White else White.copy(alpha = 0.5f),
+                Text(a.title, color = if (a.unlocked) TextWhite else TextWhite.copy(alpha = 0.5f),
                     fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-                Text(a.description, color = White.copy(alpha = 0.45f), fontSize = 11.sp)
+                Text(a.description, color = TextWhite.copy(alpha = 0.45f), fontSize = 11.sp)
             }
             if (a.unlocked) {
-                Text("UNLOCKED", color = EmeraldGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                Text("UNLOCKED", color = TickGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold)
             }
         }
     }

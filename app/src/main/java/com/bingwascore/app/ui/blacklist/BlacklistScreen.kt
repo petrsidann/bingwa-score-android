@@ -1,4 +1,4 @@
-﻿package com.bingwascore.app.ui.blacklist
+package com.bingwascore.app.ui.blacklist
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -36,14 +36,14 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bingwascore.app.data.local.Customer
 import com.bingwascore.app.ui.components.EmptyState
-import com.bingwascore.app.ui.components.GlassCard
+import com.bingwascore.app.ui.components.BubbleCard
 import com.bingwascore.app.util.screenEnter
-import com.bingwascore.app.ui.theme.EmeraldGreen
-import com.bingwascore.app.ui.theme.OnBrandInk
-import com.bingwascore.app.ui.theme.brandBrush
-import com.bingwascore.app.ui.theme.NightBlack
-import com.bingwascore.app.ui.theme.TealBlue
-import com.bingwascore.app.ui.theme.White
+import com.bingwascore.app.ui.theme.TickGreen
+import com.bingwascore.app.ui.theme.TextWhite
+import com.bingwascore.app.ui.theme.accentBrush
+import com.bingwascore.app.ui.theme.BgBlack
+import com.bingwascore.app.ui.theme.ChartBlue
+import com.bingwascore.app.ui.theme.TextWhite
 
 /** Blacklist: customers blocked from offers and bot messages. */
 @Composable
@@ -54,17 +54,17 @@ fun BlacklistScreen(viewModel: BlacklistViewModel = hiltViewModel()) {
         modifier = Modifier
             .fillMaxSize()
             .screenEnter()
-            .background(NightBlack)
+            .background(BgBlack)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp, vertical = 16.dp)
         ) {
-            Text("Blocked Contacts", color = White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Text("Blocked Contacts", color = TextWhite, fontSize = 22.sp, fontWeight = FontWeight.Bold)
             Text(
                 "${blacklisted.size} blocked customer(s)",
-                color = White.copy(alpha = 0.5f),
+                color = TextWhite.copy(alpha = 0.5f),
                 fontSize = 12.sp
             )
         }
@@ -99,18 +99,18 @@ private fun BlacklistRow(
     enterDelayMillis: Int,
     onUnblock: () -> Unit
 ) {
-    GlassCard(modifier = Modifier.fillMaxWidth(), enterDelayMillis = enterDelayMillis) {
+    BubbleCard(modifier = Modifier.fillMaxWidth(), enterDelayMillis = enterDelayMillis) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(CircleShape)
-                    .background(brandBrush()),
+                    .background(accentBrush()),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     (customer.name ?: customer.phoneNumber).take(1).uppercase(),
-                    color = OnBrandInk,
+                    color = TextWhite,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -119,14 +119,14 @@ private fun BlacklistRow(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     customer.name ?: customer.phoneNumber,
-                    color = White,
+                    color = TextWhite,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     customer.phoneNumber,
-                    color = White.copy(alpha = 0.5f),
+                    color = TextWhite.copy(alpha = 0.5f),
                     fontSize = 11.sp
                 )
             }
@@ -134,13 +134,13 @@ private fun BlacklistRow(
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(12.dp))
-                    .border(1.dp, EmeraldGreen.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+                    .border(1.dp, TickGreen.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
                     .clickable(onClick = onUnblock)
                     .padding(horizontal = 14.dp, vertical = 8.dp)
             ) {
                 Text(
                     "Unblock",
-                    color = EmeraldGreen,
+                    color = TickGreen,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold
                 )

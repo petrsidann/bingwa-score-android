@@ -45,21 +45,20 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bingwascore.app.ui.components.EmptyState
-import com.bingwascore.app.ui.components.GlassCard
+import com.bingwascore.app.ui.components.BubbleCard
 import com.bingwascore.app.ui.components.pressScale
 import com.bingwascore.app.util.screenEnter
-import com.bingwascore.app.ui.theme.GlassBorder
-import com.bingwascore.app.ui.theme.GlassFill
-import com.bingwascore.app.ui.theme.Amber
-import com.bingwascore.app.ui.theme.BingwaOrange
-import com.bingwascore.app.ui.theme.EmeraldGreen
-import com.bingwascore.app.ui.theme.ErrorRed
-import com.bingwascore.app.ui.theme.OnBrandInk
-import com.bingwascore.app.ui.theme.brandBrush
-import com.bingwascore.app.ui.theme.ErrorRed
-import com.bingwascore.app.ui.theme.NightBlack
-import com.bingwascore.app.ui.theme.TealBlue
-import com.bingwascore.app.ui.theme.White
+import com.bingwascore.app.ui.theme.Hairline
+import com.bingwascore.app.ui.theme.Bubble
+import com.bingwascore.app.ui.theme.PendGrey
+import com.bingwascore.app.ui.theme.AccentBlue
+import com.bingwascore.app.ui.theme.TickGreen
+import com.bingwascore.app.ui.theme.FailRed
+import com.bingwascore.app.ui.theme.TextWhite
+import com.bingwascore.app.ui.theme.accentBrush
+import com.bingwascore.app.ui.theme.BgBlack
+import com.bingwascore.app.ui.theme.ChartBlue
+import com.bingwascore.app.ui.theme.TextWhite
 
 /**
  * Authorized Senders: trusted numbers whose SMS the bot may act on.
@@ -85,24 +84,24 @@ fun AuthorizedSendersScreen(viewModel: AuthorizedSendersViewModel = hiltViewMode
         modifier = Modifier
             .fillMaxSize()
             .screenEnter()
-            .background(NightBlack)
+            .background(BgBlack)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp, vertical = 16.dp)
         ) {
-            Text("Trusted Partners", color = White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Text("Trusted Partners", color = TextWhite, fontSize = 22.sp, fontWeight = FontWeight.Bold)
             Text(
                 "${senders.size} trusted number(s)",
-                color = White.copy(alpha = 0.5f),
+                color = TextWhite.copy(alpha = 0.5f),
                 fontSize = 12.sp
             )
             Spacer(modifier = Modifier.height(14.dp))
             SenderInput(value = input, onValueChange = { input = it; error = null }, onSubmit = submit)
             if (error != null) {
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(error.orEmpty(), color = ErrorRed, fontSize = 12.sp)
+                Text(error.orEmpty(), color = FailRed, fontSize = 12.sp)
             }
         }
 
@@ -140,8 +139,8 @@ private fun SenderInput(value: String, onValueChange: (String) -> Unit, onSubmit
             modifier = Modifier
                 .weight(1f)
                 .clip(shape)
-                .background(GlassFill)
-                .border(1.dp, GlassBorder, shape)
+                .background(Bubble)
+                .border(1.dp, Hairline, shape)
                 .padding(horizontal = 14.dp, vertical = 13.dp)
         ) {
             Box(modifier = Modifier.weight(1f)) {
@@ -149,12 +148,12 @@ private fun SenderInput(value: String, onValueChange: (String) -> Unit, onSubmit
                     value = value,
                     onValueChange = onValueChange,
                     singleLine = true,
-                    textStyle = TextStyle(color = White, fontSize = 14.sp),
-                    cursorBrush = SolidColor(BingwaOrange),
+                    textStyle = TextStyle(color = TextWhite, fontSize = 14.sp),
+                    cursorBrush = SolidColor(AccentBlue),
                     modifier = Modifier.fillMaxWidth()
                 )
                 if (value.isEmpty()) {
-                    Text("e.g. 0712345678", color = White.copy(alpha = 0.4f), fontSize = 14.sp)
+                    Text("e.g. 0712345678", color = TextWhite.copy(alpha = 0.4f), fontSize = 14.sp)
                 }
             }
         }
@@ -164,7 +163,7 @@ private fun SenderInput(value: String, onValueChange: (String) -> Unit, onSubmit
                 .size(48.dp)
                 .pressScale(addInteraction)
                 .clip(CircleShape)
-                .background(brandBrush())
+                .background(accentBrush())
                 .clickable(
                     interactionSource = addInteraction,
                     indication = null,
@@ -175,7 +174,7 @@ private fun SenderInput(value: String, onValueChange: (String) -> Unit, onSubmit
             Icon(
                 imageVector = Icons.Rounded.Add,
                 contentDescription = "Add trusted number",
-                tint = OnBrandInk,
+                tint = TextWhite,
                 modifier = Modifier.size(24.dp)
             )
         }
@@ -184,28 +183,28 @@ private fun SenderInput(value: String, onValueChange: (String) -> Unit, onSubmit
 
 @Composable
 private fun SenderRow(number: String, enterDelayMillis: Int, onRemove: () -> Unit) {
-    GlassCard(modifier = Modifier.fillMaxWidth(), enterDelayMillis = enterDelayMillis) {
+    BubbleCard(modifier = Modifier.fillMaxWidth(), enterDelayMillis = enterDelayMillis) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier = Modifier
                     .size(38.dp)
                     .clip(CircleShape)
-                    .background(TealBlue.copy(alpha = 0.15f)),
+                    .background(ChartBlue.copy(alpha = 0.15f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Rounded.VerifiedUser,
                     contentDescription = null,
-                    tint = Amber,
+                    tint = PendGrey,
                     modifier = Modifier.size(18.dp)
                 )
             }
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(number, color = White, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                Text(number, color = TextWhite, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                 Text(
                     "Trusted sender",
-                    color = EmeraldGreen,
+                    color = TickGreen,
                     fontSize = 11.sp
                 )
             }
@@ -213,7 +212,7 @@ private fun SenderRow(number: String, enterDelayMillis: Int, onRemove: () -> Uni
             Icon(
                 imageVector = Icons.Rounded.Close,
                 contentDescription = "Remove $number",
-                tint = White.copy(alpha = 0.55f),
+                tint = TextWhite.copy(alpha = 0.55f),
                 modifier = Modifier
                     .size(20.dp)
                     .clip(CircleShape)

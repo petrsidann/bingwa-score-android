@@ -46,19 +46,19 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bingwascore.app.data.local.Offer
-import com.bingwascore.app.ui.components.GradientButton
+import com.bingwascore.app.ui.components.PrimaryButton
 import com.bingwascore.app.ui.components.pressScale
 import com.bingwascore.app.util.rememberHaptics
 import com.bingwascore.app.util.screenEnter
-import com.bingwascore.app.ui.theme.GlassBorderStrong
-import com.bingwascore.app.ui.theme.GlassBorder
-import com.bingwascore.app.ui.theme.GlassFill
-import com.bingwascore.app.ui.theme.BingwaOrange
-import com.bingwascore.app.ui.theme.EmeraldGreen
-import com.bingwascore.app.ui.theme.brandBrush
-import com.bingwascore.app.ui.theme.ErrorRed
-import com.bingwascore.app.ui.theme.NightBlack
-import com.bingwascore.app.ui.theme.White
+import com.bingwascore.app.ui.theme.Hairline
+import com.bingwascore.app.ui.theme.Hairline
+import com.bingwascore.app.ui.theme.Bubble
+import com.bingwascore.app.ui.theme.AccentBlue
+import com.bingwascore.app.ui.theme.TickGreen
+import com.bingwascore.app.ui.theme.accentBrush
+import com.bingwascore.app.ui.theme.FailRed
+import com.bingwascore.app.ui.theme.BgBlack
+import com.bingwascore.app.ui.theme.TextWhite
 
 /** Full-screen quick dialer opened from the glass bottom bar call FAB. */
 @Composable
@@ -81,15 +81,15 @@ fun DialerScreen(onClose: () -> Unit, viewModel: DialerViewModel = hiltViewModel
         modifier = Modifier
             .fillMaxSize()
             .screenEnter()
-            .background(NightBlack)
+            .background(BgBlack)
             .padding(horizontal = 20.dp, vertical = 16.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
-                Text("Quick dial", color = White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                Text("Quick dial", color = TextWhite, fontSize = 22.sp, fontWeight = FontWeight.Bold)
                 Text(
                     "Dial a bundle straight from the app",
-                    color = White.copy(alpha = 0.5f),
+                    color = TextWhite.copy(alpha = 0.5f),
                     fontSize = 12.sp
                 )
             }
@@ -102,7 +102,7 @@ fun DialerScreen(onClose: () -> Unit, viewModel: DialerViewModel = hiltViewModel
                 Icon(
                     imageVector = Icons.Rounded.Close,
                     contentDescription = "Close dialer",
-                    tint = White.copy(alpha = 0.7f),
+                    tint = TextWhite.copy(alpha = 0.7f),
                     modifier = Modifier.size(22.dp)
                 )
             }
@@ -117,7 +117,7 @@ fun DialerScreen(onClose: () -> Unit, viewModel: DialerViewModel = hiltViewModel
         )
 
         Spacer(modifier = Modifier.height(22.dp))
-        Text("Active offers", color = White.copy(alpha = 0.5f), fontSize = 12.sp)
+        Text("Active offers", color = TextWhite.copy(alpha = 0.5f), fontSize = 12.sp)
         Spacer(modifier = Modifier.height(10.dp))
 
         if (offers.isEmpty()) {
@@ -125,13 +125,13 @@ fun DialerScreen(onClose: () -> Unit, viewModel: DialerViewModel = hiltViewModel
                 Icon(
                     imageVector = Icons.Rounded.Inbox,
                     contentDescription = null,
-                    tint = White.copy(alpha = 0.3f),
+                    tint = TextWhite.copy(alpha = 0.3f),
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     "No active offers yet — add one in the Offers tab.",
-                    color = White.copy(alpha = 0.45f),
+                    color = TextWhite.copy(alpha = 0.45f),
                     fontSize = 13.sp
                 )
             }
@@ -155,7 +155,7 @@ fun DialerScreen(onClose: () -> Unit, viewModel: DialerViewModel = hiltViewModel
         if (phone.isNotBlank() && selectedOffer != null) {
             Text(
                 "*${selectedOffer.ussdCode.replace("ph", phone).replace("BH", phone, true)}",
-                color = White.copy(alpha = 0.45f),
+                color = TextWhite.copy(alpha = 0.45f),
                 fontSize = 12.sp
             )
             Spacer(modifier = Modifier.height(8.dp))
@@ -164,13 +164,13 @@ fun DialerScreen(onClose: () -> Unit, viewModel: DialerViewModel = hiltViewModel
         feedback?.let { value ->
             Text(
                 value.message,
-                color = if (value.isError) ErrorRed else EmeraldGreen,
+                color = if (value.isError) FailRed else TickGreen,
                 fontSize = 13.sp
             )
             Spacer(modifier = Modifier.height(12.dp))
         }
 
-        GradientButton(
+        PrimaryButton(
             text = "Dial Now",
             enabled = phone.isNotBlank() && selectedOffer != null,
             loading = isDialing,
@@ -191,15 +191,15 @@ private fun GlassPhoneField(
         modifier = Modifier
             .fillMaxWidth()
             .clip(shape)
-            .background(GlassFill)
-            .border(1.dp, Brush.verticalGradient(listOf(GlassBorderStrong, Color.Transparent)), shape)
+            .background(Bubble)
+            .border(1.dp, Brush.verticalGradient(listOf(Hairline, Color.Transparent)), shape)
             .padding(horizontal = 16.dp, vertical = 18.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 imageVector = Icons.Rounded.Phone,
                 contentDescription = null,
-                tint = White.copy(alpha = 0.45f),
+                tint = TextWhite.copy(alpha = 0.45f),
                 modifier = Modifier.size(22.dp)
             )
             Spacer(modifier = Modifier.width(12.dp))
@@ -210,12 +210,12 @@ private fun GlassPhoneField(
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                     textStyle = TextStyle(
-                        color = White,
+                        color = TextWhite,
                         fontSize = 20.sp,
                         fontWeight = FontWeight.SemiBold,
                         letterSpacing = 1.sp
                     ),
-                    cursorBrush = SolidColor(BingwaOrange),
+                    cursorBrush = SolidColor(AccentBlue),
                     modifier = Modifier
                         .fillMaxWidth()
                         .onFocusChanged { focusState -> if (!focusState.isFocused) onBlur() }
@@ -223,7 +223,7 @@ private fun GlassPhoneField(
                 if (value.isEmpty()) {
                     Text(
                         "07XX XXX XXX",
-                        color = White.copy(alpha = 0.35f),
+                        color = TextWhite.copy(alpha = 0.35f),
                         fontSize = 20.sp,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -241,13 +241,13 @@ private fun OfferChip(offer: Offer, selected: Boolean, onClick: () -> Unit) {
         Modifier
             .clip(shape)
             .pressScale(interactionSource)
-            .background(brandBrush())
+            .background(accentBrush())
     } else {
         Modifier
             .clip(shape)
             .pressScale(interactionSource)
-            .background(GlassFill)
-            .border(1.dp, GlassBorder, shape)
+            .background(Bubble)
+            .border(1.dp, Hairline, shape)
     }
     Column(
         modifier = base
@@ -260,14 +260,14 @@ private fun OfferChip(offer: Offer, selected: Boolean, onClick: () -> Unit) {
     ) {
         Text(
             offer.name,
-            color = if (selected) NightBlack else White,
+            color = if (selected) BgBlack else TextWhite,
             fontSize = 13.sp,
             fontWeight = FontWeight.SemiBold
         )
         Spacer(modifier = Modifier.height(2.dp))
         Text(
             "Ksh ${offer.price}",
-            color = if (selected) NightBlack.copy(alpha = 0.7f) else White.copy(alpha = 0.5f),
+            color = if (selected) BgBlack.copy(alpha = 0.7f) else TextWhite.copy(alpha = 0.5f),
             fontSize = 11.sp
         )
     }

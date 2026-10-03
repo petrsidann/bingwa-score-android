@@ -21,14 +21,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.bingwascore.app.ui.theme.Amber
-import com.bingwascore.app.ui.theme.White
+import com.bingwascore.app.ui.theme.PendGrey
+import com.bingwascore.app.ui.theme.TextWhite
 
 /**
  * Parity E — friendly empty state used by every list screen.
  *
  * A tinted icon (48dp) in a soft circle, a 16sp bold title and an optional
- * 14sp secondary subtitle, all wrapped in the standard [GlassCard] so it
+ * 14sp secondary subtitle, all wrapped in the standard [BubbleCard] so it
  * inherits the app's enter animation and glass chrome.
  */
 @Composable
@@ -37,10 +37,10 @@ fun EmptyState(
     title: String,
     message: String? = null,
     modifier: Modifier = Modifier,
-    iconTint: Color = Amber,
+    iconTint: Color = PendGrey,
     action: (@Composable () -> Unit)? = null
 ) {
-    GlassCard(modifier = modifier.fillMaxWidth()) {
+    BubbleCard(modifier = modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -64,7 +64,7 @@ fun EmptyState(
             Spacer(modifier = Modifier.height(16.dp))
             Text(
                 title,
-                color = White,
+                color = TextWhite,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center
@@ -73,7 +73,7 @@ fun EmptyState(
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     message,
-                    color = White.copy(alpha = 0.6f),
+                    color = TextWhite.copy(alpha = 0.6f),
                     fontSize = 14.sp,
                     lineHeight = 20.sp,
                     textAlign = TextAlign.Center

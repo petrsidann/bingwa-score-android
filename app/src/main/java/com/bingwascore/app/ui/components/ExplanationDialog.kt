@@ -11,9 +11,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.bingwascore.app.ui.theme.GlassFill
-import com.bingwascore.app.ui.theme.BingwaOrange
-import com.bingwascore.app.ui.theme.White
+import com.bingwascore.app.ui.theme.Bubble
+import com.bingwascore.app.ui.theme.AccentBlue
+import com.bingwascore.app.ui.theme.TextWhite
 
 /**
  * A Material-3 [AlertDialog] themed to read like a frosted glass panel:
@@ -23,7 +23,7 @@ import com.bingwascore.app.ui.theme.White
  * sending the user to the system picker (see Home / Settings processing-mode flow).
  */
 @Composable
-fun GlassExplanationDialog(
+fun ExplanationDialog(
     title: String,
     message: String,
     confirmText: String = "Open Settings",
@@ -36,7 +36,7 @@ fun GlassExplanationDialog(
             TextButton(onClick = onConfirm) {
                 Text(
                     confirmText,
-                    color = BingwaOrange,
+                    color = AccentBlue,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -46,7 +46,7 @@ fun GlassExplanationDialog(
             TextButton(onClick = onDismiss) {
                 Text(
                     "Not now",
-                    color = White.copy(alpha = 0.55f),
+                    color = TextWhite.copy(alpha = 0.55f),
                     fontSize = 14.sp
                 )
             }
@@ -54,7 +54,7 @@ fun GlassExplanationDialog(
         title = {
             Text(
                 title,
-                color = White,
+                color = TextWhite,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.fillMaxWidth()
@@ -63,12 +63,12 @@ fun GlassExplanationDialog(
         text = {
             Text(
                 message,
-                color = White.copy(alpha = 0.8f),
+                color = TextWhite.copy(alpha = 0.8f),
                 fontSize = 14.sp,
                 modifier = Modifier.fillMaxWidth()
             )
         },
-        containerColor = GlassFill,
+        containerColor = Bubble,
         tonalElevation = 8.dp,
         shape = RoundedCornerShape(24.dp)
     )

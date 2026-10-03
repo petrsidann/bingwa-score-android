@@ -73,29 +73,27 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.LaunchedEffect
 import com.bingwascore.app.data.local.Transaction
 import com.bingwascore.app.domain.TransactionStatus
-import com.bingwascore.app.ui.components.AmbientBackground
 import com.bingwascore.app.ui.components.AnimatedRing
-import com.bingwascore.app.ui.components.GlassCard
-import com.bingwascore.app.ui.components.GlassExplanationDialog
-import com.bingwascore.app.ui.components.GradientButton
+import com.bingwascore.app.ui.components.BubbleCard
+import com.bingwascore.app.ui.components.ExplanationDialog
+import com.bingwascore.app.ui.components.PrimaryButton
 import com.bingwascore.app.ui.components.HapticSwitch
 import com.bingwascore.app.ui.components.shimmer
-import com.bingwascore.app.ui.theme.GlassBorder
-import com.bingwascore.app.ui.theme.Amber
-import com.bingwascore.app.ui.theme.BingwaOrange
-import com.bingwascore.app.ui.theme.EmeraldGreen
-import com.bingwascore.app.ui.theme.brandBrush
-import com.bingwascore.app.ui.theme.BrandColors
-import com.bingwascore.app.ui.theme.ErrorRed
+import com.bingwascore.app.ui.theme.Hairline
+import com.bingwascore.app.ui.theme.PendGrey
+import com.bingwascore.app.ui.theme.AccentBlue
+import com.bingwascore.app.ui.theme.TickGreen
+import com.bingwascore.app.ui.theme.accentBrush
+import com.bingwascore.app.ui.theme.FailRed
 import com.bingwascore.app.ui.theme.FaintDivider
 import com.bingwascore.app.ui.theme.DotTrack
 import com.bingwascore.app.ui.theme.Gold
-import com.bingwascore.app.ui.theme.NightBlack
-import com.bingwascore.app.ui.theme.Orange500
+import com.bingwascore.app.ui.theme.BgBlack
+import com.bingwascore.app.ui.theme.PendGrey
 import com.bingwascore.app.ui.theme.Silver
-import com.bingwascore.app.ui.theme.TealBlue
+import com.bingwascore.app.ui.theme.ChartBlue
 import com.bingwascore.app.ui.theme.Motion
-import com.bingwascore.app.ui.theme.White
+import com.bingwascore.app.ui.theme.TextWhite
 import com.bingwascore.app.util.rememberHaptics
 import com.bingwascore.app.util.screenEnter
 import com.bingwascore.app.util.stagger
@@ -158,9 +156,8 @@ fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
         modifier = Modifier
             .fillMaxSize()
             .screenEnter()
-            .background(NightBlack)
+            .background(BgBlack)
     ) {
-        AmbientBackground()
 
         Column(
             modifier = Modifier
@@ -185,7 +182,7 @@ fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
             StatTile(
                 modifier = Modifier.weight(1f),
                 icon = Icons.Rounded.CheckCircle,
-                iconTint = EmeraldGreen,
+                iconTint = TickGreen,
                 label = "Completed",
                 targetValue = successfulCount,
                 formatter = { it.toInt().toString() },
@@ -194,7 +191,7 @@ fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
             StatTile(
                 modifier = Modifier.weight(1f),
                 icon = Icons.Rounded.ErrorOutline,
-                iconTint = ErrorRed,
+                iconTint = FailRed,
                 label = "Failed",
                 targetValue = failedCount,
                 formatter = { it.toInt().toString() },
@@ -208,7 +205,7 @@ fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
             StatTile(
                 modifier = Modifier.weight(1f),
                 icon = Icons.Rounded.SimCard,
-                iconTint = TealBlue,
+                iconTint = ChartBlue,
                 label = "Airtime Used Today",
                 targetValue = airtimeUsedToday,
                 formatter = { formatKsh(it.toDouble()) },
@@ -217,7 +214,7 @@ fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
             StatTile(
                 modifier = Modifier.weight(1f),
                 icon = Icons.AutoMirrored.Rounded.TrendingUp,
-                iconTint = Orange500,
+                iconTint = PendGrey,
                 label = "Weekly Commission",
                 targetValue = weeklyCommission,
                 formatter = { formatKsh(it.toDouble()) },
@@ -269,7 +266,7 @@ fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
         Spacer(modifier = Modifier.height(16.dp))
 
         if (showAdvancedExplanation) {
-            GlassExplanationDialog(
+            ExplanationDialog(
                 title = "Advanced Mode",
                 message = "Advanced Mode uses an accessibility service to read and auto-tap USSD screens so Safaricom flows complete on their own. Open the system settings to enable the \"Bingwa Score\" accessibility service, then toggle Advanced back on.",
                 onDismiss = { viewModel.dismissAdvancedExplanation() },
@@ -317,27 +314,27 @@ private fun GreetingHeader(userName: String) {
 
     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Column(modifier = Modifier.weight(1f)) {
-            Text("$greeting,", color = White.copy(alpha = 0.6f), fontSize = 14.sp)
+            Text("$greeting,", color = TextWhite.copy(alpha = 0.6f), fontSize = 14.sp)
             Spacer(modifier = Modifier.height(2.dp))
-            Text(userName, color = White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+            Text(userName, color = TextWhite, fontSize = 24.sp, fontWeight = FontWeight.Bold)
         }
         Box {
             Box(
                 modifier = Modifier
                     .size(48.dp)
                     .clip(CircleShape)
-                    .background(brandBrush()),
+                    .background(accentBrush()),
                 contentAlignment = Alignment.Center
             ) {
-                Text(initials, color = NightBlack, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold)
+                Text(initials, color = BgBlack, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold)
             }
             Box(
                 modifier = Modifier
                     .size(12.dp)
                     .align(Alignment.BottomEnd)
                     .clip(CircleShape)
-                    .background(EmeraldGreen)
-                    .border(2.dp, NightBlack, CircleShape)
+                    .background(TickGreen)
+                    .border(2.dp, BgBlack, CircleShape)
             )
         }
     }
@@ -345,31 +342,31 @@ private fun GreetingHeader(userName: String) {
 
 @Composable
 private fun HealthBanner(missingCount: Int, onFix: () -> Unit, onOpenSettings: () -> Unit) {
-    GlassCard(modifier = Modifier.fillMaxWidth()) {
+    BubbleCard(modifier = Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 imageVector = Icons.Rounded.Warning,
                 contentDescription = null,
-                tint = Orange500,
+                tint = PendGrey,
                 modifier = Modifier.size(22.dp)
             )
             Spacer(modifier = Modifier.width(10.dp))
             Column {
-                Text("App health check", color = White, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                Text("App health check", color = TextWhite, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     "$missingCount permission(s) missing. SMS parsing and balance refresh need them.",
-                    color = White.copy(alpha = 0.55f),
+                    color = TextWhite.copy(alpha = 0.55f),
                     fontSize = 11.sp
                 )
             }
         }
         Spacer(modifier = Modifier.height(14.dp))
-        GradientButton(text = "Fix", onClick = onFix, modifier = Modifier.fillMaxWidth())
+        PrimaryButton(text = "Fix", onClick = onFix, modifier = Modifier.fillMaxWidth())
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             "Denied before? Open system settings",
-            color = Amber,
+            color = PendGrey,
             fontSize = 12.sp,
             modifier = Modifier
                 .align(Alignment.CenterHorizontally)
@@ -387,14 +384,14 @@ private fun AirtimeBalanceCard(
     onToggleVisibility: () -> Unit,
     onRefresh: () -> Unit
 ) {
-    GlassCard(modifier = Modifier.fillMaxWidth()) {
+    BubbleCard(modifier = Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
-                Text("Airtime Balance", color = White.copy(alpha = 0.55f), fontSize = 12.sp)
+                Text("Airtime Balance", color = TextWhite.copy(alpha = 0.55f), fontSize = 12.sp)
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     if (balanceVisible) formatKsh(balance) else "Ksh • • • • • •",
-                    color = White,
+                    color = TextWhite,
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
                     modifier = if (balanceLoading) Modifier.shimmer() else Modifier
@@ -403,7 +400,7 @@ private fun AirtimeBalanceCard(
             Icon(
                 imageVector = if (balanceVisible) Icons.Rounded.Visibility else Icons.Rounded.VisibilityOff,
                 contentDescription = if (balanceVisible) "Hide balance" else "Show balance",
-                tint = White.copy(alpha = 0.7f),
+                tint = TextWhite.copy(alpha = 0.7f),
                 modifier = Modifier
                     .size(22.dp)
                     .clickable(onClick = onToggleVisibility)
@@ -412,7 +409,7 @@ private fun AirtimeBalanceCard(
             Icon(
                 imageVector = Icons.Rounded.Refresh,
                 contentDescription = "Refresh balance",
-                tint = BingwaOrange,
+                tint = AccentBlue,
                 modifier = Modifier
                     .size(22.dp)
                     .graphicsLayer { rotationZ = if (balanceLoading) refreshAngle else 0f }
@@ -430,21 +427,21 @@ private fun ModeChip(
     active: Boolean,
     onClick: () -> Unit
 ) {
-    GlassCard(modifier = modifier, cornerRadius = 18.dp, onClick = onClick) {
+    BubbleCard(modifier = modifier, cornerRadius = 18.dp, onClick = onClick) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier = Modifier
                     .size(10.dp)
                     .clip(CircleShape)
-                    .background(if (active) EmeraldGreen else DotTrack)
+                    .background(if (active) TickGreen else DotTrack)
             )
             Spacer(modifier = Modifier.width(10.dp))
             Column {
-                Text(title, color = White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                Text(title, color = TextWhite, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     subtitle,
-                    color = if (active) EmeraldGreen else White.copy(alpha = 0.55f),
+                    color = if (active) TickGreen else TextWhite.copy(alpha = 0.55f),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -468,19 +465,19 @@ private fun StatTile(
         animationSpec = spring(dampingRatio = Motion.DAMPING),
         label = "statTileCount"
     )
-    GlassCard(modifier = modifier) {
+    BubbleCard(modifier = modifier) {
         Icon(imageVector = icon, contentDescription = label, tint = iconTint, modifier = Modifier.size(20.dp))
         Spacer(modifier = Modifier.height(10.dp))
         // Parity E — shimmer the value until Room delivers its first snapshot.
         Text(
             formatter(animatedValue),
-            color = White,
+            color = TextWhite,
             fontSize = 19.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.shimmer(loading)
         )
         Spacer(modifier = Modifier.height(3.dp))
-        Text(label, color = White.copy(alpha = 0.55f), fontSize = 11.sp)
+        Text(label, color = TextWhite.copy(alpha = 0.55f), fontSize = 11.sp)
     }
 }
 
@@ -490,15 +487,15 @@ private fun WeeklyChart(weeklyBars: List<Double>, weeklyCommission: Double) {
     var shimmering by remember { mutableStateOf(true) }
     LaunchedEffect(Unit) { kotlinx.coroutines.delay(800); shimmering = false }
 
-    GlassCard(modifier = Modifier.fillMaxWidth()) {
+    BubbleCard(modifier = Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
-                Text("Weekly Commission", color = White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-                Text("Earned per day this week", color = White.copy(alpha = 0.55f), fontSize = 11.sp)
+                Text("Weekly Commission", color = TextWhite, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                Text("Earned per day this week", color = TextWhite.copy(alpha = 0.55f), fontSize = 11.sp)
             }
             Text(
                 formatKsh(weeklyCommission),
-                color = EmeraldGreen,
+                color = TickGreen,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -520,7 +517,7 @@ private fun WeeklyChart(weeklyBars: List<Double>, weeklyCommission: Double) {
             val baseline = size.height
 
             drawLine(
-                color = GlassBorder,
+                color = Hairline,
                 start = Offset(0f, baseline),
                 end = Offset(size.width, baseline),
                 strokeWidth = 1.dp.toPx()
@@ -532,7 +529,7 @@ private fun WeeklyChart(weeklyBars: List<Double>, weeklyCommission: Double) {
                 val left = index * slot + (slot - barWidth) / 2f
                 drawRoundRect(
                     brush = Brush.verticalGradient(
-                        colors = BrandColors,
+                        colors = listOf(AccentBlue),
                         startY = baseline - barHeight,
                         endY = baseline
                     ),
@@ -550,7 +547,7 @@ private fun WeeklyChart(weeklyBars: List<Double>, weeklyCommission: Double) {
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             dayLabels.forEach { label ->
-                Text(label, color = White.copy(alpha = 0.45f), fontSize = 10.sp)
+                Text(label, color = TextWhite.copy(alpha = 0.45f), fontSize = 10.sp)
             }
         }
     }
@@ -561,7 +558,7 @@ private fun WeeklyGoalHero(weeklyCommission: Double) {
     val weeklyGoal = 5000.0
     val progress = (weeklyCommission / weeklyGoal).toFloat().coerceIn(0f, 1f)
 
-    GlassCard(modifier = Modifier.fillMaxWidth()) {
+    BubbleCard(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -574,24 +571,24 @@ private fun WeeklyGoalHero(weeklyCommission: Double) {
                 AnimatedRing(progress = progress, size = 80.dp)
                 Text(
                     "${(progress * 100).toInt()}%",
-                    color = White,
+                    color = TextWhite,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold
                 )
             }
             Column(modifier = Modifier.weight(1f)) {
-                Text("Weekly Goal", color = White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                Text("Weekly Goal", color = TextWhite, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     "${formatKsh(weeklyCommission)} of ${formatKsh(weeklyGoal)}",
-                    color = EmeraldGreen,
+                    color = TickGreen,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     if (progress >= 1f) "Goal reached! 🎉" else "Keep going — you're almost there",
-                    color = White.copy(alpha = 0.55f),
+                    color = TextWhite.copy(alpha = 0.55f),
                     fontSize = 11.sp
                 )
             }
@@ -603,30 +600,30 @@ private fun WeeklyGoalHero(weeklyCommission: Double) {
 private fun RecentActivity(transactions: List<Transaction>) {
     val timeFormat = remember { SimpleDateFormat("HH:mm", Locale.US) }
 
-    GlassCard(modifier = Modifier.fillMaxWidth()) {
-        Text("Recent Activity", color = White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+    BubbleCard(modifier = Modifier.fillMaxWidth()) {
+        Text("Recent Activity", color = TextWhite, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
         Spacer(modifier = Modifier.height(14.dp))
         if (transactions.isEmpty()) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = Icons.Rounded.Inbox,
                     contentDescription = null,
-                    tint = White.copy(alpha = 0.3f),
+                    tint = TextWhite.copy(alpha = 0.3f),
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     "Nothing yet — your dialed bundles will show up here.",
-                    color = White.copy(alpha = 0.5f),
+                    color = TextWhite.copy(alpha = 0.5f),
                     fontSize = 13.sp
                 )
             }
         }
         transactions.forEachIndexed { index, tx ->
             val statusColor = when (tx.status) {
-                TransactionStatus.SUCCESSFUL.value -> EmeraldGreen
-                TransactionStatus.FAILED.value -> ErrorRed
-                else -> Orange500
+                TransactionStatus.SUCCESSFUL.value -> TickGreen
+                TransactionStatus.FAILED.value -> FailRed
+                else -> PendGrey
             }
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -650,18 +647,18 @@ private fun RecentActivity(transactions: List<Transaction>) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         tx.customerName ?: tx.phoneNumber,
-                        color = White,
+                        color = TextWhite,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold
                     )
                     Text(
                         "${tx.offerName} • ${timeFormat.format(Date(tx.createdAt))}",
-                        color = White.copy(alpha = 0.5f),
+                        color = TextWhite.copy(alpha = 0.5f),
                         fontSize = 11.sp
                     )
                 }
                 Column(horizontalAlignment = Alignment.End) {
-                    Text(formatKsh(tx.amount), color = White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                    Text(formatKsh(tx.amount), color = TextWhite, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                     Spacer(modifier = Modifier.height(3.dp))
                     StatusChip(text = tx.status, color = statusColor)
                 }
@@ -755,7 +752,7 @@ private fun ConfettiBurst(modifier: Modifier = Modifier) {
             ConfettiParticle(
                 x = kotlin.random.Random.nextFloat(),
                 y = kotlin.random.Random.nextFloat() - 0.5f,
-                color = listOf(EmeraldGreen, TealBlue, Orange500, Gold, Silver).random(),
+                color = listOf(TickGreen, ChartBlue, PendGrey, Gold, Silver).random(),
                 size = kotlin.random.Random.nextFloat() * 6f + 4f,
                 speed = kotlin.random.Random.nextFloat() * 1.5f + 0.5f
             )
@@ -789,12 +786,12 @@ private data class ConfettiParticle(
 
 @Composable
 private fun EngineToggleCard(enabled: Boolean, onToggle: () -> Unit) {
-    GlassCard(modifier = Modifier.fillMaxWidth()) {
+    BubbleCard(modifier = Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     "Bingwa Autopilot",
-                    color = White,
+                    color = TextWhite,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -802,7 +799,7 @@ private fun EngineToggleCard(enabled: Boolean, onToggle: () -> Unit) {
                 Text(
                     if (enabled) "Running — watching for M-Pesa payments"
                     else "Stopped — tap to start",
-                    color = if (enabled) EmeraldGreen else White.copy(alpha = 0.55f),
+                    color = if (enabled) TickGreen else TextWhite.copy(alpha = 0.55f),
                     fontSize = 12.sp
                 )
             }

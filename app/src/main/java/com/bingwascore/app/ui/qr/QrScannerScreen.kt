@@ -39,16 +39,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.bingwascore.app.ui.components.AmbientBackground
 import com.bingwascore.app.ui.components.EmptyState
-import com.bingwascore.app.ui.components.GlassCard
+import com.bingwascore.app.ui.components.BubbleCard
 import com.bingwascore.app.ui.components.ShimmerBlock
-import com.bingwascore.app.ui.theme.Amber
-import com.bingwascore.app.ui.theme.BingwaOrange
+import com.bingwascore.app.ui.theme.PendGrey
+import com.bingwascore.app.ui.theme.AccentBlue
 import com.bingwascore.app.ui.theme.BingwaType
-import com.bingwascore.app.ui.theme.EmeraldGreen
-import com.bingwascore.app.ui.theme.NightBlack
-import com.bingwascore.app.ui.theme.White
+import com.bingwascore.app.ui.theme.TickGreen
+import com.bingwascore.app.ui.theme.BgBlack
+import com.bingwascore.app.ui.theme.TextWhite
 import com.bingwascore.app.util.screenEnter
 
 /**
@@ -99,9 +98,8 @@ fun QrScannerScreen(viewModel: QrScannerViewModel = hiltViewModel()) {
         modifier = Modifier
             .fillMaxSize()
             .screenEnter()
-            .background(NightBlack)
+            .background(BgBlack)
     ) {
-        AmbientBackground()
 
         Column(modifier = Modifier.fillMaxSize()) {
             Column(
@@ -109,10 +107,10 @@ fun QrScannerScreen(viewModel: QrScannerViewModel = hiltViewModel()) {
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp, vertical = 16.dp)
             ) {
-                Text("QR Scanner", color = White, style = BingwaType.headlineStyle)
+                Text("QR Scanner", color = TextWhite, style = BingwaType.headlineStyle)
                 Text(
                     "Scan a code or pick a contact to add them to your book",
-                    color = White.copy(alpha = 0.5f),
+                    color = TextWhite.copy(alpha = 0.5f),
                     style = BingwaType.captionStyle
                 )
             }
@@ -145,7 +143,7 @@ fun QrScannerScreen(viewModel: QrScannerViewModel = hiltViewModel()) {
             if (!statusText.isNullOrBlank()) {
                 Text(
                     statusText,
-                    color = if (imported.isNotEmpty()) EmeraldGreen else White.copy(alpha = 0.7f),
+                    color = if (imported.isNotEmpty()) TickGreen else TextWhite.copy(alpha = 0.7f),
                     style = BingwaType.captionStyle,
                     modifier = Modifier.padding(horizontal = 20.dp)
                 )
@@ -160,7 +158,7 @@ fun QrScannerScreen(viewModel: QrScannerViewModel = hiltViewModel()) {
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     repeat(2) {
-                        GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 18.dp) {
+                        BubbleCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 18.dp) {
                             ShimmerBlock(modifier = Modifier.fillMaxWidth())
                         }
                     }
@@ -199,19 +197,19 @@ private fun ImportTile(
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
-    GlassCard(modifier = modifier, cornerRadius = 18.dp, onClick = onClick) {
-        Icon(imageVector = icon, contentDescription = null, tint = Amber, modifier = Modifier.size(26.dp))
+    BubbleCard(modifier = modifier, cornerRadius = 18.dp, onClick = onClick) {
+        Icon(imageVector = icon, contentDescription = null, tint = PendGrey, modifier = Modifier.size(26.dp))
         Spacer(modifier = Modifier.height(10.dp))
-        Text(title, color = White, style = BingwaType.labelStyle)
+        Text(title, color = TextWhite, style = BingwaType.labelStyle)
         Spacer(modifier = Modifier.height(3.dp))
-        Text(subtitle, color = White.copy(alpha = 0.5f), style = BingwaType.microStyle)
+        Text(subtitle, color = TextWhite.copy(alpha = 0.5f), style = BingwaType.microStyle)
     }
 }
 
 /** One imported contact. */
 @Composable
 private fun ImportedRow(entry: ImportedContact, enterDelayMillis: Int) {
-    GlassCard(
+    BubbleCard(
         modifier = Modifier.fillMaxWidth(),
         cornerRadius = 18.dp,
         enterDelayMillis = enterDelayMillis
@@ -221,25 +219,25 @@ private fun ImportedRow(entry: ImportedContact, enterDelayMillis: Int) {
                 modifier = Modifier
                     .size(42.dp)
                     .clip(CircleShape)
-                    .background(Brush.horizontalGradient(listOf(BingwaOrange, Amber))),
+                    .background(Brush.horizontalGradient(listOf(AccentBlue, PendGrey))),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Rounded.Check,
                     contentDescription = null,
-                    tint = NightBlack,
+                    tint = BgBlack,
                     modifier = Modifier.size(20.dp)
                 )
             }
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(entry.name, color = White, style = BingwaType.labelStyle)
+                Text(entry.name, color = TextWhite, style = BingwaType.labelStyle)
                 Spacer(modifier = Modifier.height(3.dp))
-                Text(entry.phone, color = White.copy(alpha = 0.5f), style = BingwaType.captionStyle)
+                Text(entry.phone, color = TextWhite.copy(alpha = 0.5f), style = BingwaType.captionStyle)
             }
             Text(
                 "Saved",
-                color = EmeraldGreen,
+                color = TickGreen,
                 style = BingwaType.microStyle,
                 fontWeight = FontWeight.SemiBold
             )

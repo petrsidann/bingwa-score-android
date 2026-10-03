@@ -43,13 +43,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.bingwascore.app.ui.components.GlassCard
-import com.bingwascore.app.ui.components.GradientButton
+import com.bingwascore.app.ui.components.BubbleCard
+import com.bingwascore.app.ui.components.PrimaryButton
 import com.bingwascore.app.util.screenEnter
-import com.bingwascore.app.ui.theme.EmeraldGreen
-import com.bingwascore.app.ui.theme.NightBlack
-import com.bingwascore.app.ui.theme.Orange500
-import com.bingwascore.app.ui.theme.White
+import com.bingwascore.app.ui.theme.TickGreen
+import com.bingwascore.app.ui.theme.BgBlack
+import com.bingwascore.app.ui.theme.PendGrey
+import com.bingwascore.app.ui.theme.TextWhite
 import com.bingwascore.app.util.PowerUtils
 
 @Composable
@@ -76,16 +76,16 @@ fun SetupChecklistScreen(
         modifier = Modifier
             .fillMaxSize()
             .screenEnter()
-            .background(NightBlack)
+            .background(BgBlack)
             .verticalScroll(rememberScrollState())
             .navigationBarsPadding()
             .padding(horizontal = 20.dp, vertical = 24.dp)
     ) {
-        Text("Finish setup — let's lock in your engine", color = White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        Text("Finish setup — let's lock in your engine", color = TextWhite, fontSize = 20.sp, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(4.dp))
         Text(
             "Grant these so Bingwa never misses an M-Pesa credit or USSD step.",
-            color = White.copy(alpha = 0.6f),
+            color = TextWhite.copy(alpha = 0.6f),
             fontSize = 13.sp
         )
         Spacer(modifier = Modifier.height(20.dp))
@@ -131,7 +131,7 @@ fun SetupChecklistScreen(
         )
 
         Spacer(modifier = Modifier.weight(1f))
-        GradientButton(
+        PrimaryButton(
             text = "Start Earning",
             onClick = { viewModel.completeSetup() },
             modifier = Modifier.fillMaxWidth(),
@@ -149,7 +149,7 @@ private fun ChecklistRow(
     onTap: () -> Unit
 ) {
     val haptic = LocalHapticFeedback.current
-    GlassCard(
+    BubbleCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 6.dp),
@@ -168,16 +168,16 @@ private fun ChecklistRow(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = if (done) EmeraldGreen else Orange500,
+                tint = if (done) TickGreen else PendGrey,
                 modifier = Modifier.size(22.dp)
             )
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(title, color = White, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                Text(title, color = TextWhite, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                 Spacer(modifier = Modifier.height(2.dp))
-                Text(actionLabel, color = if (done) EmeraldGreen else Orange500, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                Text(actionLabel, color = if (done) TickGreen else PendGrey, fontSize = 11.sp, fontWeight = FontWeight.Bold)
             }
-            StatusChip(text = if (done) "DONE" else "ACTION", color = if (done) EmeraldGreen else Orange500)
+            StatusChip(text = if (done) "DONE" else "ACTION", color = if (done) TickGreen else PendGrey)
         }
     }
 }

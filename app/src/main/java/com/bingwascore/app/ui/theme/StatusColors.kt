@@ -19,29 +19,30 @@ import java.util.Locale
  * activity) reads colour + icon + label from here so a status can never look
  * different in two places.
  *
- * Palette (exact hex):
- * - Success / check  → `#00C853` (green)
- * - Scheduled / clock → `#2979FF` (blue)
- * - Pending / hourglass → `#FF9800` (orange)
- * - Failed / cross → `#FF453A` (red)
- * - Neutral (unmatched / cancelled / paused) → silver
+ * Palette (exact hex in DARK, and every token re-resolves per display mode):
+ * - Successful → `#2962FF` (accent blue — success is brand, not a green dot)
+ * - Failed / already recommended → `#FF5252`
+ * - Pending / processing / scheduled → `#9E9E9E`
+ * - Unmatched / cancelled / paused → dim grey
+ *
+ * Green is reserved for the "mark complete" tick ([TickGreen]) and nothing else.
  */
 object StatusColors {
 
-    /** Completed successfully — `#00C853`. */
-    val Success: Color = EmeraldGreen
+    /** Completed successfully — the brand accent. */
+    val Success: Color get() = AccentBlue
 
-    /** Queued for a future run — `#2979FF`. */
-    val Scheduled: Color = Color(0xFF2979FF)
+    /** Queued for a future run — grey, same as pending. */
+    val Scheduled: Color get() = PendGrey
 
-    /** In flight / waiting on USSD — `#FF9800`. */
-    val Pending: Color = Orange500
+    /** In flight / waiting on USSD — grey, it carries no verdict yet. */
+    val Pending: Color get() = PendGrey
 
-    /** Failed or already recommended — `#FF453A`. */
-    val Failed: Color = ErrorRed
+    /** Failed or already recommended. */
+    val Failed: Color get() = FailRed
 
     /** Unmatched / cancelled / paused — no signal either way. */
-    val Neutral: Color = Amber
+    val Neutral: Color get() = TextDim
 
     /** Colour for a raw Room status string (never throws on unknown values). */
     fun color(status: String?): Color = when (status) {

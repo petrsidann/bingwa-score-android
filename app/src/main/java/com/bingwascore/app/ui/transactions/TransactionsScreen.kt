@@ -60,26 +60,26 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bingwascore.app.data.local.Transaction
 import com.bingwascore.app.domain.TransactionStatus
 import com.bingwascore.app.ui.components.EmptyState
-import com.bingwascore.app.ui.components.GlassCard
+import com.bingwascore.app.ui.components.BubbleCard
 import com.bingwascore.app.ui.components.ShimmerBlock
 import com.bingwascore.app.ui.components.pressScale
 import com.bingwascore.app.ui.components.shimmer
 import com.bingwascore.app.util.rememberHaptics
 import com.bingwascore.app.util.screenEnter
 import com.bingwascore.app.util.staggeredEnter
-import com.bingwascore.app.ui.theme.GlassBorderStrong
-import com.bingwascore.app.ui.theme.GlassBorder
-import com.bingwascore.app.ui.theme.GlassFill
-import com.bingwascore.app.ui.theme.Amber
-import com.bingwascore.app.ui.theme.BingwaOrange
-import com.bingwascore.app.ui.theme.EmeraldGreen
-import com.bingwascore.app.ui.theme.ErrorRed
-import com.bingwascore.app.ui.theme.NightBlack
-import com.bingwascore.app.ui.theme.Orange500
-import com.bingwascore.app.ui.theme.SurfaceDark
+import com.bingwascore.app.ui.theme.Hairline
+import com.bingwascore.app.ui.theme.Hairline
+import com.bingwascore.app.ui.theme.Bubble
+import com.bingwascore.app.ui.theme.PendGrey
+import com.bingwascore.app.ui.theme.AccentBlue
+import com.bingwascore.app.ui.theme.TickGreen
+import com.bingwascore.app.ui.theme.FailRed
+import com.bingwascore.app.ui.theme.BgBlack
+import com.bingwascore.app.ui.theme.PendGrey
+import com.bingwascore.app.ui.theme.Raised
 import com.bingwascore.app.ui.theme.Motion
 import com.bingwascore.app.ui.theme.StatusColors
-import com.bingwascore.app.ui.theme.White
+import com.bingwascore.app.ui.theme.TextWhite
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -108,7 +108,7 @@ fun TransactionsScreen(viewModel: TransactionsViewModel = hiltViewModel()) {
         modifier = Modifier
             .fillMaxSize()
             .screenEnter()
-            .background(NightBlack)
+            .background(BgBlack)
     ) {
         Row(
             modifier = Modifier
@@ -117,14 +117,14 @@ fun TransactionsScreen(viewModel: TransactionsViewModel = hiltViewModel()) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text("Transactions", color = White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                Text("Transactions", color = TextWhite, fontSize = 22.sp, fontWeight = FontWeight.Bold)
                 Text(
                     if (hasSelection) {
                         "${selectedIds.size} in Ghost Queue"
                     } else {
                         "${transactions.size} record(s)"
                     },
-                    color = White.copy(alpha = 0.5f),
+                    color = TextWhite.copy(alpha = 0.5f),
                     fontSize = 12.sp
                 )
             }
@@ -241,7 +241,7 @@ fun TransactionsScreen(viewModel: TransactionsViewModel = hiltViewModel()) {
     selectedTransaction?.let { transaction ->
         ModalBottomSheet(
             onDismissRequest = { selectedTransaction = null },
-            containerColor = SurfaceDark
+            containerColor = Raised
         ) {
             TransactionDetailSheet(
                 transaction = transaction,
@@ -278,10 +278,10 @@ private fun SelectAllChip(label: String, active: Boolean, onClick: () -> Unit) {
         modifier = Modifier
             .pressScale(interactionSource)
             .clip(RoundedCornerShape(10.dp))
-            .background(if (active) BingwaOrange.copy(alpha = 0.18f) else GlassFill)
+            .background(if (active) AccentBlue.copy(alpha = 0.18f) else Bubble)
             .border(
                 1.dp,
-                if (active) BingwaOrange.copy(alpha = 0.55f) else GlassBorder,
+                if (active) AccentBlue.copy(alpha = 0.55f) else Hairline,
                 RoundedCornerShape(10.dp)
             )
             .clickable(
@@ -293,7 +293,7 @@ private fun SelectAllChip(label: String, active: Boolean, onClick: () -> Unit) {
     ) {
         Text(
             label,
-            color = if (active) BingwaOrange else White.copy(alpha = 0.75f),
+            color = if (active) AccentBlue else TextWhite.copy(alpha = 0.75f),
             fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold
         )
@@ -311,7 +311,7 @@ private fun GhostQueueBar(
     onComplete: () -> Unit,
     onClear: () -> Unit
 ) {
-    GlassCard(
+    BubbleCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 20.dp, vertical = 10.dp)
@@ -320,13 +320,13 @@ private fun GhostQueueBar(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     "Ghost Queue",
-                    color = White,
+                    color = TextWhite,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
                     "$count selected",
-                    color = White.copy(alpha = 0.55f),
+                    color = TextWhite.copy(alpha = 0.55f),
                     fontSize = 11.sp
                 )
             }
@@ -361,13 +361,13 @@ private fun GhostQueueAction(
         Icon(
             imageVector = icon,
             contentDescription = label,
-            tint = BingwaOrange,
+            tint = AccentBlue,
             modifier = Modifier.size(18.dp)
         )
         Spacer(modifier = Modifier.height(2.dp))
         Text(
             label,
-            color = White.copy(alpha = 0.75f),
+            color = TextWhite.copy(alpha = 0.75f),
             fontSize = 10.sp,
             fontWeight = FontWeight.SemiBold
         )
@@ -403,8 +403,8 @@ private fun SwipeToDeleteRow(
                 modifier = Modifier
                     .fillMaxSize()
                     .clip(shape)
-                    .background(ErrorRed.copy(alpha = 0.16f))
-                    .border(1.dp, ErrorRed.copy(alpha = 0.45f), shape)
+                    .background(FailRed.copy(alpha = 0.16f))
+                    .border(1.dp, FailRed.copy(alpha = 0.45f), shape)
                     .padding(horizontal = 20.dp),
                 contentAlignment = Alignment.CenterEnd
             ) {
@@ -412,13 +412,13 @@ private fun SwipeToDeleteRow(
                     Icon(
                         imageVector = Icons.Rounded.DeleteOutline,
                         contentDescription = "Delete transaction",
-                        tint = ErrorRed,
+                        tint = FailRed,
                         modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         "Delete",
-                        color = ErrorRed,
+                        color = FailRed,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -442,7 +442,7 @@ private fun TransactionSkeleton() {
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         items(3) { index ->
-            GlassCard(
+            BubbleCard(
                 modifier = Modifier.fillMaxWidth(),
                 cornerRadius = 18.dp,
                 enterDelayMillis = index * Motion.STAGGER
@@ -471,7 +471,7 @@ private fun TransactionRow(
     onLongClick: (() -> Unit)? = null
 ) {
     val color = statusColor(transaction.status)
-    GlassCard(
+    BubbleCard(
         modifier = Modifier.fillMaxWidth(),
         cornerRadius = 18.dp,
         onClick = onClick,
@@ -497,14 +497,14 @@ private fun TransactionRow(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     transaction.customerName ?: transaction.phoneNumber,
-                    color = White,
+                    color = TextWhite,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     "${transaction.offerName} • ${timeAgo(transaction.createdAt)}",
-                    color = White.copy(alpha = 0.5f),
+                    color = TextWhite.copy(alpha = 0.5f),
                     fontSize = 11.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -514,7 +514,7 @@ private fun TransactionRow(
             Column(horizontalAlignment = Alignment.End) {
                 Text(
                     formatKsh(transaction.amount),
-                    color = White,
+                    color = TextWhite,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -567,13 +567,13 @@ private fun TransactionDetailSheet(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     transaction.customerName ?: transaction.phoneNumber,
-                    color = White,
+                    color = TextWhite,
                     fontSize = 17.sp,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
                     transaction.phoneNumber,
-                    color = White.copy(alpha = 0.5f),
+                    color = TextWhite.copy(alpha = 0.5f),
                     fontSize = 12.sp
                 )
             }
@@ -585,8 +585,8 @@ private fun TransactionDetailSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(18.dp))
-                .background(GlassFill)
-                .border(1.dp, GlassBorder, RoundedCornerShape(18.dp))
+                .background(Bubble)
+                .border(1.dp, Hairline, RoundedCornerShape(18.dp))
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
@@ -615,23 +615,23 @@ private fun TransactionDetailSheet(
         Spacer(modifier = Modifier.height(16.dp))
 
         if (canRetry(transaction.status)) {
-            SheetAction(Icons.Rounded.Refresh, "Retry now", Amber, onRetry)
+            SheetAction(Icons.Rounded.Refresh, "Retry now", PendGrey, onRetry)
             Spacer(modifier = Modifier.height(10.dp))
         }
         if (canComplete(transaction.status)) {
-            SheetAction(Icons.Rounded.CheckCircle, "Mark as completed", EmeraldGreen, onComplete)
+            SheetAction(Icons.Rounded.CheckCircle, "Mark as completed", TickGreen, onComplete)
             Spacer(modifier = Modifier.height(10.dp))
         }
         if (canSchedule(transaction.status)) {
             SheetAction(
                 Icons.Rounded.Schedule,
                 "Schedule tomorrow 01:00",
-                Orange500,
+                PendGrey,
                 onSchedule
             )
             Spacer(modifier = Modifier.height(10.dp))
         }
-        SheetAction(Icons.Rounded.DeleteOutline, "Delete transaction", ErrorRed, onDelete)
+        SheetAction(Icons.Rounded.DeleteOutline, "Delete transaction", FailRed, onDelete)
     }
 }
 
@@ -640,13 +640,13 @@ private fun ColumnScope.DetailRow(label: String, value: String) {
     Row {
         Text(
             label,
-            color = White.copy(alpha = 0.5f),
+            color = TextWhite.copy(alpha = 0.5f),
             fontSize = 12.sp,
             modifier = Modifier.weight(1f)
         )
         Text(
             value,
-            color = White,
+            color = TextWhite,
             fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold,
             textAlign = TextAlign.End,
@@ -664,8 +664,8 @@ private fun SheetAction(icon: ImageVector, label: String, tint: Color, onClick: 
             .fillMaxWidth()
             .pressScale(interactionSource)
             .clip(shape)
-            .background(GlassFill)
-            .border(1.dp, GlassBorder, shape)
+            .background(Bubble)
+            .border(1.dp, Hairline, shape)
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
@@ -681,7 +681,7 @@ private fun SheetAction(icon: ImageVector, label: String, tint: Color, onClick: 
             modifier = Modifier.size(20.dp)
         )
         Spacer(modifier = Modifier.width(12.dp))
-        Text(label, color = White, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+        Text(label, color = TextWhite, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
     }
 }
 
@@ -693,10 +693,10 @@ private fun FilterChip(label: String, selected: Boolean, onClick: () -> Unit) {
         modifier = Modifier
             .pressScale(interactionSource)
             .clip(shape)
-            .background(if (selected) BingwaOrange.copy(alpha = 0.18f) else GlassFill)
+            .background(if (selected) AccentBlue.copy(alpha = 0.18f) else Bubble)
             .border(
                 1.dp,
-                if (selected) BingwaOrange.copy(alpha = 0.55f) else GlassBorder,
+                if (selected) AccentBlue.copy(alpha = 0.55f) else Hairline,
                 shape
             )
             .clickable(
@@ -708,7 +708,7 @@ private fun FilterChip(label: String, selected: Boolean, onClick: () -> Unit) {
     ) {
         Text(
             label,
-            color = if (selected) BingwaOrange else White.copy(alpha = 0.65f),
+            color = if (selected) AccentBlue else TextWhite.copy(alpha = 0.65f),
             fontSize = 12.sp,
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
         )
@@ -723,8 +723,8 @@ private fun ExportButton(onClick: () -> Unit) {
         modifier = Modifier
             .pressScale(interactionSource)
             .clip(shape)
-            .background(GlassFill)
-            .border(1.dp, GlassBorderStrong, shape)
+            .background(Bubble)
+            .border(1.dp, Hairline, shape)
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
@@ -737,13 +737,13 @@ private fun ExportButton(onClick: () -> Unit) {
             Icon(
                 imageVector = Icons.Rounded.FileDownload,
                 contentDescription = null,
-                tint = BingwaOrange,
+                tint = AccentBlue,
                 modifier = Modifier.size(18.dp)
             )
             Spacer(modifier = Modifier.width(6.dp))
             Text(
                 "CSV",
-                color = EmeraldGreen,
+                color = TickGreen,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold
             )

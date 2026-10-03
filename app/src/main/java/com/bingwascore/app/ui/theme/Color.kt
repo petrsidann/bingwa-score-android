@@ -1,77 +1,145 @@
 package com.bingwascore.app.ui.theme
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import com.bingwascore.app.domain.ThemeMode
 
 /**
- * PARITY BLOCK C — Bingwa brand truth (locked):
- * - Primary Brand: BingwaOrange #FF6D00 + Amber #FFB300 (Orange→Amber gradient).
- * - Background: NightBlack #0A0A0F (dark-first).
- * - Success ONLY: EmeraldGreen #00C853 — never used for brand surfaces.
- * Glass tokens below drive true iOS-style glassmorphism in GlassCard;
- * GradientButton always renders [BrandColors] (Orange→Amber).
+ * REBRAND R1 — the Bingwa Score colour system.
+ *
+ * One rule: every UI colour comes from a token below, never from a literal.
+ * Tokens are *mode aware* — they read [DisplayModeState], which the theme writes
+ * on every recomposition, so switching display mode repaints the whole app on
+ * the next frame without restarting anything or touching a single screen.
+ *
+ * Modes (Settings > Appearance, there is deliberately NO light mode):
+ * - [ThemeMode.DARK]             — the product truth: black + electric blue.
+ * - [ThemeMode.GRAYSCALE]        — monochrome dark; accents fall back to #BDBDBD.
+ * - [ThemeMode.BLUE_LIGHT_FILTER]— warm dark that tames blue light (night use).
  */
-// ─── Brand: orange ────────────────────────────────────────────────────────────
-val BingwaOrange = Color(0xFFFF6D00)
-val Amber = Color(0xFFFFB300)
-val OrangeDark = Color(0xFFE65100)
+internal object DisplayModeState {
+    var mode: ThemeMode by mutableStateOf(ThemeMode.DARK)
+}
 
-/** The primary brand gradient used on buttons, FABs, chips, rings and nav. */
-val BrandColors = listOf(BingwaOrange, Amber)
+/** Written by the theme after a successful composition; read by every token. */
+internal fun installDisplayMode(value: ThemeMode) {
+    if (DisplayModeState.mode != value) DisplayModeState.mode = value
+}
 
-/** Convenience brush for the orange→amber brand gradient. */
-fun brandBrush(): Brush = Brush.linearGradient(BrandColors)
+/** The display mode currently painted by the app. */
+val currentDisplayMode: ThemeMode get() = DisplayModeState.mode
 
-// ─── Semantic: green is reserved for success states only ─────────────────────
-val EmeraldGreen = Color(0xFF00C853)
-val SuccessGreen = Color(0xFF00C853)
-val TealBlue = Color(0xFF00B8D4)
-val Orange500 = Color(0xFFFF9800)
-val Purple500 = Color(0xFF6200EE)
-val White = Color(0xFFFFFFFF)
-val ErrorRed = Color(0xFFFF453A)
+/**
+ * True in the two alternate modes, where a blue CTA can no longer read as blue:
+ * buttons drop to solid near-black chips with a hairline border instead.
+ */
+val usesSolidChips: Boolean get() = DisplayModeState.mode != ThemeMode.DARK
 
-/** Agent level badge colors. */
-val Bronze = Color(0xFFCD7F32)
-val Silver = Color(0xFFC0C0C0)
-val Gold = Color(0xFFFFD700)
-val Platinum = Color(0xFFE5E4E2)
+// ─── Surfaces ─────────────────────────────────────────────────────────────────
+val BgBlack: Color get() = when (DisplayModeState.mode) {
+    ThemeMode.BLUE_LIGHT_FILTER -> Color(0xFF0A0806)
+    else -> Color(0xFF000000)
+}
 
-/** Dark-first anchors used across screens. */
-val NightBlack = Color(0xFF0A0A0F)
-val SurfaceDark = Color(0xFF12121A)
+val Bubble: Color get() = when (DisplayModeState.mode) {
+    ThemeMode.BLUE_LIGHT_FILTER -> Color(0xFF140F0B)
+    else -> Color(0xFF141414)
+}
 
-// ─── Glass system: shared translucent surface tokens ──────────────────────────
-/** Frosted card / chip fill (white ≈8%). */
-val GlassFill = Color(0x14FFFFFF)
+val Raised: Color get() = when (DisplayModeState.mode) {
+    ThemeMode.BLUE_LIGHT_FILTER -> Color(0xFF1D1712)
+    else -> Color(0xFF1C1C1C)
+}
 
-/** Hairline glass border (white ≈12%). */
-val GlassBorder = Color(0x1FFFFFFF)
+val Hairline: Color get() = when (DisplayModeState.mode) {
+    ThemeMode.BLUE_LIGHT_FILTER -> Color(0xFF2E241B)
+    else -> Color(0xFF2A2A2A)
+}
 
-/** Stronger translucent fill — pressed fills, unchecked tracks (white ≈13%). */
-val GlassFillStrong = Color(0x22FFFFFF)
+/** Selected-row wash behind multi-selected transactions. */
+val SelectTint: Color get() = when (DisplayModeState.mode) {
+    ThemeMode.BLUE_LIGHT_FILTER -> Color(0xFF1B1409)
+    else -> Color(0xFF10233F)
+}
 
-/** Strong glass border — emphasized rows, dividers (white ≈20%). */
-val GlassBorderStrong = Color(0x33FFFFFF)
+// ─── Type ─────────────────────────────────────────────────────────────────────
+val TextWhite: Color get() = when (DisplayModeState.mode) {
+    ThemeMode.BLUE_LIGHT_FILTER -> Color(0xFFFFE9C9)
+    else -> Color(0xFFFFFFFF)
+}
 
-/** Active-dot track (white 25%) — replaces raw Color(0x40FFFFFF). */
-val DotTrack = Color(0x40FFFFFF)
+val TextGrey: Color get() = when (DisplayModeState.mode) {
+    ThemeMode.BLUE_LIGHT_FILTER -> Color(0xFFA3907A)
+    else -> Color(0xFF9E9E9E)
+}
 
-/** Faint divider (white ≈5%) — replaces raw Color(0x0DFFFFFF). */
-val FaintDivider = Color(0x0DFFFFFF)
+val TextDim: Color get() = when (DisplayModeState.mode) {
+    ThemeMode.BLUE_LIGHT_FILTER -> Color(0xFF7A6A57)
+    else -> Color(0xFF6B6B6B)
+}
 
-// ─── Light scheme anchors ────────────────────────────────────────────────────
-/** Light-mode screen background. */
-val LightBackground = Color(0xFFF4F6F5)
+// ─── Accents + statuses ───────────────────────────────────────────────────────
+val AccentBlue: Color get() = when (DisplayModeState.mode) {
+    ThemeMode.GRAYSCALE -> Color(0xFFBDBDBD)
+    ThemeMode.BLUE_LIGHT_FILTER -> Color(0xFFFFB74D)
+    ThemeMode.DARK -> Color(0xFF2962FF)
+}
 
-/** Light-mode card surface. */
-val LightSurface = Color(0xFFFFFFFF)
+val ChartBlue: Color get() = when (DisplayModeState.mode) {
+    ThemeMode.GRAYSCALE -> Color(0xFFBDBDBD)
+    ThemeMode.BLUE_LIGHT_FILTER -> Color(0xFFFFB74D)
+    ThemeMode.DARK -> Color(0xFF3D6FFF)
+}
 
-/** Ink drawn on top of the orange→amber brand gradient. */
-val OnBrandInk = Color(0xFF0A0A0F)
+val FailRed: Color get() = when (DisplayModeState.mode) {
+    ThemeMode.GRAYSCALE -> Color(0xFF757575)
+    ThemeMode.BLUE_LIGHT_FILTER -> Color(0xFFE57373)
+    ThemeMode.DARK -> Color(0xFFFF5252)
+}
 
-/** Secondary body copy on dark surfaces (60% white) — splash tagline, subtitles. */
-val TextSecondary = Color(0x99FFFFFF)
+/** Pending / scheduled rows carry no signal either way, so they stay grey. */
+val PendGrey: Color get() = when (DisplayModeState.mode) {
+    ThemeMode.GRAYSCALE -> Color(0xFF9E9E9E)
+    ThemeMode.BLUE_LIGHT_FILTER -> Color(0xFFA3907A)
+    ThemeMode.DARK -> Color(0xFF9E9E9E)
+}
+
+/** Reserved for the "mark complete" tick and nothing else. */
+val TickGreen: Color get() = when (DisplayModeState.mode) {
+    ThemeMode.GRAYSCALE -> Color(0xFFBDBDBD)
+    ThemeMode.BLUE_LIGHT_FILTER -> Color(0xFF9CCC65)
+    ThemeMode.DARK -> Color(0xFF00C853)
+}
+
+// ─── Call-to-action chrome ────────────────────────────────────────────────────
+/** Blue in DARK; a solid near-black chip in GRAYSCALE / BLUE LIGHT FILTER. */
+val CtaFill: Color get() = if (usesSolidChips) BgBlack else AccentBlue
+
+/** Ink drawn on [CtaFill] — always the strongest readable colour. */
+val CtaInk: Color get() = TextWhite
+
+/** The hairline that separates a solid chip from the background. */
+val CtaBorder: Color get() = if (usesSolidChips) Hairline else Color.Transparent
+
+/** Shared chrome for tracks, dividers and inactive dots. */
+val DotTrack: Color get() = Raised
+val FaintDivider: Color get() = Hairline
+
+/** Solid accent brush — the brand has no gradients any more. */
+fun accentBrush(): Brush = SolidColor(AccentBlue)
+
+/** Agent level badges — a neutral ladder, never a warm hue. */
+val Bronze: Color get() = Color(0xFF8D8D8D)
+val Silver: Color get() = Color(0xFFB0B0B0)
+val Gold: Color get() = Color(0xFFD0D0D0)
+val Platinum: Color get() = Color(0xFFFFFFFF)
+
+/** Accent that must stay legible on top of [AccentBlue]. */
+val OnAccent: Color get() = Color(0xFFFFFFFF)
 
 /** Offer tag buckets (Hybrid OfferTag OFFER_1..OFFER_4). */
 object OfferTags {
