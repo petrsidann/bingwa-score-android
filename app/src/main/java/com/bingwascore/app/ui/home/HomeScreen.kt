@@ -45,6 +45,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -73,9 +74,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bingwascore.app.data.local.Transaction
 import com.bingwascore.app.ui.components.BubbleCard
+import com.bingwascore.app.ui.components.DarkSnackbarHost
 import com.bingwascore.app.ui.components.HapticSwitch
 import com.bingwascore.app.ui.theme.AccentBlue
 import com.bingwascore.app.ui.theme.BgBlack
@@ -126,34 +131,53 @@ fun HomeScreen(
 
     var valuesVisible by remember { mutableStateOf(false) }
     var permissionsMissing by remember { mutableStateOf(missingPermissions(context)) }
-    // R5 — manual balance entry, offered whenever the network gives up.
-    var manualEntryFor by remember { mutableStateOf<Double?>(null) }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
-    ) { viewModel.refreshBalance() }
+    ) {
+        permissionsMissing = missingPermissions(context)
+        viewModel.refreshBalance()
+    }
 
+    // POLISH P1 — the balance never raises a dialog. It explains itself once, in
+    // a dark bubble, and then it leaves the number alone.
     LaunchedEffect(balanceError) {
         val message = balanceError ?: return@LaunchedEffect
-        // R5 — the reason is a sentence now; the escape hatch is the action.
-        val result = snackbarHostState.showSnackbar(
-            message = message,
-            actionLabel = "Open Settings",
-            duration = SnackbarDuration.Long
-        )
+        snackbarHostState.showSnackbar(message = message, duration = SnackbarDuration.Short)
         viewModel.consumeBalanceError()
-        if (result == SnackbarResult.ActionPerformed) {
-            openAppSettings(context)
-        } else {
-            // Dismissed: the agent may know the balance better than the network does.
-            manualEntryFor = balance
-        }
     }
 
     LaunchedEffect(Unit) {
         permissionsMissing = missingPermissions(context)
         viewModel.refreshBalance()
+    }
+
+    // POLISH P1 — coming back to Home is the moment the number must be true, so
+    // the silent *144# runs again on every ON_RESUME (the 30-minute worker covers
+    // the stretches where the agent is elsewhere).
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                permissionsMissing = missingPermissions(context)
+                viewModel.onForeground()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    // POLISH P1 — permissions are requested behind a themed prompt instead of
+    // ambushing the agent with a system sheet they did not ask for.
+    if (permissionsMissing) {
+        PhoneAccessPrompt(
+            onGrant = {
+                haptics.press()
+                permissionLauncher.launch(REQUIRED_PERMISSION_ARRAY)
+            },
+            onNotNow = { permissionsMissing = false }
+        )
     }
 
     Box(modifier = Modifier.fillMaxSize().background(BgBlack)) {
@@ -225,51 +249,12 @@ fun HomeScreen(
             }
         }
 
-        SnackbarHost(
+        DarkSnackbarHost(
             hostState = snackbarHostState,
             modifier = Modifier.align(Alignment.BottomCenter)
         )
     }
 
-    // R5 — the last resort when USSD will not answer: type the balance in.
-    val manualFor = manualEntryFor
-    if (manualFor != null) {
-        var entry by remember { mutableStateOf("") }
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = { manualEntryFor = null },
-            containerColor = Bubble,
-            title = {
-                Text("Enter balance manually", color = TextWhite, fontWeight = FontWeight.Bold)
-            },
-            text = {
-                androidx.compose.material3.TextField(
-                    value = entry,
-                    onValueChange = { entry = it.filter { c -> c.isDigit() || c == '.' } },
-                    singleLine = true,
-                    placeholder = {
-                        Text("0.00", color = TextDim)
-                    },
-                    colors = androidx.compose.material3.TextFieldDefaults.colors(
-                        focusedTextColor = TextWhite,
-                        unfocusedTextColor = TextWhite
-                    )
-                )
-            },
-            confirmButton = {
-                androidx.compose.material3.TextButton(onClick = {
-                    entry.toDoubleOrNull()?.let { viewModel.setManualBalance(it) }
-                    manualEntryFor = null
-                }) {
-                    Text("Save", color = AccentBlue, fontWeight = FontWeight.SemiBold)
-                }
-            },
-            dismissButton = {
-                androidx.compose.material3.TextButton(onClick = { manualEntryFor = null }) {
-                    Text("Cancel", color = TextGrey)
-                }
-            }
-        )
-    }
 }
 
 /** Sends the agent to this app's system page — the fastest route to permissions. */
@@ -809,4 +794,52 @@ private val REQUIRED_PERMISSIONS = arrayOf(
     Manifest.permission.CALL_PHONE,
     Manifest.permission.READ_PHONE_STATE
 )
+
+/** The exact array handed to the system prompt — never a subset. */
+private val REQUIRED_PERMISSION_ARRAY = REQUIRED_PERMISSIONS
+
+/**
+ * POLISH P1 — the themed pre-flight for phone access.
+ *
+ * `*144#` and every silent dial need `CALL_PHONE` + `READ_PHONE_STATE`. Throwing
+ * a system sheet at an agent who only opened the app trains them to tap Deny, so
+ * the app says what the grant is *for* first, in the same black-and-blue
+ * vocabulary as the rest of the product, and keeps a polite way out.
+ */
+@Composable
+private fun PhoneAccessPrompt(onGrant: () -> Unit, onNotNow: () -> Unit) {
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onNotNow,
+        containerColor = Bubble,
+        titleContentColor = TextWhite,
+        textContentColor = TextGrey,
+        title = {
+            Text(
+                "Allow phone access?",
+                color = TextWhite,
+                fontWeight = FontWeight.Bold,
+                fontSize = 17.sp
+            )
+        },
+        text = {
+            Text(
+                "Bingwa Score needs Call and Phone state to read your airtime balance " +
+                    "and dial bundles in the background. Nothing is ever shown to " +
+                    "the customer.",
+                color = TextGrey,
+                fontSize = 13.sp
+            )
+        },
+        confirmButton = {
+            androidx.compose.material3.TextButton(onClick = onGrant) {
+                Text("Allow", color = AccentBlue, fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            androidx.compose.material3.TextButton(onClick = onNotNow) {
+                Text("Not now", color = TextGrey)
+            }
+        }
+    )
+}
 

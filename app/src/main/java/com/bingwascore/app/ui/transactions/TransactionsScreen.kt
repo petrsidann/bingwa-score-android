@@ -52,6 +52,7 @@ import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.unit.IntOffset
+import com.bingwascore.app.ui.components.DarkSnackbarHost
 import com.bingwascore.app.ui.theme.Raised
 import kotlin.math.roundToInt
 import androidx.compose.material3.SnackbarDuration
@@ -256,7 +257,7 @@ Box(modifier = Modifier.fillMaxSize().nestedScroll(pullState.nestedScrollConnect
             )
         }
 
-        SnackbarHost(
+        DarkSnackbarHost(
             hostState = snackbarHostState,
             modifier = Modifier.align(Alignment.BottomCenter)
         )

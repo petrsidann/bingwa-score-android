@@ -2,6 +2,7 @@ package com.bingwascore.app.services
 
 import android.app.Service
 import android.content.Intent
+import android.net.Uri
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
@@ -286,7 +287,12 @@ class UssdAutomationService : Service() {
                                 val body = response?.toString().orEmpty()
                                 val status = classifyResponse(body, personality)
                                 log.d("USSD: response for %s -> %s: %s", transactionId, status.value, body)
-                                finalizeTransaction(transactionId, status, null)
+                                finalizeTransaction(
+                                    transactionId = transactionId,
+                                    status = status,
+                                    errorMessage = null,
+                                    responseText = body
+                                )
                             } catch (t: Throwable) {
                                 log.e(t, "USSD: failed handling response for %s", transactionId)
                                 finalizeTransaction(transactionId, TransactionStatus.FAILED, "Response error: ${t.message}")
@@ -305,11 +311,13 @@ class UssdAutomationService : Service() {
                                 // sentence they can act on, and it lands on the row.
                                 val reason = UssdResponses.failureReason(failureCode)
                                 log.w("USSD: request failed for %s (code %d): %s", transactionId, failureCode, reason)
-                                finalizeTransaction(transactionId, TransactionStatus.FAILED, reason)
+                                // POLISH P1 — the platform said no. Hand the code to
+                                // the phone app before writing the transaction off.
+                                if (!handOffToPhoneApp(ussdCode, transactionId)) {
+                                    finalizeTransaction(transactionId, TransactionStatus.FAILED, reason)
+                                }
                             } catch (t: Throwable) {
                                 log.e(t, "USSD: failed handling failure for %s", transactionId)
-                            } finally {
-                                stopSelf()
                             }
                         }
                     },
@@ -318,9 +326,47 @@ class UssdAutomationService : Service() {
             }
         } catch (t: Throwable) {
             log.e(t, "USSD: sendUssdRequest threw for transaction %s", transactionId)
-            finalizeTransaction(transactionId, TransactionStatus.FAILED, "USSD error: ${t.message}")
-            stopSelf()
+            // POLISH P1 — unsupported by the ROM, or blocked by policy. The phone
+            // app can still dial the code, so this is a fallback, not a verdict.
+            if (!handOffToPhoneApp(ussdCode, transactionId)) {
+                finalizeTransaction(transactionId, TransactionStatus.FAILED, "USSD error: ${t.message}")
+                stopSelf()
+            }
         }
+    }
+
+    /**
+     * POLISH P1 — the real-dial fallback.
+     *
+     * `TelephonyManager.sendUssdRequest` is refused on plenty of perfectly good
+     * handsets (MVNOs, carrier-locked ROMs, devices where the vendor block
+     * silent USSD). Failing the transaction there means a sale that never
+     * happened; instead we open the **phone app** with the encoded USSD already
+     * loaded and dialled, and keep the transaction alive so the reply that comes
+     * back through the normal engine path can still close it.
+     *
+     * The code is percent-encoded (`*544%2A...`), which is what the dialer and
+     * the carrier both expect in a `tel:` URI. Returns false when no phone app
+     * could be launched, so the caller can still write the failure.
+     */
+    private fun handOffToPhoneApp(ussdCode: String, transactionId: String): Boolean {
+        val launched = runCatching {
+            val dialUri = Uri.parse("tel:${Uri.encode(ussdCode)}")
+            startActivity(
+                Intent(Intent.ACTION_CALL, dialUri)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            )
+            true
+        }.getOrElse { t ->
+            log.w(t, "USSD: phone-app fallback unavailable for %s", transactionId)
+            false
+        }
+        if (launched) {
+            log.i("USSD: handed %s to the phone app for tx=%s", ussdCode, transactionId)
+            // The engine's reply path (SMS) still classifies and closes the row;
+            // the watchdog stays armed so a hand-off that goes nowhere resolves.
+        }
+        return launched
     }
 
     /**
@@ -402,16 +448,36 @@ class UssdAutomationService : Service() {
      * state, sends the matching auto-reply and runs engage/retry side
      * effects. Called at most once per service instance.
      */
+    /**
+     * Routes the terminal status into the pipeline: it persists the final
+     * state, sends the matching auto-reply and runs engage/retry side
+     * effects. Called at most once per service instance.
+     *
+     * POLISH P1 — [responseText] is the operator's **exact** reply ("You have
+     * successfully purchased 1GB..."). It is written to
+     * [com.bingwascore.app.data.local.Transaction.responseMessage] before the
+     * pipeline runs, so the dialer can show the agent the true wording of what
+     * Safaricom said instead of a paraphrase.
+     */
     private fun finalizeTransaction(
         transactionId: String,
         status: TransactionStatus,
-        errorMessage: String?
+        errorMessage: String?,
+        responseText: String? = null
     ) {
         if (!finalized.compareAndSet(false, true)) return
         // The dial is over — drop the notification back to its idle wording.
         EngineService.setProcessing(ProcessingActivity.IDLE)
         writeScope.launch {
             try {
+                if (!responseText.isNullOrBlank()) {
+                    val existing = transactionRepository.getLiveTransaction(transactionId)
+                    if (existing != null && existing.responseMessage != responseText) {
+                        transactionRepository.update(
+                            existing.copy(responseMessage = responseText)
+                        )
+                    }
+                }
                 when (status) {
                     TransactionStatus.SUCCESSFUL ->
                         transactionPipeline.onUssdSuccess(transactionId)

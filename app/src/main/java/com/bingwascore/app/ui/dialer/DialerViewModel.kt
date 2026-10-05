@@ -19,6 +19,7 @@ import com.bingwascore.app.util.isTenDigitPhone
 import dagger.hilt.android.lifecycle.HiltViewModel
 import androidx.core.content.ContextCompat
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -31,6 +32,20 @@ import javax.inject.Inject
 
 /** One line of user-facing dialer feedback. */
 data class DialerFeedback(val message: String, val isError: Boolean)
+
+/**
+ * POLISH P1 — the outcome of a dial, with the operator's own words.
+ *
+ * [message] is the **exact** Safaricom reply the modem returned (persisted by
+ * [com.bingwascore.app.services.UssdAutomationService] onto the transaction), so
+ * the dialog never paraphrases a carrier message the agent may need to quote back
+ * to a customer or to Safaricom support.
+ */
+data class DialResult(
+    val transactionId: String,
+    val successful: Boolean,
+    val response: String?
+)
 
 @HiltViewModel
 class DialerViewModel @Inject constructor(
@@ -63,6 +78,49 @@ class DialerViewModel @Inject constructor(
     val isDialing: StateFlow<Boolean> = _isDialing.asStateFlow()
 
     val missingPermissions: StateFlow<List<String>> = _missingPermissions.asStateFlow()
+
+    // POLISH P1 — the dial result dialog. Held in the ViewModel so it survives
+    // the sheet being rebuilt, and dismissed by exactly one call.
+    private val _result = MutableStateFlow<DialResult?>(null)
+    val result: StateFlow<DialResult?> = _result.asStateFlow()
+
+    /** Acknowledges the result dialog. */
+    fun consumeResult() {
+        _result.value = null
+    }
+
+    /**
+     * POLISH P1 — waits for the engine to close [transactionId] and reports the
+     * verdict plus the exact carrier wording.
+     *
+     * Polls (rather than holding a Flow) because the row is written by a
+     * *service*, which may be a different process lifetime; the poll is bounded,
+     * and a dial that never resolves simply leaves the transaction in flight
+     * instead of lying to the agent with a fabricated result.
+     */
+    private suspend fun awaitDialResult(transactionId: String) {
+        repeat(DIAL_RESULT_POLLS) {
+            val tx = transactionRepository.getLiveTransaction(transactionId) ?: return
+            when (tx.status) {
+                TransactionStatus.SUCCESSFUL.value -> {
+                    _result.value = DialResult(transactionId, true, tx.responseMessage)
+                    return
+                }
+                TransactionStatus.FAILED.value,
+                TransactionStatus.FAILED_ALREADY_RECOMMENDED.value,
+                TransactionStatus.UNMATCHED.value,
+                TransactionStatus.CANCELLED.value -> {
+                    _result.value = DialResult(
+                        transactionId = transactionId,
+                        successful = false,
+                        response = tx.responseMessage?.takeIf { it.isNotBlank() } ?: tx.errorMessage
+                    )
+                    return
+                }
+            }
+            delay(DIAL_RESULT_POLL_MILLIS)
+        }
+    }
 
     fun setPhone(value: String) {
         _phone.value = value.filter { it.isDigit() }.take(12)
@@ -165,6 +223,10 @@ class DialerViewModel @Inject constructor(
                     Timber.e(t, "Could not persist the last dialled phone")
                 }
                 _feedback.value = DialerFeedback("Dialing $dialCode", isError = false)
+                // POLISH P1 — the dial is not finished when the service starts;
+                // it is finished when the operator answers. Report the real
+                // verdict, with the exact Safaricom wording, once it lands.
+                awaitDialResult(transactionId)
             } catch (t: Throwable) {
                 Timber.e(t, "Dial failed")
                 _feedback.value = DialerFeedback("Dial failed: ${t.message}", isError = true)
@@ -190,5 +252,9 @@ class DialerViewModel @Inject constructor(
             android.Manifest.permission.CALL_PHONE,
             android.Manifest.permission.READ_PHONE_STATE
         )
+
+        /** POLISH P1 — how long the dialer waits for the operator's verdict. */
+        private const val DIAL_RESULT_POLL_MILLIS = 700L
+        private const val DIAL_RESULT_POLLS = 86 // ~60s, comfortably past any offer timeout
     }
 }

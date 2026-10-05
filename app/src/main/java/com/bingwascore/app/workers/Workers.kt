@@ -154,6 +154,8 @@ object Schedulers {
             scheduleDailyArchive(context)
             scheduleEngageBotTimeout(context)
             scheduleSmsPoll(context)
+            // POLISH P1 — silent *144# sweep keeps the balance honest.
+            BalanceWorker.schedule(context)
             WatchdogWorker.schedule(context)
         } catch (t: Throwable) {
             Timber.e(t, "Failed to schedule workers")

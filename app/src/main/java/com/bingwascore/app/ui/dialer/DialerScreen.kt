@@ -22,7 +22,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.rounded.Inbox
 import androidx.compose.material.icons.rounded.Phone
 import androidx.compose.material3.Icon
@@ -58,6 +60,7 @@ import com.bingwascore.app.ui.theme.TickGreen
 import com.bingwascore.app.ui.theme.accentBrush
 import com.bingwascore.app.ui.theme.FailRed
 import com.bingwascore.app.ui.theme.BgBlack
+import com.bingwascore.app.ui.theme.TextGrey
 import com.bingwascore.app.ui.theme.TextWhite
 
 /** Full-screen quick dialer opened from the glass bottom bar call FAB. */
@@ -69,6 +72,7 @@ fun DialerScreen(onClose: () -> Unit, viewModel: DialerViewModel = hiltViewModel
     val feedback by viewModel.feedback.collectAsStateWithLifecycle()
     val isDialing by viewModel.isDialing.collectAsStateWithLifecycle()
     val missingPermissions by viewModel.missingPermissions.collectAsStateWithLifecycle()
+    val result by viewModel.result.collectAsStateWithLifecycle()
     val haptics = rememberHaptics()
 
     // REBRAND R5 — the dial cannot work without these, so we ask up front instead
@@ -93,6 +97,12 @@ fun DialerScreen(onClose: () -> Unit, viewModel: DialerViewModel = hiltViewModel
     // Parity E — every dial outcome gets a tactile confirmation.
     LaunchedEffect(feedback) {
         feedback?.let { if (it.isError) haptics.error() else haptics.success() }
+    }
+
+    // POLISH P1 — the verdict is its own moment: haptic, then the dialog that
+    // quotes Safaricom back to the agent word for word.
+    LaunchedEffect(result) {
+        result?.let { if (it.successful) haptics.success() else haptics.error() }
     }
 
     val selectedOffer = offers.firstOrNull { it.id == selectedOfferId } ?: offers.firstOrNull()
@@ -196,6 +206,52 @@ fun DialerScreen(onClose: () -> Unit, viewModel: DialerViewModel = hiltViewModel
             loading = isDialing,
             loadingText = "Dialing...",
             onClick = viewModel::dialNow
+        )
+    }
+
+    // POLISH P1 — the result dialog. The headline is the verdict; the body is the
+    // operator's exact reply, because "it failed" without the carrier's wording
+    // is the one thing an agent cannot take to Safaricom support.
+    result?.let { outcome ->
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = viewModel::consumeResult,
+            containerColor = Bubble,
+            titleContentColor = TextWhite,
+            textContentColor = TextGrey,
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = if (outcome.successful) {
+                            Icons.Rounded.CheckCircle
+                        } else {
+                            Icons.Rounded.ErrorOutline
+                        },
+                        contentDescription = null,
+                        tint = if (outcome.successful) TickGreen else FailRed,
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        if (outcome.successful) "Dial successful" else "Dial failed",
+                        color = TextWhite,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 17.sp
+                    )
+                }
+            },
+            text = {
+                Text(
+                    text = outcome.response?.takeIf { it.isNotBlank() }
+                        ?: "Safaricom did not return a message for this dial.",
+                    color = TextGrey,
+                    fontSize = 13.sp
+                )
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = viewModel::consumeResult) {
+                    Text("Done", color = AccentBlue, fontWeight = FontWeight.Bold)
+                }
+            }
         )
     }
 }

@@ -1,15 +1,9 @@
 package com.bingwascore.app.ui.home
 
-import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import android.os.Handler
-import android.os.Looper
 import android.provider.Settings
-import android.content.pm.PackageManager
-import android.telephony.SubscriptionManager
-import android.telephony.TelephonyManager
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bingwascore.app.data.local.DbNameHolder
@@ -19,9 +13,8 @@ import com.bingwascore.app.data.preferences.UserPreferences
 import com.bingwascore.app.data.repository.TransactionRepository
 import com.bingwascore.app.domain.AppProcessingMode
 import com.bingwascore.app.domain.TransactionStatus
-import androidx.core.content.ContextCompat
+import com.bingwascore.app.services.BalanceReader
 import com.bingwascore.app.services.EngineService
-import com.bingwascore.app.services.UssdResponses
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.delay
@@ -45,33 +38,18 @@ class HomeViewModel @Inject constructor(
 ) : ViewModel() {
 
     companion object {
-        private const val BALANCE_USSD = "*144#"
-
         /** R5 — shared logcat tag for the whole USSD surface. */
-        const val USSD_TAG = "USSD"
-
-        private val BALANCE_PERMISSIONS = arrayOf(
-            android.Manifest.permission.READ_PHONE_STATE,
-            android.Manifest.permission.CALL_PHONE
-        )
+        const val USSD_TAG = BalanceReader.TAG
 
         /**
-         * Primary pattern: Safaricom's *144# reply labels the line
-         * "Airtime Bal: 1,234.56 Ksh..." — match across the label so a reply that
-         * also contains other Ksh figures still yields the airtime balance.
+         * POLISH P1 — the balance is ALWAYS read from the network now. This is
+         * the sentence the agent sees when `*144#` cannot be issued or parsed.
          */
-        private const val BALANCE_REGEX = "Airtime Bal\\s*:.*?Ksh([\\d,]+\\.\\d{2})"
-
-        /** Fallback for providers that omit the "Airtime Bal:" label entirely. */
-        private const val BALANCE_REGEX_FALLBACK = "Ksh\\.?\\s?([\\d,]+\\.\\d{2})"
-
-        /** Shown when *144# cannot be issued because READ_PHONE_STATE is denied. */
-        const val GRANT_PHONE_PERMISSION = "Grant Phone permission to check balance"
+        const val BALANCE_UNAVAILABLE = BalanceReader.UNAVAILABLE_MESSAGE
     }
 
     /** R5 — every USSD log line carries this tag: db logcat -s USSD. */
     private val ussdTag = Timber.tag(USSD_TAG)
-    private val mainHandler = Handler(Looper.getMainLooper())
 
     /** R5 — the SIM the agent picked, cached so the balance read can use it sync. */
     private val simSelection: StateFlow<String> = userPreferences.simSelection
@@ -84,10 +62,12 @@ class HomeViewModel @Inject constructor(
     val balanceLoading: StateFlow<Boolean> = _balanceLoading.asStateFlow()
 
     /**
-     * Why the balance could not be read, or null when it is fine. The Home
-     * screen renders this as a snackbar so a 0.00 balance is always explained —
-     * "Grant Phone permission to check balance" when READ_PHONE_STATE is
-     * missing, a retry hint when the operator reply was unreadable.
+     * POLISH P1 — why the balance could not be read, or null when it is fine.
+     *
+     * The Home screen renders this as a dark bubble with no action: a missing
+     * permission is resolved by the themed prompt *before* the read is even
+     * attempted, so by the time a failure reaches the agent the network itself
+     * is what let them down.
      */
     private val _balanceError = MutableStateFlow<String?>(null)
     val balanceError: StateFlow<String?> = _balanceError.asStateFlow()
@@ -186,17 +166,16 @@ class HomeViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0.0)
 
     // Parity D — Recent Activity: last 5 live rows (DAO already ORDERs BY createdAt DESC).
-/**
-     * REBRAND R5 — dials *144# and parses the "Airtime Bal: … Ksh 1,234.56"
-     * reply into a Double cached in [UserPreferences] and emitted as [balance].
+    /**
+     * POLISH P1 — reads the airtime balance from `*144#` and never lies about it.
      *
-     * The old version reported "failed code 1" verbatim and gave up. Now the
-     * failure code becomes a sentence, a failure is retried exactly once on the
-     * default subscription, and a second failure surfaces the reason so the agent
-     * is never stuck at 0.00 with no way out.
+     * The manual "type the balance in" escape hatch is **gone**: a number the
+     * agent typed is a number the network never confirmed, and one quietly wrong
+     * balance is worse than an honest gap. [silent] is true for automatic passes
+     * (foreground return, the 30-minute worker sweep) — those never raise a
+     * toast, because a background refresh that complains is just noise.
      */
-    @SuppressLint("MissingPermission")
-    fun refreshBalance() {
+    fun refreshBalance(silent: Boolean = false) {
         // SHOWCASE S2 — in demo mode the balance is simulated; no USSD is dialled.
         if (DbNameHolder.showcaseMode) {
             simulatedBalanceRefresh()
@@ -206,39 +185,29 @@ class HomeViewModel @Inject constructor(
         _balanceLoading.value = true
         _balanceError.value = null
 
-        val telephony = context.getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager
-        if (telephony == null) {
-            failBalance("Could not read your balance on this device")
-            return
-        }
-        if (missingBalancePermissions().isNotEmpty()) {
-            failBalance(GRANT_PHONE_PERMISSION)
-            return
-        }
-
-        // R5 — Settings picks the SIM; the default subscription is the fallback.
-        val requested = simSelection.value
-        val defaultSub = runCatching { SubscriptionManager.getDefaultSubscriptionId() }.getOrDefault(-1)
-        val preferredSub = resolveSimSubscription(requested, defaultSub)
-        val scoped = preferredSub?.let { runCatching { telephony.createForSubscriptionId(it) }.getOrNull() }
-            ?: telephony
-        Timber.tag(USSD_TAG).i("USSD: balance request on subscription %s", preferredSub ?: defaultSub)
-
-        sendBalanceRequest(scoped, "sim=$requested", onFailure = { code ->
-            Timber.tag(USSD_TAG).w("USSD: balance failed on %s (code %d)", requested, code)
-            if (preferredSub != null && preferredSub != defaultSub) {
-                // Retry once on the default subscription before giving up.
-                val fallback = runCatching { telephony.createForSubscriptionId(defaultSub) }
-                    .getOrDefault(telephony)
-                Timber.tag(USSD_TAG).i("USSD: retrying balance on default subscription %s", defaultSub)
-                sendBalanceRequest(fallback, "default=$defaultSub", onFailure = { retryCode ->
-                    failBalance(UssdResponses.failureReason(retryCode))
-                })
-            } else {
-                failBalance(UssdResponses.failureReason(code))
+        // POLISH P1 — every read is silent *144# through the shared reader:
+        // main looper, default-subscription fallback, exactly one retry.
+        BalanceReader.read(context, simSelection.value) { outcome ->
+            _balanceLoading.value = false
+            when (outcome) {
+                is BalanceReader.Outcome.Ok -> {
+                    _balance.value = outcome.amount
+                    viewModelScope.launch { userPreferences.setAirtimeBalance(outcome.amount) }
+                }
+                is BalanceReader.Outcome.Failed -> {
+                    ussdTag.w("USSD: balance unavailable (%s)", outcome.reason)
+                    if (!silent) _balanceError.value = outcome.reason
+                }
             }
-        })
+        }
     }
+
+    /**
+     * POLISH P1 — called when Home comes back to the foreground: the agent has
+     * been selling bundles in another app (or on another screen) and the figure
+     * on the money row must be the one that is true *now*.
+     */
+    fun onForeground() = refreshBalance(silent = true)
 
     /** SHOWCASE S2 — simulated *144#: a short pause, then a random-walk balance. */
     private fun simulatedBalanceRefresh() {
@@ -253,93 +222,11 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    /** Issues the USSD on the main looper, exactly like the dial path does. */
-    private fun sendBalanceRequest(
-        manager: TelephonyManager,
-        label: String,
-        onFailure: (Int) -> Unit
-    ) {
-        try {
-            mainHandler.post {
-                try {
-                    manager.sendUssdRequest(
-                        BALANCE_USSD,
-                        object : TelephonyManager.UssdResponseCallback() {
-                            override fun onReceiveUssdResponse(
-                                telephonyManager: TelephonyManager,
-                                request: String?,
-                                response: CharSequence?
-                            ) {
-                                val parsed = parseBalance(response?.toString())
-                                if (parsed == null) {
-                                    Timber.tag(USSD_TAG).w("USSD: unreadable balance reply: %s", response)
-                                    failBalance("Could not read the balance — try again")
-                                    return
-                                }
-                                Timber.tag(USSD_TAG).i("USSD: balance ok (%s) = %.2f", label, parsed)
-                                _balance.value = parsed
-                                _balanceLoading.value = false
-                                viewModelScope.launch { userPreferences.setAirtimeBalance(parsed) }
-                            }
-
-                            override fun onReceiveUssdResponseFailed(
-                                telephonyManager: TelephonyManager,
-                                request: String?,
-                                failureCode: Int
-                            ) {
-                                onFailure(failureCode)
-                            }
-                        },
-                        mainHandler
-                    )
-                } catch (t: Throwable) {
-                    Timber.e(t, "USSD: balance request threw")
-                    failBalance("Could not read the balance — try again")
-                }
-            }
-        } catch (t: Throwable) {
-            Timber.e(t, "USSD: could not post balance request")
-            failBalance("Could not read the balance — try again")
-        }
-    }
-
-    /** Maps "SIM 1" / "SIM 2" onto a real subscription id, or null to use default. */
-    private fun resolveSimSubscription(selected: String, defaultSub: Int): Int? {
-        if (selected != UserPreferences.SIM_2) return defaultSub
-        val slots = runCatching {
-            context.getSystemService(SubscriptionManager::class.java)?.activeSubscriptionInfoList
-        }.getOrNull()
-        return slots?.getOrNull(1)?.subscriptionId
-            ?.takeIf { it != SubscriptionManager.INVALID_SUBSCRIPTION_ID }
-    }
-
-    private fun missingBalancePermissions(): List<String> = BALANCE_PERMISSIONS.filter {
-        ContextCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED
-    }
-
-    /**
-     * R5 — manual entry fallback: when the network will not answer, the agent can
-     * type the balance they already know and the app stops lying about it.
-     */
-    fun setManualBalance(value: Double) {
-        if (value <= 0.0) return
-        viewModelScope.launch {
-            _balance.value = value
-            userPreferences.setAirtimeBalance(value)
-            _balanceError.value = null
-        }
-    }
-
-    /** Clears the snackbar once the UI has shown it. */
+    /** POLISH P1 - the agent has seen the dark balance bubble; drop it. */
     fun consumeBalanceError() {
         _balanceError.value = null
     }
 
-    /** Single exit for every failure: stops the spinner AND surfaces the reason. */
-    private fun failBalance(message: String) {
-        _balanceLoading.value = false
-        _balanceError.value = message
-    }
     val recentTransactions: StateFlow<List<Transaction>> = transactionRepository.liveTransactions
         .map { it.take(5) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
@@ -357,25 +244,6 @@ class HomeViewModel @Inject constructor(
             _balance.value = userPreferences.airtimeBalance.first()
         }
     }
-
-    /**
-     * Extracts the airtime balance from a *144# reply.
-     *
-     * Tries the labelled pattern first ("Airtime Bal: 1,234.56 Ksh") because a
-     * real reply can carry several Ksh figures; falls back to a bare "Ksh 12.34"
-     * match for providers that omit the label. Returns null when neither
-     * matches so the caller can report a failure instead of showing 0.00.
-     */
-    private fun parseBalance(response: String?): Double? {
-        if (response.isNullOrBlank()) return null
-        Regex(BALANCE_REGEX).find(response)?.let { return it.digitsAsDouble() }
-        Regex(BALANCE_REGEX_FALLBACK).find(response)?.let { return it.digitsAsDouble() }
-        return null
-    }
-
-    /** "1,234.56" -> 1234.56 (null when unparseable). */
-    private fun MatchResult.digitsAsDouble(): Double? =
-        groupValues.getOrNull(1)?.replace(",", "")?.toDoubleOrNull()
 
     fun openSystemSettings() {
         try {

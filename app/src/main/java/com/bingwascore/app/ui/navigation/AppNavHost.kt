@@ -1,5 +1,6 @@
 package com.bingwascore.app.ui.navigation
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateDpAsState
@@ -290,6 +291,14 @@ fun MainScreen() {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
+    // POLISH P1 — system back leaves the dialer (and a drawer entry) instead of
+    // dropping the agent out of the shell: the dialer is a destination, so it
+    // behaves like one.
+    BackHandler(enabled = showDialer || selectedDrawerIndex >= 0) {
+        showDialer = false
+        selectedDrawerIndex = -1
+    }
+
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
@@ -317,6 +326,7 @@ fun MainScreen() {
                             .fillMaxWidth()
                             .clickable {
                                 selectedDrawerIndex = index
+                                showDialer = false
                                 scope.launch { drawerState.close() }
                             }
                             .padding(horizontal = 24.dp, vertical = 12.dp)
@@ -355,10 +365,18 @@ fun MainScreen() {
                     selected = selectedTab,
                     dialerOpen = showDialer,
                     onSelect = {
+                        // POLISH P1 — the dialer is a real destination, not an
+                        // overlay: choosing any tab leaves it. (It used to sit on
+                        // top of every tab, which is what made it feel like a
+                        // ghost sheet that refused to go away.)
                         selectedTab = it
                         selectedDrawerIndex = -1
+                        showDialer = false
                     },
-                    onDialer = { showDialer = true }
+                    onDialer = {
+                        selectedDrawerIndex = -1
+                        showDialer = true
+                    }
                 )
             }
         ) { innerPadding ->
