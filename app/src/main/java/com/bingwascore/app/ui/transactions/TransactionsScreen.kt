@@ -42,7 +42,15 @@ import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.FileDownload
 import androidx.compose.material.icons.rounded.Refresh
-import androidx.compose.material.icons.rounded.Schedule
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.rounded.Search
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.KeyboardType
+import kotlinx.coroutines.delay
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -140,6 +148,9 @@ fun TransactionsScreen(
     var selectedTransaction by remember { mutableStateOf<Transaction?>(null) }
     // R4 — "View all from this number" prefills the list search.
     var phoneFilter by remember { mutableStateOf<String?>(null) }
+    // POLISH P3 — the inline search: top-centre icon, title fades, bar springs open.
+    var searchQuery by remember { mutableStateOf("") }
+    var searchOpen by remember { mutableStateOf(false) }
     var isRefreshing by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val pullState = rememberPullToRefreshState { isRefreshing }
@@ -156,10 +167,17 @@ fun TransactionsScreen(
 
     Box(modifier = Modifier.fillMaxSize().background(BgBlack)) {
         Column(modifier = Modifier.fillMaxSize().screenEnter()) {
-            SelectionTopBar(
+            TransactionsTopBar(
                 selecting = hasSelection,
                 count = selectedIds.size,
                 recordCount = transactions.size,
+                query = searchQuery,
+                onQueryChange = { searchQuery = it },
+                onOpenSearch = { searchOpen = true },
+                onCloseSearch = {
+                    searchOpen = false
+                    searchQuery = ""
+                },
                 onExit = {
                     haptics.tick()
                     viewModel.clearSelection()
@@ -183,10 +201,13 @@ fun TransactionsScreen(
             )
 
             LazyRow(
-                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 4.dp),
+                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 2.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(TransactionFilter.entries.toList()) { filter ->
+                items(
+                    items = TransactionFilter.entries.toList(),
+                    key = { it.name }
+                ) { filter ->
                     FilterChip(
                         label = filter.label,
                         selected = selectedFilter == filter,
@@ -200,10 +221,22 @@ fun TransactionsScreen(
             }
 Box(modifier = Modifier.fillMaxSize().nestedScroll(pullState.nestedScrollConnection)) {
                 TransactionBody(
-                    transactions = remember(transactions, phoneFilter) {
-                        if (phoneFilter == null) transactions
-                        else transactions.filter { it.phoneNumber == phoneFilter }
+                    transactions = remember(transactions, phoneFilter, searchQuery) {
+                        val byPhone = if (phoneFilter == null) {
+                            transactions
+                        } else {
+                            transactions.filter { it.phoneNumber == phoneFilter }
+                        }
+                        if (searchQuery.isBlank()) {
+                            byPhone
+                        } else {
+                            // POLISH P3 — one field matches name OR phone OR id,
+                            // because an agent looks a sale up by whichever one
+                            // they happen to have in front of them.
+                            byPhone.filter { it.matches(searchQuery) }
+                        }
                     },
+                    searchQuery = searchQuery,
                     phoneFilter = phoneFilter,
                     onClearPhoneFilter = { phoneFilter = null },
                     selectedFilter = selectedFilter,
@@ -219,8 +252,9 @@ Box(modifier = Modifier.fillMaxSize().nestedScroll(pullState.nestedScrollConnect
                         }
                     },
                     onRowLongClick = { transaction ->
+                        // POLISH P3 — one long-press, one check.
                         haptics.press()
-                        viewModel.toggleSelection(transaction.id)
+                        viewModel.beginSelection(transaction.id)
                     }
                 )
 
@@ -365,6 +399,7 @@ Box(modifier = Modifier.fillMaxSize().nestedScroll(pullState.nestedScrollConnect
 private fun TransactionBody(
     transactions: List<Transaction>,
     phoneFilter: String?,
+    searchQuery: String,
     onClearPhoneFilter: () -> Unit,
     selectedFilter: TransactionFilter,
     isLoading: Boolean,
@@ -378,12 +413,16 @@ private fun TransactionBody(
 
         transactions.isEmpty() -> EmptyState(
             icon = Icons.AutoMirrored.Rounded.ReceiptLong,
-            title = if (selectedFilter == TransactionFilter.ALL) {
-                "No transactions yet"
-            } else {
-                "Nothing in this filter"
+            title = if (searchQuery.isNotBlank()) "No available records" else {
+                if (selectedFilter == TransactionFilter.ALL) {
+                    "No transactions yet"
+                } else {
+                    "Nothing in this filter"
+                }
             },
-            message = if (selectedFilter == TransactionFilter.ALL) {
+            message = if (searchQuery.isNotBlank()) {
+                "No name, phone number or transaction ID matches \"${searchQuery.trim()}\"."
+            } else if (selectedFilter == TransactionFilter.ALL) {
                 "Every bundle you dial gets recorded here — pending, completed, scheduled and failed."
             } else {
                 "No ${selectedFilter.label.lowercase(Locale.ROOT)} records yet — try another filter."
@@ -455,82 +494,248 @@ private fun TransactionBody(
  * middle and the trash scales in on the right — all on one 220ms spring so the
  * mode never feels like a different screen.
  */
+/**
+ * POLISH P3 — the morphing header, now with search.
+ *
+ * Idle: "Transactions" on the left, a **search icon top-centre**, export on the
+ * right. Tapping search fades the title out and only then springs the bar open,
+ * so the two never overlap mid-flight. X cancels: the bar collapses, the title
+ * comes back and the query is cleared.
+ */
 @Composable
-private fun SelectionTopBar(
+private fun TransactionsTopBar(
     selecting: Boolean,
     count: Int,
     recordCount: Int,
+    query: String,
+    onQueryChange: (String) -> Unit,
+    onOpenSearch: () -> Unit,
+    onCloseSearch: () -> Unit,
     onExit: () -> Unit,
     onDelete: () -> Unit,
     onExport: () -> Unit
 ) {
-    val morph by animateFloatAsState(
-        targetValue = if (selecting) 1f else 0f,
-        animationSpec = spring(dampingRatio = 0.75f, stiffness = 700f),
-        label = "topBarMorph"
+    var openRequested by remember { mutableStateOf(false) }
+    var barOpen by remember { mutableStateOf(false) }
+
+    val titleAlpha by animateFloatAsState(
+        targetValue = if (barOpen) 0f else 1f,
+        animationSpec = tween(TITLE_FADE_MILLIS),
+        label = "titleFade"
+    )
+    val barProgress by animateFloatAsState(
+        targetValue = if (barOpen) 1f else 0f,
+        animationSpec = spring(dampingRatio = 0.85f, stiffness = 500f),
+        label = "searchBarSpring"
     )
 
-    Row(
+    // Fade first, then grow — the title is gone before the bar moves.
+    LaunchedEffect(openRequested) {
+        if (openRequested) {
+            delay(TITLE_FADE_MILLIS.toLong())
+            barOpen = true
+        } else {
+            barOpen = false
+        }
+    }
+    // Leaving selection mode closes the search: two modes, one header.
+    LaunchedEffect(selecting) {
+        if (!selecting && openRequested) {
+            openRequested = false
+            onCloseSearch()
+        }
+    }
+
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .height(56.dp)
+            .padding(horizontal = 12.dp),
+        contentAlignment = Alignment.CenterStart
     ) {
-        AnimatedVisibility(
-            visible = selecting,
-            enter = fadeIn(tween(Motion.FADE)) + scaleIn(initialScale = 0.5f),
-            exit = fadeOut(tween(Motion.FADE)) + scaleOut(targetScale = 0.5f)
-        ) {
-            BarIconButton(Icons.Rounded.Close, "Exit selection", TextWhite, onExit)
-        }
-
-        Column(
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
-                .weight(1f)
-                .graphicsLayer {
-                    alpha = 1f - morph
-                    translationX = -morph * 24f * density
+                .fillMaxWidth()
+                .graphicsLayer { alpha = titleAlpha }
+        ) {
+            AnimatedVisibility(
+                visible = selecting,
+                enter = fadeIn(tween(Motion.FADE)) + scaleIn(initialScale = 0.5f),
+                exit = fadeOut(tween(Motion.FADE)) + scaleOut(targetScale = 0.5f)
+            ) {
+                BarIconButton(Icons.Rounded.Close, "Exit selection", TextWhite, onExit)
+            }
+
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .graphicsLayer {
+                        alpha = 1f - titleAlpha
+                        translationX = titleAlpha * -16f * density
+                    }
+            ) {
+                Text(
+                    "Transactions",
+                    color = TextWhite,
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text("$recordCount record(s)", color = TextGrey, fontSize = 12.sp)
+            }
+
+            AnimatedVisibility(
+                visible = !selecting,
+                enter = fadeIn(tween(Motion.FADE)),
+                exit = fadeOut(tween(Motion.FADE))
+            ) {
+                Box(
+                    modifier = Modifier.size(42.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    BarIconButton(
+                        Icons.Rounded.Search,
+                        "Search transactions",
+                        TextWhite,
+                        onClick = { openRequested = true }
+                    )
                 }
-        ) {
-            Text(
-                "Transactions",
-                color = TextWhite,
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold
-            )
-            Text("$recordCount record(s)", color = TextGrey, fontSize = 12.sp)
-        }
+            }
 
-        AnimatedVisibility(
-            visible = selecting,
-            enter = fadeIn(tween(Motion.FADE)) + scaleIn(initialScale = 0.6f),
-            exit = fadeOut(tween(Motion.FADE)) + scaleOut(targetScale = 0.6f)
-        ) {
-            CountBubble(count = count)
-        }
+            AnimatedVisibility(
+                visible = selecting,
+                enter = fadeIn(tween(Motion.FADE)) + scaleIn(initialScale = 0.6f),
+                exit = fadeOut(tween(Motion.FADE)) + scaleOut(targetScale = 0.6f)
+            ) {
+                CountBubble(count = count)
+            }
 
-        AnimatedVisibility(
-            visible = selecting,
-            enter = fadeIn(tween(Motion.FADE)) + scaleIn(initialScale = 0.5f),
-            exit = fadeOut(tween(Motion.FADE)) + scaleOut(targetScale = 0.5f)
-        ) {
-            BarIconButton(Icons.Rounded.Delete, "Delete selected", FailRed, onDelete)
-        }
+            AnimatedVisibility(
+                visible = selecting,
+                enter = fadeIn(tween(Motion.FADE)) + scaleIn(initialScale = 0.5f),
+                exit = fadeOut(tween(Motion.FADE)) + scaleOut(targetScale = 0.5f)
+            ) {
+                BarIconButton(Icons.Rounded.Delete, "Delete selected", FailRed, onDelete)
+            }
 
-        AnimatedVisibility(
-            visible = !selecting,
-            enter = fadeIn(tween(Motion.FADE)) + scaleIn(initialScale = 0.8f),
-            exit = fadeOut(tween(Motion.FADE)) + scaleOut(targetScale = 0.8f)
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                DemoChip()
-                Spacer(modifier = Modifier.width(8.dp))
-                TextButton(onClick = onExport) {
-                    Text("Export", color = AccentBlue, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+            AnimatedVisibility(
+                visible = !selecting,
+                enter = fadeIn(tween(Motion.FADE)) + scaleIn(initialScale = 0.8f),
+                exit = fadeOut(tween(Motion.FADE)) + scaleOut(targetScale = 0.8f)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    DemoChip()
+                    Spacer(modifier = Modifier.width(8.dp))
+                    TextButton(onClick = onExport) {
+                        Text(
+                            "Export",
+                            color = AccentBlue,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
                 }
             }
         }
+
+        SearchBar(
+            query = query,
+            progress = barProgress,
+            onQueryChange = onQueryChange,
+            onClose = {
+                openRequested = false
+                onCloseSearch()
+            }
+        )
     }
+}
+
+/** POLISH P3 — how long the title takes to fade before the bar grows. */
+private const val TITLE_FADE_MILLIS = 160
+
+/** The springing search field: rounded, dark, with a cancel X. */
+@Composable
+private fun SearchBar(
+    query: String,
+    progress: Float,
+    onQueryChange: (String) -> Unit,
+    onClose: () -> Unit
+) {
+    val shape = RoundedCornerShape(14.dp)
+    val focusRequester = remember { FocusRequester() }
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth(progress.coerceIn(0.001f, 1f))
+            .clip(shape)
+            .background(Raised)
+            .border(1.dp, Hairline, shape)
+            .height(42.dp)
+            .padding(start = 12.dp, end = 4.dp)
+    ) {
+        Icon(
+            imageVector = Icons.Rounded.Search,
+            contentDescription = null,
+            tint = AccentBlue,
+            modifier = Modifier.size(17.dp)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Box(modifier = Modifier.weight(1f)) {
+            if (query.isEmpty()) {
+                Text(
+                    "Name, phone or transaction ID",
+                    color = TextDim,
+                    fontSize = 13.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            BasicTextField(
+                value = query,
+                onValueChange = onQueryChange,
+                singleLine = true,
+                textStyle = TextStyle(color = TextWhite, fontSize = 14.sp),
+                cursorBrush = SolidColor(AccentBlue),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusRequester(focusRequester)
+            )
+        }
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .clickable(onClick = onClose),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.Close,
+                contentDescription = "Cancel search",
+                tint = TextGrey,
+                modifier = Modifier.size(18.dp)
+            )
+        }
+    }
+
+    // The keyboard arrives with the bar, not before it.
+    LaunchedEffect(progress) {
+        if (progress > 0.99f) runCatching { focusRequester.requestFocus() }
+    }
+}
+
+/**
+ * POLISH P3 — one search box, three kinds of answer: a customer's name, the
+ * number they paid from, or the transaction id Safaricom quoted. An agent looks
+ * a sale up by whichever of the three they happen to have in front of them.
+ */
+internal fun Transaction.matches(query: String): Boolean {
+    val needle = query.trim().lowercase(Locale.ROOT)
+    if (needle.isEmpty()) return true
+    return customerName?.lowercase(Locale.ROOT)?.contains(needle) == true ||
+        phoneNumber.lowercase(Locale.ROOT).contains(needle) ||
+        id.lowercase(Locale.ROOT).contains(needle)
 }
 
 @Composable
@@ -686,13 +891,29 @@ private fun TransactionSkeleton() {
     }
 }
 
+/** POLISH P3 — one fixed row height, so ticking never reflows the list. */
+private val ROW_HEIGHT = 64.dp
+
+/**
+ * POLISH P3 — the 200ms spring behind the tick morph. Stiff enough to land in
+ * about two frames' worth of perceived time, soft enough that the tick reads as
+ * a click rather than a snap.
+ */
+private val MORPH_SPRING = spring<Float>(dampingRatio = 0.78f, stiffness = 900f)
+
+/** The same spring for the row wash, which animates a colour rather than a float. */
+private val MORPH_SPRING_COLOR =
+    spring<androidx.compose.ui.graphics.Color>(dampingRatio = 0.78f, stiffness = 900f)
+
 /**
  * One transaction row.
  *
- * A tinted 22dp status icon on the left, the customer's name in white semibold
- * with grey meta under it, and the amount in bold white with the coloured status
- * word beneath. While selecting, a check-circle slides in from the left and the
- * row washes with [SelectTint] when ticked.
+ * POLISH P3 — the row is a **fixed 64dp box**. Ticking a row used to push the
+ * text sideways and the list down as the check slid in, because the check was
+ * taking part in layout. It no longer does: the leading slot is always the same
+ * size, and only the bars inside it animate — a 200ms spring on the tick and on
+ * the wash. Scrolling a list while ticking rows is now visually still, which is
+ * the whole point of a ledger.
  */
 @Composable
 private fun TransactionRow(
@@ -705,36 +926,45 @@ private fun TransactionRow(
     val statusColor = StatusColors.color(transaction.status)
     val checkIn by animateFloatAsState(
         targetValue = if (selecting) 1f else 0f,
-        animationSpec = spring(dampingRatio = 0.7f, stiffness = 700f),
+        animationSpec = MORPH_SPRING,
         label = "checkIn"
+    )
+    val tick by animateFloatAsState(
+        targetValue = if (selected) 1f else 0f,
+        animationSpec = MORPH_SPRING,
+        label = "tickMorph"
     )
     val rowFill by animateColorAsState(
         targetValue = if (selected) SelectTint else Bubble,
-        animationSpec = spring(dampingRatio = 0.8f, stiffness = 700f),
+        animationSpec = MORPH_SPRING_COLOR,
         label = "rowFill"
     )
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .height(ROW_HEIGHT)
             .clip(RoundedCornerShape(16.dp))
             .background(rowFill)
             .pointerInput(selecting, selected) {
+                // One gesture, one outcome: detectTapGestures consumes the long
+                // press, so a tick can never also be read as a tap.
                 detectTapGestures(
                     onTap = { onClick() },
                     onLongPress = { onLongClick() }
                 )
             }
-            .padding(horizontal = 14.dp, vertical = 12.dp),
+            .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Check-circle slides in from the left while selecting.
+        // Fixed-size slot: the tick slides and scales inside it, never resizes it.
         Box(
             modifier = Modifier
-                .size(22.dp)
+                .size(24.dp)
                 .graphicsLayer {
-                    translationX = -(1f - checkIn) * 30f * density
                     alpha = checkIn
+                    scaleX = 0.6f + 0.4f * tick
+                    scaleY = 0.6f + 0.4f * tick
                 },
             contentAlignment = Alignment.Center
         ) {

@@ -122,6 +122,21 @@ class TransactionsViewModel @Inject constructor(
     }
 
     /** Clears the Ghost Queue after a batch action completes. */
+    /**
+     * POLISH P3 — long-press enters selection mode and ticks **exactly** this row.
+     *
+     * The old behaviour was a plain toggle, which meant a second long-press (or a
+     * long-press that arrived twice from the gesture stream) flipped the same row
+     * on and straight back off — the "double tick" that left the agent tapping
+     * the same row to find out whether anything happened. Adding the id instead
+     * of toggling makes the gesture idempotent: one long-press, one check.
+     */
+    fun beginSelection(id: String) {
+        val current = _selectedIds.value
+        if (id in current) return
+        _selectedIds.value = current + id
+    }
+
     fun clearSelection() {
         _selectedIds.value = emptySet()
     }
