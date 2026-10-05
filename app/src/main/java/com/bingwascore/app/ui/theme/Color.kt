@@ -108,6 +108,17 @@ val PendGrey: Color get() = when (DisplayModeState.mode) {
     ThemeMode.DARK -> Color(0xFF9E9E9E)
 }
 
+/**
+ * POLISH P2 — the card wash.
+ *
+ * A status tile (or a status row) is the bubble surface with a 12% tint of its
+ * own status colour laid over it. Ten to fourteen percent is the band where a
+ * blue tile reads as blue on black without turning into a coloured slab; below it
+ * nothing happens, above it the surface stops being a surface. The colour is the
+ * *semantic* one, so Grayscale keeps the wash even when the chrome goes mono.
+ */
+fun statusWash(statusColor: Color, alpha: Float = 0.12f): Color = statusColor.copy(alpha = alpha)
+
 /** Reserved for the "mark complete" tick and nothing else. */
 val TickGreen: Color get() = when (DisplayModeState.mode) {
     ThemeMode.GRAYSCALE -> Color(0xFFBDBDBD)

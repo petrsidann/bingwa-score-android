@@ -54,4 +54,15 @@ object Motion {
     const val AMBIENT_MIN: Int = 22_000
     const val AMBIENT_MID: Int = 28_000
     const val AMBIENT_MAX: Int = 34_000
+
+    // ── POLISH P2 ─────────────────────────────────────────────────────────────
+
+    /** POLISH P2 — how long a status dot takes to light up (or go dark). */
+    const val DOT_FADE: Int = 300
+
+    /** POLISH P2 — the spring behind the chart tooltip bubble. */
+    const val TOOLTIP_SPRING_STIFFNESS: Float = 420f
+
+    /** POLISH P2 — long-press that arms the Autopilot stop, in ms. */
+    const val ARM_HOLD_MILLIS: Long = 600L
 }

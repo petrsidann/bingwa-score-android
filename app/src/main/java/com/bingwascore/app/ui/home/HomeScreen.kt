@@ -33,6 +33,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Bolt
 import androidx.compose.material.icons.rounded.Refresh
@@ -48,6 +49,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -79,9 +81,11 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bingwascore.app.data.local.Transaction
+import com.bingwascore.app.domain.TransactionStatus
 import com.bingwascore.app.ui.components.BubbleCard
 import com.bingwascore.app.ui.components.DarkSnackbarHost
 import com.bingwascore.app.ui.components.HapticSwitch
+import com.bingwascore.app.ui.components.StatusDot
 import com.bingwascore.app.ui.theme.AccentBlue
 import com.bingwascore.app.ui.theme.BgBlack
 import com.bingwascore.app.ui.theme.Bubble
@@ -94,6 +98,7 @@ import com.bingwascore.app.ui.theme.TextDim
 import com.bingwascore.app.ui.theme.TextGrey
 import com.bingwascore.app.ui.theme.TextWhite
 import com.bingwascore.app.ui.theme.TickGreen
+import com.bingwascore.app.ui.theme.statusWash
 import com.bingwascore.app.util.rememberHaptics
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -129,6 +134,14 @@ fun HomeScreen(
     val engineEnabled by viewModel.engineEnabled.collectAsStateWithLifecycle()
     val transactions by viewModel.allTransactions.collectAsStateWithLifecycle()
 
+    // POLISH P2 — greeting, credits and the two Home sheets.
+    val greeting by viewModel.greeting.collectAsStateWithLifecycle()
+    val credits by viewModel.credits.collectAsStateWithLifecycle()
+    val creditRows by viewModel.creditRows.collectAsStateWithLifecycle()
+    var showCredits by remember { mutableStateOf(false) }
+    var showAutopilot by remember { mutableStateOf(false) }
+    var confirmStopAutopilot by remember { mutableStateOf(false) }
+
     var valuesVisible by remember { mutableStateOf(false) }
     var permissionsMissing by remember { mutableStateOf(missingPermissions(context)) }
 
@@ -156,12 +169,23 @@ fun HomeScreen(
     // POLISH P1 — coming back to Home is the moment the number must be true, so
     // the silent *144# runs again on every ON_RESUME (the 30-minute worker covers
     // the stretches where the agent is elsewhere).
+    // POLISH P2 — when a sale lands while the agent is watching, the status dot
+    // lights with its 300ms fade and a single haptic tick: completion is *felt*,
+    // not just read. One tick per completed transaction, never a burst.
+    var celebratedCount by remember { mutableIntStateOf(successful) }
+    LaunchedEffect(successful) {
+        if (successful > celebratedCount) haptics.success()
+        celebratedCount = successful
+    }
+
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 permissionsMissing = missingPermissions(context)
                 viewModel.onForeground()
+                // POLISH P2 — the greeting follows the clock across a long shift.
+                viewModel.refreshGreeting()
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -183,10 +207,38 @@ fun HomeScreen(
     Box(modifier = Modifier.fillMaxSize().background(BgBlack)) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 28.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+            // POLISH P2 — tighter everywhere: the old 14dp rhythm plus 30sp
+            // numerals pushed the first real row below the fold on a 5" phone.
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            item { EngineCard(enabled = engineEnabled, onToggle = viewModel::toggleEngine) }
+            item {
+                HomeTopBar(
+                    bucket = greeting.first,
+                    language = greeting.second,
+                    credits = credits,
+                    onCreditsClick = { showCredits = true }
+                )
+            }
+
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    AutopilotPill(
+                        running = engineEnabled,
+                        onOpenSheet = { showAutopilot = true },
+                        onRequestStop = { confirmStopAutopilot = true }
+                    )
+                    Text(
+                        text = greeting.second.endonym,
+                        color = TextDim,
+                        fontSize = 11.sp
+                    )
+                }
+            }
 
             if (permissionsMissing) {
                 item {
@@ -230,8 +282,6 @@ fun HomeScreen(
 
             item { SectionHeader("Transactions", "${transactions.size} total") }
 
-            item { Spacer(modifier = Modifier.height(4.dp)) }
-
             // R6 — shimmer ONLY where a list is actually loading.
             if (statsLoading) {
                 items(4) { HomeRowSkeleton() }
@@ -252,6 +302,68 @@ fun HomeScreen(
         DarkSnackbarHost(
             hostState = snackbarHostState,
             modifier = Modifier.align(Alignment.BottomCenter)
+        )
+    }
+
+    // POLISH P2 — the two Home sheets and the Autopilot stop confirmation.
+    if (showCredits) {
+        CreditsSheet(
+            credits = credits,
+            rows = creditRows,
+            onDismiss = { showCredits = false }
+        )
+    }
+
+    if (showAutopilot) {
+        AutopilotSheet(
+            running = engineEnabled,
+            onDismiss = { showAutopilot = false },
+            onRequestStop = {
+                showAutopilot = false
+                confirmStopAutopilot = true
+            },
+            onEnable = {
+                showAutopilot = false
+                viewModel.toggleEngine()
+            }
+        )
+    }
+
+    if (confirmStopAutopilot) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { confirmStopAutopilot = false },
+            containerColor = Bubble,
+            titleContentColor = TextWhite,
+            textContentColor = TextGrey,
+            title = {
+                Text(
+                    "Stop Autopilot?",
+                    color = TextWhite,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 17.sp
+                )
+            },
+            text = {
+                Text(
+                    "Incoming payments will stop being matched and dialled until you " +
+                        "start it again. Sales you are mid-way through finish first.",
+                    color = TextGrey,
+                    fontSize = 13.sp
+                )
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = {
+                    confirmStopAutopilot = false
+                    viewModel.toggleEngine()
+                }) {
+                    Text("Stop Autopilot", color = FailRed, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { confirmStopAutopilot = false }) {
+                    Text("Keep running", color = AccentBlue, fontWeight = FontWeight.SemiBold)
+                }
+            }
         )
     }
 
@@ -279,77 +391,64 @@ private fun CountersRow(
     val haptics = rememberHaptics()
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        CounterTile(completed, "Completed", AccentBlue, Modifier.weight(1f)) {
+        CounterTile(completed, "Done", StatusColors.Success, lit = completed > 0, Modifier.weight(1f)) {
             haptics.tick()
             onOpenTransactions("SUCCESSFUL")
         }
-        CounterTile(failed, "Failed", FailRed, Modifier.weight(1f)) {
+        CounterTile(failed, "Failed", StatusColors.Failed, lit = failed > 0, Modifier.weight(1f)) {
             haptics.tick()
             onOpenTransactions("FAILED")
         }
-        CounterTile(pending, "Pending", PendGrey, Modifier.weight(1f)) {
+        CounterTile(pending, "Queued", StatusColors.Pending, lit = false, Modifier.weight(1f)) {
             haptics.tick()
             onOpenTransactions("PENDING")
         }
     }
 }
 
+/**
+ * POLISH P2 — one compact status tile.
+ *
+ * Roughly 40% shorter than the old 30sp card: the number sits beside its label
+ * instead of above it, and the card wears a **wash** of its own status colour
+ * (12% alpha) so the row reads at a glance instead of being three dead grey
+ * rectangles. The dot is lit only when there is something to report — a queued
+ * tile is a light that is deliberately off, not a zero that looks like failure.
+ */
 @Composable
 private fun CounterTile(
     value: Int,
     label: String,
     accent: Color,
+    lit: Boolean,
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
-    BubbleCard(modifier = modifier, cornerRadius = 18.dp, onClick = onClick) {
-        Text(
-            "$value",
-            color = accent,
-            fontSize = 30.sp,
-            fontWeight = FontWeight.Bold,
-            maxLines = 1
-        )
-        Spacer(modifier = Modifier.height(2.dp))
-        Text(label, color = TextGrey, fontSize = 12.sp, maxLines = 1)
-    }
-}
-
-@Composable
-private fun EngineCard(enabled: Boolean, onToggle: () -> Unit) {
-    BubbleCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 18.dp) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier
-                    .size(38.dp)
-                    .clip(CircleShape)
-                    .background(if (enabled) TickGreen.copy(alpha = 0.15f) else Bubble),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.Bolt,
-                    contentDescription = null,
-                    tint = if (enabled) TickGreen else TextDim,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-            Spacer(modifier = Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
+    val shape = RoundedCornerShape(16.dp)
+    Box(
+        modifier = modifier
+            .clip(shape)
+            .background(statusWash(accent))
+            .border(1.dp, accent.copy(alpha = 0.22f), shape)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 10.dp, vertical = 10.dp)
+    ) {
+        Column {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                StatusDot(color = accent, lit = lit, size = 8.dp)
+                Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    "Bingwa Autopilot",
+                    "$value",
                     color = TextWhite,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Text(
-                    if (enabled) "Running — watching for M-Pesa payments" else "Stopped — tap to start",
-                    color = TextGrey,
-                    fontSize = 12.sp
+                    fontSize = 21.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1
                 )
             }
-            HapticSwitch(checked = enabled, onCheckedChange = { onToggle() })
+            Spacer(modifier = Modifier.height(1.dp))
+            Text(label, color = TextGrey, fontSize = 11.sp, maxLines = 1)
         }
     }
 }
@@ -503,206 +602,24 @@ private fun RefreshButton(loading: Boolean, onClick: () -> Unit) {
     }
 }
 
-/**
- * The live commission chart card.
- *
- * A Canvas line chart: one ChartBlue stroke over a gradient area fill that fades
- * .35 → 0, hairline grid, grey y-labels. When a commission lands the series
- * re-springs to its new shape, and tapping any point pops that day's value in a
- * bubble above it.
- */
-@Composable
-private fun CommissionChartCard(series: List<Double>) {
-    val haptics = rememberHaptics()
-    val display = remember { mutableStateOf(normalize(series)) }
-    var selected by remember { mutableStateOf(-1) }
-
-    // Spring every point to its new value so a landed commission is *felt*.
-    LaunchedEffect(series) {
-        val from = display.value
-        val target = normalize(series)
-        target.indices.forEach { index ->
-            val animator = Animatable(from.getOrElse(index) { 0f })
-            animator.animateTo(
-                targetValue = target[index],
-                animationSpec = spring(dampingRatio = 0.65f, stiffness = Spring.StiffnessLow)
-            )
-            display.value = display.value.toMutableList().also { list ->
-                if (index < list.size) list[index] = animator.value
-            }
-        }
-    }
-
-    BubbleCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 20.dp) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                "Commission this week",
-                color = TextWhite,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.weight(1f)
-            )
-            Text(
-                "Ksh ${money(series.sum())}",
-                color = AccentBlue,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Bold
-            )
-        }
-
-        Spacer(modifier = Modifier.height(14.dp))
-
-        Row(modifier = Modifier.fillMaxWidth()) {
-            Column(
-                modifier = Modifier.height(150.dp),
-                verticalArrangement = Arrangement.SpaceBetween,
-                horizontalAlignment = Alignment.End
-            ) {
-                Text(formatShort(series.maxOrNull() ?: 0.0), color = TextDim, fontSize = 10.sp)
-                Text("0", color = TextDim, fontSize = 10.sp)
-            }
-            Spacer(modifier = Modifier.width(8.dp))
-            ChartCanvas(
-                values = display.value,
-                raw = series,
-                selected = selected,
-                modifier = Modifier.weight(1f),
-                onPointTapped = { index ->
-                    haptics.tick()
-                    selected = if (selected == index) -1 else index
-                }
-            )
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            listOf("M", "T", "W", "T", "F", "S", "S").forEach { day ->
-                Text(day, color = TextDim, fontSize = 10.sp, modifier = Modifier.width(28.dp))
-            }
-        }
-    }
-}
-
-/**
- * The line itself. Points sit on a fixed column so the day labels underneath
- * line up; a tap resolves to the nearest column and the selected point gets a
- * value bubble drawn above it.
- */
-@Composable
-private fun ChartCanvas(
-    values: List<Float>,
-    raw: List<Double>,
-    selected: Int,
-    modifier: Modifier = Modifier,
-    onPointTapped: (Int) -> Unit
-) {
-    val stroke = 2.5.dp
-    val pointRadius = 3.5.dp
-    val accent = ChartBlue
-    val textMeasurer = rememberTextMeasurer()
-
-    Canvas(
-        modifier = modifier
-            .height(150.dp)
-            .pointerInput(values.size) {
-                detectTapGestures { tap ->
-                    val slot = size.width / values.size.coerceAtLeast(1).toFloat()
-                    val index = (tap.x / slot)
-                        .toInt()
-                        .coerceIn(0, (values.size - 1).coerceAtLeast(0))
-                    onPointTapped(index)
-                }
-            }
-    ) {
-        if (values.isEmpty()) return@Canvas
-        val valuesMax = values.maxOrNull()?.takeIf { it > 0f } ?: 1f
-        val stepX = size.width / (values.size - 1).coerceAtLeast(1).toFloat()
-        val topInset = (pointRadius * 2).toPx()
-        val usable = size.height - topInset * 2f
-
-        fun pointAt(index: Int): Offset {
-            val x = stepX * index
-            val y = topInset + usable * (1f - values[index].coerceIn(0f, valuesMax) / valuesMax)
-            return Offset(x, y)
-        }
-
-        // Hairline grid: four horizontal rules.
-        repeat(4) { row ->
-            val y = size.height * row / 3f
-            drawLine(color = Hairline, start = Offset(0f, y), end = Offset(size.width, y), strokeWidth = 1f)
-        }
-
-        val line = Path()
-        values.indices.forEach { index ->
-            val point = pointAt(index)
-            if (index == 0) line.moveTo(point.x, point.y) else line.lineTo(point.x, point.y)
-        }
-
-        // Area fill under the line, 0.35 at the top fading to nothing.
-        val area = Path().apply {
-            addPath(line)
-            lineTo(size.width, size.height)
-            lineTo(0f, size.height)
-            close()
-        }
-        drawPath(
-            path = area,
-            brush = Brush.verticalGradient(
-                colors = listOf(accent.copy(alpha = 0.35f), accent.copy(alpha = 0f)),
-                startY = 0f,
-                endY = size.height
-            )
-        )
-
-        drawPath(path = line, color = accent, style = Stroke(width = stroke.toPx(), cap = StrokeCap.Round))
-        values.indices.forEach { index ->
-            drawCircle(color = accent, radius = pointRadius.toPx(), center = pointAt(index))
-        }
-
-        // Value bubble for the tapped point.
-        if (selected in values.indices) {
-            val amount = raw.getOrElse(selected) { 0.0 }
-            val layout = textMeasurer.measure(
-                text = "Ksh ${money(amount)}",
-                style = TextStyle(color = TextWhite, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-            )
-            val centre = pointAt(selected)
-            val padH = 6.dp.toPx()
-            val padV = 3.dp.toPx()
-            val bubbleW = layout.size.width + padH * 2
-            val bubbleH = layout.size.height + padV * 2
-            val left = (centre.x - bubbleW / 2f).coerceIn(0f, (size.width - bubbleW).coerceAtLeast(0f))
-            val topY = (centre.y - bubbleH - 10.dp.toPx()).coerceAtLeast(0f)
-
-            drawRoundRect(
-                color = Bubble,
-                topLeft = Offset(left, topY),
-                size = Size(bubbleW, bubbleH),
-                cornerRadius = CornerRadius(8.dp.toPx())
-            )
-            drawRoundRect(
-                color = Hairline,
-                topLeft = Offset(left, topY),
-                size = Size(bubbleW, bubbleH),
-                cornerRadius = CornerRadius(8.dp.toPx()),
-                style = Stroke(width = 1f)
-            )
-            drawText(textLayoutResult = layout, topLeft = Offset(left + padH, topY + padV))
-        }
-    }
-}
 
 /** One activity row: status dot, who, how much, when. */
 @Composable
 private fun HomeTransactionRow(tx: Transaction) {
-    BubbleCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 16.dp) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier
-                    .size(8.dp)
-                    .clip(CircleShape)
-                    .background(StatusColors.color(tx.status))
+    val statusColor = StatusColors.color(tx.status)
+    BubbleCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 14.dp) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)
+        ) {
+            // POLISH P2 — the same status dot the tiles use: lit for a finished
+            // sale, dim for queued work, red for a failure. It lights with a
+            // 300ms fade as the engine closes the row.
+            StatusDot(
+                color = statusColor,
+                lit = tx.status == TransactionStatus.SUCCESSFUL.value ||
+                    StatusColors.isFailure(tx.status),
+                size = 9.dp
             )
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
@@ -767,7 +684,7 @@ private fun timeAgo(millis: Long): String {
 }
 
 /** Scales the series to 0..1 so the chart springs instead of jumping. */
-private fun normalize(series: List<Double>): List<Float> {
+internal fun normalize(series: List<Double>): List<Float> {
     val padded = (series + List((7 - series.size).coerceAtLeast(0)) { 0.0 }).take(7)
     val max = padded.maxOrNull() ?: 0.0
     if (max <= 0.0) return padded.map { 0f }
@@ -775,14 +692,14 @@ private fun normalize(series: List<Double>): List<Float> {
 }
 
 /** Axis label: 1,200 / 45 — short enough for a 40dp gutter. */
-private fun formatShort(value: Double): String = when {
+internal fun formatShort(value: Double): String = when {
     value >= 1000 -> String.format(Locale.US, "%,.0f", value)
     value >= 10 -> String.format(Locale.US, "%.0f", value)
     else -> String.format(Locale.US, "%.1f", value)
 }
 
 /** "1,234.56" — always two decimals, no locale surprises. */
-private fun money(value: Double): String = String.format(Locale.US, "%,.2f", value)
+internal fun money(value: Double): String = String.format(Locale.US, "%,.2f", value)
 
 /** Permissions the dial + balance paths genuinely need. */
 private fun missingPermissions(context: Context): Boolean =

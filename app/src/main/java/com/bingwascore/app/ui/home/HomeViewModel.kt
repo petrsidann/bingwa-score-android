@@ -165,6 +165,56 @@ class HomeViewModel @Inject constructor(
         .map { it.sum() }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0.0)
 
+    // ── POLISH P2 — credits + greeting ────────────────────────────────────────
+
+    /**
+     * POLISH P2 — one credit per **completed** bundle.
+     *
+     * Counted from live transactions rather than kept in a counter, so a credit
+     * can never drift away from the sale that earned it (and deleting a
+     * transaction, by mistake or on purpose, is reflected honestly).
+     */
+    val credits: StateFlow<Int> = transactionRepository.liveTransactions
+        .map { list -> list.count { it.status == TransactionStatus.SUCCESSFUL.value } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+
+    /** The ledger behind the credits bubble: the most recent completed sales. */
+    val creditRows: StateFlow<List<CreditRow>> = transactionRepository.liveTransactions
+        .map { list ->
+            list.filter { it.status == TransactionStatus.SUCCESSFUL.value }
+                .take(HomeChrome.MAX_CREDIT_ROWS)
+                .map { tx ->
+                    CreditRow(
+                        title = tx.customerName?.takeIf { it.isNotBlank() } ?: tx.phoneNumber,
+                        subtitle = "${tx.offerName} · ${tx.phoneNumber}",
+                        amount = tx.commission
+                    )
+                }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /**
+     * POLISH P2 — the greeting for this session.
+     *
+     * The rotation key is `dayOfYear + sessionIndex`: the line holds still for
+     * the whole session (no flip on rotation, no flip on resume) and moves on
+     * tomorrow, when it is a different day and deserves a different sentence.
+     */
+    private val _sessionIndex = MutableStateFlow(0)
+
+    private val _greeting = MutableStateFlow(greetingForSession())
+    val greeting: StateFlow<Pair<Greetings.Bucket, Greetings.Language>> = _greeting.asStateFlow()
+
+    /** Called from the screen on resume so the bucket follows the clock. */
+    fun refreshGreeting() {
+        _greeting.value = Greetings.currentBucket() to
+            Greetings.languageFor(Greetings.todayIndex(), _sessionIndex.value)
+    }
+
+    private fun greetingForSession(): Pair<Greetings.Bucket, Greetings.Language> =
+        Greetings.currentBucket() to
+            Greetings.languageFor(Greetings.todayIndex(), _sessionIndex.value)
+
     // Parity D — Recent Activity: last 5 live rows (DAO already ORDERs BY createdAt DESC).
     /**
      * POLISH P1 — reads the airtime balance from `*144#` and never lies about it.
@@ -242,6 +292,14 @@ class HomeViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             _balance.value = userPreferences.airtimeBalance.first()
+        }
+        // POLISH P2 — bump the greeting's session counter once per cold start, so
+        // the line is stable while the agent works and moves on tomorrow.
+        viewModelScope.launch {
+            val next = runCatching { userPreferences.greetingSession.first() }.getOrDefault(0) + 1
+            _sessionIndex.value = next
+            userPreferences.setGreetingSession(next)
+            refreshGreeting()
         }
     }
 

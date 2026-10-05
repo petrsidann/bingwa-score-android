@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.bingwascore.app.domain.AppProcessingMode
@@ -59,6 +60,8 @@ class UserPreferences @Inject constructor(
         val PROCESS_SITELINK_MESSAGES = booleanPreferencesKey("process_sitelink_messages")
         /** MEGA B — the push token, stored locally even when no server exists. */
         val FCM_TOKEN = stringPreferencesKey("fcm_token")
+        /** POLISH P2 — cold-start counter that keys the rotating greeting. */
+        val GREETING_SESSION = intPreferencesKey("greeting_session")
     }
 
     val isLoggedIn: Flow<Boolean> = context.dataStore.data.map { it[Keys.IS_LOGGED_IN] ?: false }
@@ -112,6 +115,15 @@ class UserPreferences @Inject constructor(
 
     val announcementsSeeded: Flow<Boolean> =
         context.dataStore.data.map { it[Keys.ANNOUNCEMENTS_SEEDED] ?: false }
+
+    /**
+     * POLISH P2 — how many cold starts this install has seen. Combined with the
+     * day of the year it keys the rotating greeting: stable within a session,
+     * surprising the next day.
+     */
+    val greetingSession: Flow<Int> = context.dataStore.data.map { it[Keys.GREETING_SESSION] ?: 0 }
+
+    suspend fun setGreetingSession(value: Int) = edit { it[Keys.GREETING_SESSION] = value }
 
     /**
      * MEGA A — cold-start gate. `STATE_RUNNING` only once the Setup Checklist
