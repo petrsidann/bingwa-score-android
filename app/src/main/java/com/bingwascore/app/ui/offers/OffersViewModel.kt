@@ -32,6 +32,36 @@ import java.util.UUID
 import javax.inject.Inject
 
 /**
+ * POLISH P4 - offer categories, derived from the offer's own type.
+ *
+ * The chips are not a hand-maintained taxonomy: they come from
+ * [com.bingwascore.app.data.local.Offer.TYPES], so an offer can never land in a
+ * bucket the UI does not show, and a category with nothing in it gets an honest
+ * empty state instead of silently disappearing.
+ */
+enum class OfferCategory(val label: String, val type: String?) {
+    ALL("All", null),
+    DATA("Data", com.bingwascore.app.data.local.Offer.TYPE_DATA),
+    AIRTIME("Airtime", com.bingwascore.app.data.local.Offer.TYPE_AIRTIME),
+    SMS("SMS", com.bingwascore.app.data.local.Offer.TYPE_SMS),
+    COMBO("Combo", com.bingwascore.app.data.local.Offer.TYPE_COMBO);
+
+    /** True when this category should list [offer]. Unknown types land in [ALL]. */
+    fun matches(offer: com.bingwascore.app.data.local.Offer): Boolean =
+        type == null || offer.type.equals(type, ignoreCase = true)
+
+    companion object {
+        fun filter(
+            offers: List<com.bingwascore.app.data.local.Offer>,
+            category: OfferCategory
+        ): List<com.bingwascore.app.data.local.Offer> = offers.filter { category.matches(it) }
+    }
+}
+
+/** POLISH P4 - the minimum width of one grid cell, in dp. */
+internal const val OFFER_GRID_MIN_WIDTH = 168
+
+/**
  * MEGA A â€” the Offer Settings form state, mirroring their OfferSettingsState.
  *
  * The sheet used to hold raw local booleans and save optimistically, so a bad

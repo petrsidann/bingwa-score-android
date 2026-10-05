@@ -55,7 +55,7 @@ object DemoSeeder {
             createdAt = now - TimeUnit.DAYS.toMillis(9)
         )
 
-        val offers = DemoCatalog.OFFERS.map { demo ->
+        val offers = DemoCatalog.OFFERS.distinctBy { it.ussdCode }.map { demo ->
             Offer(
                 id = "demo_offer_${demo.ussdCode.hashCode().toUInt().toString(16)}",
                 name = demo.name,

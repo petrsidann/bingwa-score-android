@@ -18,6 +18,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
@@ -30,7 +34,12 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Apps
+import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.Call
 import androidx.compose.material.icons.rounded.LocalOffer
+import androidx.compose.material.icons.rounded.SignalCellularAlt
+import androidx.compose.material.icons.rounded.Sms
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material.icons.rounded.Verified
 import androidx.compose.material3.AlertDialog
@@ -48,6 +57,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
@@ -81,7 +91,11 @@ import com.bingwascore.app.ui.theme.FailRed
 import com.bingwascore.app.ui.theme.Motion
 import com.bingwascore.app.ui.theme.BgBlack
 import com.bingwascore.app.ui.theme.Raised
+import com.bingwascore.app.ui.theme.TextDim
+import com.bingwascore.app.ui.theme.TextGrey
 import com.bingwascore.app.ui.theme.TextWhite
+import androidx.compose.ui.text.style.TextOverflow
+import java.util.Locale
 
 /** Statuses a fallback dial rule can trigger on. */
 private val FALLBACK_STATUSES = listOf(
@@ -92,6 +106,7 @@ private val FALLBACK_STATUSES = listOf(
 
 @Composable
 fun OffersScreen(viewModel: OffersViewModel = hiltViewModel()) {
+    val haptics = rememberHaptics()
     val offers by viewModel.offers.collectAsStateWithLifecycle()
     val rules by viewModel.transitionRules.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
@@ -105,6 +120,11 @@ fun OffersScreen(viewModel: OffersViewModel = hiltViewModel()) {
     var showAddSheet by remember { mutableStateOf(false) }
     var settingsOffer by remember { mutableStateOf<Offer?>(null) }
     var actionsOffer by remember { mutableStateOf<Offer?>(null) }
+
+    // POLISH P4 — which category the grid is showing. All, by default, because
+    // an agent who opens Offers wants to see their shelf, not a filtered view
+    // they have to undo.
+    var category by remember { mutableStateOf(OfferCategory.ALL) }
 
     // Parity F — multi-select (long-press a card), batch phone and the single
     // confirmation dialog listing the non-silent offers.
@@ -138,7 +158,7 @@ fun OffersScreen(viewModel: OffersViewModel = hiltViewModel()) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 16.dp)
+                    .padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 6.dp)
             ) {
                 Text("Offers", color = TextWhite, fontSize = 22.sp, fontWeight = FontWeight.Bold)
                 Text(
@@ -148,6 +168,18 @@ fun OffersScreen(viewModel: OffersViewModel = hiltViewModel()) {
                     fontSize = 12.sp
                 )
             }
+
+            // POLISH P4 — the category chips, derived from the offer type.
+            CategoryChips(
+                selected = category,
+                counts = remember(offers) { OfferCategory.entries.associateWith { cat ->
+                    OfferCategory.filter(offers, cat).size
+                } },
+                onSelect = {
+                    haptics.tick()
+                    category = it
+                }
+            )
 
             if (isLoading) {
                 // Parity E — shimmer skeletons while the offers load.
@@ -160,35 +192,53 @@ fun OffersScreen(viewModel: OffersViewModel = hiltViewModel()) {
                     modifier = Modifier.padding(20.dp)
                 )
             } else {
-                LazyColumn(
-                    contentPadding = PaddingValues(
-                        start = 20.dp,
-                        end = 20.dp,
-                        bottom = if (selectionMode) 280.dp else 96.dp
-                    ),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    itemsIndexed(offers, key = { _, offer -> offer.id }) { index, offer ->
-                        OfferCard(
-                            offer = offer,
-                            enterDelayMillis = minOf(index, 6) * Motion.STAGGER,
-                            selectionMode = selectionMode,
-                            selected = offer.id in selectedIds,
-                            onToggle = { viewModel.toggleActive(offer) },
-                            onOpenSettings = { settingsOffer = offer },
-                            onOpenActions = { actionsOffer = offer },
-                            onLongPress = {
-                                selectionMode = true
-                                selectedIds = selectedIds + offer.id
-                            },
-                            onSelectToggle = {
-                                selectedIds = if (offer.id in selectedIds) {
-                                    selectedIds - offer.id
-                                } else {
-                                    selectedIds + offer.id
+                val visible = remember(offers, category) { OfferCategory.filter(offers, category) }
+                if (visible.isEmpty()) {
+                    // POLISH P4 — an empty category says so, in its own words.
+                    EmptyState(
+                        icon = categoryIcon(category),
+                        title = "No ${category.label.lowercase(Locale.ROOT)} offers",
+                        message = "Add a ${category.label.lowercase(Locale.ROOT)} bundle with the + " +
+                            "button, or pick another category.",
+                        modifier = Modifier.padding(20.dp)
+                    )
+                } else {
+                    // POLISH P4 — a two-column grid, so an agent with eight offers
+                    // sees all eight without scrolling past one giant card at a
+                    // time.
+                    LazyVerticalGrid(
+                        columns = GridCells.Adaptive(minSize = OFFER_GRID_MIN_WIDTH.dp),
+                        contentPadding = PaddingValues(
+                            start = 16.dp,
+                            end = 16.dp,
+                            top = 8.dp,
+                            bottom = if (selectionMode) 280.dp else 96.dp
+                        ),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        itemsIndexed(visible, key = { _, offer -> offer.id }) { index, offer ->
+                            OfferCard(
+                                offer = offer,
+                                enterDelayMillis = minOf(index, 6) * Motion.STAGGER,
+                                selectionMode = selectionMode,
+                                selected = offer.id in selectedIds,
+                                onToggle = { viewModel.toggleActive(offer) },
+                                onOpenSettings = { settingsOffer = offer },
+                                onOpenActions = { actionsOffer = offer },
+                                onLongPress = {
+                                    selectionMode = true
+                                    selectedIds = selectedIds + offer.id
+                                },
+                                onSelectToggle = {
+                                    selectedIds = if (offer.id in selectedIds) {
+                                        selectedIds - offer.id
+                                    } else {
+                                        selectedIds + offer.id
+                                    }
                                 }
-                            }
-                        )
+                            )
+                        }
                     }
                 }
             }
@@ -366,6 +416,16 @@ private fun OfferSkeleton() {
     }
 }
 
+/**
+ * POLISH P4 — one grid card.
+ *
+ * The old row was a full-width card with a name, two chips, an optional relay
+ * line, an optional completion message, a switch and a gear — around 96dp tall,
+ * so four offers filled a phone screen. A grid cell has to earn its space: name
+ * on two lines, price chip, type icon, switch and gear, and nothing that can be
+ * one tap longer. Everything that used to live on the card (relay, completion
+ * message, tags, silent-batch) moved into the gear sheet it always opened.
+ */
 @Composable
 private fun OfferCard(
     offer: Offer,
@@ -380,73 +440,52 @@ private fun OfferCard(
 ) {
     BubbleCard(
         modifier = Modifier.fillMaxWidth(),
+        cornerRadius = 18.dp,
         onClick = if (selectionMode) onSelectToggle else onOpenSettings,
         // Parity F — long-press anywhere on the card starts multi-select.
         onLongClick = onLongPress,
         enterDelayMillis = enterDelayMillis
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        offer.name,
-                        color = TextWhite,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.weight(1f, fill = false)
-                    )
-                    if (offer.isVerified) {
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Icon(
-                            imageVector = Icons.Rounded.Verified,
-                            contentDescription = "Verified",
-                            tint = TickGreen,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.height(6.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    PriceChip(price = offer.price)
-                    // Parity D — Hybrid tag bucket chip (OFFER_1..OFFER_4).
-                    offer.tag?.takeIf { it.isNotBlank() }?.let { tag ->
-                        Spacer(modifier = Modifier.width(8.dp))
-                        TagChip(tag = tag)
-                    }
-                    // Parity F — silent batch dial chip.
-                    if (offer.silentBatch) {
-                        Spacer(modifier = Modifier.width(8.dp))
-                        SilentChip()
-                    }
-                }
-                // Parity D — Hybrid Connect relay routing line.
-                offer.relayDevice?.takeIf { it.isNotBlank() }?.let { relay ->
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        "Relay: $relay",
-                        color = TextWhite.copy(alpha = 0.45f),
-                        fontSize = 11.sp,
-                        maxLines = 1
-                    )
-                }
-                offer.completionMessage?.takeIf { it.isNotBlank() }?.let { message ->
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        message,
-                        color = TextWhite.copy(alpha = 0.45f),
-                        fontSize = 11.sp,
-                        maxLines = 1
-                    )
-                }
+            Icon(
+                imageVector = categoryIcon(offerCategoryOf(offer)),
+                contentDescription = offer.type,
+                tint = if (offer.isActive) AccentBlue else TextDim,
+                modifier = Modifier.size(16.dp)
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                offer.name,
+                color = if (offer.isActive) TextWhite else TextGrey,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f)
+            )
+            if (offer.isVerified) {
+                Icon(
+                    imageVector = Icons.Rounded.Verified,
+                    contentDescription = "Verified",
+                    tint = TickGreen,
+                    modifier = Modifier.size(14.dp)
+                )
             }
-            Spacer(modifier = Modifier.width(12.dp))
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            PriceChip(price = offer.price)
+            Spacer(modifier = Modifier.weight(1f))
             if (selectionMode) {
-                // Parity F — multi-select: the switch/Tune controls give way to a checkbox.
+                // Parity F — multi-select: the switch/gear give way to a checkbox.
                 SelectionCheckbox(checked = selected)
             } else {
                 HapticSwitch(
                     checked = offer.isActive,
                     onCheckedChange = { onToggle() },
+                    modifier = Modifier.scale(0.82f),
                     colors = SwitchDefaults.colors(
                         checkedThumbColor = BgBlack,
                         checkedTrackColor = AccentBlue,
@@ -456,23 +495,89 @@ private fun OfferCard(
                         uncheckedBorderColor = Hairline
                     )
                 )
-                Spacer(modifier = Modifier.width(8.dp))
                 Box(
                     modifier = Modifier
+                        .size(28.dp)
                         .clip(CircleShape)
-                        .clickable(onClick = onOpenActions)
-                        .padding(6.dp)
+                        .clickable(onClick = onOpenActions),
+                    contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.Tune,
                         contentDescription = "Offer actions",
                         tint = TextWhite.copy(alpha = 0.6f),
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(17.dp)
                     )
                 }
             }
         }
     }
+}
+
+/**
+ * POLISH P4 — the category chips.
+ *
+ * Each chip carries its own count, so a category with nothing in it is visibly
+ * empty before it is tapped, and the empty state it leads to is a sentence
+ * rather than a blank grid.
+ */
+@Composable
+private fun CategoryChips(
+    selected: OfferCategory,
+    counts: Map<OfferCategory, Int>,
+    onSelect: (OfferCategory) -> Unit
+) {
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        items(OfferCategory.entries.toList(), key = { it.name }) { category ->
+            val count = counts[category] ?: 0
+            val isSelected = category == selected
+            val shape = RoundedCornerShape(12.dp)
+            val interactionSource = remember { MutableInteractionSource() }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .pressScale(interactionSource)
+                    .clip(shape)
+                    .background(if (isSelected) AccentBlue else Bubble)
+                    .clickable(
+                        interactionSource = interactionSource,
+                        indication = null,
+                        onClick = { onSelect(category) }
+                    )
+                    .padding(horizontal = 12.dp, vertical = 7.dp)
+            ) {
+                Text(
+                    category.label,
+                    color = if (isSelected) TextWhite else TextGrey,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.width(5.dp))
+                Text(
+                    "$count",
+                    color = if (isSelected) TextWhite.copy(alpha = 0.7f) else TextDim,
+                    fontSize = 11.sp
+                )
+            }
+        }
+    }
+}
+
+/** The category an offer belongs to; an unknown type reads as All. */
+internal fun offerCategoryOf(offer: Offer): OfferCategory =
+    OfferCategory.entries.firstOrNull { it.type != null && it.matches(offer) } ?: OfferCategory.ALL
+
+/** The glyph that stands for each category, on cards and in empty states. */
+internal fun categoryIcon(category: OfferCategory) = when (category) {
+    OfferCategory.ALL -> Icons.Rounded.Apps
+    OfferCategory.DATA -> Icons.Rounded.SignalCellularAlt
+    OfferCategory.AIRTIME -> Icons.Rounded.Call
+    OfferCategory.SMS -> Icons.Rounded.Sms
+    OfferCategory.COMBO -> Icons.Rounded.AutoAwesome
 }
 
 @Composable
