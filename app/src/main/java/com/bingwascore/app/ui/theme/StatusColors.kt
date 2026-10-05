@@ -10,6 +10,9 @@ import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.bingwascore.app.domain.TransactionStatus
+import com.bingwascore.app.ui.theme.SemanticBlue
+import com.bingwascore.app.ui.theme.SemanticGrey
+import com.bingwascore.app.ui.theme.SemanticRed
 import java.util.Locale
 
 /**
@@ -19,8 +22,8 @@ import java.util.Locale
  * activity) reads colour + icon + label from here so a status can never look
  * different in two places.
  *
- * Palette (exact hex in DARK, and every token re-resolves per display mode):
- * - Successful → `#2962FF` (accent blue — success is brand, not a green dot)
+ * Palette (exact hex, and **identical in every display mode** since P5):
+ * - Successful → `#3E6BFF` (semantic blue — success is brand, not a green dot)
  * - Failed / already recommended → `#FF5252`
  * - Pending / processing / scheduled → `#9E9E9E`
  * - Unmatched / cancelled / paused → dim grey
@@ -29,17 +32,22 @@ import java.util.Locale
  */
 object StatusColors {
 
-    /** Completed successfully — the brand accent. */
-    val Success: Color get() = AccentBlue
+    /**
+     * POLISH P5 — completed successfully.
+     *
+     * The *semantic* blue, not the chrome accent: in Grayscale a cleared sale is
+     * still blue, because colour is the fastest signal a ledger has.
+     */
+    val Success: Color get() = SemanticBlue
 
     /** Queued for a future run — grey, same as pending. */
-    val Scheduled: Color get() = PendGrey
+    val Scheduled: Color get() = SemanticGrey
 
     /** In flight / waiting on USSD — grey, it carries no verdict yet. */
-    val Pending: Color get() = PendGrey
+    val Pending: Color get() = SemanticGrey
 
-    /** Failed or already recommended. */
-    val Failed: Color get() = FailRed
+    /** Failed or already recommended — the semantic red, in every mode. */
+    val Failed: Color get() = SemanticRed
 
     /** Unmatched / cancelled / paused — no signal either way. */
     val Neutral: Color get() = TextDim

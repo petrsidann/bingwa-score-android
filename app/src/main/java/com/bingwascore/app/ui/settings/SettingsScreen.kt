@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
@@ -413,6 +414,15 @@ private fun OptionCard(
     }
 }
 
+/**
+ * POLISH P5 — Appearance, as three live preview cards.
+ *
+ * The old page was three rows of title + description, which asked the agent to
+ * pick a mood from prose. Each card now carries a **miniature of the product** —
+ * canvas, card, status dots, nav pill — painted in that mode's real tokens, and
+ * the whole app recomposes the instant one is tapped. Choosing a theme is a
+ * visual decision, so the decision gets a picture.
+ */
 @Composable
 private fun AppearancePage(viewModel: SettingsViewModel) {
     val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
@@ -421,13 +431,8 @@ private fun AppearancePage(viewModel: SettingsViewModel) {
     PageTitle("Appearance")
     PageIntro("Pick how Bingwa Score looks on this device. Changes apply instantly.")
     ThemeMode.entries.forEach { mode ->
-        OptionCard(
-            title = mode.label,
-            description = when (mode) {
-                ThemeMode.DARK -> "Black canvas, electric blue actions"
-                ThemeMode.GRAYSCALE -> "Monochrome — every accent drops to grey"
-                ThemeMode.BLUE_LIGHT_FILTER -> "Warm dark that tames blue light at night"
-            },
+        ThemePreviewCard(
+            mode = mode,
             selected = themeMode == mode,
             onClick = {
                 // R6 — a mode switch is a deliberate act, so it ticks.
@@ -435,6 +440,164 @@ private fun AppearancePage(viewModel: SettingsViewModel) {
                 viewModel.setThemeMode(mode)
             }
         )
+    }
+}
+
+/** One appearance card: the mode's name, a line of copy, and a live miniature. */
+@Composable
+private fun ThemePreviewCard(
+    mode: ThemeMode,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    BubbleCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 10.dp),
+        onClick = onClick
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(mode.label, color = TextWhite, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = when (mode) {
+                        ThemeMode.DARK -> "Black canvas, softened electric blue"
+                        ThemeMode.GRAYSCALE -> "Monochrome chrome, status colour kept"
+                        ThemeMode.SILICA -> "Frosted glass over ambient colour"
+                    },
+                    color = TextWhite.copy(alpha = 0.55f),
+                    fontSize = 12.sp
+                )
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            if (selected) {
+                Icon(
+                    imageVector = Icons.Rounded.CheckCircle,
+                    contentDescription = "Selected",
+                    tint = AccentBlue,
+                    modifier = Modifier.size(22.dp)
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .size(22.dp)
+                        .clip(CircleShape)
+                        .background(Bubble)
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(10.dp))
+        ThemePreviewStrip(mode = mode, selected = selected)
+    }
+}
+
+/**
+ * The miniature.
+ *
+ * Painted with the tokens of the mode it *represents* (not the mode currently on
+ * screen), so the preview of Silica looks like Silica while Obsidian is still
+ * active. That is the whole reason this page is worth scrolling to.
+ */
+@Composable
+private fun ThemePreviewStrip(mode: ThemeMode, selected: Boolean) {
+    val shape = RoundedCornerShape(12.dp)
+    val glass = mode == ThemeMode.SILICA
+    val canvas = when (mode) {
+        ThemeMode.SILICA -> Color(0xFF07070C)
+        else -> Color(0xFF000000)
+    }
+    val surface = when (mode) {
+        ThemeMode.SILICA -> Color(0x1FFFFFFF)
+        else -> Color(0xFF141414)
+    }
+    val chrome = when (mode) {
+        ThemeMode.GRAYSCALE -> Color(0xFFBDBDBD)
+        else -> Color(0xFF4176FF)
+    }
+    // POLISH P5 — the dots keep their semantics even in the monochrome preview.
+    val done = if (mode == ThemeMode.GRAYSCALE) Color(0xFFBDBDBD) else Color(0xFF3E6BFF)
+    val failed = if (mode == ThemeMode.GRAYSCALE) Color(0xFF757575) else Color(0xFFFF5252)
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(56.dp)
+            .clip(shape)
+            .background(canvas)
+            .border(1.dp, if (selected) chrome.copy(alpha = 0.6f) else Hairline, shape)
+    ) {
+        if (glass) {
+            // The orbs, miniaturised: two soft colour fields behind the card.
+            androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
+                drawCircle(
+                    color = Color(0x553E6BFF),
+                    radius = size.height * 1.1f,
+                    center = androidx.compose.ui.geometry.Offset(size.width * 0.2f, size.height * 0.3f)
+                )
+                drawCircle(
+                    color = Color(0x448C6BFF),
+                    radius = size.height * 1.2f,
+                    center = androidx.compose.ui.geometry.Offset(size.width * 0.85f, size.height * 0.8f)
+                )
+            }
+        }
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 8.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(26.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(surface)
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(22.dp)
+                    .clip(RoundedCornerShape(7.dp))
+                    .background(surface)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(horizontal = 6.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(6.dp)
+                            .clip(CircleShape)
+                            .background(done)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Box(
+                        modifier = Modifier
+                            .size(6.dp)
+                            .clip(CircleShape)
+                            .background(failed)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Box(
+                        modifier = Modifier
+                            .height(4.dp)
+                            .width(34.dp)
+                            .clip(RoundedCornerShape(2.dp))
+                            .background(chrome.copy(alpha = 0.55f))
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.width(6.dp))
+            Box(
+                modifier = Modifier
+                    .size(18.dp)
+                    .clip(CircleShape)
+                    .background(if (selected) chrome else surface)
+            )
+        }
     }
 }
 

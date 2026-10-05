@@ -37,6 +37,8 @@ import com.bingwascore.app.ui.theme.BingwaType
 import com.bingwascore.app.ui.theme.CtaBorder
 import com.bingwascore.app.ui.theme.CtaFill
 import com.bingwascore.app.ui.theme.CtaInk
+import com.bingwascore.app.ui.theme.DisabledFill
+import com.bingwascore.app.ui.theme.DisabledInk
 import com.bingwascore.app.ui.theme.Hairline
 import com.bingwascore.app.ui.theme.Raised
 import com.bingwascore.app.util.rememberHaptics
@@ -50,14 +52,18 @@ import com.bingwascore.app.util.rememberHaptics
  * trading terminal instead of a wallpaper.
  */
 
-/** The one surface modifier: flat fill, clipped to [shape]. */
+/**
+ * The one surface modifier: flat fill, clipped to [shape].
+ *
+ * POLISH P5 — in Silica this resolves to frosted glass instead of a flat fill,
+ * so every card in the app becomes a pane without a single screen having to
+ * branch on the theme.
+ */
 @Composable
 fun Modifier.bubbleSurface(
     shape: Shape,
     fill: Color = Bubble
-): Modifier = this
-    .clip(shape)
-    .background(fill)
+): Modifier = glassSurface(shape = shape, fill = fill)
 
 /**
  * Flat bubble card. Fades + slides in on composition; when [onClick] is provided
@@ -115,7 +121,7 @@ fun BubbleCard(
 /**
  * Primary CTA — solid accent, white bold label, 14dp radius.
  *
- * In GRAYSCALE / BLUE LIGHT FILTER the accent is no longer a usable hue, so the
+ * In GRAYSCALE the accent is no longer a usable hue, so the
  * button becomes a solid near-black chip separated by a hairline.
  *
  * Pass [loading] to swap the label for a spinner (e.g. "Dialing…") and block
@@ -133,8 +139,12 @@ fun PrimaryButton(
     val interactionSource = remember { MutableInteractionSource() }
     val haptics = rememberHaptics()
     val shape = RoundedCornerShape(14.dp)
-    val fill = if (enabled && !loading) CtaFill else Raised
-    val ink = if (enabled && !loading) CtaInk else CtaInk.copy(alpha = 0.45f)
+    // POLISH P5 — a disabled CTA used to be `Raised` + 45% white ink (~2.4:1),
+    // which read as broken. DisabledFill + DisabledInk clear 4.5:1 in all three
+    // modes, so "Dial Now" looks *unavailable*, not *broken*.
+    val enabledNow = enabled && !loading
+    val fill = if (enabledNow) CtaFill else DisabledFill
+    val ink = if (enabledNow) CtaInk else DisabledInk
 
     Box(
         modifier = modifier
@@ -143,9 +153,9 @@ fun PrimaryButton(
             .height(56.dp)
             .clip(shape)
             .background(fill)
-            .border(1.dp, CtaBorder, shape)
+            .border(1.dp, if (enabledNow) CtaBorder else Hairline, shape)
             .clickable(
-                enabled = enabled && !loading,
+                enabled = enabledNow,
                 interactionSource = interactionSource,
                 indication = null
             ) {
@@ -205,7 +215,7 @@ fun SecondaryButton(
     ) {
         Text(
             text,
-            color = if (enabled) CtaInk else CtaInk.copy(alpha = 0.4f),
+            color = if (enabled) CtaInk else DisabledInk,
             fontWeight = FontWeight.SemiBold,
             fontSize = BingwaType.Body
         )

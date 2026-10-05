@@ -25,18 +25,27 @@ enum class TransactionStatus(val value: String) {
 }
 
 /**
- * REBRAND R1 — display modes (Settings > Appearance).
+ * POLISH P5 — display modes (Settings > Appearance).
  *
- * There is no light mode: the product is dark-first, so the three options are
- * three readings of black. [fromValue] falls back to DARK, which also retires
- * the old SYSTEM / LIGHT values without a migration.
+ * Three readings of the same dark product, no light mode:
+ *
+ * - [DARK]   "Obsidian" — black + softened electric blue. The default.
+ * - [GRAYSCALE] — monochrome chrome, but **semantic colour survives**: a failed
+ *   transaction is still red and a completed one still blue, because a ledger
+ *   that cannot be read at a glance is a worse ledger.
+ * - [SILICA] — glassmorphism: frosted cards, a translucent nav rail, ambient
+ *   purple/blue orbs behind everything.
+ *
+ * [fromValue] retires the old BLUE LIGHT FILTER: an install that had it stored
+ * lands on Obsidian, since a warm filter is no longer a mode anyone can pick.
  */
 enum class ThemeMode(val value: String, val label: String) {
-    DARK("DARK", "Dark"),
+    DARK("DARK", "Obsidian"),
     GRAYSCALE("GRAYSCALE", "Grayscale"),
-    BLUE_LIGHT_FILTER("BLUE_LIGHT_FILTER", "Blue Light Filter");
+    SILICA("SILICA", "Silica");
 
     companion object {
+        /** Everything that is not one of the three above reads as Obsidian. */
         fun fromValue(value: String?): ThemeMode =
             entries.firstOrNull { it.value == value } ?: DARK
     }

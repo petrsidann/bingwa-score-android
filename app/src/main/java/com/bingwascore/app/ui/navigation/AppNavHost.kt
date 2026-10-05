@@ -35,6 +35,7 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ReceiptLong
 import androidx.compose.material.icons.rounded.Autorenew
@@ -125,8 +126,12 @@ import com.bingwascore.app.ui.showcase.DemoChip
 import com.bingwascore.app.ui.theme.AccentBlue
 import com.bingwascore.app.ui.theme.Motion
 import com.bingwascore.app.ui.theme.BgBlack
+import com.bingwascore.app.ui.theme.GlassFillStrong
 import com.bingwascore.app.ui.theme.Raised
 import com.bingwascore.app.ui.theme.TextWhite
+import com.bingwascore.app.ui.components.AmbientOrbs
+import com.bingwascore.app.ui.theme.glassBorderBrush
+import com.bingwascore.app.ui.theme.isSilica
 import androidx.compose.runtime.collectAsState
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
@@ -407,6 +412,12 @@ fun MainScreen() {
 
             val resolved = if (showReferral) "referral" else destination
 
+            // POLISH P5 — in Silica the ambient orbs live here, behind every tab
+            // and every drawer destination, so the glass always has something to
+            // refract. In the other two modes this composes to nothing.
+            Box(modifier = Modifier.fillMaxSize()) {
+                AmbientOrbs()
+
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -457,15 +468,17 @@ fun MainScreen() {
                     }
                 }
             }
+            }
         }
     }
 }
 /**
- * REBRAND R2 — the MT5 shell bar.
+ * The shell bar.
  *
- * Solid `#000000`, five equal tabs, icon + 11sp label. Active = accent blue,
- * inactive = grey. No FAB, no floating pill, no gap, no blur: the bar is a rail,
- * not a floating object.
+ * Solid `#000000` in Obsidian and Grayscale — five equal tabs, icon + 11sp label,
+ * no FAB, no gap: the bar is a rail, not a floating object. In Silica the rail
+ * turns to **translucent glass** with a gradient hairline, because a solid bar
+ * under a frosted app is the one place the illusion breaks.
  */
 @Composable
 private fun BottomNavBar(
@@ -479,7 +492,15 @@ private fun BottomNavBar(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(BgBlack)
+            // POLISH P5 — translucent glass in Silica, solid black elsewhere.
+            .background(if (isSilica) GlassFillStrong else BgBlack)
+            .then(
+                if (isSilica) {
+                    Modifier.border(1.dp, glassBorderBrush(strong = true), RectangleShape)
+                } else {
+                    Modifier
+                }
+            )
             .navigationBarsPadding()
             .padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
