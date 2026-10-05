@@ -36,6 +36,7 @@ import com.bingwascore.app.ui.theme.FailRed
 import com.bingwascore.app.ui.theme.Hairline
 import com.bingwascore.app.ui.theme.Bubble
 import com.bingwascore.app.ui.theme.BgBlack
+import com.bingwascore.app.ui.theme.TextFaint
 import com.bingwascore.app.ui.theme.TextWhite
 import com.bingwascore.app.util.screenEnter
 
@@ -150,7 +151,7 @@ private fun PinField(
     placeholder: String
 ) {
     Column {
-        Text(label, color = TextWhite.copy(alpha = 0.45f), fontSize = 11.sp)
+        Text(label, color = TextFaint, fontSize = 11.sp)
         Spacer(modifier = Modifier.height(6.dp))
         Box(
             modifier = Modifier
@@ -170,7 +171,7 @@ private fun PinField(
                 modifier = Modifier.fillMaxWidth()
             )
             if (value.isEmpty()) {
-                Text(placeholder, color = TextWhite.copy(alpha = 0.45f), fontSize = 15.sp)
+                Text(placeholder, color = TextFaint, fontSize = 15.sp)
             }
         }
     }

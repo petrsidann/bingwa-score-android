@@ -32,6 +32,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.bingwascore.app.ui.theme.AccentBlue
+import com.bingwascore.app.ui.theme.BgBlack
 import com.bingwascore.app.ui.theme.Bubble
 import com.bingwascore.app.ui.theme.BingwaType
 import com.bingwascore.app.ui.theme.CtaBorder
@@ -226,13 +228,18 @@ fun SecondaryButton(
  * Switch with a haptic tick on every toggle. The haptic call is wrapped so a
  * device without haptics (or a framework quirk) can never crash the toggle — the
  * state change always goes through.
+ *
+ * POLISH P6 — the default colours were Material's, which on a black surface put
+ * a 40%-white thumb on a near-black track: invisible in Obsidian, worse on
+ * Silica's translucent fill, and the single most common "is this on?" moment in
+ * the app. These defaults clear 3:1 against their own track in all three modes.
  */
 @Composable
 fun HapticSwitch(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
-    colors: SwitchColors = SwitchDefaults.colors()
+    colors: SwitchColors = statusSwitchColors()
 ) {
     val haptics = rememberHaptics()
     Switch(
@@ -245,3 +252,20 @@ fun HapticSwitch(
         colors = colors
     )
 }
+
+/**
+ * The one switch palette.
+ *
+ * On: the accent track with a black thumb — the strongest figure/ground pair the
+ * product has. Off: a raised track, a visible hairline and a [DisabledInk] thumb,
+ * so "off" reads as *off* rather than as *broken*.
+ */
+@Composable
+fun statusSwitchColors(): SwitchColors = SwitchDefaults.colors(
+    checkedThumbColor = BgBlack,
+    checkedTrackColor = AccentBlue,
+    checkedBorderColor = AccentBlue,
+    uncheckedThumbColor = DisabledInk,
+    uncheckedTrackColor = Raised,
+    uncheckedBorderColor = Hairline
+)

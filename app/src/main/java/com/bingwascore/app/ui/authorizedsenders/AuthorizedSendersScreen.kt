@@ -54,10 +54,12 @@ import com.bingwascore.app.ui.theme.PendGrey
 import com.bingwascore.app.ui.theme.AccentBlue
 import com.bingwascore.app.ui.theme.TickGreen
 import com.bingwascore.app.ui.theme.FailRed
+import com.bingwascore.app.ui.theme.TextFaint
 import com.bingwascore.app.ui.theme.TextWhite
 import com.bingwascore.app.ui.theme.accentBrush
 import com.bingwascore.app.ui.theme.BgBlack
 import com.bingwascore.app.ui.theme.ChartBlue
+import com.bingwascore.app.ui.theme.TextFaint
 import com.bingwascore.app.ui.theme.TextWhite
 
 /**
@@ -153,7 +155,7 @@ private fun SenderInput(value: String, onValueChange: (String) -> Unit, onSubmit
                     modifier = Modifier.fillMaxWidth()
                 )
                 if (value.isEmpty()) {
-                    Text("e.g. 0712345678", color = TextWhite.copy(alpha = 0.4f), fontSize = 14.sp)
+                    Text("e.g. 0712345678", color = TextFaint, fontSize = 14.sp)
                 }
             }
         }

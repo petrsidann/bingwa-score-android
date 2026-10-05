@@ -45,6 +45,7 @@ import com.bingwascore.app.ui.theme.FailRed
 import com.bingwascore.app.ui.theme.Hairline
 import com.bingwascore.app.ui.theme.Bubble
 import com.bingwascore.app.ui.theme.BgBlack
+import com.bingwascore.app.ui.theme.TextFaint
 import com.bingwascore.app.ui.theme.TextWhite
 import com.bingwascore.app.util.screenEnter
 
@@ -211,7 +212,7 @@ private fun OtpField(
             modifier = Modifier.fillMaxWidth()
         )
         if (value.isEmpty()) {
-            Text(placeholder, color = TextWhite.copy(alpha = 0.45f), fontSize = 16.sp)
+            Text(placeholder, color = TextFaint, fontSize = 16.sp)
         }
     }
 }

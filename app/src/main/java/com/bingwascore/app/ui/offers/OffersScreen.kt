@@ -93,6 +93,7 @@ import com.bingwascore.app.ui.theme.BgBlack
 import com.bingwascore.app.ui.theme.Raised
 import com.bingwascore.app.ui.theme.TextDim
 import com.bingwascore.app.ui.theme.TextGrey
+import com.bingwascore.app.ui.theme.TextFaint
 import com.bingwascore.app.ui.theme.TextWhite
 import androidx.compose.ui.text.style.TextOverflow
 import java.util.Locale
@@ -701,7 +702,7 @@ private fun AddOfferSheet(onDismiss: () -> Unit, onAdd: (name: String, price: In
             )
             Text(
                 "Use \"ph\" where the customer number goes — the dialer swaps it in automatically.",
-                color = TextWhite.copy(alpha = 0.45f),
+                color = TextFaint,
                 fontSize = 11.sp
             )
             Spacer(modifier = Modifier.height(18.dp))
@@ -747,7 +748,7 @@ private fun SheetTextField(
                 if (value.isEmpty() && placeholder.isNotEmpty()) {
                     Text(
                         placeholder,
-                        color = TextWhite.copy(alpha = 0.35f),
+                        color = TextFaint,
                         fontSize = 14.sp
                     )
                 }
@@ -858,7 +859,7 @@ private fun OfferSettingsSheet(
             SwitchRow("Strict mode", strictMode) { strictMode = it }
             Text(
                 "Never resell this bundle once Safaricom says the customer was already recommended it.",
-                color = TextWhite.copy(alpha = 0.45f),
+                color = TextFaint,
                 fontSize = 11.sp
             )
             Spacer(modifier = Modifier.height(8.dp))
@@ -866,7 +867,7 @@ private fun OfferSettingsSheet(
             SwitchRow("Retry network problems", retryConnectionProblems) { retryConnectionProblems = it }
             Text(
                 "Silent offers are queued straight away in the Ghost Queue — no per-dial confirmation.",
-                color = TextWhite.copy(alpha = 0.45f),
+                color = TextFaint,
                 fontSize = 11.sp
             )
             Spacer(modifier = Modifier.height(8.dp))
@@ -998,7 +999,7 @@ private fun OfferActionsSheet(
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 "When a transaction ends in status X, dial offer Y",
-                color = TextWhite.copy(alpha = 0.45f),
+                color = TextFaint,
                 fontSize = 11.sp
             )
             Spacer(modifier = Modifier.height(10.dp))
@@ -1029,7 +1030,7 @@ private fun OfferActionsSheet(
             if (targets.isEmpty()) {
                 Text(
                     "No other offers available yet.",
-                    color = TextWhite.copy(alpha = 0.4f),
+                    color = TextFaint,
                     fontSize = 12.sp
                 )
             } else {

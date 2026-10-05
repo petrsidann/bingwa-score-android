@@ -54,6 +54,7 @@ import com.bingwascore.app.ui.theme.BgBlack
 import com.bingwascore.app.ui.theme.PendGrey
 import com.bingwascore.app.ui.theme.Platinum
 import com.bingwascore.app.ui.theme.Silver
+import com.bingwascore.app.ui.theme.TextFaint
 import com.bingwascore.app.ui.theme.TextWhite
 import com.bingwascore.app.util.screenEnter
 import kotlinx.coroutines.delay
@@ -168,7 +169,7 @@ private fun AchievementCard(a: Achievement, enterDelayMillis: Int, modifier: Mod
                 Icon(
                     if (a.unlocked) Icons.Rounded.EmojiEvents else Icons.Rounded.Lock,
                     contentDescription = null,
-                    tint = if (a.unlocked) TickGreen else TextWhite.copy(alpha = 0.35f),
+                    tint = if (a.unlocked) TickGreen else TextFaint,
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -176,7 +177,7 @@ private fun AchievementCard(a: Achievement, enterDelayMillis: Int, modifier: Mod
             Column(modifier = Modifier.weight(1f)) {
                 Text(a.title, color = if (a.unlocked) TextWhite else TextWhite.copy(alpha = 0.5f),
                     fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-                Text(a.description, color = TextWhite.copy(alpha = 0.45f), fontSize = 11.sp)
+                Text(a.description, color = TextFaint, fontSize = 11.sp)
             }
             if (a.unlocked) {
                 Text("UNLOCKED", color = TickGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold)

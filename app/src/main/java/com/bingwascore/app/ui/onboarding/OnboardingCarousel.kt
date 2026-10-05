@@ -37,6 +37,7 @@ import com.bingwascore.app.ui.components.PrimaryButton
 import com.bingwascore.app.ui.theme.AccentBlue
 import com.bingwascore.app.ui.theme.accentBrush
 import com.bingwascore.app.ui.theme.BgBlack
+import com.bingwascore.app.ui.theme.TextFaint
 import com.bingwascore.app.ui.theme.TextWhite
 
 private data class OnboardingSlide(val icon: ImageVector, val title: String, val body: String)
@@ -89,7 +90,7 @@ fun OnboardingCarousel(
             slides.forEachIndexed { index, _ ->
                 Box(modifier = Modifier.padding(horizontal = 4.dp)
                     .size(if (index == page) 10.dp else 8.dp).clip(CircleShape)
-                    .background(if (index == page) AccentBlue else TextWhite.copy(alpha = 0.3f)))
+                    .background(if (index == page) AccentBlue else TextFaint))
             }
         }
 

@@ -61,6 +61,7 @@ import com.bingwascore.app.ui.theme.accentBrush
 import com.bingwascore.app.ui.theme.FailRed
 import com.bingwascore.app.ui.theme.BgBlack
 import com.bingwascore.app.ui.theme.TextGrey
+import com.bingwascore.app.ui.theme.TextFaint
 import com.bingwascore.app.ui.theme.TextWhite
 
 /** Full-screen quick dialer opened from the glass bottom bar call FAB. */
@@ -155,13 +156,13 @@ fun DialerScreen(onClose: () -> Unit, viewModel: DialerViewModel = hiltViewModel
                 Icon(
                     imageVector = Icons.Rounded.Inbox,
                     contentDescription = null,
-                    tint = TextWhite.copy(alpha = 0.3f),
+                    tint = TextFaint,
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     "No active offers yet — add one in the Offers tab.",
-                    color = TextWhite.copy(alpha = 0.45f),
+                    color = TextFaint,
                     fontSize = 13.sp
                 )
             }
@@ -185,7 +186,7 @@ fun DialerScreen(onClose: () -> Unit, viewModel: DialerViewModel = hiltViewModel
         if (phone.isNotBlank() && selectedOffer != null) {
             Text(
                 "*${selectedOffer.ussdCode.replace("ph", phone).replace("BH", phone, true)}",
-                color = TextWhite.copy(alpha = 0.45f),
+                color = TextFaint,
                 fontSize = 12.sp
             )
             Spacer(modifier = Modifier.height(8.dp))
@@ -275,7 +276,7 @@ private fun GlassPhoneField(
             Icon(
                 imageVector = Icons.Rounded.Phone,
                 contentDescription = null,
-                tint = TextWhite.copy(alpha = 0.45f),
+                tint = TextFaint,
                 modifier = Modifier.size(22.dp)
             )
             Spacer(modifier = Modifier.width(12.dp))
@@ -299,7 +300,7 @@ private fun GlassPhoneField(
                 if (value.isEmpty()) {
                     Text(
                         "07XX XXX XXX",
-                        color = TextWhite.copy(alpha = 0.35f),
+                        color = TextFaint,
                         fontSize = 20.sp,
                         fontWeight = FontWeight.SemiBold
                     )

@@ -27,6 +27,7 @@ import com.bingwascore.app.ui.theme.TickGreen
 import com.bingwascore.app.ui.theme.FailRed
 import com.bingwascore.app.ui.theme.Bubble
 import com.bingwascore.app.ui.theme.PendGrey
+import com.bingwascore.app.ui.theme.TextFaint
 import com.bingwascore.app.ui.theme.TextWhite
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -67,7 +68,7 @@ fun BotLogRow(log: BotLog, modifier: Modifier = Modifier) {
             Text(log.message, color = TextWhite.copy(alpha = 0.85f), fontSize = 12.sp)
             Text(
                 timeFormat.format(Date(log.timestamp)),
-                color = TextWhite.copy(alpha = 0.4f),
+                color = TextFaint,
                 fontSize = 10.sp
             )
         }

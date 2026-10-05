@@ -76,6 +76,7 @@ import com.bingwascore.app.ui.theme.TextGrey
 import com.bingwascore.app.ui.theme.TickGreen
 import com.bingwascore.app.ui.theme.FailRed
 import com.bingwascore.app.ui.theme.BgBlack
+import com.bingwascore.app.ui.theme.TextFaint
 import com.bingwascore.app.ui.theme.TextWhite
 import com.bingwascore.app.util.BackupManager
 import kotlinx.coroutines.launch
@@ -318,7 +319,7 @@ private fun SettingsSwitchRow(
 private fun SectionLabel(label: String) {
     Text(
         label.uppercase(),
-        color = TextWhite.copy(alpha = 0.4f),
+        color = TextFaint,
         fontSize = 11.sp,
         fontWeight = FontWeight.SemiBold,
         modifier = Modifier.padding(horizontal = 24.dp, vertical = 6.dp)
@@ -368,7 +369,7 @@ private fun SettingsRow(
             Icon(
                 imageVector = Icons.Rounded.ChevronRight,
                 contentDescription = null,
-                tint = TextWhite.copy(alpha = 0.4f),
+                tint = TextFaint,
                 modifier = Modifier.size(20.dp)
             )
         }
@@ -721,7 +722,7 @@ private fun SimulateField(value: String, onValueChange: (String) -> Unit, hint: 
             modifier = Modifier.fillMaxWidth()
         )
         if (value.isEmpty()) {
-            Text(hint, color = TextWhite.copy(alpha = 0.4f), fontSize = 14.sp)
+            Text(hint, color = TextFaint, fontSize = 14.sp)
         }
     }
 }

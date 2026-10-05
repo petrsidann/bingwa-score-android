@@ -15,13 +15,13 @@ android {
         applicationId = "com.bingwascore.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 6
-        versionName = "1.5.0"
+        versionCode = 7
+        versionName = "1.6.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField("String", "API_BASE_URL", "\"https://api.bingwascore.com/\"")
-        buildConfigField("String", "APP_VERSION", "\"1.5.0\"")
+        buildConfigField("String", "APP_VERSION", "\"1.6.0\"")
 
         vectorDrawables { useSupportLibrary = true }
     }

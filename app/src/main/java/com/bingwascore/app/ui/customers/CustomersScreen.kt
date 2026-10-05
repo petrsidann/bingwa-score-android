@@ -55,6 +55,7 @@ import com.bingwascore.app.ui.theme.AccentBlue
 import com.bingwascore.app.ui.theme.accentBrush
 import com.bingwascore.app.ui.theme.FailRed
 import com.bingwascore.app.ui.theme.BgBlack
+import com.bingwascore.app.ui.theme.TextFaint
 import com.bingwascore.app.ui.theme.TextWhite
 import java.util.Locale
 
@@ -198,7 +199,7 @@ private fun GlassSearchField(value: String, onValueChange: (String) -> Unit) {
             Icon(
                 imageVector = Icons.Rounded.Search,
                 contentDescription = null,
-                tint = TextWhite.copy(alpha = 0.45f),
+                tint = TextFaint,
                 modifier = Modifier.size(20.dp)
             )
             Spacer(modifier = Modifier.width(10.dp))
@@ -214,7 +215,7 @@ private fun GlassSearchField(value: String, onValueChange: (String) -> Unit) {
                 if (value.isEmpty()) {
                     Text(
                         "Search name or phone number",
-                        color = TextWhite.copy(alpha = 0.4f),
+                        color = TextFaint,
                         fontSize = 15.sp
                     )
                 }

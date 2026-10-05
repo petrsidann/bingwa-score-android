@@ -45,6 +45,7 @@ import com.bingwascore.app.ui.theme.TickGreen
 import com.bingwascore.app.ui.theme.FailRed
 import com.bingwascore.app.ui.theme.Bubble
 import com.bingwascore.app.ui.theme.BgBlack
+import com.bingwascore.app.ui.theme.TextFaint
 import com.bingwascore.app.ui.theme.TextWhite
 import com.bingwascore.app.util.rememberHaptics
 import com.bingwascore.app.util.screenEnter
@@ -142,7 +143,7 @@ fun RedeemCouponScreen(
                     if (code.isEmpty()) {
                         Text(
                             "Promo code",
-                            color = TextWhite.copy(alpha = 0.45f),
+                            color = TextFaint,
                             fontSize = 16.sp
                         )
                     }

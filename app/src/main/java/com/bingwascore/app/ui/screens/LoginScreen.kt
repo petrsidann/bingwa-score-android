@@ -2,7 +2,10 @@ package com.bingwascore.app.ui.screens
 
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -55,6 +58,7 @@ import com.bingwascore.app.ui.theme.Hairline
 import com.bingwascore.app.ui.theme.Bubble
 import com.bingwascore.app.ui.theme.AccentBlue
 import com.bingwascore.app.ui.theme.BgBlack
+import com.bingwascore.app.ui.theme.TextFaint
 import com.bingwascore.app.ui.theme.TextWhite
 import com.bingwascore.app.ui.components.pressScale
 import com.bingwascore.app.util.screenEnter
@@ -130,6 +134,11 @@ fun LoginScreen(
             .screenEnter()
             .background(BgBlack)
     ) {
+        // POLISH P6 — the hero behind the card. Login is the first screen a new
+        // agent sees and the last thing they look at, so it gets the one piece
+        // of colour the product allows itself: two soft gradient orbs, sitting
+        // behind a card that is otherwise identical to every other card.
+        LoginHeroOrbs()
 
         Column(
             modifier = Modifier
@@ -269,7 +278,7 @@ private fun GlassField(
         if (value.isEmpty()) {
             Text(
                 hint,
-                color = TextWhite.copy(alpha = 0.45f),
+                color = TextFaint,
                 fontSize = 16.sp
             )
         }
@@ -381,6 +390,35 @@ private fun KeypadKey(label: String, onClick: () -> Unit) {
             color = TextWhite,
             fontSize = 20.sp,
             fontWeight = FontWeight.SemiBold
+        )
+    }
+}
+
+/**
+ * POLISH P6 — the login hero.
+ *
+ * Two gradient orbs, one bleeding off the top-left, one off the bottom-right,
+ * meeting behind the card. They are drawn (not blurred) from radial gradients,
+ * so the effect is identical on every device from API 26 up — the login screen
+ * is the one place the product spends colour, and it must never look cheaper on
+ * an older phone than on a new one.
+ */
+@Composable
+private fun LoginHeroOrbs() {
+    Canvas(modifier = Modifier.fillMaxSize()) {
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(AccentBlue.copy(alpha = 0.22f), Color.Transparent)
+            ),
+            radius = size.width * 0.85f,
+            center = Offset(size.width * 0.12f, size.height * 0.12f)
+        )
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(Color(0xFF8C6BFF).copy(alpha = 0.16f), Color.Transparent)
+            ),
+            radius = size.width * 0.95f,
+            center = Offset(size.width * 0.95f, size.height * 0.92f)
         )
     }
 }

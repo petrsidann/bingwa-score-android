@@ -29,8 +29,28 @@ object Motion {
     /** R1 splash: the monogram draws itself on over 900ms via PathMeasure trim. */
     const val SPLASH_DRAW: Int = 900
 
-    /** R1 splash: whole choreography before the next screen (ms). */
-    const val SPLASH_TOTAL: Int = 1600
+    /**
+     * POLISH P6 — the full choreography, budgeted to stay under two seconds.
+     *
+     * Uber and Airbnb restraint: one mark, one breath, one sentence. The order is
+     * deliberate — the stroke finishes (900), a single soft radial glow pulses
+     * once behind it (a light has to arrive *after* the shape it belongs to),
+     * then the wordmark letters stagger in 30ms apart, then the tagline fades.
+     * Nothing loops, nothing bounces, and the hand-off lands at
+     * [SPLASH_TOTAL] with room to spare for a slow first frame.
+     */
+    const val SPLASH_GLOW_START: Int = 880
+    const val SPLASH_GLOW_PULSE: Int = 460
+    const val SPLASH_WORDMARK_START: Int = 1150
+
+    /** Stagger between wordmark letters. */
+    const val SPLASH_LETTER_STAGGER: Int = 30
+
+    /** Tagline begins once the last letter has landed. */
+    const val SPLASH_TAGLINE_START: Int = 1530
+
+    /** Splash: whole choreography before the next screen (ms) — under 2.0s. */
+    const val SPLASH_TOTAL: Int = 1900
 
     /** Splash: wordmark → tagline step duration. */
     const val SPLASH_STEP: Int = 250

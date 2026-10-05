@@ -43,6 +43,7 @@ import com.bingwascore.app.ui.theme.AccentBlue
 import com.bingwascore.app.ui.theme.TickGreen
 import com.bingwascore.app.ui.theme.FailRed
 import com.bingwascore.app.ui.theme.BgBlack
+import com.bingwascore.app.ui.theme.TextFaint
 import com.bingwascore.app.ui.theme.TextWhite
 
 /** Bingwa Mesh: links this device to a mesh server for multi-device sync. */
@@ -98,7 +99,7 @@ fun MeshScreen(viewModel: MeshViewModel = hiltViewModel()) {
                 }
                 Spacer(modifier = Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("DEVICE ID", color = TextWhite.copy(alpha = 0.45f), fontSize = 10.sp)
+                    Text("DEVICE ID", color = TextFaint, fontSize = 10.sp)
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         deviceId.ifEmpty { "Generating..." },
@@ -118,7 +119,7 @@ fun MeshScreen(viewModel: MeshViewModel = hiltViewModel()) {
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp)
         ) {
-            Text("SERVER URL", color = TextWhite.copy(alpha = 0.45f), fontSize = 10.sp)
+            Text("SERVER URL", color = TextFaint, fontSize = 10.sp)
             Spacer(modifier = Modifier.height(8.dp))
             MeshUrlField(
                 value = urlInput,
@@ -187,7 +188,7 @@ private fun MeshUrlField(value: String, onValueChange: (String) -> Unit) {
         Icon(
             imageVector = Icons.Rounded.Language,
             contentDescription = null,
-            tint = TextWhite.copy(alpha = 0.45f),
+            tint = TextFaint,
             modifier = Modifier.size(18.dp)
         )
         Spacer(modifier = Modifier.width(10.dp))
@@ -203,7 +204,7 @@ private fun MeshUrlField(value: String, onValueChange: (String) -> Unit) {
             if (value.isEmpty()) {
                 Text(
                     "https://mesh.bingwascore.com",
-                    color = TextWhite.copy(alpha = 0.4f),
+                    color = TextFaint,
                     fontSize = 13.sp
                 )
             }

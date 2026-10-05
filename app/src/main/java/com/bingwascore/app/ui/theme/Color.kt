@@ -128,6 +128,17 @@ val FailRed: Color get() = when (DisplayModeState.mode) {
 val PendGrey: Color get() = SemanticGrey
 
 /**
+ * POLISH P6 — the floor for secondary text, after the contrast audit.
+ *
+ * Every "metadata" label used to be `TextFaint`, which lands
+ * around 3.7:1 on the bubble surface — below the 4.5:1 AA threshold for small
+ * text, and worse on Silica where the surface is translucent. Sixty percent white
+ * measures about 7:1 on every surface in all three modes, so this is the one
+ * faint ink in the app and the audit's replacement for the whole family.
+ */
+val TextFaint: Color get() = TextWhite.copy(alpha = 0.6f)
+
+/**
  * POLISH P2 — the card wash.
  *
  * A status tile (or a status row) is the bubble surface with a 12% tint of its

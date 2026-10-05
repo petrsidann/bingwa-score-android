@@ -55,6 +55,7 @@ import com.bingwascore.app.ui.components.PrimaryButton
 import com.bingwascore.app.ui.theme.FailRed
 import com.bingwascore.app.ui.theme.Bubble
 import com.bingwascore.app.ui.theme.Silver
+import com.bingwascore.app.ui.theme.TextFaint
 import com.bingwascore.app.ui.theme.TextWhite
 import com.bingwascore.app.util.screenEnter
 
@@ -182,7 +183,7 @@ fun ProfileScreen(
 @Composable
 private fun ProfileField(label: String, value: String, onValueChange: (String) -> Unit) {
     Column {
-        Text(label, color = TextWhite.copy(alpha = 0.45f), fontSize = 10.sp)
+        Text(label, color = TextFaint, fontSize = 10.sp)
         Spacer(modifier = Modifier.height(4.dp))
         BasicTextField(
             value = value,
@@ -227,7 +228,7 @@ private fun ProfileMenuRow(label: String, icon: ImageVector, onClick: () -> Unit
             Icon(icon, contentDescription = null, tint = AccentBlue, modifier = Modifier.size(22.dp))
             Spacer(modifier = Modifier.width(14.dp))
             Text(label, color = TextWhite, fontSize = 15.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
-            Icon(Icons.Rounded.ChevronRight, contentDescription = null, tint = TextWhite.copy(alpha = 0.4f), modifier = Modifier.size(20.dp))
+            Icon(Icons.Rounded.ChevronRight, contentDescription = null, tint = TextFaint, modifier = Modifier.size(20.dp))
         }
     }
 }

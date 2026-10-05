@@ -46,6 +46,7 @@ import com.bingwascore.app.ui.theme.AccentBlue
 import com.bingwascore.app.ui.theme.TickGreen
 import com.bingwascore.app.ui.theme.FailRed
 import com.bingwascore.app.ui.theme.BgBlack
+import com.bingwascore.app.ui.theme.TextFaint
 import com.bingwascore.app.ui.theme.TextWhite
 
 /**
@@ -189,7 +190,7 @@ private fun StoreLinkCard(
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     if (isActive) "Visible to customers" else "Hidden from customers",
-                    color = if (isActive) TickGreen else TextWhite.copy(alpha = 0.45f),
+                    color = if (isActive) TickGreen else TextFaint,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold
                 )

@@ -46,6 +46,7 @@ import com.bingwascore.app.ui.theme.AccentBlue
 import com.bingwascore.app.ui.theme.TickGreen
 import com.bingwascore.app.ui.theme.BgBlack
 import com.bingwascore.app.ui.theme.OfferTags
+import com.bingwascore.app.ui.theme.TextFaint
 import com.bingwascore.app.ui.theme.TextWhite
 import com.bingwascore.app.util.screenEnter
 
@@ -169,7 +170,7 @@ private fun CommunityCard(listing: CommunityListing, enterDelayMillis: Int) {
                     style = BingwaType.labelStyle
                 )
                 Spacer(modifier = Modifier.height(3.dp))
-                Text(listing.tagLabel, color = TextWhite.copy(alpha = 0.45f), style = BingwaType.microStyle)
+                Text(listing.tagLabel, color = TextFaint, style = BingwaType.microStyle)
             }
         }
 

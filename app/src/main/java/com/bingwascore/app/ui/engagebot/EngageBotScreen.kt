@@ -37,6 +37,7 @@ import com.bingwascore.app.ui.theme.AccentBlue
 import com.bingwascore.app.ui.theme.Hairline
 import com.bingwascore.app.ui.theme.Raised
 import com.bingwascore.app.ui.theme.BgBlack
+import com.bingwascore.app.ui.theme.TextFaint
 import com.bingwascore.app.ui.theme.TextWhite
 
 /**
@@ -75,7 +76,7 @@ fun EngageBotScreen(viewModel: EngageBotViewModel = hiltViewModel()) {
             Icon(
                 Icons.Rounded.Bolt,
                 contentDescription = null,
-                tint = if (isEnabled) AccentBlue else TextWhite.copy(alpha = 0.4f),
+                tint = if (isEnabled) AccentBlue else TextFaint,
                 modifier = Modifier.size(30.dp)
             )
         }

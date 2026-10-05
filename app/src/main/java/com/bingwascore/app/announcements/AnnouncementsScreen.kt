@@ -35,6 +35,7 @@ import com.bingwascore.app.ui.components.BubbleCard
 import com.bingwascore.app.ui.theme.PendGrey
 import com.bingwascore.app.ui.theme.BgBlack
 import com.bingwascore.app.ui.theme.PendGrey
+import com.bingwascore.app.ui.theme.TextFaint
 import com.bingwascore.app.ui.theme.TextWhite
 import com.bingwascore.app.util.screenEnter
 
@@ -71,7 +72,7 @@ private fun AnnouncementCard(a: Announcement, enterDelayMillis: Int, modifier: M
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Rounded.Campaign, contentDescription = null, tint = PendGrey, modifier = Modifier.size(24.dp))
             Spacer(modifier = Modifier.width(10.dp))
-            Text(a.date, color = TextWhite.copy(alpha = 0.45f), fontSize = 11.sp, modifier = Modifier.weight(1f))
+            Text(a.date, color = TextFaint, fontSize = 11.sp, modifier = Modifier.weight(1f))
             if (a.unread) {
                 Spacer(modifier = Modifier.width(6.dp))
                 Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(PendGrey))
