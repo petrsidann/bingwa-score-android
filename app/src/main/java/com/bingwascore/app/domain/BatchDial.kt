@@ -49,10 +49,13 @@ object BatchDialPlanner {
 
     /**
      * Expands the customer number into [ussdCode] (`ph`, and legacy `BH`, both
-     * case-insensitive) exactly like the dialer does.
+     * case-insensitive). U1 — one canonical generator: delegates to
+     * [com.bingwascore.app.domain.engine.UssdSessionEngine.generateDialString]
+     * so the dialer preview, the batch queue and the autopilot all dial the
+     * byte-for-byte same string.
      */
     fun expand(ussdCode: String, phone: String): String =
-        ussdCode.replace("ph", phone).replace("BH", phone, true)
+        com.bingwascore.app.domain.engine.UssdSessionEngine.generateDialString(ussdCode, phone)
 
     /**
      * Builds the dial queue for [offers] against [phoneRaw]: silent offers

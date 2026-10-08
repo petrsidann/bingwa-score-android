@@ -161,14 +161,18 @@ class TransactionPipeline @Inject constructor(
                 return
             }
 
-            // 5. Fresh sale -> insert PENDING and dial
+            // 5. Fresh sale -> insert PENDING and dial.
+            // U1 — the stored row carries the FINAL dial string: offer.ussdCode
+            // with ONLY the phone placeholder substituted (never the raw `ph`
+            // template). This is the "Invalid choice" killer — the radio must
+            // never dial a literal `ph` segment.
             val transaction = Transaction(
                 id = parsed.receipt ?: "TX-${UUID.randomUUID()}",
                 phoneNumber = phone,
                 customerName = parsed.name,
                 offerId = offer.id,
                 offerName = offer.name,
-                ussdCode = offer.ussdCode,
+                ussdCode = UssdSessionEngine.generateDialString(offer.ussdCode, phone),
                 amount = amount,
                 commission = 0.0,
                 status = TransactionStatus.PENDING.value,

@@ -366,8 +366,16 @@ fun MainScreen() {
                 WindowInsetsSides.Top + WindowInsetsSides.Horizontal
             ),
             bottomBar = {
+                // U1 — single-active truth: the highlight is derived ONLY from
+                // the current route. Dialer open -> Dial (2). Any drawer
+                // destination -> no tab (-1). Otherwise the active tab.
+                val navSelected = when {
+                    showDialer -> 2
+                    selectedDrawerIndex >= 0 -> -1
+                    else -> selectedTab
+                }
                 BottomNavBar(
-                    selected = selectedTab,
+                    selected = navSelected,
                     dialerOpen = showDialer,
                     onSelect = {
                         // POLISH P1 — the dialer is a real destination, not an
@@ -475,6 +483,11 @@ fun MainScreen() {
 /**
  * The shell bar.
  *
+ * U1 — single-active truth: every tab (including Dial) takes the SAME
+ * resolved [selected] id, so two tabs can never light at once. Dial is
+ * id 2; a drawer destination resolves to -1 (nothing lit). While the
+ * Quick Dial overlay is up the rail dims (alpha .55) — one highlight max.
+ *
  * Solid `#000000` in Obsidian and Grayscale — five equal tabs, icon + 11sp label,
  * no FAB, no gap: the bar is a rail, not a floating object. In Silica the rail
  * turns to **translucent glass** with a gradient hairline, because a solid bar
@@ -492,6 +505,8 @@ private fun BottomNavBar(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            // U1 — sheet open = rail dimmed; the one lit tab still reads.
+            .graphicsLayer { alpha = if (dialerOpen) 0.55f else 1f }
             // POLISH P5 — translucent glass in Silica, solid black elsewhere.
             .background(if (isSilica) GlassFillStrong else BgBlack)
             .then(
@@ -505,19 +520,19 @@ private fun BottomNavBar(
             .padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        NavTab(Icons.Rounded.Home, "Home", selected == 0) {
+        NavTab(Icons.Rounded.Home, "Home", selected == 0 && !dialerOpen) {
             haptics.tick(); onSelect(0)
         }
-        NavTab(Icons.Rounded.LocalOffer, "Offers", selected == 1) {
+        NavTab(Icons.Rounded.LocalOffer, "Offers", selected == 1 && !dialerOpen) {
             haptics.tick(); onSelect(1)
         }
         NavTab(Icons.Rounded.Call, "Dial", dialerOpen) {
             haptics.press(); onDialer()
         }
-        NavTab(Icons.AutoMirrored.Rounded.ReceiptLong, "Transactions", selected == 3) {
+        NavTab(Icons.AutoMirrored.Rounded.ReceiptLong, "Transactions", selected == 3 && !dialerOpen) {
             haptics.tick(); onSelect(3)
         }
-        NavTab(Icons.Rounded.Person, "Profile", selected == 4) {
+        NavTab(Icons.Rounded.Person, "Profile", selected == 4 && !dialerOpen) {
             haptics.tick(); onSelect(4)
         }
     }

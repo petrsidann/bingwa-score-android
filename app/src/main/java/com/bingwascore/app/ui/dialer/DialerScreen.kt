@@ -32,7 +32,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,10 +50,12 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bingwascore.app.data.local.Offer
+import com.bingwascore.app.domain.engine.UssdSessionEngine
 import com.bingwascore.app.ui.components.PrimaryButton
 import com.bingwascore.app.ui.components.pressScale
 import com.bingwascore.app.util.rememberHaptics
 import com.bingwascore.app.util.screenEnter
+import kotlinx.coroutines.delay
 import com.bingwascore.app.ui.theme.Hairline
 import com.bingwascore.app.ui.theme.Hairline
 import com.bingwascore.app.ui.theme.Bubble
@@ -184,10 +188,11 @@ fun DialerScreen(onClose: () -> Unit, viewModel: DialerViewModel = hiltViewModel
         Spacer(modifier = Modifier.weight(1f))
 
         if (phone.isNotBlank() && selectedOffer != null) {
-            Text(
-                "*${selectedOffer.ussdCode.replace("ph", phone).replace("BH", phone, true)}",
-                color = TextFaint,
-                fontSize = 12.sp
+            // U1 — live dial truth: the real dial string, split on '*', each
+            // segment lighting white -> accent left-to-right while the dial runs.
+            DialSegments(
+                code = UssdSessionEngine.generateDialString(selectedOffer.ussdCode, phone),
+                dialing = isDialing
             )
             Spacer(modifier = Modifier.height(8.dp))
         }
@@ -256,6 +261,60 @@ fun DialerScreen(onClose: () -> Unit, viewModel: DialerViewModel = hiltViewModel
         )
     }
 }
+
+/**
+ * U1 — the dial string as it is actually being dialled: split on `*`, every
+ * segment rendered. Idle: all white. Dialing: segments turn accent one at a
+ * time left-to-right (the `180` in `*180*...` reads white the instant it is
+ * in flight), then all settle to accent. The green status line below it is
+ * unchanged — this row is truth, not decoration.
+ */
+@Composable
+private fun DialSegments(code: String, dialing: Boolean) {
+    val segments = remember(code) { code.split('*') }
+    // Index of the segment currently in flight; -1 when idle.
+    var progress by remember(code) { mutableIntStateOf(-1) }
+
+    LaunchedEffect(dialing, code) {
+        if (!dialing) {
+            progress = -1
+        } else {
+            // Walk the segments at a steady clip; the dial itself decides when
+            // it ends — this only mirrors "where are we in the string".
+            for (i in segments.indices) {
+                progress = i
+                delay(U1_SEGMENT_STEP_MILLIS)
+            }
+            progress = segments.size
+        }
+    }
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(1.dp)
+    ) {
+        segments.forEachIndexed { index, segment ->
+            if (index > 0) {
+                Text("*", color = TextFaint, fontSize = 12.sp)
+            }
+            val color = when {
+                !dialing -> TextWhite
+                index < progress -> AccentBlue
+                index == progress -> TextWhite
+                else -> TextFaint
+            }
+            Text(
+                text = segment,
+                color = color,
+                fontSize = 12.sp,
+                fontWeight = if (index == progress && dialing) FontWeight.Bold else FontWeight.Normal
+            )
+        }
+    }
+}
+
+/** U1 — cadence of the segment walk (visual only; the verdict is the engine's). */
+private const val U1_SEGMENT_STEP_MILLIS = 260L
 
 @Composable
 private fun GlassPhoneField(

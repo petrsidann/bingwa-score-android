@@ -20,6 +20,7 @@ import com.bingwascore.app.data.repository.TransactionRepository
 import com.bingwascore.app.domain.ProcessingActivity
 import com.bingwascore.app.domain.TransactionStatus
 import com.bingwascore.app.domain.engine.TransactionPipeline
+import com.bingwascore.app.domain.engine.UssdSessionEngine
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -54,6 +55,9 @@ class UssdAutomationService : Service() {
     @Inject lateinit var offerRepository: OfferRepository
     @Inject lateinit var transactionPipeline: TransactionPipeline
     @Inject lateinit var userPreferences: UserPreferences
+
+    /** U1 — shared session step state (steps, index, budget) with the UI/accessibility path. */
+    @Inject lateinit var sessionHolder: com.bingwascore.app.domain.engine.UssdSessionHolder
 
     /** Cancellable scope for intent handling + watchdog, tied to the service lifetime. */
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -121,9 +125,17 @@ class UssdAutomationService : Service() {
             // do any work.
             runCatching { startForeground(NOTIFICATION_ID, ussdNotification()) }
 
-            val ussdCode = intent?.getStringExtra(EXTRA_USSD_CODE)
+            // U1 — belt and braces: the extra may still carry the raw stored
+            // template if it was queued before this fix shipped. Re-expand
+            // here so the radio NEVER dials a literal `ph` segment (the
+            // Invalid-choice killer). generateDialString touches ONLY the
+            // placeholder — already-expanded strings pass through byte-identical.
+            var ussdCode = intent?.getStringExtra(EXTRA_USSD_CODE)
             val transactionId = intent?.getStringExtra(EXTRA_TRANSACTION_ID)
             val customerPhone = intent?.getStringExtra(EXTRA_CUSTOMER_PHONE)
+            ussdCode = UssdSessionEngine.generateDialString(
+                ussdCode.orEmpty(), customerPhone.orEmpty()
+            )
 
             if (ussdCode.isNullOrBlank() || transactionId.isNullOrBlank()) {
                 log.w("UssdAutomationService started without required extras")
@@ -181,6 +193,11 @@ class UssdAutomationService : Service() {
                 // E1 — EXPRESS = guaranteed visible dial via ACTION_CALL primary.
                 log.i("USSD: EXPRESS visible dial for tx=%s", transactionId)
                 EngineLog.append(this@UssdAutomationService, "USSD EXPRESS dial $ussdCode tx=$transactionId")
+                // U1 — the session is live in Express too: the accessibility
+                // path re-dials the appended code when a menu comes back.
+                sessionHolder.beginSession(
+                    ussdCode, resolveSteps(transactionId), personality.timeoutMillis
+                )
                 handOffToPhoneApp(ussdCode, transactionId)
                 startTimeoutWatchdog(transactionId, personality)
             } else {
@@ -288,6 +305,12 @@ class UssdAutomationService : Service() {
 
             startTimeoutWatchdog(transactionId, personality)
 
+            // U1 — open the session: this service and the accessibility input
+            // path now agree on the step list, index and per-step budget.
+            sessionHolder.beginSession(
+                ussdCode, resolveSteps(transactionId), personality.timeoutMillis
+            )
+
             // REBRAND R5 — sendUssdRequest must be issued on the main looper.
             withContext(Dispatchers.Main) {
                 scoped.sendUssdRequest(
@@ -298,22 +321,8 @@ class UssdAutomationService : Service() {
                             request: String?,
                             response: CharSequence?
                         ) {
-                            try {
-                                val body = response?.toString().orEmpty()
-                                val status = classifyResponse(body, personality)
-                                log.d("USSD: response for %s -> %s: %s", transactionId, status.value, body)
-                                finalizeTransaction(
-                                    transactionId = transactionId,
-                                    status = status,
-                                    errorMessage = null,
-                                    responseText = body
-                                )
-                            } catch (t: Throwable) {
-                                log.e(t, "USSD: failed handling response for %s", transactionId)
-                                finalizeTransaction(transactionId, TransactionStatus.FAILED, "Response error: ${t.message}")
-                            } finally {
-                                stopSelf()
-                            }
+                            // U1 — classify: terminal closes, MENU continues.
+                            this@UssdAutomationService.serviceScope.launch { handleUssdStep(scoped, ussdCode, response?.toString().orEmpty(), transactionId, personality) }
                         }
 
                         override fun onReceiveUssdResponseFailed(
@@ -356,6 +365,172 @@ class UssdAutomationService : Service() {
             }
         }
     }
+
+    /**
+     * U1 — the classification heart: terminal -> complete, MENU -> continue.
+     * Every branch is guarded so a classification crash can never leave the
+     * row hanging; every transition logs `[USSD-STEP]`.
+     */
+    private suspend fun handleUssdStep(
+        scoped: TelephonyManager,
+        stepCode: String,
+        body: String,
+        transactionId: String,
+        personality: OfferPersonality
+    ) {
+        try {
+            // U1 — a reply past its step deadline is stale: fail, don't answer an old menu.
+            if (!sessionHolder.stepActive) {
+                log.w(
+                    "%s per-step timeout tx=%s — failing (deadline passed)",
+                    UssdSessionEngine.STEP_TAG, transactionId
+                )
+                finalizeTransaction(transactionId, TransactionStatus.FAILED, "USSD step timed out")
+                stopSelf()
+                return
+            }
+            val verdict = UssdSessionEngine.classify(body, sessionHolder.steps, sessionHolder.stepIndex)
+            when (verdict) {
+                is UssdSessionEngine.Verdict.Complete -> {
+                    log.i(
+                        "%s complete tx=%s -> %s",
+                        UssdSessionEngine.STEP_TAG, transactionId, verdict.status.value
+                    )
+                    val status = classifyResponse(verdict.response, personality)
+                    sessionHolder.endSession()
+                    finalizeTransaction(
+                        transactionId = transactionId,
+                        status = status,
+                        errorMessage = null,
+                        responseText = verdict.response
+                    )
+                    stopSelf()
+                }
+                is UssdSessionEngine.Verdict.Menu -> {
+                    if (!sessionHolder.stepActive) {
+                        log.w("%s per-step timeout tx=%s, closing as failed", UssdSessionEngine.STEP_TAG, transactionId)
+                        sessionHolder.endSession()
+                        finalizeTransaction(transactionId, TransactionStatus.FAILED, "USSD step timed out", verdict.response)
+                        stopSelf()
+                        return
+                    }
+                    val choice = sessionHolder.reserveStep()
+                    if (choice == null) {
+                        log.w(
+                            "%s step cap reached tx=%s — closing as failed",
+                            UssdSessionEngine.STEP_TAG, transactionId
+                        )
+                        sessionHolder.endSession()
+                        finalizeTransaction(
+                            transactionId, TransactionStatus.FAILED,
+                            "USSD menu did not resolve in ${UssdSessionEngine.MAX_STEPS} steps",
+                            verdict.response
+                        )
+                        stopSelf()
+                        return
+                    }
+                    val next = UssdSessionEngine.appendStep(stepCode, choice)
+                    log.i(
+                        "%s menu tx=%s step=%d choice=%s -> %s",
+                        UssdSessionEngine.STEP_TAG, transactionId,
+                        sessionHolder.stepIndex, choice, next
+                    )
+                    // U1 — per-step timeout: this leg gets its own budget.
+                    startTimeoutWatchdog(
+                        transactionId,
+                        personality.copy(timeoutMillis = sessionHolder.stepTimeout)
+                    )
+                    if (modeAdvancedWithAccessibility()) {
+                        // ADVANCED: the overlay exists — stage the reply and let
+                        // the accessibility service type it in + press SEND.
+                        log.i(
+                            "%s staged input '%s' for accessibility tx=%s",
+                            UssdSessionEngine.STEP_TAG, choice, transactionId
+                        )
+                        sessionHolder.stageInput(choice)
+                    } else {
+                        // No overlay owner: resubmit the appended code ourselves.
+                        serviceScope.launch {
+                            runCatching { sendUssdStep(scoped, next, transactionId, personality) }
+                                .onFailure { t ->
+                                    log.e(
+                                        t, "%s step resubmit failed tx=%s",
+                                        UssdSessionEngine.STEP_TAG, transactionId
+                                    )
+                                    if (!handOffToPhoneApp(next, transactionId)) {
+                                        finalizeTransaction(
+                                            transactionId, TransactionStatus.FAILED,
+                                            "USSD step error: ${t.message}"
+                                        )
+                                    }
+                                }
+                        }
+                    }
+                }
+            }
+        } catch (t: Throwable) {
+            log.e(t, "USSD: failed handling response for %s", transactionId)
+            finalizeTransaction(transactionId, TransactionStatus.FAILED, "Response error: ${t.message}")
+            stopSelf()
+        }
+    }
+
+    /** U1 — one leg of the session: send [stepCode], classify the reply. */
+    private suspend fun sendUssdStep(
+        scoped: TelephonyManager,
+        stepCode: String,
+        transactionId: String,
+        personality: OfferPersonality
+    ) {
+        withContext(Dispatchers.Main) {
+            scoped.sendUssdRequest(
+                stepCode,
+                object : TelephonyManager.UssdResponseCallback() {
+                    override fun onReceiveUssdResponse(
+                        telephonyManager: TelephonyManager,
+                        request: String?,
+                        response: CharSequence?
+                    ) {
+                        this@UssdAutomationService.serviceScope.launch { handleUssdStep(scoped, stepCode, response?.toString().orEmpty(), transactionId, personality) }
+                    }
+
+                    override fun onReceiveUssdResponseFailed(
+                        telephonyManager: TelephonyManager,
+                        request: String?,
+                        failureCode: Int
+                    ) {
+                        val reason = UssdResponses.failureReason(failureCode)
+                        log.w("USSD: step failed for %s (code %d): %s", transactionId, failureCode, reason)
+                        EngineLog.append(
+                            this@UssdAutomationService,
+                            "USSD step onFailure code=$failureCode escalate ACTION_CALL tx=$transactionId"
+                        )
+                        if (!handOffToPhoneApp(stepCode, transactionId)) {
+                            finalizeTransaction(transactionId, TransactionStatus.FAILED, reason)
+                        }
+                    }
+                },
+                Handler(Looper.getMainLooper())
+            )
+        }
+    }
+
+    /** U1 — the offer's declared menu steps (blank -> default "1" at choice time). */
+    private suspend fun resolveSteps(transactionId: String): List<String> = runCatching {
+        val transaction = transactionRepository.getLiveTransaction(transactionId)
+        val offer = transaction?.let { offerRepository.getOffer(it.offerId) }
+        UssdSessionEngine.parseSteps(offer?.ussdSteps)
+    }.getOrDefault(emptyList())
+
+    /**
+     * U1 — true when the overlay reply path owns the menu: ADVANCED mode with
+     * the accessibility service actually enabled. Otherwise the service itself
+     * resubmits the appended code so the session can never stall.
+     */
+    private suspend fun modeAdvancedWithAccessibility(): Boolean = runCatching {
+        userPreferences.processingMode.first() == AppProcessingMode.ADVANCED &&
+            EngineDiagnostics.isAccessibilityEnabled(this)
+    }.getOrDefault(false)
 
     /**
      * POLISH P1 — the real-dial fallback.

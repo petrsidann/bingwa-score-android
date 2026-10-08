@@ -75,6 +75,13 @@ data class Offer(
     val tag: String? = null,
     /** Hybrid Connect relay device id/name that should serve this offer — null = local. */
     val relayDevice: String? = null,
+    // ── U1 — multi-step USSD menu continuation ──
+    /**
+     * Comma-separated menu steps for this offer's USSD flow ("1,2,1"). Blank
+     * means the engine's default choice (`1`) is sent at every menu — never a
+     * hard-coded `2`; the wrong parameter is the "Invalid choice" killer.
+     */
+    val ussdSteps: String = "",
     // ── Parity F ──
     /**
      * Silent batch dial: when true the offer is queued from the Offers
