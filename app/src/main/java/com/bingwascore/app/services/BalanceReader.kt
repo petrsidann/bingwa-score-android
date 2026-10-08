@@ -40,7 +40,7 @@ object BalanceReader {
     const val TAG = "USSD"
 
     /** The one sentence the agent ever reads when the balance cannot be read. */
-    const val UNAVAILABLE_MESSAGE = "Balance unavailable - check SIM/permissions"
+    const val UNAVAILABLE_MESSAGE = "Balance unavailable - run Diagnostics"
 
     /** Shown when the handset has no telephony service at all. */
     const val NO_TELEPHONY_MESSAGE = "Balance unavailable - no telephony service"

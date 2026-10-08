@@ -11,6 +11,9 @@ import android.telephony.TelephonyManager
 import com.bingwascore.app.data.local.DbNameHolder
 import com.bingwascore.app.data.local.Offer
 import com.bingwascore.app.data.preferences.UserPreferences
+import com.bingwascore.app.domain.AppProcessingMode
+import com.bingwascore.app.util.EngineLog
+import kotlinx.coroutines.flow.first
 import com.bingwascore.app.data.showcase.DemoCatalog
 import com.bingwascore.app.data.repository.OfferRepository
 import com.bingwascore.app.data.repository.TransactionRepository
@@ -171,12 +174,24 @@ class UssdAutomationService : Service() {
         }
         serviceScope.launch {
             val personality = resolvePersonality(transactionId)
-            log.i(
-                "dial tx=%s timeoutMs=%s strict=%s retries=%s",
-                transactionId, personality.timeoutMillis,
-                personality.strictMode, personality.retries
-            )
-            sendUssd(ussdCode, transactionId, personality)
+            val mode = runCatching { userPreferences.processingMode.first() }
+                .getOrDefault(AppProcessingMode.EXPRESS)
+            log.i("USSD: dial tx=%s mode=%s code=%s", transactionId, mode.value, ussdCode)
+            if (mode == AppProcessingMode.EXPRESS) {
+                // E1 — EXPRESS = guaranteed visible dial via ACTION_CALL primary.
+                log.i("USSD: EXPRESS visible dial for tx=%s", transactionId)
+                EngineLog.append(this@UssdAutomationService, "USSD EXPRESS dial $ussdCode tx=$transactionId")
+                handOffToPhoneApp(ussdCode, transactionId)
+                startTimeoutWatchdog(transactionId, personality)
+            } else {
+                // E1 — ADVANCED = silent sendUssdRequest + accessibility auto-tap.
+                log.i(
+                    "dial tx=%s timeoutMs=%s strict=%s retries=%s",
+                    transactionId, personality.timeoutMillis,
+                    personality.strictMode, personality.retries
+                )
+                sendUssd(ussdCode, transactionId, personality)
+            }
         }
     }
 
@@ -311,8 +326,11 @@ class UssdAutomationService : Service() {
                                 // sentence they can act on, and it lands on the row.
                                 val reason = UssdResponses.failureReason(failureCode)
                                 log.w("USSD: request failed for %s (code %d): %s", transactionId, failureCode, reason)
-                                // POLISH P1 — the platform said no. Hand the code to
-                                // the phone app before writing the transaction off.
+                                // E1 — ANY sendUssdRequest onFailure -> auto-escalate ACTION_CALL + log.
+                                EngineLog.append(
+                                    this@UssdAutomationService,
+                                    "USSD onFailure code=$failureCode escalate ACTION_CALL tx=$transactionId"
+                                )
                                 if (!handOffToPhoneApp(ussdCode, transactionId)) {
                                     finalizeTransaction(transactionId, TransactionStatus.FAILED, reason)
                                 }
@@ -328,6 +346,10 @@ class UssdAutomationService : Service() {
             log.e(t, "USSD: sendUssdRequest threw for transaction %s", transactionId)
             // POLISH P1 — unsupported by the ROM, or blocked by policy. The phone
             // app can still dial the code, so this is a fallback, not a verdict.
+            EngineLog.append(
+                this@UssdAutomationService,
+                "USSD threw escalate ACTION_CALL tx=$transactionId err=${t.message}"
+            )
             if (!handOffToPhoneApp(ussdCode, transactionId)) {
                 finalizeTransaction(transactionId, TransactionStatus.FAILED, "USSD error: ${t.message}")
                 stopSelf()

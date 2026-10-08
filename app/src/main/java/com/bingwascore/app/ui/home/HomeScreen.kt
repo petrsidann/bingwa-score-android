@@ -141,6 +141,7 @@ fun HomeScreen(
     var showCredits by remember { mutableStateOf(false) }
     var showAutopilot by remember { mutableStateOf(false) }
     var confirmStopAutopilot by remember { mutableStateOf(false) }
+    var showDiagnostics by remember { mutableStateOf(false) }
 
     var valuesVisible by remember { mutableStateOf(false) }
     var permissionsMissing by remember { mutableStateOf(missingPermissions(context)) }
@@ -276,7 +277,8 @@ fun HomeScreen(
                         haptics.tick()
                         permissionsMissing = missingPermissions(context)
                         viewModel.refreshBalance()
-                    }
+                    },
+                    onOpenDiagnostics = { showDiagnostics = true }
                 )
             }
 
@@ -312,6 +314,10 @@ fun HomeScreen(
             rows = creditRows,
             onDismiss = { showCredits = false }
         )
+    }
+
+    if (showDiagnostics) {
+        EngineDiagnosticsDialog(onDismiss = { showDiagnostics = false })
     }
 
     if (showAutopilot) {
@@ -495,11 +501,12 @@ private fun SectionHeader(title: String, trailing: String) {
 @Composable
 private fun MoneyRow(
     airtimeToday: Double,
-    balance: Double,
+    balance: Double?,
     loading: Boolean,
     valuesVisible: Boolean,
     onToggleVisibility: () -> Unit,
-    onRefresh: () -> Unit
+    onRefresh: () -> Unit,
+    onOpenDiagnostics: () -> Unit
 ) {
     BubbleCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 20.dp) {
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
@@ -514,11 +521,25 @@ private fun MoneyRow(
                     .height(52.dp)
                     .background(Hairline)
             )
-            MoneyCell(
-                label = "Current balance",
-                value = if (valuesVisible) "Ksh ${money(balance)}" else MASK,
-                modifier = Modifier.weight(1f)
-            )
+            // E1 — NEVER a fake number: null balance shows unavailable + link.
+            if (balance == null && valuesVisible) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Current balance", color = TextGrey, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text("Balance unavailable", color = TextWhite, fontSize = 14.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                    Text(
+                        "run Diagnostics",
+                        color = AccentBlue, fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.clickable(onClick = onOpenDiagnostics)
+                    )
+                }
+            } else {
+                MoneyCell(
+                    label = "Current balance",
+                    value = if (valuesVisible) "Ksh ${money(balance ?: 0.0)}" else MASK,
+                    modifier = Modifier.weight(1f)
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(6.dp))

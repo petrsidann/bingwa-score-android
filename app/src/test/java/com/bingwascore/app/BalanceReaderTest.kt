@@ -53,7 +53,7 @@ class BalanceReaderTest {
     @Test
     fun `the unavailable sentence is the one the agent reads`() {
         assertEquals(
-            "Balance unavailable - check SIM/permissions",
+            "Balance unavailable - run Diagnostics",
             BalanceReader.UNAVAILABLE_MESSAGE
         )
     }

@@ -55,8 +55,8 @@ class HomeViewModel @Inject constructor(
     private val simSelection: StateFlow<String> = userPreferences.simSelection
         .stateIn(viewModelScope, SharingStarted.Eagerly, UserPreferences.SIM_1)
 
-    private val _balance = MutableStateFlow(0.0)
-    val balance: StateFlow<Double> = _balance.asStateFlow()
+    private val _balance = MutableStateFlow<Double?>(null)
+    val balance: StateFlow<Double?> = _balance.asStateFlow()
 
     private val _balanceLoading = MutableStateFlow(false)
     val balanceLoading: StateFlow<Boolean> = _balanceLoading.asStateFlow()
@@ -226,7 +226,7 @@ class HomeViewModel @Inject constructor(
      * toast, because a background refresh that complains is just noise.
      */
     fun refreshBalance(silent: Boolean = false) {
-        // SHOWCASE S2 — in demo mode the balance is simulated; no USSD is dialled.
+        // E1 — DemoEngine fake balance ONLY inside showcase DB (hard guard).
         if (DbNameHolder.showcaseMode) {
             simulatedBalanceRefresh()
             return
@@ -245,8 +245,11 @@ class HomeViewModel @Inject constructor(
                     viewModelScope.launch { userPreferences.setAirtimeBalance(outcome.amount) }
                 }
                 is BalanceReader.Outcome.Failed -> {
+                    // E1 — NEVER a fake number: second failure leaves balance null,
+                    // home shows "Balance unavailable - run Diagnostics" (link).
+                    _balance.value = null
                     ussdTag.w("USSD: balance unavailable (%s)", outcome.reason)
-                    if (!silent) _balanceError.value = outcome.reason
+                    _balanceError.value = outcome.reason
                 }
             }
         }
@@ -261,11 +264,17 @@ class HomeViewModel @Inject constructor(
 
     /** SHOWCASE S2 — simulated *144#: a short pause, then a random-walk balance. */
     private fun simulatedBalanceRefresh() {
+        // E1 hard guard: fake balance ONLY when showcase DB is active.
+        if (!DbNameHolder.showcaseMode) {
+            _balance.value = null
+            _balanceLoading.value = false
+            return
+        }
         if (_balanceLoading.value) return
         _balanceLoading.value = true
         viewModelScope.launch {
             delay(900)
-            val next = DemoCatalog.simulatedBalance(_balance.value, java.util.Random(System.nanoTime()))
+            val next = DemoCatalog.simulatedBalance(_balance.value ?: 0.0, java.util.Random(System.nanoTime()))
             _balance.value = next
             _balanceLoading.value = false
             userPreferences.setAirtimeBalance(next)
