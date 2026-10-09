@@ -308,28 +308,46 @@ fun CreditsSheet(
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun AutopilotPill(
-    running: Boolean,
+    engineState: com.bingwascore.app.domain.EngineState,
     onOpenSheet: () -> Unit,
-    onRequestStop: () -> Unit,
+    onPause: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val haptics = rememberHaptics()
     var armed by remember { mutableStateOf(false) }
     val shape = RoundedCornerShape(50)
+    val isRunning = engineState == com.bingwascore.app.domain.EngineState.RUNNING
+    val isPaused = engineState == com.bingwascore.app.domain.EngineState.PAUSED
+    val isStopped = engineState == com.bingwascore.app.domain.EngineState.STOPPED
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .clip(shape)
-            .background(if (running) AccentBlue.copy(alpha = 0.14f) else Raised)
-            .border(1.dp, if (running) AccentBlue.copy(alpha = 0.45f) else Hairline, shape)
+            .background(
+                when {
+                    isRunning -> AccentBlue.copy(alpha = 0.14f)
+                    isPaused -> TextDim.copy(alpha = 0.20f)
+                    else -> Raised
+                }
+            )
+            .border(
+                1.dp,
+                when {
+                    isRunning -> AccentBlue.copy(alpha = 0.45f)
+                    isPaused -> TextDim.copy(alpha = 0.5f)
+                    else -> Hairline
+                },
+                shape
+            )
             .combinedClickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
                 onLongClick = {
-                    if (!running) return@combinedClickable
-                    haptics.press()
-                    armed = true
+                    if (isRunning) {
+                        haptics.press()
+                        armed = true
+                    }
                 },
                 onClick = {
                     armed = false
@@ -342,44 +360,50 @@ fun AutopilotPill(
         Icon(
             imageVector = Icons.Rounded.Radar,
             contentDescription = null,
-            tint = if (running) AccentBlue else TextDim,
+            tint = when {
+                isRunning -> AccentBlue
+                isPaused -> TextGrey
+                else -> TextDim
+            },
             modifier = Modifier.size(15.dp)
         )
         Spacer(modifier = Modifier.width(7.dp))
         Text(
-            text = if (running) "Autopilot · Running" else "Autopilot · Off",
-            color = if (running) TextWhite else TextGrey,
+            text = when (engineState) {
+                com.bingwascore.app.domain.EngineState.RUNNING -> "Autopilot · Running"
+                com.bingwascore.app.domain.EngineState.PAUSED -> "Autopilot · Paused"
+                com.bingwascore.app.domain.EngineState.STOPPED -> "Autopilot · Stopped"
+            },
+            color = if (isStopped) TextGrey else TextWhite,
             fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold
         )
     }
 
-    // The hold arms the stop request; the confirmation happens one level up, so
-    // the pill itself never tears the engine down on a single gesture.
+    // Hold for 600ms pauses the engine
     LaunchedEffect(armed) {
         if (armed) {
             delay(Motion.ARM_HOLD_MILLIS)
             armed = false
-            onRequestStop()
+            onPause()
         }
     }
 }
 
 /**
- * The Autopilot sheet — one tap away, and the only other place stopping starts.
- * The control inside repeats the hold gesture, so the destructive act is never a
- * single careless tap away from a curious finger.
+ * The Autopilot sheet — shows current 3-state engine status with Resume, Pause, Stop, Start actions.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AutopilotSheet(
-    running: Boolean,
+    engineState: com.bingwascore.app.domain.EngineState,
     onDismiss: () -> Unit,
-    onRequestStop: () -> Unit,
-    onEnable: () -> Unit
+    onStart: () -> Unit,
+    onPause: () -> Unit,
+    onResume: () -> Unit,
+    onStop: () -> Unit
 ) {
     val haptics = rememberHaptics()
-    var armed by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     ModalBottomSheet(
@@ -398,7 +422,7 @@ fun AutopilotSheet(
                 Icon(
                     imageVector = Icons.Rounded.Radar,
                     contentDescription = null,
-                    tint = if (running) AccentBlue else TextDim,
+                    tint = if (engineState == com.bingwascore.app.domain.EngineState.RUNNING) AccentBlue else TextDim,
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
@@ -407,6 +431,21 @@ fun AutopilotSheet(
                     color = TextWhite,
                     fontSize = 19.sp,
                     fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                Text(
+                    text = when (engineState) {
+                        com.bingwascore.app.domain.EngineState.RUNNING -> "Running"
+                        com.bingwascore.app.domain.EngineState.PAUSED -> "Paused"
+                        com.bingwascore.app.domain.EngineState.STOPPED -> "Stopped"
+                    },
+                    color = when (engineState) {
+                        com.bingwascore.app.domain.EngineState.RUNNING -> AccentBlue
+                        com.bingwascore.app.domain.EngineState.PAUSED -> TextGrey
+                        com.bingwascore.app.domain.EngineState.STOPPED -> FailRed
+                    },
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold
                 )
             }
             Spacer(modifier = Modifier.height(6.dp))
@@ -418,42 +457,84 @@ fun AutopilotSheet(
             )
             Spacer(modifier = Modifier.height(16.dp))
 
-            if (running) {
-                HoldToStopButton(
-                    onArm = {
-                        armed = true
-                        onRequestStop()
-                    }
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Hold for 600ms to stop. Nothing else in the app can stop it " +
-                        "by accident.",
-                    color = TextDim,
-                    fontSize = 11.sp
-                )
-            } else {
-                Surface(
-                    onClick = {
-                        haptics.press()
-                        onEnable()
-                    },
-                    shape = RoundedCornerShape(14.dp),
-                    color = AccentBlue,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(52.dp),
-                        contentAlignment = Alignment.Center
+            when (engineState) {
+                com.bingwascore.app.domain.EngineState.RUNNING -> {
+                    SecondaryButton(
+                        text = "Pause Autopilot (Hold pill to pause)",
+                        onClick = {
+                            haptics.tick()
+                            onPause()
+                        }
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    HoldToStopButton(
+                        onArm = {
+                            haptics.press()
+                            onStop()
+                        }
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Hold for 600ms to stop Autopilot completely.",
+                        color = TextDim,
+                        fontSize = 11.sp
+                    )
+                }
+                com.bingwascore.app.domain.EngineState.PAUSED -> {
+                    Surface(
+                        onClick = {
+                            haptics.press()
+                            onResume()
+                        },
+                        shape = RoundedCornerShape(14.dp),
+                        color = AccentBlue,
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text(
-                            text = "Start Autopilot",
-                            color = Color.White,
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(52.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "Resume Autopilot",
+                                color = Color.White,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    HoldToStopButton(
+                        onArm = {
+                            haptics.press()
+                            onStop()
+                        }
+                    )
+                }
+                com.bingwascore.app.domain.EngineState.STOPPED -> {
+                    Surface(
+                        onClick = {
+                            haptics.press()
+                            onStart()
+                        },
+                        shape = RoundedCornerShape(14.dp),
+                        color = AccentBlue,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(52.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "Start Autopilot",
+                                color = Color.White,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
                 }
             }

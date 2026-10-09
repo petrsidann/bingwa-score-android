@@ -42,6 +42,7 @@ class UserPreferences @Inject constructor(
         val MESH_CONNECTED = booleanPreferencesKey("mesh_connected")
         val SIM_SELECTION = stringPreferencesKey("sim_selection")
         val ENGINE_ENABLED = booleanPreferencesKey("engine_enabled")
+        val ENGINE_STATE = stringPreferencesKey("engine_state")
         val SETUP_COMPLETE = booleanPreferencesKey("setup_complete")
         val PHONE = stringPreferencesKey("user_phone")
         // Parity F — last dialled customer number, prefilled into the silent batch.
@@ -97,6 +98,16 @@ class UserPreferences @Inject constructor(
     val simSelection: Flow<String> = context.dataStore.data.map { it[Keys.SIM_SELECTION] ?: SIM_1 }
     val engineEnabled: Flow<Boolean> =
         context.dataStore.data.map { it[Keys.ENGINE_ENABLED] ?: true }
+    val engineState: Flow<com.bingwascore.app.domain.EngineState> =
+        context.dataStore.data.map {
+            val raw = it[Keys.ENGINE_STATE]
+            if (raw != null) {
+                com.bingwascore.app.domain.EngineState.fromValue(raw)
+            } else {
+                if (it[Keys.ENGINE_ENABLED] == false) com.bingwascore.app.domain.EngineState.STOPPED
+                else com.bingwascore.app.domain.EngineState.RUNNING
+            }
+        }
     val setupComplete: Flow<Boolean> =
         context.dataStore.data.map { it[Keys.SETUP_COMPLETE] ?: false }
 
@@ -175,7 +186,15 @@ class UserPreferences @Inject constructor(
 
         suspend fun setSimSelection(value: String) = edit { it[Keys.SIM_SELECTION] = value }
 
-    suspend fun setEngineEnabled(value: Boolean) = edit { it[Keys.ENGINE_ENABLED] = value }
+    suspend fun setEngineEnabled(value: Boolean) = edit {
+        it[Keys.ENGINE_ENABLED] = value
+        it[Keys.ENGINE_STATE] = if (value) com.bingwascore.app.domain.EngineState.RUNNING.value else com.bingwascore.app.domain.EngineState.STOPPED.value
+    }
+
+    suspend fun setEngineState(state: com.bingwascore.app.domain.EngineState) = edit {
+        it[Keys.ENGINE_STATE] = state.value
+        it[Keys.ENGINE_ENABLED] = state != com.bingwascore.app.domain.EngineState.STOPPED
+    }
 
     suspend fun setSetupComplete(value: Boolean) = edit { it[Keys.SETUP_COMPLETE] = value }
 

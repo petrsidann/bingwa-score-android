@@ -103,6 +103,10 @@ class HomeViewModel @Inject constructor(
     val engineEnabled: StateFlow<Boolean> = userPreferences.engineEnabled
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
 
+    /** 3-state engine indicator: RUNNING / PAUSED / STOPPED. */
+    val engineState: StateFlow<com.bingwascore.app.domain.EngineState> = userPreferences.engineState
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), com.bingwascore.app.domain.EngineState.RUNNING)
+
     /** One-shot flag surfaced as a glass dialog before Advanced Mode is turned on. */
     private val _showAdvancedExplanation = MutableStateFlow(false)
     val showAdvancedExplanation: StateFlow<Boolean> = _showAdvancedExplanation.asStateFlow()
@@ -354,6 +358,36 @@ class HomeViewModel @Inject constructor(
             } else {
                 EngineService.stop(context.applicationContext)
             }
+        }
+    }
+
+    /** Pause autopilot — engine stays alive, SMS accepted but no new dials. */
+    fun pauseEngine() {
+        viewModelScope.launch {
+            userPreferences.setEngineState(com.bingwascore.app.domain.EngineState.PAUSED)
+        }
+    }
+
+    /** Resume from paused state — resumes normal dialling. */
+    fun resumeEngine() {
+        viewModelScope.launch {
+            userPreferences.setEngineState(com.bingwascore.app.domain.EngineState.RUNNING)
+        }
+    }
+
+    /** Full stop — stops the foreground service and marks engine as STOPPED. */
+    fun stopEngine() {
+        viewModelScope.launch {
+            userPreferences.setEngineState(com.bingwascore.app.domain.EngineState.STOPPED)
+            EngineService.stop(context.applicationContext)
+        }
+    }
+
+    /** Start engine from STOPPED — starts service and marks RUNNING. */
+    fun startEngine() {
+        viewModelScope.launch {
+            userPreferences.setEngineState(com.bingwascore.app.domain.EngineState.RUNNING)
+            EngineService.start(context.applicationContext)
         }
     }
 

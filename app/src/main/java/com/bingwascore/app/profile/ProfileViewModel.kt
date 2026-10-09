@@ -55,6 +55,9 @@ class ProfileViewModel @Inject constructor(
     val engineEnabled: StateFlow<Boolean> = userPreferences.engineEnabled
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
 
+    val engineState: StateFlow<com.bingwascore.app.domain.EngineState> = userPreferences.engineState
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), com.bingwascore.app.domain.EngineState.RUNNING)
+
     private val scoreState = combine(transactionRepository.allTransactions, customerRepository.allCustomers) { txns, customers ->
         scoreEngine.compute(txns, customers)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000),

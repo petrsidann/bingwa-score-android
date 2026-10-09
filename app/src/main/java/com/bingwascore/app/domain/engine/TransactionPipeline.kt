@@ -181,6 +181,14 @@ class TransactionPipeline @Inject constructor(
             )
             transactionRepository.insert(transaction)
             Timber.i("PENDING transaction %s for %s (%s)", transaction.id, phone, offer.name)
+            // U2 — PAUSED gate: if the agent paused autopilot, accept the money
+            // (row is saved) but don't dial until resumed. The transaction stays
+            // PENDING so it is visible in the ledger.
+            val engineState = userPreferences.engineState.first()
+            if (engineState == com.bingwascore.app.domain.EngineState.PAUSED) {
+                Timber.i("Engine paused — deferring USSD for %s", transaction.id)
+                return
+            }
             startUssdAutomation(transaction)
         } catch (e: InvalidSenderException) {
             // Parity F — unauthorized sender: IGNORED status, zero replies.

@@ -60,6 +60,16 @@ enum class AppProcessingMode(val value: String) {
             entries.firstOrNull { it.value == value } ?: EXPRESS
     }
 }
+enum class EngineState(val value: String) {
+    RUNNING("RUNNING"),
+    PAUSED("PAUSED"),
+    STOPPED("STOPPED");
+
+    companion object {
+        fun fromValue(value: String?): EngineState =
+            entries.firstOrNull { it.value == value } ?: RUNNING
+    }
+}
 
 /**
  * MEGA A â€” cold-start gate. Mirrors their APP_STATE key so the startup decision

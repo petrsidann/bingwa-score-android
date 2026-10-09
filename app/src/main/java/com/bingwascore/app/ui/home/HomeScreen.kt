@@ -88,9 +88,7 @@ import com.bingwascore.app.ui.components.HapticSwitch
 import com.bingwascore.app.ui.components.StatusDot
 import com.bingwascore.app.ui.theme.AccentBlue
 import com.bingwascore.app.ui.theme.BgBlack
-import com.bingwascore.app.ui.theme.Bubble
 import com.bingwascore.app.ui.theme.ChartBlue
-import com.bingwascore.app.ui.theme.FailRed
 import com.bingwascore.app.ui.theme.Hairline
 import com.bingwascore.app.ui.theme.PendGrey
 import com.bingwascore.app.ui.theme.StatusColors
@@ -131,7 +129,7 @@ fun HomeScreen(
     val balanceLoading by viewModel.balanceLoading.collectAsStateWithLifecycle()
     val balanceError by viewModel.balanceError.collectAsStateWithLifecycle()
     val statsLoading by viewModel.statsLoading.collectAsStateWithLifecycle()
-    val engineEnabled by viewModel.engineEnabled.collectAsStateWithLifecycle()
+    val engineState by viewModel.engineState.collectAsStateWithLifecycle()
     val transactions by viewModel.allTransactions.collectAsStateWithLifecycle()
 
     // POLISH P2 — greeting, credits and the two Home sheets.
@@ -140,7 +138,6 @@ fun HomeScreen(
     val creditRows by viewModel.creditRows.collectAsStateWithLifecycle()
     var showCredits by remember { mutableStateOf(false) }
     var showAutopilot by remember { mutableStateOf(false) }
-    var confirmStopAutopilot by remember { mutableStateOf(false) }
     var showDiagnostics by remember { mutableStateOf(false) }
 
     var valuesVisible by remember { mutableStateOf(false) }
@@ -229,9 +226,9 @@ fun HomeScreen(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     AutopilotPill(
-                        running = engineEnabled,
+                        engineState = engineState,
                         onOpenSheet = { showAutopilot = true },
-                        onRequestStop = { confirmStopAutopilot = true }
+                        onPause = { viewModel.pauseEngine() }
                     )
                     Text(
                         text = greeting.second.endonym,
@@ -322,53 +319,23 @@ fun HomeScreen(
 
     if (showAutopilot) {
         AutopilotSheet(
-            running = engineEnabled,
+            engineState = engineState,
             onDismiss = { showAutopilot = false },
-            onRequestStop = {
+            onStart = {
                 showAutopilot = false
-                confirmStopAutopilot = true
+                viewModel.startEngine()
             },
-            onEnable = {
+            onPause = {
                 showAutopilot = false
-                viewModel.toggleEngine()
-            }
-        )
-    }
-
-    if (confirmStopAutopilot) {
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = { confirmStopAutopilot = false },
-            containerColor = Bubble,
-            titleContentColor = TextWhite,
-            textContentColor = TextGrey,
-            title = {
-                Text(
-                    "Stop Autopilot?",
-                    color = TextWhite,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 17.sp
-                )
+                viewModel.pauseEngine()
             },
-            text = {
-                Text(
-                    "Incoming payments will stop being matched and dialled until you " +
-                        "start it again. Sales you are mid-way through finish first.",
-                    color = TextGrey,
-                    fontSize = 13.sp
-                )
+            onResume = {
+                showAutopilot = false
+                viewModel.resumeEngine()
             },
-            confirmButton = {
-                androidx.compose.material3.TextButton(onClick = {
-                    confirmStopAutopilot = false
-                    viewModel.toggleEngine()
-                }) {
-                    Text("Stop Autopilot", color = FailRed, fontWeight = FontWeight.Bold)
-                }
-            },
-            dismissButton = {
-                androidx.compose.material3.TextButton(onClick = { confirmStopAutopilot = false }) {
-                    Text("Keep running", color = AccentBlue, fontWeight = FontWeight.SemiBold)
-                }
+            onStop = {
+                showAutopilot = false
+                viewModel.stopEngine()
             }
         )
     }

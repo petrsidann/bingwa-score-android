@@ -74,6 +74,7 @@ fun ProfileScreen(
     val levelName by viewModel.levelName.collectAsStateWithLifecycle()
     val score by viewModel.score.collectAsStateWithLifecycle()
     val engineEnabled by viewModel.engineEnabled.collectAsStateWithLifecycle()
+    val engineState by viewModel.engineState.collectAsStateWithLifecycle()
     val editState by viewModel.editState.collectAsStateWithLifecycle()
 
     Box(
@@ -162,8 +163,19 @@ fun ProfileScreen(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text("Bingwa Autopilot", color = TextWhite, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-                    Text(if (engineEnabled) "Running" else "Stopped",
-                        color = if (engineEnabled) TickGreen else TextWhite.copy(alpha = 0.5f), fontSize = 12.sp)
+                    Text(
+                        text = when (engineState) {
+                            com.bingwascore.app.domain.EngineState.RUNNING -> "Running"
+                            com.bingwascore.app.domain.EngineState.PAUSED -> "Paused"
+                            com.bingwascore.app.domain.EngineState.STOPPED -> "Stopped"
+                        },
+                        color = when (engineState) {
+                            com.bingwascore.app.domain.EngineState.RUNNING -> TickGreen
+                            com.bingwascore.app.domain.EngineState.PAUSED -> TextWhite.copy(alpha = 0.7f)
+                            com.bingwascore.app.domain.EngineState.STOPPED -> TextWhite.copy(alpha = 0.5f)
+                        },
+                        fontSize = 12.sp
+                    )
                 }
                 HapticSwitch(checked = engineEnabled, onCheckedChange = { viewModel.toggleEngine() })
             }
