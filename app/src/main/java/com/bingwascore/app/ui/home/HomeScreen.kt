@@ -97,6 +97,7 @@ import com.bingwascore.app.ui.theme.TextGrey
 import com.bingwascore.app.ui.theme.TextWhite
 import com.bingwascore.app.ui.theme.TickGreen
 import com.bingwascore.app.ui.theme.statusWash
+import com.bingwascore.app.util.formatCustomerName
 import com.bingwascore.app.util.rememberHaptics
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -653,7 +654,8 @@ private fun HomeTransactionRow(
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    tx.customerName?.takeIf { it.isNotBlank() } ?: tx.phoneNumber,
+                    // U5 — the same formatter as the Transactions list.
+                    formatCustomerName(tx.customerName).ifBlank { tx.phoneNumber },
                     color = TextWhite,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,

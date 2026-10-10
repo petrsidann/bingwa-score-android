@@ -2,11 +2,11 @@
 
 ## Where the tree is
 - Green groups shipped: `Ultra U2: autopilot 3-state`, `Ultra U3: home/graph/splash right-size`,
-  `Ultra U4: themes alive` (see `git log`).
+  `Ultra U4: themes alive`, `Ultra U5: transactions surgical` (see `git log`).
 - Verified on this tree: `:app:compileDebugKotlin` green, full
-  `:app:testDebugUnitTest` green (163 tests), `:app:assembleDebug` green with a
+  `:app:testDebugUnitTest` green (177 tests), `:app:assembleDebug` green with a
   fresh APK at `app/build/outputs/apk/debug/app-debug.apk`.
-- Next group: U5 (see "Groups still open" below).
+- Next group: U6 (see "Groups still open" below).
 - `docs/HANDOFF.md` is the live handoff; refresh it at every session end.
 - `freebuff_jdk.json` is gitignored; never commit it.
 
@@ -78,9 +78,31 @@
 - **Zero orange/amber**: no orange/amber literals remain and `U4ThemesTest` guards
   the token palette against them.
 
+## Shipped: U5 — transactions surgical
+- **One action-rule source**: `ui/transactions/TxActionRules.kt` (`rulesFor`,
+  `rulesForSelection`).
+  - **SUCCESSFUL disables both Retry and Complete** in the focus sheet; the
+    greyed chip answers a tap with a **reject haptic** instead of a silent no-op.
+  - **Retry** is offered only for **FAILED / FAILED_ALREADY_RECOMMENDED / PENDING
+    / PROCESSING / SCHEDULED**; **Complete** for anything not SUCCESSFUL.
+  - The batch bar asks `rulesForSelection`: a selection containing a SUCCESSFUL
+    sale cannot batch-retry.
+- **One name formatter**: `util/CustomerName.kt` → `formatCustomerName()` renders
+  "DENNIS K WACHIRA" as **"Dennis K. Wachira"** (middle tokens become initials)
+  on every surface — Home row, Home tile, Transactions row, focus-sheet title,
+  and the delete snackbar. CSV export deliberately keeps raw values.
+- **Search morph**: title fade and bar expansion share
+  `Motion.MORPH_SPRING_MILLIS = 220` (inside the 200–260ms band); the bar is an
+  overlay in the outer `Box`, so opening/closing search never reflows the list.
+- Chip row regression (exactly one chip per filter) confirmed in `U3RightSizeTest`
+  and asserted again in `U5TransactionsTest`.
+- JVM tests: `U5TransactionsTest` (14).
+
 ## Groups still open (ULTRA)
-- U5 → U8 per the original ULTRA prompt. Commit + push each green group, refresh
-  this file at every session end.
+- **U6 → U8**: the original ULTRA prompt that defines these groups is **not in the
+  repo** (only the U1/U2-era text survives in git) and is not in the agent's
+  context. Do not invent acceptance criteria — ask the user for the U6–U8 spec,
+  then commit + push each green group and refresh this file.
 
 ## Track-only (no surface exists yet)
 - Audit A6 "Editor / credit accept": the repo has no dedicated Editor/credit

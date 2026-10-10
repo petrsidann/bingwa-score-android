@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.bingwascore.app.data.local.Transaction
 import com.bingwascore.app.data.repository.TransactionRepository
 import com.bingwascore.app.domain.TransactionStatus
+import com.bingwascore.app.util.formatCustomerName
 import com.bingwascore.app.utils.CsvEscapes
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -184,8 +185,10 @@ class TransactionsViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 transactionRepository.softDelete(transaction.id)
+                // U5 — the snackbar is a surface too: M-Pesa casing stays out.
                 _events.tryEmit(
-                    "${transaction.customerName ?: transaction.phoneNumber} deleted"
+                    "${formatCustomerName(transaction.customerName)
+                        .ifBlank { transaction.phoneNumber }} deleted"
                 )
             } catch (t: Throwable) {
                 Timber.e(t, "Soft delete failed for %s", transaction.id)

@@ -115,6 +115,7 @@ import com.bingwascore.app.ui.theme.TextDim
 import com.bingwascore.app.ui.theme.TextGrey
 import com.bingwascore.app.ui.theme.TextWhite
 import com.bingwascore.app.ui.theme.TickGreen
+import com.bingwascore.app.util.formatCustomerName
 import com.bingwascore.app.util.rememberHaptics
 import com.bingwascore.app.util.screenEnter
 import java.text.SimpleDateFormat
@@ -280,6 +281,9 @@ Box(modifier = Modifier.fillMaxSize().nestedScroll(pullState.nestedScrollConnect
             SelectionBottomBar(
                 count = selectedIds.size,
                 allSelected = allSelected,
+                retryEnabled = rulesForSelection(
+                    transactions.filter { it.id in selectedIds }.map { it.status }
+                ).canRetry,
                 onSelectAll = {
                     haptics.press()
                     viewModel.toggleSelectAll()
@@ -302,7 +306,8 @@ Box(modifier = Modifier.fillMaxSize().nestedScroll(pullState.nestedScrollConnect
     if (selectedTransaction != null) {
         val dim by animateFloatAsState(
             targetValue = 1f,
-            animationSpec = tween(180),
+            // U5 — the focus dim rides the same 220ms morph window.
+            animationSpec = tween(Motion.MORPH_SPRING_MILLIS),
             label = "focusDim"
         )
         val sheetOffset = remember { Animatable(0f) }
@@ -651,7 +656,9 @@ private fun TransactionsTopBar(
 }
 
 /** POLISH P3 — how long the title takes to fade before the bar grows. */
-private const val TITLE_FADE_MILLIS = 160
+// U5 — the title fade and the bar expansion share the 200–260ms morph window, so
+// opening search reads as one connected motion instead of a fade into a jump.
+private const val TITLE_FADE_MILLIS = Motion.MORPH_SPRING_MILLIS
 
 /** The springing search field: rounded, dark, with a cancel X. */
 @Composable
@@ -795,11 +802,18 @@ private fun CountBubble(count: Int) {
     }
 }
 
-/** The morphing footer: Select All + Retry, only while selecting. */
+/**
+ * The morphing footer: Select All + Retry, only while selecting.
+ *
+ * U5 — the batch Retry follows the same rule as the sheet: if any selected row is
+ * already SUCCESSFUL (or otherwise not retryable) the batch action is disabled, so
+ * one completed sale in the selection can never be re-dialed.
+ */
 @Composable
 private fun SelectionBottomBar(
     count: Int,
     allSelected: Boolean,
+    retryEnabled: Boolean,
     onSelectAll: () -> Unit,
     onRetry: () -> Unit
 ) {
@@ -820,6 +834,7 @@ private fun SelectionBottomBar(
         PrimaryButton(
             text = "Retry ($count)",
             onClick = onRetry,
+            enabled = retryEnabled,
             modifier = Modifier.weight(1f)
         )
     }
@@ -1007,8 +1022,9 @@ private fun TransactionRow(
 
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                transaction.customerName?.takeIf { it.isNotBlank() }
-                    ?: transaction.phoneNumber,
+                // U5 — one formatter: M-Pesa casing never reaches the ledger.
+                formatCustomerName(transaction.customerName)
+                    .ifBlank { transaction.phoneNumber },
                 color = TextWhite,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,

@@ -85,4 +85,11 @@ object Motion {
 
     /** POLISH P2 — long-press that arms the Autopilot stop, in ms. */
     const val ARM_HOLD_MILLIS: Long = 600L
+
+    /**
+     * U5 — the transactions morph/dim window: search expand-collapse, the focus
+     * dim and the selection morph all settle inside this budget. 220ms sits in the
+     * 200–260ms band where a morph reads as connected motion rather than as a cut.
+     */
+    const val MORPH_SPRING_MILLIS: Int = 220
 }

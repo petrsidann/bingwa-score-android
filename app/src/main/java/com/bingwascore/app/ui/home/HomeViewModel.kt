@@ -17,6 +17,7 @@ import com.bingwascore.app.domain.TransactionStatus
 import com.bingwascore.app.domain.engine.TransactionPipeline
 import com.bingwascore.app.services.BalanceReader
 import com.bingwascore.app.services.EngineService
+import com.bingwascore.app.util.formatCustomerName
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.delay
@@ -192,7 +193,8 @@ class HomeViewModel @Inject constructor(
                 .take(HomeChrome.MAX_CREDIT_ROWS)
                 .map { tx ->
                     CreditRow(
-                        title = tx.customerName?.takeIf { it.isNotBlank() } ?: tx.phoneNumber,
+                        // U5 — the credits ledger uses the same customer formatter.
+                        title = formatCustomerName(tx.customerName).ifBlank { tx.phoneNumber },
                         subtitle = "${tx.offerName} · ${tx.phoneNumber}",
                         amount = tx.commission
                     )

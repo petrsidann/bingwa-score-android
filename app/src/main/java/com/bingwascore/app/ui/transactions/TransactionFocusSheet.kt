@@ -46,6 +46,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bingwascore.app.data.local.Transaction
+import com.bingwascore.app.util.formatCustomerName
+import com.bingwascore.app.util.rememberHaptics
 import com.bingwascore.app.ui.theme.AccentBlue
 import com.bingwascore.app.ui.theme.Bubble
 import com.bingwascore.app.ui.theme.FailRed
@@ -87,8 +89,11 @@ fun TransactionFocusSheet(
 ) {
     val clipboard = LocalClipboardManager.current
     var editingUssd by remember { mutableStateOf(false) }
+    val haptics = rememberHaptics()
     val statusColor = StatusColors.color(transaction.status)
-    val name = transaction.customerName?.takeIf { it.isNotBlank() } ?: transaction.phoneNumber
+    // U5 — one formatter, and the write actions follow the status rules.
+    val rules = rulesFor(transaction.status)
+    val name = formatCustomerName(transaction.customerName).ifBlank { transaction.phoneNumber }
 
     Column(
         modifier = Modifier
@@ -261,9 +266,27 @@ fun TransactionFocusSheet(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            SheetAction(Icons.Rounded.Refresh, "Retry", AccentBlue, Modifier.weight(1f), onRetry)
+            // U5 — a finished sale offers neither Retry nor Complete: they are
+            // greyed and answer a tap with a reject haptic (no silent no-op).
+            SheetAction(
+                icon = Icons.Rounded.Refresh,
+                label = "Retry",
+                tint = AccentBlue,
+                enabled = rules.canRetry,
+                onReject = haptics::error,
+                modifier = Modifier.weight(1f),
+                onClick = onRetry
+            )
             SheetAction(Icons.Rounded.Schedule, "Schedule", TextGrey, Modifier.weight(1f), onSchedule)
-            SheetAction(Icons.Rounded.Check, "Complete", TickGreen, Modifier.weight(1f), onComplete)
+            SheetAction(
+                icon = Icons.Rounded.Check,
+                label = "Complete",
+                tint = TickGreen,
+                enabled = rules.canComplete,
+                onReject = haptics::error,
+                modifier = Modifier.weight(1f),
+                onClick = onComplete
+            )
             SheetAction(Icons.Rounded.DeleteOutline, "Delete", FailRed, Modifier.weight(1f), onDelete)
         }
 
@@ -316,25 +339,36 @@ private fun StatTile(label: String, value: String, modifier: Modifier = Modifier
     }
 }
 
+/**
+ * One sheet action. U5 — when [enabled] is false the action is greyed AND the tap
+ * is answered with [onReject], so a disabled action is felt, not just ignored.
+ */
 @Composable
 private fun SheetAction(
     icon: ImageVector,
     label: String,
     tint: Color,
     modifier: Modifier = Modifier,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    // U5 — kept after `onClick` so the existing positional calls still bind and
+    // the new enabled/reject pair is opt-in at each call site.
+    enabled: Boolean = true,
+    onReject: () -> Unit = {}
 ) {
+    val ink = if (enabled) tint else TextDim
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier
             .clip(RoundedCornerShape(14.dp))
             .background(Bubble)
-            .clickable(onClick = onClick)
+            .clickable {
+                if (enabled) onClick() else onReject()
+            }
             .padding(vertical = 12.dp)
     ) {
-        Icon(icon, contentDescription = label, tint = tint, modifier = Modifier.size(20.dp))
+        Icon(icon, contentDescription = label, tint = ink, modifier = Modifier.size(20.dp))
         Spacer(modifier = Modifier.height(6.dp))
-        Text(label, color = tint, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+        Text(label, color = ink, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
     }
 }
 
