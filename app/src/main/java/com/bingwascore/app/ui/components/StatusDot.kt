@@ -13,7 +13,11 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.bingwascore.app.domain.ThemeMode
+import com.bingwascore.app.ui.theme.GRAYSCALE_DOT_SATURATION
 import com.bingwascore.app.ui.theme.Motion
+import com.bingwascore.app.ui.theme.currentDisplayMode
+import com.bingwascore.app.ui.theme.saturate
 
 /**
  * POLISH P2 — the status dot.
@@ -26,6 +30,10 @@ import com.bingwascore.app.ui.theme.Motion
  * [lit] fades over [Motion.DOT_FADE] ms so a transaction that completes while
  * the agent is watching **lights up** instead of popping, which is why the caller
  * pairs it with a haptic tick at the moment the status flips.
+ *
+ * U4 — in Grayscale the dot is drawn at [GRAYSCALE_DOT_SATURATION] (60%) so the
+ * hue still separates done/failed/queued without the monochrome chrome turning
+ * colourful. Applied here once, so every dot in the app obeys it.
  */
 @Composable
 fun StatusDot(
@@ -34,6 +42,11 @@ fun StatusDot(
     modifier: Modifier = Modifier,
     size: Dp = 10.dp
 ) {
+    val ink = if (currentDisplayMode == ThemeMode.GRAYSCALE) {
+        saturate(color, GRAYSCALE_DOT_SATURATION)
+    } else {
+        color
+    }
     val glow by animateFloatAsState(
         targetValue = if (lit) 1f else 0f,
         animationSpec = tween(Motion.DOT_FADE),
@@ -50,7 +63,7 @@ fun StatusDot(
             if (glow > 0.01f) {
                 drawCircle(
                     brush = Brush.radialGradient(
-                        colors = listOf(color.copy(alpha = 0.42f * glow), Color.Transparent),
+                        colors = listOf(ink.copy(alpha = 0.42f * glow), Color.Transparent),
                         center = center,
                         radius = radius * 2.1f
                     ),
@@ -60,7 +73,7 @@ fun StatusDot(
             }
 
             // Off state keeps the footprint so nothing on the row ever shifts.
-            val core = if (lit) color else color.copy(alpha = 0.32f)
+            val core = if (lit) ink else ink.copy(alpha = 0.32f)
             drawCircle(color = core, radius = radius * 0.62f, center = center)
         }
     }

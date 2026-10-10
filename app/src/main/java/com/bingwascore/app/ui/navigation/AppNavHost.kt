@@ -67,6 +67,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -130,6 +131,7 @@ import com.bingwascore.app.ui.theme.GlassFillStrong
 import com.bingwascore.app.ui.theme.Raised
 import com.bingwascore.app.ui.theme.TextWhite
 import com.bingwascore.app.ui.components.AmbientOrbs
+import com.bingwascore.app.ui.components.Silica
 import com.bingwascore.app.ui.theme.glassBorderBrush
 import com.bingwascore.app.ui.theme.isSilica
 import androidx.compose.runtime.collectAsState
@@ -515,6 +517,11 @@ private fun BottomNavBar(
                 } else {
                     Modifier
                 }
+            )
+            // U4 — frosted nav: the rail frosts with the rest of the glass, so a
+            // solid bar never sits under a blurred app and break the illusion.
+            .then(
+                if (isSilica && Silica.canBlur) Modifier.blur(Silica.CARD_BLUR) else Modifier
             )
             .navigationBarsPadding()
             .padding(vertical = 6.dp),

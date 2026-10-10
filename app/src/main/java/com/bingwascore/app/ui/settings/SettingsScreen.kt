@@ -64,6 +64,7 @@ import com.bingwascore.app.domain.ThemeMode
 import com.bingwascore.app.ui.components.BubbleCard
 import com.bingwascore.app.ui.components.ExplanationDialog
 import com.bingwascore.app.ui.components.PrimaryButton
+import com.bingwascore.app.ui.components.statusSwitchColors
 import com.bingwascore.app.util.rememberHaptics
 import com.bingwascore.app.util.screenEnter
 import androidx.compose.material3.Switch
@@ -301,16 +302,13 @@ private fun SettingsSwitchRow(
                 fontSize = 11.sp
             )
         }
+        // U4 — contrast audit: the settings switches use the ONE shared palette
+        // (blue track + black thumb on, raised track + visible hairline off),
+        // instead of a local set of colours that could drift below 3:1.
         Switch(
             checked = checked,
             onCheckedChange = onCheckedChange,
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = AccentBlue,
-                uncheckedThumbColor = TextWhite.copy(alpha = 0.6f),
-                checkedTrackColor = AccentBlue.copy(alpha = 0.35f),
-                uncheckedTrackColor = Bubble,
-                uncheckedBorderColor = Hairline
-            )
+            colors = statusSwitchColors()
         )
     }
 }
@@ -1023,13 +1021,8 @@ private fun ShowcasePage() {
                     ShowcaseController.setEnabled(context, value)
                     pendingRestart = value
                 },
-                colors = androidx.compose.material3.SwitchDefaults.colors(
-                    checkedThumbColor = AccentBlue,
-                    checkedTrackColor = AccentBlue.copy(alpha = 0.35f),
-                    uncheckedThumbColor = TextGrey,
-                    uncheckedTrackColor = Bubble,
-                    uncheckedBorderColor = Hairline
-                )
+                // U4 — one shared switch palette across the whole app.
+                colors = statusSwitchColors()
             )
         }
     }

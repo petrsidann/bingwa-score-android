@@ -1,11 +1,12 @@
 # ULTRA session end — handoff
 
 ## Where the tree is
-- Green groups shipped: `Ultra U2: autopilot 3-state`, `Ultra U3: home/graph/splash right-size` (see `git log`).
+- Green groups shipped: `Ultra U2: autopilot 3-state`, `Ultra U3: home/graph/splash right-size`,
+  `Ultra U4: themes alive` (see `git log`).
 - Verified on this tree: `:app:compileDebugKotlin` green, full
-  `:app:testDebugUnitTest` green (149+ tests), `:app:assembleDebug` green with a
+  `:app:testDebugUnitTest` green (163 tests), `:app:assembleDebug` green with a
   fresh APK at `app/build/outputs/apk/debug/app-debug.apk`.
-- Next group: U4 (see "Groups still open" below).
+- Next group: U5 (see "Groups still open" below).
 - `docs/HANDOFF.md` is the live handoff; refresh it at every session end.
 - `freebuff_jdk.json` is gitignored; never commit it.
 
@@ -60,8 +61,25 @@
 - The Transactions filter row is driven by `transactionFilterChips`, pinned to
   exactly one chip per filter (no stray separator dot).
 
+## Shipped: U4 — themes alive
+- **Grayscale** keeps DISTINCT desaturated status tints: Done **silver-blue**
+  (`StatusDone`), Failed **charcoal-red** (`StatusFailedTint`), Queued neutral
+  (`StatusQueued`). Dots are drawn at **60% saturation** (`GRAYSCALE_DOT_SATURATION`,
+  applied once in `StatusDot`).
+- **Grayscale CTA** is a solid **#E0E0E0** chip with **black** text (`CtaFill`/`CtaInk`),
+  and the secondary action outlines at **#9E9E9E** (`SecondaryOutline`).
+- Contrast audit: every switch uses the one shared `statusSwitchColors()` palette
+  (Settings switches no longer define their own); `U4ThemesTest` asserts the
+  disabled pair clears AA in all three modes and the Grayscale chip clears 10:1.
+- **Silica**: blur **32dp** (`Silica.CARD_BLUR`), **18%** white glass tint, gradient
+  hairlines, orbs at **8% alpha** with a **140dp** soft edge (`ORB_BLUR`), and a
+  **frosted nav rail** that blurs with the rest of the glass.
+- **Obsidian**: disabled-state sweep only (no palette churn).
+- **Zero orange/amber**: no orange/amber literals remain and `U4ThemesTest` guards
+  the token palette against them.
+
 ## Groups still open (ULTRA)
-- U4 → U8 per the original ULTRA prompt. Commit + push each green group, refresh
+- U5 → U8 per the original ULTRA prompt. Commit + push each green group, refresh
   this file at every session end.
 
 ## Track-only (no surface exists yet)

@@ -43,6 +43,7 @@ import com.bingwascore.app.ui.theme.DisabledFill
 import com.bingwascore.app.ui.theme.DisabledInk
 import com.bingwascore.app.ui.theme.Hairline
 import com.bingwascore.app.ui.theme.Raised
+import com.bingwascore.app.ui.theme.SecondaryOutline
 import com.bingwascore.app.util.rememberHaptics
 
 /**
@@ -123,8 +124,9 @@ fun BubbleCard(
 /**
  * Primary CTA — solid accent, white bold label, 14dp radius.
  *
- * In GRAYSCALE the accent is no longer a usable hue, so the
- * button becomes a solid near-black chip separated by a hairline.
+ * U4 — Grayscale has no usable hue, so the button becomes a solid **#E0E0E0**
+ * chip with **black** text: the one figure/ground pair that stays unambiguous
+ * when the accent is gone.
  *
  * Pass [loading] to swap the label for a spinner (e.g. "Dialing…") and block
  * double taps while the work is in flight.
@@ -204,7 +206,9 @@ fun SecondaryButton(
             .height(56.dp)
             .clip(shape)
             .background(Color.Transparent)
-            .border(1.dp, Hairline, shape)
+            // U4 — Grayscale outlines the secondary action at #9E9E9E so it is
+            // visible against the monochrome canvas.
+            .border(1.dp, SecondaryOutline, shape)
             .clickable(
                 enabled = enabled,
                 interactionSource = interactionSource,

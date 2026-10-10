@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.unit.dp
 import com.bingwascore.app.domain.ThemeMode
 
 /**
@@ -101,6 +102,53 @@ val SemanticBlue: Color = Color(0xFF3E6BFF)
 val SemanticRed: Color = Color(0xFFFF5252)
 val SemanticGrey: Color = Color(0xFF9E9E9E)
 
+// ─── U4 — Grayscale keeps DISTINCT, desaturated status tints ─────────────────
+/**
+ * U4 — how much saturation a status dot keeps in Grayscale.
+ *
+ * Grayscale is a monochrome chrome, not a monochrome ledger: a completed row, a
+ * failed row and a queued row must still be tellable apart at a glance. The dots
+ * keep 60% of their saturation (blended 40% toward their own luminance), which is
+ * the band where the hue still reads without the chrome going colourful.
+ */
+const val GRAYSCALE_DOT_SATURATION = 0.6f
+
+/**
+ * U4 — blend [color] toward its own luminance so [saturation] of 0 is grey and 1
+ * is the untouched colour. Pure, so the Grayscale palette is unit-testable.
+ */
+fun saturate(color: Color, saturation: Float): Color {
+    val keep = saturation.coerceIn(0f, 1f)
+    val lum = 0.299f * color.red + 0.587f * color.green + 0.114f * color.blue
+    return Color(
+        red = lum + (color.red - lum) * keep,
+        green = lum + (color.green - lum) * keep,
+        blue = lum + (color.blue - lum) * keep,
+        alpha = color.alpha
+    )
+}
+
+/**
+ * U4 — the Done tint. Grayscale uses a **silver-blue** so a cleared sale still
+ * separates from a failed one without the palette turning blue.
+ */
+val StatusDone: Color get() = when (DisplayModeState.mode) {
+    ThemeMode.GRAYSCALE -> Color(0xFF8FA6C8)
+    else -> SemanticBlue
+}
+
+/**
+ * U4 — the Failed tint. Grayscale uses a **charcoal-red** so failure keeps its
+ * urgency in monochrome chrome.
+ */
+val StatusFailedTint: Color get() = when (DisplayModeState.mode) {
+    ThemeMode.GRAYSCALE -> Color(0xFFA87070)
+    else -> SemanticRed
+}
+
+/** U4 — Queued stays **neutral** in every mode: it carries no verdict yet. */
+val StatusQueued: Color get() = SemanticGrey
+
 /**
  * The chrome accent.
  *
@@ -160,11 +208,14 @@ val TickGreen: Color get() = when (DisplayModeState.mode) {
 /** True only in the glass mode, so surfaces can branch without a mode check. */
 val isSilica: Boolean get() = DisplayModeState.mode == ThemeMode.SILICA
 
-/** The frosted fill of a card: white at 8%, so the orbs behind it show through. */
-val GlassFill: Color get() = Color(0x14FFFFFF)
+/**
+ * The frosted fill of a card: white at **18%** (U4), so the orbs behind it show
+ * through while the pane still reads as glass rather than as a hole.
+ */
+val GlassFill: Color get() = Color(0x2EFFFFFF)
 
 /** A slightly denser glass for sheets and rails that sit above content. */
-val GlassFillStrong: Color get() = Color(0x1FFFFFFF)
+val GlassFillStrong: Color get() = Color(0x33FFFFFF)
 
 /**
  * The gradient hairline.
@@ -181,9 +232,16 @@ fun glassBorderBrush(strong: Boolean = false): Brush = Brush.linearGradient(
     )
 )
 
-/** The ambient orbs behind the glass: one blue, one violet. */
-val OrbBlue: Color get() = Color(0x663E6BFF)
-val OrbViolet: Color get() = Color(0x598C6BFF)
+/**
+ * The ambient orbs behind the glass: one blue, one violet, each at **8% alpha**
+ * (U4) — present enough to refract, quiet enough never to be a colour the agent
+ * notices. Their soft edge is set by [ORB_BLUR] in the renderer.
+ */
+val OrbBlue: Color get() = Color(0x143E6BFF)
+val OrbViolet: Color get() = Color(0x148C6BFF)
+
+/** U4 — how far the orbs fade at their edge. */
+val ORB_BLUR: androidx.compose.ui.unit.Dp = 140.dp
 
 /** The full ambient wash painted behind a Silica screen. */
 fun orbBrush(): Brush = Brush.radialGradient(
@@ -211,14 +269,34 @@ val DisabledInk: Color get() = when (DisplayModeState.mode) {
 }
 
 // ─── Call-to-action chrome ────────────────────────────────────────────────────
-/** Blue in DARK and SILICA; a solid near-black chip in GRAYSCALE. */
-val CtaFill: Color get() = if (usesSolidChips) BgBlack else AccentBlue
+/**
+ * U4 — Grayscale CTAs are a **solid #E0E0E0 chip with black text**, which is the
+ * only figure/ground pair that stays unambiguous when the accent is no longer a
+ * hue. Obsidian and Silica keep the brand blue.
+ */
+val CtaFill: Color get() = when (DisplayModeState.mode) {
+    ThemeMode.GRAYSCALE -> Color(0xFFE0E0E0)
+    else -> AccentBlue
+}
 
-/** Ink drawn on [CtaFill] — always the strongest readable colour. */
-val CtaInk: Color get() = TextWhite
+/** Ink drawn on [CtaFill] — black on the Grayscale chip, white on the blue CTA. */
+val CtaInk: Color get() = when (DisplayModeState.mode) {
+    ThemeMode.GRAYSCALE -> Color(0xFF000000)
+    else -> TextWhite
+}
 
 /** The hairline that separates a solid chip from the background. */
 val CtaBorder: Color get() = if (usesSolidChips) Hairline else Color.Transparent
+
+/**
+ * U4 — the secondary button's outline. Grayscale draws it at **#9E9E9E** so an
+ * outlined action is legible against the monochrome canvas instead of vanishing
+ * into a hairline that matches the surface.
+ */
+val SecondaryOutline: Color get() = when (DisplayModeState.mode) {
+    ThemeMode.GRAYSCALE -> Color(0xFF9E9E9E)
+    else -> Hairline
+}
 
 /** Shared chrome for tracks, dividers and inactive dots. */
 val DotTrack: Color get() = Raised

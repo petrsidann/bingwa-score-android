@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import com.bingwascore.app.ui.theme.BgBlack
 import com.bingwascore.app.ui.theme.GlassFill
 import com.bingwascore.app.ui.theme.GlassFillStrong
+import com.bingwascore.app.ui.theme.ORB_BLUR
 import com.bingwascore.app.ui.theme.OrbBlue
 import com.bingwascore.app.ui.theme.OrbViolet
 import com.bingwascore.app.ui.theme.glassBorderBrush
@@ -47,8 +48,12 @@ import com.bingwascore.app.ui.theme.isSilica
  */
 object Silica {
 
-    /** The blur radius used on devices that can actually blur. */
-    val CARD_BLUR: Dp = 22.dp
+    /**
+     * U4 — the blur radius used on devices that can actually blur. 32dp is deep
+     * enough that the pane reads as frosted glass rather than as a translucent
+     * rectangle, and it is the one number that makes the mode unmistakable.
+     */
+    val CARD_BLUR: Dp = 32.dp
 
     /** True when the running device can render a real backdrop blur. */
     val canBlur: Boolean get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
@@ -78,7 +83,8 @@ fun Modifier.glassSurface(
             if (glass) Modifier.border(1.dp, glassBorderBrush(strong), shape) else Modifier
         )
     return if (glass && Silica.canBlur) {
-        resolved.blur(Silica.CARD_BLUR / 2)
+        // U4 — full 32dp frost, not a half-strength hint.
+        resolved.blur(Silica.CARD_BLUR)
     } else {
         resolved
     }
@@ -113,7 +119,14 @@ fun AmbientOrbs(modifier: Modifier = Modifier) {
     }
 }
 
-/** One soft orb: a radial fade positioned by fraction and nudged by its drift. */
+/**
+ * One soft orb: a radial fade positioned by fraction and nudged by its drift.
+ *
+ * U4 — the orb holds full strength out to `radius - ORB_BLUR`, then falls away
+ * over the last [ORB_BLUR] (140dp). That is what makes the field read as a
+ * blurred light rather than a flat disc, which is the whole difference between
+ * an ambient wash and a sticker.
+ */
 private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawOrb(
     color: Color,
     diameter: Dp,
@@ -123,13 +136,19 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawOrb(
     driftY: Float
 ) {
     val radius = diameter.toPx() / 2f
+    val softPx = ORB_BLUR.toPx().coerceAtMost(radius)
+    val holdStop = ((radius - softPx) / radius).coerceIn(0f, 0.98f)
     val center = Offset(
         x = size.width * (baseX + driftX * 0.06f),
         y = size.height * (baseY + driftY * 0.06f)
     )
     drawCircle(
         brush = Brush.radialGradient(
-            colors = listOf(color, Color.Transparent),
+            colorStops = arrayOf(
+                0f to color,
+                holdStop to color,
+                1f to Color.Transparent
+            ),
             center = center,
             radius = radius
         ),
