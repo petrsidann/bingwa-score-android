@@ -1,5 +1,27 @@
 # Changelog
 
+## 1.8.0 — ULTRA U6–U8 (2026-10-10)
+
+### U6 — Snake carousel onboarding
+- Three-slide onboarding carousel with clamped paging (never wraps) and
+  per-slide title/body copy (`SnakeCarousel`, `U6SnakeCarouselTest`).
+
+### U7 — Credits, pass ladder + real updates
+- A credit is exactly one SUCCESSFUL transaction; failed/queued/scheduled rows
+  never mint credits. Monotonic tier ladder; pass purchase can never drive the
+  balance negative (`CreditsPass`, `U7CreditsPassTest`).
+- Update checker wired to real release metadata.
+
+### U8 — QA sweep + release
+- Token-level contrast audit across all three themes (Obsidian / Grayscale /
+  Silica): text tokens, status tints, CTA pair and disabled pair all clear AA
+  (`U8QaSweepTest`).
+- Truncation guards (single-line ellipsized customer names), shared
+  `EmptyState` coverage check for every list screen, and "Queued" wording
+  regression locked in every theme.
+- versionName 1.8.0 / versionCode 8; tests, `assembleDebug` and
+  `assembleRelease` green.
+
 ## 1.6.0 — Polish P1–P6 (2026-10-05)
 
 ### Engine reality

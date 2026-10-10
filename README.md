@@ -4,6 +4,10 @@ Bingwa Score helps Safaricom airtime agents sell bundles faster: one-tap dialing
 auto-renewals, botted replies, USSD automation and commission tracking — all on
 your phone.
 
+**Current release: 1.8.0 (versionCode 8)** — ULTRA ship: snake-carousel
+onboarding, credits + pass ladder, real update checks, and a full QA sweep
+(contrast / truncation / empty states across Obsidian, Grayscale and Silica).
+
 > **Bingwa** — lightning, in Swahili. Because every bundle sale should strike at
 > the speed of light.
 
