@@ -1,8 +1,8 @@
 package com.bingwascore.app
 
+import com.bingwascore.app.data.local.Transaction
 import com.bingwascore.app.domain.EngineState
 import com.bingwascore.app.domain.TransactionStatus
-import com.bingwascore.app.domain.Transaction
 import org.junit.Assert.assertEquals
 import org.junit.Test
 

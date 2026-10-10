@@ -101,6 +101,7 @@ import com.bingwascore.app.util.rememberHaptics
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+
 /** Masked money placeholder — six stars, never a half-drawn digit. */
 private const val MASK = "******"
 
@@ -286,15 +287,39 @@ fun HomeScreen(
                 items(4) { HomeRowSkeleton() }
             } else if (transactions.isEmpty()) {
                 item {
-                    Text(
-                        "Nothing yet — every bundle you dial lands here.",
-                        color = TextGrey,
-                        fontSize = 12.sp,
-                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp)
-                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 4.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            when (engineState) {
+                                com.bingwascore.app.domain.EngineState.STOPPED ->
+                                    "Autopilot stopped — history lives in Transactions."
+                                else -> "Nothing yet — every bundle you dial lands here."
+                            },
+                            color = TextGrey,
+                            fontSize = 12.sp,
+                            modifier = Modifier.weight(1f)
+                        )
+                        if (engineState == com.bingwascore.app.domain.EngineState.STOPPED) {
+                            Text(
+                                "Start",
+                                color = AccentBlue,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier.clickable {
+                                    showAutopilot = true
+                                }
+                            )
+                        }
+                    }
                 }
             } else {
-                items(transactions, key = { it.id }) { tx -> HomeTransactionRow(tx) }
+                items(transactions, key = { it.id }) { tx ->
+                    HomeTransactionRow(tx = tx, engineState = engineState)
+                }
             }
         }
 
@@ -591,10 +616,20 @@ private fun RefreshButton(loading: Boolean, onClick: () -> Unit) {
 }
 
 
-/** One activity row: status dot, who, how much, when. */
+/**
+ * One activity row: status dot, who, how much, when — plus a "Paused" badge when
+ * the row is still queued and the engine is paused (U2: money accepted, not yet
+ * dialed). The badge is deliberately inline with the amount so the reason the row
+ * has not moved is never more than a glance away.
+ */
 @Composable
-private fun HomeTransactionRow(tx: Transaction) {
+private fun HomeTransactionRow(
+    tx: Transaction,
+    engineState: com.bingwascore.app.domain.EngineState = com.bingwascore.app.domain.EngineState.RUNNING
+) {
     val statusColor = StatusColors.color(tx.status)
+    val showPausedBadge = engineState == com.bingwascore.app.domain.EngineState.PAUSED &&
+        tx.status == TransactionStatus.PENDING.value
     BubbleCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 14.dp) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -627,7 +662,19 @@ private fun HomeTransactionRow(tx: Transaction) {
                     overflow = TextOverflow.Ellipsis
                 )
             }
-            Spacer(modifier = Modifier.width(8.dp))
+            if (showPausedBadge) {
+                Text(
+                    "Paused",
+                    color = TextGrey,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(50))
+                        .background(TextDim.copy(alpha = 0.20f))
+                        .padding(horizontal = 7.dp, vertical = 3.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+            }
             Text(
                 "Ksh ${money(tx.amount)}",
                 color = TextWhite,

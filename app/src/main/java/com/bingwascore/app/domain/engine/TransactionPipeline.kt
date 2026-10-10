@@ -181,12 +181,15 @@ class TransactionPipeline @Inject constructor(
             )
             transactionRepository.insert(transaction)
             Timber.i("PENDING transaction %s for %s (%s)", transaction.id, phone, offer.name)
-            // U2 — PAUSED gate: if the agent paused autopilot, accept the money
-            // (row is saved) but don't dial until resumed. The transaction stays
-            // PENDING so it is visible in the ledger.
+            // U2 — PAUSED/STOPPED gate: if autopilot is paused or stopped, accept
+            // the money (row is saved as PENDING) but don't dial until it is
+            // resumed. The row stays visible in the ledger as queued work.
             val engineState = userPreferences.engineState.first()
-            if (engineState == com.bingwascore.app.domain.EngineState.PAUSED) {
-                Timber.i("Engine paused — deferring USSD for %s", transaction.id)
+            if (engineState != com.bingwascore.app.domain.EngineState.RUNNING) {
+                Timber.i(
+                    "Engine %s — recording %s as queued (no dial)",
+                    engineState.value, transaction.id
+                )
                 return
             }
             startUssdAutomation(transaction)
@@ -386,7 +389,7 @@ class TransactionPipeline @Inject constructor(
      */
     suspend fun resumeFromPaused() {
         try {
-            val due = transactionRepository.getLiveTransactions()
+            val due = transactionRepository.liveTransactions
                 .first()
                 .filter { it.status == TransactionStatus.PENDING.value }
                 .sortedBy { it.createdAt }

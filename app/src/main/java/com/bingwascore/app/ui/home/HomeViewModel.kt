@@ -12,7 +12,9 @@ import com.bingwascore.app.data.showcase.DemoCatalog
 import com.bingwascore.app.data.preferences.UserPreferences
 import com.bingwascore.app.data.repository.TransactionRepository
 import com.bingwascore.app.domain.AppProcessingMode
+import com.bingwascore.app.domain.EngineState
 import com.bingwascore.app.domain.TransactionStatus
+import com.bingwascore.app.domain.engine.TransactionPipeline
 import com.bingwascore.app.services.BalanceReader
 import com.bingwascore.app.services.EngineService
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -34,7 +36,8 @@ import timber.log.Timber
 class HomeViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val transactionRepository: TransactionRepository,
-    private val userPreferences: UserPreferences
+    private val userPreferences: UserPreferences,
+    private val transactionPipeline: TransactionPipeline
 ) : ViewModel() {
 
     companion object {
@@ -384,11 +387,12 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    /** Start engine from STOPPED — starts service and marks RUNNING. */
+    /** Start engine from STOPPED — starts service, marks RUNNING and drains the backlog. */
     fun startEngine() {
         viewModelScope.launch {
-            userPreferences.setEngineState(com.bingwascore.app.domain.EngineState.RUNNING)
+            userPreferences.setEngineState(EngineState.RUNNING)
             EngineService.start(context.applicationContext)
+            transactionPipeline.resumeFromPaused()
         }
     }
 
