@@ -1,11 +1,11 @@
 # ULTRA session end — handoff
 
 ## Where the tree is
-- Green group shipped: `Ultra U2: autopilot 3-state` (see `git log`).
+- Green groups shipped: `Ultra U2: autopilot 3-state`, `Ultra U3: home/graph/splash right-size` (see `git log`).
 - Verified on this tree: `:app:compileDebugKotlin` green, full
-  `:app:testDebugUnitTest` green, `:app:assembleDebug` green with a fresh APK at
-  `app/build/outputs/apk/debug/app-debug.apk`.
-- Next group: U3 (see "Groups still open" below).
+  `:app:testDebugUnitTest` green (149+ tests), `:app:assembleDebug` green with a
+  fresh APK at `app/build/outputs/apk/debug/app-debug.apk`.
+- Next group: U4 (see "Groups still open" below).
 - `docs/HANDOFF.md` is the live handoff; refresh it at every session end.
 - `freebuff_jdk.json` is gitignored; never commit it.
 
@@ -44,8 +44,24 @@
 - JVM tests covering this: `EngineStateTest`, `EngineStateTraceTest`
   (paused → 2 incoming → resume order), and `ui/home/HomeScreenEmptyStateTest`.
 
+## Shipped: U3 — Home/Graph/Splash right-size
+- Splash wordmark is always the FULL "Bingwa Score", per-letter alpha, never a
+  substring (`wordmarkAlphas` + `U3RightSizeTest` length guard).
+- Home activity rows are a fixed 44dp (~30% shorter); Transactions rows are 45dp
+  with a 36dp tinted status avatar.
+- Balance card is now one medium row: labels + values left, eye + refresh right.
+- Commission spline is clamped at/above the zero baseline (points AND control
+  points), so a quiet day can never be drawn as negative commission.
+- The day-letter tooltip is a **coaster**: it springs up BELOW the tapped letter's
+  column instead of covering the curve.
+- The today-bubble rolls at 00:00 (`weekdayIndexMonFirst` + `millisUntilNextMidnight`).
+- UI says **"Queued"** for PENDING everywhere (`StatusColors.label`,
+  `TransactionFilter.PENDING`); the stored enum value is unchanged.
+- The Transactions filter row is driven by `transactionFilterChips`, pinned to
+  exactly one chip per filter (no stray separator dot).
+
 ## Groups still open (ULTRA)
-- U3 → U8 per the original ULTRA prompt. Commit + push each green group, refresh
+- U4 → U8 per the original ULTRA prompt. Commit + push each green group, refresh
   this file at every session end.
 
 ## Track-only (no surface exists yet)

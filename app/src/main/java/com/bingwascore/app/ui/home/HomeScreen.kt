@@ -106,6 +106,13 @@ import java.util.Locale
 private const val MASK = "******"
 
 /**
+ * U3 — the compact Home activity row. 44dp is ~30% shorter than the old padded
+ * row: the numbers are the interface, and a home feed that shows four rows
+ * instead of three is a better feed.
+ */
+private val HOME_ROW_HEIGHT = 44.dp
+
+/**
  * REBRAND R2 — Home, rebuilt as a trading terminal.
  *
  * Reading order is deliberate and flat: three counters you can drill into, one
@@ -484,7 +491,10 @@ private fun SectionHeader(title: String, trailing: String) {
 }
 
 /**
- * "Airtime used today" | "Current balance" + eye toggle + circular refresh.
+ * The money row: labels + values on the left, eye + refresh on the right — one
+ * medium row (U3), not the old two-cell card with a divider and a second button
+ * strip. Two compact label/value lines read faster than a side-by-side split and
+ * the card stops being the tallest thing on Home.
  *
  * Both values stay masked behind six stars until the eye opens, so the row can
  * sit on a shop counter without leaking numbers. The refresh button spins for as
@@ -501,46 +511,34 @@ private fun MoneyRow(
     onOpenDiagnostics: () -> Unit
 ) {
     BubbleCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 20.dp) {
-        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
-            MoneyCell(
-                label = "Airtime used today",
-                value = if (valuesVisible) "Ksh ${money(airtimeToday)}" else MASK,
-                modifier = Modifier.weight(1f)
-            )
-            Box(
-                modifier = Modifier
-                    .width(1.dp)
-                    .height(52.dp)
-                    .background(Hairline)
-            )
-            // E1 — NEVER a fake number: null balance shows unavailable + link.
-            if (balance == null && valuesVisible) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text("Current balance", color = TextGrey, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text("Balance unavailable", color = TextWhite, fontSize = 14.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-                    Text(
-                        "run Diagnostics",
-                        color = AccentBlue, fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.clickable(onClick = onOpenDiagnostics)
-                    )
-                }
-            } else {
-                MoneyCell(
-                    label = "Current balance",
-                    value = if (valuesVisible) "Ksh ${money(balance ?: 0.0)}" else MASK,
-                    modifier = Modifier.weight(1f)
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(6.dp))
-
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.End,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            Column(modifier = Modifier.weight(1f)) {
+                MoneyLine(
+                    label = "Airtime used today",
+                    value = if (valuesVisible) "Ksh ${money(airtimeToday)}" else MASK
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                // E1 — NEVER a fake number: null balance shows unavailable + link.
+                if (balance == null && valuesVisible) {
+                    MoneyLine(label = "Current balance", value = "Unavailable")
+                    Text(
+                        "run Diagnostics",
+                        color = AccentBlue, fontSize = 11.sp, fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.clickable(onClick = onOpenDiagnostics)
+                    )
+                } else {
+                    MoneyLine(
+                        label = "Current balance",
+                        value = if (valuesVisible) "Ksh ${money(balance ?: 0.0)}" else MASK
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(10.dp))
+
             Box(
                 modifier = Modifier
                     .size(34.dp)
@@ -556,27 +554,32 @@ private fun MoneyRow(
                     modifier = Modifier.size(19.dp)
                 )
             }
-            Spacer(modifier = Modifier.width(10.dp))
+            Spacer(modifier = Modifier.width(6.dp))
             RefreshButton(loading = loading, onClick = onRefresh)
         }
     }
 }
 
+/** U3 — one label/value line inside the single money row. */
 @Composable
-private fun MoneyCell(label: String, value: String, modifier: Modifier = Modifier) {
-    Column(modifier = modifier) {
+private fun MoneyLine(label: String, value: String, modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
         Text(
             label,
             color = TextGrey,
             fontSize = 12.sp,
             maxLines = 1,
-            overflow = TextOverflow.Ellipsis
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f)
         )
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.width(8.dp))
         Text(
             value,
             color = TextWhite,
-            fontSize = 19.sp,
+            fontSize = 15.sp,
             fontWeight = FontWeight.Bold,
             maxLines = 1
         )
@@ -633,7 +636,10 @@ private fun HomeTransactionRow(
     BubbleCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 14.dp) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(HOME_ROW_HEIGHT)
+                .padding(horizontal = 12.dp)
         ) {
             // POLISH P2 — the same status dot the tiles use: lit for a finished
             // sale, dim for queued work, red for a failure. It lights with a

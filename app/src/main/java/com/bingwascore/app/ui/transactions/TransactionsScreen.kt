@@ -205,7 +205,7 @@ fun TransactionsScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(
-                    items = TransactionFilter.entries.toList(),
+                    items = transactionFilterChips,
                     key = { it.name }
                 ) { filter ->
                     FilterChip(
@@ -891,8 +891,16 @@ private fun TransactionSkeleton() {
     }
 }
 
-/** POLISH P3 — one fixed row height, so ticking never reflows the list. */
-private val ROW_HEIGHT = 64.dp
+/**
+ * POLISH P3 — one fixed row height, so ticking never reflows the list.
+ *
+ * U3 — right-sized: 45dp is ~30% shorter than the old 64dp box. A ledger row is
+ * a glance, not a card, and the extra 19dp bought nothing but fewer rows on screen.
+ */
+private val ROW_HEIGHT = 45.dp
+
+/** U3 — the row's leading status avatar. 36dp fits the compact row with breathing room. */
+private val ROW_AVATAR = 36.dp
 
 /**
  * POLISH P3 — the 200ms spring behind the tick morph. Stiff enough to land in
@@ -976,14 +984,24 @@ private fun TransactionRow(
             )
         }
 
-        Spacer(modifier = Modifier.width(12.dp))
+        Spacer(modifier = Modifier.width(10.dp))
 
-        Icon(
-            imageVector = StatusColors.icon(transaction.status),
-            contentDescription = null,
-            tint = statusColor,
-            modifier = Modifier.size(22.dp)
-        )
+        // U3 — 36dp status avatar: a tinted disc behind the status glyph, which
+        // reads at a glance in a 45dp row where a bare 22dp icon got lost.
+        Box(
+            modifier = Modifier
+                .size(ROW_AVATAR)
+                .clip(CircleShape)
+                .background(statusColor.copy(alpha = 0.12f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = StatusColors.icon(transaction.status),
+                contentDescription = null,
+                tint = statusColor,
+                modifier = Modifier.size(18.dp)
+            )
+        }
 
         Spacer(modifier = Modifier.width(12.dp))
 

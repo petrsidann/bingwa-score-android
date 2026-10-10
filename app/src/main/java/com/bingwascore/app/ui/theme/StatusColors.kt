@@ -73,13 +73,23 @@ object StatusColors {
         else -> Icons.Rounded.HourglassTop
     }
 
-    /** Human label, e.g. `FAILED_ALREADY_RECOMMENDED` → "Failed Already Recommended". */
+    /**
+     * Human label, e.g. `FAILED_ALREADY_RECOMMENDED` → "Failed Already Recommended".
+     *
+     * U3 — the UI never says "Pending": a row the engine has not dialed yet is
+     * **Queued**, which is what it actually is. The stored enum value `PENDING`
+     * is unchanged, so the database and every status comparison keep working.
+     */
     fun label(status: String?): String {
         val raw = status?.takeIf { it.isNotBlank() } ?: return "Unknown"
-        return raw.lowercase(Locale.ROOT)
-            .split('_', ' ')
-            .filter { it.isNotBlank() }
-            .joinToString(" ") { part -> part.replaceFirstChar { it.uppercase(Locale.ROOT) } }
+        return when (raw.uppercase(Locale.ROOT)) {
+            TransactionStatus.PENDING.value,
+            TransactionStatus.PROCESSING.value -> "Queued"
+            else -> raw.lowercase(Locale.ROOT)
+                .split('_', ' ')
+                .filter { it.isNotBlank() }
+                .joinToString(" ") { part -> part.replaceFirstChar { it.uppercase(Locale.ROOT) } }
+        }
     }
 
     /** True for statuses that should read as a problem (used for error haptics). */

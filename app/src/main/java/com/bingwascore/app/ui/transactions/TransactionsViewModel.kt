@@ -31,6 +31,16 @@ import java.util.Date
 import java.util.Locale
 import javax.inject.Inject
 
+/**
+ * U3 — the exact chips the Transactions filter row renders, in order.
+ *
+ * The row is driven from this list (not from an inline literal), so a stray
+ * separator “dot” chip has nowhere to hide: `U3RightSizeTest` pins the row to
+ * exactly one item per filter, and the count is [TransactionFilter.entries].
+ */
+internal val transactionFilterChips: List<TransactionFilter>
+    get() = TransactionFilter.entries.toList()
+
 /** Filter chips shown on the Transactions screen. */
 enum class TransactionFilter(val label: String) {
     ALL("All"),
@@ -40,7 +50,7 @@ enum class TransactionFilter(val label: String) {
     LAST_30_DAYS("30d"),
     COMPLETED("Completed"),
     FAILED("Failed"),
-    PENDING("Pending"),
+    PENDING("Queued"),
     SCHEDULED("Scheduled"),
     UNMATCHED("Unmatched");
 

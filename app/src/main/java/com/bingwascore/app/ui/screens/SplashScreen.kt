@@ -155,7 +155,7 @@ fun SplashScreen(target: String?, onFinish: (String) -> Unit) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            StaggeredWordmark(text = WORDMARK, clock = clock.value)
+            StaggeredWordmark(text = SPLASH_WORDMARK, clock = clock.value)
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -171,10 +171,19 @@ fun SplashScreen(target: String?, onFinish: (String) -> Unit) {
 }
 
 /** The wordmark, as its own constant: one source for the stagger width. */
-private const val WORDMARK = "Bingwa Score"
+internal const val SPLASH_WORDMARK = "Bingwa Score"
 
-/** How long one letter takes to arrive, as a fraction of the letter window. */
-private const val LETTER_WINDOW = 0.34f
+/**
+ * One alpha per letter of [text], from [progress] (0..1 across the wordmark
+ * window). Always returns exactly `text.length` entries — the wordmark is never
+ * shortened, only faded — so a refactor that sliced the text would fail
+ * [com.bingwascore.app.SplashChoreographyTest] instead of shipping a splash that
+ * spells "Bingwa Sco".
+ */
+internal fun wordmarkAlphas(text: String, progress: Float): List<Float> {
+    val capped = progress.coerceIn(0f, (text.length - 1).toFloat())
+    return List(text.length) { index -> (capped - index).coerceIn(0f, 1f) }
+}
 
 /**
  * Letters that arrive 30ms apart.
@@ -190,11 +199,12 @@ private fun StaggeredWordmark(text: String, clock: Float) {
     val windowMillis = Motion.SPLASH_TAGLINE_START - Motion.SPLASH_WORDMARK_START
     val elapsed = (clock * windowMillis).toInt()
     val progress = (elapsed / Motion.SPLASH_LETTER_STAGGER.toFloat())
-        .coerceIn(0f, (text.length - 1).toFloat())
+
+    val alphas = wordmarkAlphas(text, progress)
 
     Row {
         text.forEachIndexed { index, char ->
-            val local = (progress - index).coerceIn(0f, 1f)
+            val local = alphas.getOrElse(index) { 0f }
             Text(
                 text = char.toString(),
                 color = TextWhite,

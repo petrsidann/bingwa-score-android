@@ -48,6 +48,7 @@ import com.bingwascore.app.ui.theme.Raised
 import com.bingwascore.app.ui.theme.TextDim
 import com.bingwascore.app.ui.theme.TextWhite
 import com.bingwascore.app.util.rememberHaptics
+import kotlinx.coroutines.delay
 import java.util.Calendar
 
 /**
@@ -65,6 +66,35 @@ import java.util.Calendar
  * rolls at midnight because it is computed from the clock, not remembered), and
  * tapping any letter springs a tooltip bubble with that day's commission.
  */
+/**
+ * U3 — the today-bubble is computed from the clock and re-computed at every
+ * midnight, so a phone left open on a shop counter rolls over instead of keeping
+ * yesterday highlighted forever. Pure and testable.
+ */
+internal fun weekdayIndexMonFirst(dayOfWeek: Int): Int = (dayOfWeek + 5) % 7
+
+/**
+ * U3 — one clamped chart Y. The Catmull-Rom spline is smooth, which means the
+ * curve can bow past its control points; this pins every sample to the canvas so
+ * a quiet day can never be drawn as negative commission.
+ */
+internal fun clampedCurveY(value: Float, height: Float, inset: Float = 4f): Float {
+    val usable = (height - inset * 2f).coerceAtLeast(0f)
+    val y = height - usable * value.coerceIn(0f, 1f) - inset
+    return y.coerceIn(0f, height)
+}
+
+/** Milliseconds from [now] until the next local midnight — at least 1ms. */
+internal fun millisUntilNextMidnight(now: Long): Long {
+    val cal = Calendar.getInstance().apply { timeInMillis = now }
+    cal.set(Calendar.HOUR_OF_DAY, 0)
+    cal.set(Calendar.MINUTE, 0)
+    cal.set(Calendar.SECOND, 0)
+    cal.set(Calendar.MILLISECOND, 0)
+    cal.add(Calendar.DAY_OF_YEAR, 1)
+    return (cal.timeInMillis - now).coerceAtLeast(1L)
+}
+
 @Composable
 fun CommissionChartCard(series: List<Double>) {
     val haptics = rememberHaptics()
@@ -79,7 +109,17 @@ fun CommissionChartCard(series: List<Double>) {
     }
 
     val days = remember { listOf("M", "T", "W", "T", "F", "S", "S") }
-    val todayIndex = remember { (Calendar.getInstance().get(Calendar.DAY_OF_WEEK) + 5) % 7 }
+    // U3 — the today-bubble rolls at 00:00: the index is recomputed when the day
+    // actually changes, not merely when the card is first composed.
+    var todayIndex by remember {
+        mutableStateOf(weekdayIndexMonFirst(Calendar.getInstance().get(Calendar.DAY_OF_WEEK)))
+    }
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(millisUntilNextMidnight(System.currentTimeMillis()))
+            todayIndex = weekdayIndexMonFirst(Calendar.getInstance().get(Calendar.DAY_OF_WEEK))
+        }
+    }
 
     BubbleCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 20.dp) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -155,8 +195,9 @@ private fun SmoothCommissionCurve(values: List<Float>, modifier: Modifier = Modi
         val points = values.mapIndexed { index, value ->
             val stepX = size.width / (values.size - 1).toFloat()
             val x = stepX * index
-            // Inset by the stroke width so the end caps are not clipped.
-            val y = size.height - (size.height - 8f) * value.coerceIn(0f, 1f) - 4f
+            // Inset by the stroke width so the end caps are not clipped, and
+            // clamped (U3) so the spline never draws below the zero baseline.
+            val y = clampedCurveY(value, size.height)
             Offset(x, y)
         }
 
@@ -168,13 +209,15 @@ private fun SmoothCommissionCurve(values: List<Float>, modifier: Modifier = Modi
                 val p2 = points[i + 1]
                 val p3 = points[if (i + 2 > points.lastIndex) points.lastIndex else i + 2]
                 // Catmull-Rom -> cubic bezier (tension 1/6 at both ends).
+                // U3 — control points are clamped too: an unclamped bezier bows
+                // past its endpoints and can dip under the baseline.
                 val c1 = Offset(
                     x = p1.x + (p2.x - p0.x) / 6f,
-                    y = p1.y + (p2.y - p0.y) / 6f
+                    y = (p1.y + (p2.y - p0.y) / 6f).coerceIn(0f, size.height)
                 )
                 val c2 = Offset(
                     x = p2.x - (p3.x - p1.x) / 6f,
-                    y = p2.y - (p3.y - p1.y) / 6f
+                    y = (p2.y - (p3.y - p1.y) / 6f).coerceIn(0f, size.height)
                 )
                 cubicTo(c1.x, c1.y, c2.x, c2.y, p2.x, p2.y)
             }
@@ -213,11 +256,13 @@ private fun SmoothCommissionCurve(values: List<Float>, modifier: Modifier = Modi
 }
 
 /**
- * The day letters, the today-bubble and the spring tooltip.
+ * The day letters, the today-bubble and the coaster tooltip.
  *
  * The letters are real hit targets (not canvas pixels), so a tap lands where it
- * looks like it should on a 400dp-wide phone, and the tooltip is anchored to the
- * same column as the letter it describes.
+ * looks like it should on a 400dp-wide phone. U3 — the tooltip now rides
+ * **below** the row (a coaster), anchored to the exact column of the tapped
+ * letter and sprung up on a spring spec, so it never covers the curve it is
+ * explaining.
  */
 @Composable
 private fun DayLetterRow(
@@ -227,33 +272,7 @@ private fun DayLetterRow(
     values: List<Double>,
     onSelect: (Int) -> Unit
 ) {
-    Box {
-        if (selected in days.indices) {
-            val tooltip by animateFloatAsState(
-                targetValue = 1f,
-                animationSpec = spring(
-                    dampingRatio = 0.6f,
-                    stiffness = Motion.TOOLTIP_SPRING_STIFFNESS
-                ),
-                label = "tooltipSpring"
-            )
-            Row(
-                verticalAlignment = Alignment.Bottom,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .graphicsLayer {
-                        alpha = tooltip
-                        translationY = (1f - tooltip) * 10f
-                    }
-            ) {
-                TooltipBubble(
-                    text = "Ksh ${money(values.getOrElse(selected) { 0.0 })}",
-                    alignRight = selected > 3,
-                    modifier = Modifier.weight(1f)
-                )
-            }
-        }
-
+    Column(modifier = Modifier.fillMaxWidth()) {
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             days.forEachIndexed { index, day ->
                 DayLetter(
@@ -263,6 +282,36 @@ private fun DayLetterRow(
                     modifier = Modifier.weight(1f),
                     onClick = { onSelect(index) }
                 )
+            }
+        }
+
+        // U3 — coaster: the bubble springs up below the tapped letter's column.
+        if (selected in days.indices) {
+            val coaster = remember { Animatable(0f) }
+            LaunchedEffect(selected) {
+                coaster.snapTo(0f)
+                coaster.animateTo(
+                    targetValue = 1f,
+                    animationSpec = spring(
+                        dampingRatio = 0.6f,
+                        stiffness = Motion.TOOLTIP_SPRING_STIFFNESS
+                    )
+                )
+            }
+            Row(modifier = Modifier.fillMaxWidth().padding(top = 6.dp)) {
+                days.forEachIndexed { index, _ ->
+                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                        if (index == selected) {
+                            TooltipBubble(
+                                text = "Ksh ${money(values.getOrElse(selected) { 0.0 })}",
+                                modifier = Modifier.graphicsLayer {
+                                    alpha = coaster.value
+                                    translationY = (1f - coaster.value) * -10f
+                                }
+                            )
+                        }
+                    }
+                }
             }
         }
     }
@@ -314,27 +363,22 @@ private fun DayLetter(
     }
 }
 
-/** The commission tooltip bubble, nudged to the inside near the card edge. */
+/** The commission coaster bubble, centred under the letter it describes. */
 @Composable
-private fun TooltipBubble(text: String, alignRight: Boolean, modifier: Modifier = Modifier) {
+private fun TooltipBubble(text: String, modifier: Modifier = Modifier) {
     val shape = RoundedCornerShape(10.dp)
-    Row(
-        modifier = modifier,
-        horizontalArrangement = if (alignRight) Arrangement.End else Arrangement.Start
+    Box(
+        modifier = modifier
+            .clip(shape)
+            .background(Raised)
+            .border(1.dp, Hairline, shape)
+            .padding(horizontal = 8.dp, vertical = 4.dp)
     ) {
-        Box(
-            modifier = Modifier
-                .clip(shape)
-                .background(Raised)
-                .border(1.dp, Hairline, shape)
-                .padding(horizontal = 8.dp, vertical = 4.dp)
-        ) {
-            Text(
-                text = text,
-                color = TextWhite,
-                fontSize = 10.sp,
-                fontWeight = FontWeight.SemiBold
-            )
-        }
+        Text(
+            text = text,
+            color = TextWhite,
+            fontSize = 10.sp,
+            fontWeight = FontWeight.SemiBold
+        )
     }
 }
