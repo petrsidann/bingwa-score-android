@@ -574,7 +574,7 @@ private fun RefreshButton(loading: Boolean, onClick: () -> Unit) {
         modifier = Modifier
             .size(34.dp)
             .clip(CircleShape)
-            .background(Bubble)
+            .background(BgBlack)
             .border(1.dp, Hairline, CircleShape)
             .clickable(enabled = !loading, onClick = onClick),
         contentAlignment = Alignment.Center
@@ -715,7 +715,7 @@ private val REQUIRED_PERMISSION_ARRAY = REQUIRED_PERMISSIONS
 private fun PhoneAccessPrompt(onGrant: () -> Unit, onNotNow: () -> Unit) {
     androidx.compose.material3.AlertDialog(
         onDismissRequest = onNotNow,
-        containerColor = Bubble,
+        containerColor = BgBlack,
         titleContentColor = TextWhite,
         textContentColor = TextGrey,
         title = {

@@ -44,3 +44,6 @@ build_log.txt
 
 # local tooling scratch
 .freebuff/
+
+# bootstrapper-only JDK discovery artifact; never committed (machine-specific).
+freebuff_jdk.json

@@ -63,6 +63,7 @@ android {
     }
 
     kotlin {
+        jvmToolchain(17)
         compilerOptions {
             freeCompilerArgs.addAll(
                 "-opt-in=androidx.compose.material3.ExperimentalMaterial3Api",
