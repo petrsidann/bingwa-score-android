@@ -368,10 +368,11 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    /** Resume from paused state — resumes normal dialling. */
+    /** Resume from paused state — replays backlog in arrival order, then live. */
     fun resumeEngine() {
         viewModelScope.launch {
             userPreferences.setEngineState(com.bingwascore.app.domain.EngineState.RUNNING)
+            transactionPipeline.resumeFromPaused()
         }
     }
 

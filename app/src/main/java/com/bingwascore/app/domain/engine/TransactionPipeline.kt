@@ -377,6 +377,32 @@ class TransactionPipeline @Inject constructor(
         }
     }
 
+    /**
+     * Resumes the engine from PAUSED: replays queued PENDING transactions in
+     * arrival order, then the engine once again accepts incoming payments live.
+     *
+     * Backlog order is defined by createdAt so the two payments that arrived
+     * during the pause are dialed in the order they were recorded.
+     */
+    suspend fun resumeFromPaused() {
+        try {
+            val due = transactionRepository.getLiveTransactions()
+                .first()
+                .filter { it.status == TransactionStatus.PENDING.value }
+                .sortedBy { it.createdAt }
+            due.forEach { pending ->
+                // Only retry rows that are still in PENDING — in-flight or already
+                // finalized rows must not be re-dialed on resume.
+                if (pending.status == TransactionStatus.PENDING.value) {
+                    startUssdAutomation(pending)
+                    Timber.i("Resuming queued transaction %s (%s)", pending.id, pending.phoneNumber)
+                }
+            }
+        } catch (t: Throwable) {
+            Timber.e(t, "resumeFromPaused failed")
+        }
+    }
+
     /** Kicks every SCHEDULED transaction whose time has come. */
     suspend fun processDueScheduled() {
         try {
