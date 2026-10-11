@@ -461,9 +461,8 @@ private fun ThemePreviewCard(
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = when (mode) {
-                        ThemeMode.DARK -> "Black canvas, softened electric blue"
-                        ThemeMode.GRAYSCALE -> "Monochrome chrome, status colour kept"
-                        ThemeMode.SILICA -> "Frosted glass over ambient colour"
+                        ThemeMode.DARK -> "Dark canvas, brand blue"
+                        ThemeMode.LIGHT -> "iMessage-grade light, iOS blue"
                     },
                     color = TextWhite.copy(alpha = 0.55f),
                     fontSize = 12.sp
@@ -492,31 +491,26 @@ private fun ThemePreviewCard(
 }
 
 /**
- * The miniature.
- *
- * Painted with the tokens of the mode it *represents* (not the mode currently on
- * screen), so the preview of Silica looks like Silica while Obsidian is still
- * active. That is the whole reason this page is worth scrolling to.
+ * The miniature — painted with the tokens of the mode it *represents*, so the
+ * Porcelain preview is light while Obsidian is still active.
  */
 @Composable
 private fun ThemePreviewStrip(mode: ThemeMode, selected: Boolean) {
     val shape = RoundedCornerShape(12.dp)
-    val glass = mode == ThemeMode.SILICA
     val canvas = when (mode) {
-        ThemeMode.SILICA -> Color(0xFF07070C)
-        else -> Color(0xFF000000)
+        ThemeMode.LIGHT -> Color(0xFFF2F2F7)
+        else -> Color(0xFF0B0E15)
     }
     val surface = when (mode) {
-        ThemeMode.SILICA -> Color(0x1FFFFFFF)
-        else -> Color(0xFF141414)
+        ThemeMode.LIGHT -> Color(0xFFFFFFFF)
+        else -> Color(0xFF131824)
     }
     val chrome = when (mode) {
-        ThemeMode.GRAYSCALE -> Color(0xFFBDBDBD)
-        else -> Color(0xFF4176FF)
+        ThemeMode.LIGHT -> Color(0xFF007AFF)
+        else -> Color(0xFF2563EB)
     }
-    // POLISH P5 — the dots keep their semantics even in the monochrome preview.
-    val done = if (mode == ThemeMode.GRAYSCALE) Color(0xFFBDBDBD) else Color(0xFF3E6BFF)
-    val failed = if (mode == ThemeMode.GRAYSCALE) Color(0xFF757575) else Color(0xFFFF5252)
+    val done = Color(0xFF3E6BFF)
+    val failed = Color(0xFFFF5252)
 
     Box(
         modifier = Modifier
@@ -526,22 +520,6 @@ private fun ThemePreviewStrip(mode: ThemeMode, selected: Boolean) {
             .background(canvas)
             .border(1.dp, if (selected) chrome.copy(alpha = 0.6f) else Hairline, shape)
     ) {
-        if (glass) {
-            // The orbs, miniaturised: two soft colour fields behind the card.
-            androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
-                drawCircle(
-                    color = Color(0x553E6BFF),
-                    radius = size.height * 1.1f,
-                    center = androidx.compose.ui.geometry.Offset(size.width * 0.2f, size.height * 0.3f)
-                )
-                drawCircle(
-                    color = Color(0x448C6BFF),
-                    radius = size.height * 1.2f,
-                    center = androidx.compose.ui.geometry.Offset(size.width * 0.85f, size.height * 0.8f)
-                )
-            }
-        }
-
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier

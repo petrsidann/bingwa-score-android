@@ -9,7 +9,6 @@ import androidx.compose.material.icons.rounded.HourglassTop
 import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import com.bingwascore.app.domain.ThemeMode
 import com.bingwascore.app.domain.TransactionStatus
 import com.bingwascore.app.ui.theme.SemanticBlue
 import com.bingwascore.app.ui.theme.SemanticGrey
@@ -23,7 +22,7 @@ import java.util.Locale
  * activity) reads colour + icon + label from here so a status can never look
  * different in two places.
  *
- * Palette (exact hex, and **identical in every display mode** since P5):
+ * Palette (exact hex, and **identical in both themes**):
  * - Successful → `#3E6BFF` (semantic blue — success is brand, not a green dot)
  * - Failed / already recommended → `#FF5252`
  * - Pending / processing / scheduled → `#9E9E9E`
@@ -33,13 +32,7 @@ import java.util.Locale
  */
 object StatusColors {
 
-    /**
-     * POLISH P5 / U4 — completed successfully.
-     *
-     * The full semantic blue in Obsidian and Silica; in Grayscale it resolves to
-     * the **silver-blue** tint so a done row still separates from a failed or a
-     * queued one without the monochrome chrome turning colourful.
-     */
+    /** Completed successfully — semantic blue, both themes. */
     val Success: Color get() = StatusDone
 
     /** Queued for a future run — neutral, in every mode. */
@@ -48,20 +41,14 @@ object StatusColors {
     /** In flight / waiting on USSD — neutral, it carries no verdict yet. */
     val Pending: Color get() = StatusQueued
 
-    /** Failed or already recommended — red, **charcoal-red** in Grayscale (U4). */
+    /** Failed or already recommended — red, both themes. */
     val Failed: Color get() = StatusFailedTint
 
     /** Unmatched / cancelled / paused — no signal either way. */
     val Neutral: Color get() = TextDim
 
-    /**
-     * U4 — the status-dot colour: the status tint at 60% saturation in Grayscale,
-     * untouched elsewhere. Used by every dot the app paints.
-     */
-    fun dot(status: String?): Color = when (currentDisplayMode) {
-        ThemeMode.GRAYSCALE -> saturate(color(status), GRAYSCALE_DOT_SATURATION)
-        else -> color(status)
-    }
+    /** Stage 10 — the status-dot colour: the semantic tint, untouched. */
+    fun dot(status: String?): Color = color(status)
 
     /** Colour for a raw Room status string (never throws on unknown values). */
     fun color(status: String?): Color = when (status) {

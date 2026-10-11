@@ -5,24 +5,22 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * POLISH P5 — the theme contract.
+ * Stage 10 — the iOS theme contract: exactly two themes (Obsidian + Porcelain).
  *
- * Persisted installs may still carry `"BLUE_LIGHT_FILTER"` from 1.5.0, so the
- * value mapping has to keep resolving to something real, and the three live
- * modes have to stay exactly three with stable stored values (changing a stored
- * value would silently reset everyone's choice).
+ * Retired stored values (GRAYSCALE, SILICA, BLUE_LIGHT_FILTER) resolve to
+ * Obsidian so no install resets oddly; stored values round-trip.
  */
 class ThemeModeTest {
 
     @Test
-    fun `there are exactly three modes and none of them is a light filter`() {
-        assertEquals(3, ThemeMode.entries.size)
+    fun `there are exactly two modes`() {
+        assertEquals(2, ThemeMode.entries.size)
         assertEquals(
-            listOf("DARK", "GRAYSCALE", "SILICA"),
+            listOf("DARK", "LIGHT"),
             ThemeMode.entries.map { it.value }
         )
         assertEquals(
-            listOf("Obsidian", "Grayscale", "Silica"),
+            listOf("Obsidian", "Porcelain"),
             ThemeMode.entries.map { it.label }
         )
     }
@@ -34,8 +32,10 @@ class ThemeModeTest {
     }
 
     @Test
-    fun `the retired blue light filter lands on obsidian`() {
+    fun `retired modes land on obsidian`() {
         assertEquals(ThemeMode.DARK, ThemeMode.fromValue("BLUE_LIGHT_FILTER"))
+        assertEquals(ThemeMode.DARK, ThemeMode.fromValue("GRAYSCALE"))
+        assertEquals(ThemeMode.DARK, ThemeMode.fromValue("SILICA"))
     }
 
     @Test

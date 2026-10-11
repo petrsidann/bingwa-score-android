@@ -20,7 +20,7 @@ import com.bingwascore.app.ui.theme.TextWhite
  * translucent container, rounded corners and a brand-blue confirm action.
  *
  * U4 — no orange/amber anywhere in the product; the confirm action is the brand
- * blue (or the Grayscale solid chip) via the shared CTA tokens.
+ * blue via the shared CTA tokens.
  *
  * Used to explain *why* Advanced Mode needs the accessibility service before
  * sending the user to the system picker (see Home / Settings processing-mode flow).

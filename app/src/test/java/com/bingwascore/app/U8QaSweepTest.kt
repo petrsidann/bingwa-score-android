@@ -25,13 +25,18 @@ import org.junit.Test
  * U8 — QA sweep before the 1.8.0 release.
  *
  * Every screen renders through the same shared tokens (TextWhite/TextGrey/
- * TextDim, StatusColors, CTA pair), so a token-level sweep across all three
+ * TextDim, StatusColors, CTA pair), so a token-level sweep across both
  * themes covers truncation, overlap, contrast and empty-state guards for
  * every surface at once. Pure JVM — no Compose runtime needed.
  */
 class U8QaSweepTest {
 
-    private val modes = listOf(ThemeMode.DARK, ThemeMode.GRAYSCALE, ThemeMode.SILICA)
+    private val modes = listOf(ThemeMode.DARK, ThemeMode.LIGHT)
+
+    private fun canvasFor(mode: ThemeMode): Color = when (mode) {
+        ThemeMode.LIGHT -> Color(0xFFF2F2F7)
+        else -> Color(0xFF0B0E15)
+    }
 
     /** WCAG relative luminance. */
     private fun luminance(c: Color): Double {
@@ -56,13 +61,13 @@ class U8QaSweepTest {
         alpha = 1f
     )
 
-    // ── Contrast: text tokens on the black canvas, x3 themes ────────────────
+    // ── Contrast: text tokens on the theme canvas, x2 themes ──────────────────
 
     @Test
     fun textTokensClearAaInEveryTheme() {
         modes.forEach { mode ->
             installDisplayMode(mode)
-            val canvas = Color(0xFF000000)
+            val canvas = canvasFor(mode)
             listOf(
                 "TextWhite" to TextWhite,
                 "TextGrey" to TextGrey,
@@ -80,7 +85,7 @@ class U8QaSweepTest {
     fun statusLabelsClearAaOnCanvasInEveryTheme() {
         modes.forEach { mode ->
             installDisplayMode(mode)
-            val canvas = Color(0xFF000000)
+            val canvas = canvasFor(mode)
             listOf(StatusDone, StatusFailedTint, StatusQueued).forEach { tint ->
                 val ratio = contrast(over(tint, canvas), canvas)
                 assertTrue("status tint $tint fails AA ($ratio) in $mode", ratio >= 3.0)
@@ -92,11 +97,10 @@ class U8QaSweepTest {
     fun ctaPairStaysReadableInEveryTheme() {
         modes.forEach { mode ->
             installDisplayMode(mode)
-            val canvas = Color(0xFF000000)
+            val canvas = canvasFor(mode)
             val fill = over(CtaFill, canvas)
             val ratio = contrast(over(CtaInk, fill), fill)
-            // Large bold button labels follow WCAG's 3:1 large-text rule;
-            // the solid Grayscale chip is separately held to 10:1 (U4).
+            // Large bold button labels follow WCAG's 3:1 large-text rule.
             assertTrue("CTA ink/fill too low in $mode, was $ratio", ratio >= 3.0)
         }
     }
@@ -105,7 +109,7 @@ class U8QaSweepTest {
     fun disabledPairStaysReadableInEveryTheme() {
         modes.forEach { mode ->
             installDisplayMode(mode)
-            val canvas = Color(0xFF000000)
+            val canvas = canvasFor(mode)
             val fill = over(DisabledFill, canvas)
             val ratio = contrast(over(DisabledInk, fill), fill)
             assertTrue("disabled pair too low in $mode, was $ratio", ratio >= 4.0)
@@ -168,15 +172,18 @@ class U8QaSweepTest {
         }
     }
 
-    // ── No light/white mode can be selected; defaults are dark canvases ─────
+    // ── Two themes only; Obsidian is the default ─────────────────────────────
 
     @Test
-    fun onlyThreeThemesExistAndDefaultIsObsidian() {
-        assertEquals(3, ThemeMode.entries.size)
+    fun onlyTwoThemesExistAndDefaultIsObsidian() {
+        assertEquals(2, ThemeMode.entries.size)
         assertEquals(ThemeMode.DARK, ThemeMode.fromValue("???"))
         installDisplayMode(ThemeMode.DARK)
         val white = Color(0xFFFFFFFF).toArgb()
-        assertTrue("canvas must stay dark", luminance(Color(0xFF000000)) < 0.01)
+        assertTrue("obsidian canvas must stay dark", luminance(Color(0xFF0B0E15)) < 0.03)
+        installDisplayMode(ThemeMode.LIGHT)
+        assertTrue("porcelain canvas must stay light", luminance(Color(0xFFF2F2F7)) > 0.8)
+        installDisplayMode(ThemeMode.DARK)
         assertEquals(-1, white) // sanity of the ARB helper itself
     }
 }

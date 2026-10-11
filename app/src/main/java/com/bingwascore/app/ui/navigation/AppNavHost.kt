@@ -69,6 +69,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -127,13 +128,10 @@ import com.bingwascore.app.ui.showcase.DemoChip
 import com.bingwascore.app.ui.theme.AccentBlue
 import com.bingwascore.app.ui.theme.Motion
 import com.bingwascore.app.ui.theme.BgBlack
-import com.bingwascore.app.ui.theme.GlassFillStrong
 import com.bingwascore.app.ui.theme.Raised
 import com.bingwascore.app.ui.theme.TextWhite
-import com.bingwascore.app.ui.components.AmbientOrbs
-import com.bingwascore.app.ui.components.Silica
-import com.bingwascore.app.ui.theme.glassBorderBrush
-import com.bingwascore.app.ui.theme.isSilica
+import com.bingwascore.app.ui.components.IosMaterial
+import com.bingwascore.app.ui.components.iosMaterial
 import androidx.compose.runtime.collectAsState
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
@@ -422,17 +420,13 @@ fun MainScreen() {
 
             val resolved = if (showReferral) "referral" else destination
 
-            // POLISH P5 — in Silica the ambient orbs live here, behind every tab
-            // and every drawer destination, so the glass always has something to
-            // refract. In the other two modes this composes to nothing.
-            Box(modifier = Modifier.fillMaxSize()) {
-                AmbientOrbs()
-
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-            ) {
+            // Stage 10 — flat canvas, no orbs: grouped cards carry the design.
+            Box(modifier = Modifier.fillMaxSize().background(BgBlack)) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding)
+                ) {
                 ScreenTransition(screenKey = resolved, modifier = Modifier.fillMaxSize()) {
                     when (resolved) {
                         "dialer" -> DialerScreen(onClose = { showDialer = false })
@@ -483,17 +477,13 @@ fun MainScreen() {
     }
 }
 /**
- * The shell bar.
+ * Stage 10 — floating rounded tab pill (club.com style): inset 12dp margins,
+ * 28dp corner radius, elevated shadow, 5 tabs, active = AccentBlue.
  *
  * U1 — single-active truth: every tab (including Dial) takes the SAME
  * resolved [selected] id, so two tabs can never light at once. Dial is
- * id 2; a drawer destination resolves to -1 (nothing lit). While the
- * Quick Dial overlay is up the rail dims (alpha .55) — one highlight max.
- *
- * Solid `#000000` in Obsidian and Grayscale — five equal tabs, icon + 11sp label,
- * no FAB, no gap: the bar is a rail, not a floating object. In Silica the rail
- * turns to **translucent glass** with a gradient hairline, because a solid bar
- * under a frosted app is the one place the illusion breaks.
+ * id 2; a drawer destination resolves to -1 (nothing lit). The pill body is
+ * a translucent iOS material (blur ONLY here + sheets).
  */
 @Composable
 private fun BottomNavBar(
@@ -507,24 +497,14 @@ private fun BottomNavBar(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            // U1 — sheet open = rail dimmed; the one lit tab still reads.
+            // U1 — sheet open = pill dimmed; the one lit tab still reads.
             .graphicsLayer { alpha = if (dialerOpen) 0.55f else 1f }
-            // POLISH P5 — translucent glass in Silica, solid black elsewhere.
-            .background(if (isSilica) GlassFillStrong else BgBlack)
-            .then(
-                if (isSilica) {
-                    Modifier.border(1.dp, glassBorderBrush(strong = true), RectangleShape)
-                } else {
-                    Modifier
-                }
-            )
-            // U4 — frosted nav: the rail frosts with the rest of the glass, so a
-            // solid bar never sits under a blurred app and break the illusion.
-            .then(
-                if (isSilica && Silica.canBlur) Modifier.blur(Silica.CARD_BLUR) else Modifier
-            )
+            .padding(horizontal = 12.dp)
             .navigationBarsPadding()
-            .padding(vertical = 6.dp),
+            .padding(bottom = 12.dp)
+            .shadow(12.dp, RoundedCornerShape(28.dp))
+            .iosMaterial(RoundedCornerShape(28.dp))
+            .padding(horizontal = 8.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         NavTab(Icons.Rounded.Home, "Home", selected == 0 && !dialerOpen) {
