@@ -59,6 +59,12 @@ class UssdAutomationService : Service() {
     /** U1 — shared session step state (steps, index, budget) with the UI/accessibility path. */
     @Inject lateinit var sessionHolder: com.bingwascore.app.domain.engine.UssdSessionHolder
 
+    /** Stage 9 — one console line: holder (on-screen) + file (field reports). */
+    private fun console(kind: String, text: String) {
+        sessionHolder.appendConsole(kind, text)
+        EngineLog.append(this@UssdAutomationService, "CONSOLE [$kind] $text")
+    }
+
     /** Cancellable scope for intent handling + watchdog, tied to the service lifetime. */
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -70,6 +76,9 @@ class UssdAutomationService : Service() {
     private val writeScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     private val finalized = AtomicBoolean(false)
+
+    /** Stage 9 — one escalation attempt per dial; armed per sendUssd call. */
+    private var escalationJob: kotlinx.coroutines.Job? = null
 
     /** Every log line is tagged [ENGINE_TAG] so `adb logcat -s ENGINE` traces the dial. */
     private val log = Timber.tag(TransactionPipeline.ENGINE_TAG)
@@ -189,6 +198,9 @@ class UssdAutomationService : Service() {
             val mode = runCatching { userPreferences.processingMode.first() }
                 .getOrDefault(AppProcessingMode.EXPRESS)
             log.i("USSD: dial tx=%s mode=%s code=%s", transactionId, mode.value, ussdCode)
+            // Stage 9 — fresh console per dial; every stall is visible on Dial.
+            sessionHolder.clearConsole()
+            console("code", "sent $ussdCode tx=$transactionId")
             if (mode == AppProcessingMode.EXPRESS) {
                 // E1 — EXPRESS = guaranteed visible dial via ACTION_CALL primary.
                 log.i("USSD: EXPRESS visible dial for tx=%s", transactionId)
@@ -305,6 +317,10 @@ class UssdAutomationService : Service() {
 
             startTimeoutWatchdog(transactionId, personality)
 
+            // Stage 9 — escalation watchdog: no callback in 8s -> ACTION_CALL.
+            // verify CALL_PHONE granted first; cancel on any callback.
+            armEscalationWatchdog(ussdCode, transactionId)
+
             // U1 — open the session: this service and the accessibility input
             // path now agree on the step list, index and per-step budget.
             sessionHolder.beginSession(
@@ -321,6 +337,9 @@ class UssdAutomationService : Service() {
                             request: String?,
                             response: CharSequence?
                         ) {
+                            // Stage 9 — a callback kills the 8s escalation race.
+                            escalationJob?.cancel()
+                            console("response", response?.toString().orEmpty().take(160))
                             // U1 — classify: terminal closes, MENU continues.
                             this@UssdAutomationService.serviceScope.launch { handleUssdStep(scoped, ussdCode, response?.toString().orEmpty(), transactionId, personality) }
                         }
@@ -335,6 +354,9 @@ class UssdAutomationService : Service() {
                                 // sentence they can act on, and it lands on the row.
                                 val reason = UssdResponses.failureReason(failureCode)
                                 log.w("USSD: request failed for %s (code %d): %s", transactionId, failureCode, reason)
+                                // Stage 9 — onFailure escalates immediately (law).
+                                escalationJob?.cancel()
+                                console("escalation", "onFailure code=$failureCode -> ACTION_CALL")
                                 // E1 — ANY sendUssdRequest onFailure -> auto-escalate ACTION_CALL + log.
                                 EngineLog.append(
                                     this@UssdAutomationService,
@@ -435,6 +457,9 @@ class UssdAutomationService : Service() {
                         UssdSessionEngine.STEP_TAG, transactionId,
                         sessionHolder.stepIndex, choice, next
                     )
+                    // Stage 9 — every menu stall is visible: response + next input.
+                    console("response", verdict.response.take(160))
+                    console("input", "step ${sessionHolder.stepIndex}/${UssdSessionEngine.MAX_STEPS} -> $choice")
                     // U1 — per-step timeout: this leg gets its own budget.
                     startTimeoutWatchdog(
                         transactionId,
@@ -533,6 +558,34 @@ class UssdAutomationService : Service() {
     }.getOrDefault(false)
 
     /**
+     * Stage 9 — 8s escalation watchdog: when the silent request produces no
+     * callback in [UssdSessionEngine.ESCALATION_TIMEOUT_MILLIS], escalate to
+     * the visible ACTION_CALL path. Any callback cancels this job first.
+     */
+    private fun armEscalationWatchdog(ussdCode: String, transactionId: String) {
+        escalationJob?.cancel()
+        escalationJob = serviceScope.launch {
+            try {
+                delay(UssdSessionEngine.ESCALATION_TIMEOUT_MILLIS)
+                log.w("USSD: no callback in 8s for tx=%s — escalating", transactionId)
+                console("escalation", "no callback in 8s -> ACTION_CALL")
+                EngineLog.append(
+                    this@UssdAutomationService,
+                    "USSD silence-8s escalate ACTION_CALL tx=$transactionId"
+                )
+                if (!handOffToPhoneApp(ussdCode, transactionId)) {
+                    finalizeTransaction(
+                        transactionId, TransactionStatus.FAILED,
+                        "USSD no response; phone dial unavailable"
+                    )
+                }
+            } catch (t: Throwable) {
+                Timber.e(t, "Escalation watchdog failed for %s", transactionId)
+            }
+        }
+    }
+
+    /**
      * POLISH P1 — the real-dial fallback.
      *
      * `TelephonyManager.sendUssdRequest` is refused on plenty of perfectly good
@@ -542,13 +595,26 @@ class UssdAutomationService : Service() {
      * loaded and dialled, and keep the transaction alive so the reply that comes
      * back through the normal engine path can still close it.
      *
-     * The code is percent-encoded (`*544%2A...`), which is what the dialer and
-     * the carrier both expect in a `tel:` URI. Returns false when no phone app
-     * could be launched, so the caller can still write the failure.
+     * Stage 9 — `#` is `%23`-encoded in the `tel:` URI (verified first that
+     * CALL_PHONE is granted); without the grant we log + return false so the
+     * caller writes the failure instead of crashing on a SecurityException.
+     * Returns false when no phone app could be launched.
      */
     private fun handOffToPhoneApp(ussdCode: String, transactionId: String): Boolean {
+        if (androidx.core.content.ContextCompat.checkSelfPermission(
+                this, android.Manifest.permission.CALL_PHONE
+            ) != android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) {
+            log.w("USSD: CALL_PHONE not granted for tx=%s — cannot escalate", transactionId)
+            console("escalation", "CALL_PHONE missing — request permission then retry")
+            EngineLog.append(
+                this@UssdAutomationService,
+                "USSD escalate blocked no-CALL_PHONE tx=$transactionId"
+            )
+            return false
+        }
         val launched = runCatching {
-            val dialUri = Uri.parse("tel:${Uri.encode(ussdCode)}")
+            val dialUri = Uri.parse(UssdSessionEngine.escalationDialUri(ussdCode))
             startActivity(
                 Intent(Intent.ACTION_CALL, dialUri)
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -560,6 +626,7 @@ class UssdAutomationService : Service() {
         }
         if (launched) {
             log.i("USSD: handed %s to the phone app for tx=%s", ussdCode, transactionId)
+            console("escalation", "ACTION_CALL $ussdCode")
             // The engine's reply path (SMS) still classifies and closes the row;
             // the watchdog stays armed so a hand-off that goes nowhere resolves.
         }

@@ -58,6 +58,32 @@ object UssdSessionEngine {
     }
 
     /**
+     * Stage 9 — escalation law (pure, unit-tested):
+     * escalate when no callback arrived within [ESCALATION_TIMEOUT_MILLIS]
+     * OR the platform reported onFailure. Kept on the engine so the service
+     * and the JVM test share one truth.
+     */
+    const val ESCALATION_TIMEOUT_MILLIS = 8_000L
+
+    /** True when a silent step with no callback by [elapsedMillis] must escalate. */
+    fun shouldEscalateOnSilence(elapsedMillis: Long, failed: Boolean): Boolean =
+        failed || elapsedMillis >= ESCALATION_TIMEOUT_MILLIS
+
+    /**
+     * Stage 9 — encoded `tel:` URI for the ACTION_CALL escalation. `#` must be
+     * `%23`-encoded; [android.net.Uri.encode] leaves `#` raw, so we encode the
+     * code fully then fix `#` (and keep `*` diallable).
+     */
+    fun escalationDialUri(code: String): String {
+        val enc = java.net.URLEncoder.encode(code, "UTF-8")
+            .replace("+", "%20")
+            .replace("%2A", "*")
+            .replace("%23", "%23")
+        // URLEncoder emits %23 for '#' already; keep '*' literal for diallers.
+        return "tel:$enc"
+    }
+
+    /**
      * U1 — the offer's step list is consulted FIRST; `1` is the default only
      * when the offer declares no steps. This is the "2 vs 1" parameter guard.
      */
