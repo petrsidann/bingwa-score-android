@@ -80,12 +80,12 @@ val TextWhite: Color get() = when (DisplayModeState.mode) {
 }
 
 val TextGrey: Color get() = when (DisplayModeState.mode) {
-    ThemeMode.LIGHT -> PorcelainSecondaryText
+    ThemeMode.LIGHT -> Color(0xFF4B5563)
     else -> Color(0xFF9E9E9E)
 }
 
 val TextDim: Color get() = when (DisplayModeState.mode) {
-    ThemeMode.LIGHT -> Color(0xFF8E8E93)
+    ThemeMode.LIGHT -> Color(0xFF6D6D72)
     else -> Color(0xFF6B6B6B)
 }
 
@@ -94,16 +94,24 @@ val TextDim: Color get() = when (DisplayModeState.mode) {
 /**
  * Stage 10 — the semantic status palette: identical in BOTH themes.
  */
+
+/** Stage 10 — the semantic status palette: identical in BOTH themes. */
 val SemanticBlue: Color = Color(0xFF3E6BFF)
-val SemanticRed: Color = Color(0xFFFF5252)
-val SemanticGrey: Color = Color(0xFF9E9E9E)
+val SemanticRed: Color get() = when (DisplayModeState.mode) {
+    ThemeMode.LIGHT -> Color(0xFFFC1E1E)
+    else -> Color(0xFFFF5252)
+}
+val SemanticGrey: Color = Color(0xFF4B5563)
 
 /** Stage 10 — Done/Failed/Queued are the semantic trio in every theme. */
 val StatusDone: Color get() = SemanticBlue
 val StatusFailedTint: Color get() = SemanticRed
 
-/** Queued stays **neutral** in every mode: it carries no verdict yet. */
-val StatusQueued: Color get() = SemanticGrey
+/** Queued stays **neutral** in every mode: light in Porcelain, light charcoal in Obsidian so the label stays readable. */
+val StatusQueued: Color get() = when (DisplayModeState.mode) {
+    ThemeMode.LIGHT -> Color(0xFF4B5563)
+    else -> Color(0xFF9CA3AF)
+}
 
 /** Stage 10 — chrome accent: brand blue family; iOS blue in Porcelain. */
 val AccentBlue: Color get() = when (DisplayModeState.mode) {

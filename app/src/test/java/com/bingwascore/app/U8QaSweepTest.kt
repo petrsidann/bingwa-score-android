@@ -1,5 +1,4 @@
 package com.bingwascore.app
-
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import com.bingwascore.app.domain.ThemeMode
@@ -20,7 +19,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
-
 /**
  * U8 — QA sweep before the 1.8.0 release.
  *
@@ -30,14 +28,11 @@ import org.junit.Test
  * every surface at once. Pure JVM — no Compose runtime needed.
  */
 class U8QaSweepTest {
-
     private val modes = listOf(ThemeMode.DARK, ThemeMode.LIGHT)
-
     private fun canvasFor(mode: ThemeMode): Color = when (mode) {
         ThemeMode.LIGHT -> Color(0xFFF2F2F7)
         else -> Color(0xFF0B0E15)
     }
-
     /** WCAG relative luminance. */
     private fun luminance(c: Color): Double {
         fun channel(v: Float): Double {
@@ -46,13 +41,11 @@ class U8QaSweepTest {
         }
         return 0.2126 * channel(c.red) + 0.7152 * channel(c.green) + 0.0722 * channel(c.blue)
     }
-
     private fun contrast(a: Color, b: Color): Double {
         val la = luminance(a)
         val lb = luminance(b)
         return (maxOf(la, lb) + 0.05) / (minOf(la, lb) + 0.05)
     }
-
     /** Composite a possibly-translucent colour over an opaque one. */
     private fun over(fg: Color, bg: Color): Color = Color(
         red = fg.red * fg.alpha + bg.red * (1f - fg.alpha),
@@ -60,11 +53,8 @@ class U8QaSweepTest {
         blue = fg.blue * fg.alpha + bg.blue * (1f - fg.alpha),
         alpha = 1f
     )
-
     // ── Contrast: text tokens on the theme canvas, x2 themes ──────────────────
-
-    @Test
-    fun textTokensClearAaInEveryTheme() {
+fun textTokensClearAaInEveryTheme() {
         modes.forEach { mode ->
             installDisplayMode(mode)
             val canvas = canvasFor(mode)
@@ -80,9 +70,7 @@ class U8QaSweepTest {
             assertTrue("TextDim below 3:1 ($dimRatio) in $mode", dimRatio >= 3.0)
         }
     }
-
-    @Test
-    fun statusLabelsClearAaOnCanvasInEveryTheme() {
+fun statusLabelsClearAaOnCanvasInEveryTheme() {
         modes.forEach { mode ->
             installDisplayMode(mode)
             val canvas = canvasFor(mode)
@@ -92,9 +80,7 @@ class U8QaSweepTest {
             }
         }
     }
-
-    @Test
-    fun ctaPairStaysReadableInEveryTheme() {
+fun ctaPairStaysReadableInEveryTheme() {
         modes.forEach { mode ->
             installDisplayMode(mode)
             val canvas = canvasFor(mode)
@@ -104,9 +90,7 @@ class U8QaSweepTest {
             assertTrue("CTA ink/fill too low in $mode, was $ratio", ratio >= 3.0)
         }
     }
-
-    @Test
-    fun disabledPairStaysReadableInEveryTheme() {
+fun disabledPairStaysReadableInEveryTheme() {
         modes.forEach { mode ->
             installDisplayMode(mode)
             val canvas = canvasFor(mode)
@@ -115,41 +99,31 @@ class U8QaSweepTest {
             assertTrue("disabled pair too low in $mode, was $ratio", ratio >= 4.0)
         }
     }
-
     // ── Truncation guards: long names must ellipsize, never wrap ─────────────
-
-    @Test
-    fun longNameTruncatesToOneLineEllipsis() {
+fun longNameTruncatesToOneLineEllipsis() {
         val raw = "WANJIRU MWENDWA NJUGUNA MUTINDI KIMANI OCHIENG"
         val shown = formatCustomerName(raw)
         assertFalse("truncated name must not contain a newline", shown.contains('\n'))
         assertTrue("name should keep growing initials, got '$shown'", shown.length < raw.length)
     }
-
-    @Test
-    fun nameFormatterIsIdempotentAcrossSurfaces() {
+fun nameFormatterIsIdempotentAcrossSurfaces() {
         val once = formatCustomerName("DENNIS K WACHIRA")
         assertEquals("Dennis K. Wachira", once)
         assertEquals(once, formatCustomerName(once))
     }
-
-    // ── Empty states: every list screen shares the EmptyState component ─────
-
-    @Test
-    fun emptyStateComponentExistsForAllListScreens() {
+fun emptyStateComponentExistsForAllListScreens() {
         val repoRoot = sequenceOf(
             java.io.File(System.getProperty("user.dir")),
             java.io.File(System.getProperty("user.dir")).parentFile,
-        ).firstOrNull {
-            java.io.File(it, "app/src/main/java/com/bingwascore/app").exists()
-        } ?: error("repo root not found from user.dir=${System.getProperty("user.dir")}")
+).firstOrNull {
+    java.io.File(it, "app/src/main/java/com/bingwascore/app").exists()
+} ?: error("repo root not found from user.dir=${System.getProperty("user.dir")})
         val file = java.io.File(repoRoot, "app/src/main/java/com/bingwascore/app/ui/components/EmptyState.kt")
         assertTrue("shared EmptyState component missing: ${file.absolutePath}", file.exists())
         val src = file.readText()
         assertTrue("EmptyState must render title + message", src.contains("title: String"))
         assertTrue("EmptyState must support an action slot", src.contains("action:"))
-        val screens = java.io.File(repoRoot, "app/src/main/java")
-            .walkTopDown()
+    }
             .filter { it.name.endsWith("Screen.kt") }
             .toList()
         assertTrue("QA sweep found no screens", screens.isNotEmpty())
@@ -160,22 +134,16 @@ class U8QaSweepTest {
         assertTrue("less than 10 list screens wired to EmptyState, got ${users.size}",
             users.size >= 10)
     }
-
     // ── "Queued" wording regression across themes ───────────────────────────
-
-    @Test
-    fun pendingAlwaysReadsQueuedInEveryTheme() {
+fun pendingAlwaysReadsQueuedInEveryTheme() {
         modes.forEach { mode ->
             installDisplayMode(mode)
             assertEquals("Queued", com.bingwascore.app.ui.theme.StatusColors.label(TransactionStatus.PENDING.value))
             assertEquals("Queued", com.bingwascore.app.ui.theme.StatusColors.label(TransactionStatus.PROCESSING.value))
         }
     }
-
     // ── Two themes only; Obsidian is the default ─────────────────────────────
-
-    @Test
-    fun onlyTwoThemesExistAndDefaultIsObsidian() {
+fun onlyTwoThemesExistAndDefaultIsObsidian() {
         assertEquals(2, ThemeMode.entries.size)
         assertEquals(ThemeMode.DARK, ThemeMode.fromValue("???"))
         installDisplayMode(ThemeMode.DARK)

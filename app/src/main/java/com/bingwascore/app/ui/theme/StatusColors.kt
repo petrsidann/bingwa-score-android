@@ -25,7 +25,7 @@ import java.util.Locale
  * Palette (exact hex, and **identical in both themes**):
  * - Successful → `#3E6BFF` (semantic blue — success is brand, not a green dot)
  * - Failed / already recommended → `#FF5252`
- * - Pending / processing / scheduled → `#9E9E9E`
+ * - Pending / processing / scheduled → `#4B5563`
  * - Unmatched / cancelled / paused → dim grey
  *
  * Green is reserved for the "mark complete" tick ([TickGreen]) and nothing else.

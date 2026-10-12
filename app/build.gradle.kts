@@ -15,13 +15,13 @@ android {
         applicationId = "com.bingwascore.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 8
-        versionName = "1.8.0"
+        versionCode = 9
+        versionName = "1.9.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField("String", "API_BASE_URL", "\"https://api.bingwascore.com/\"")
-        buildConfigField("String", "APP_VERSION", "\"1.6.0\"")
+        buildConfigField("String", "APP_VERSION", "\"1.9.0\"")
 
         vectorDrawables { useSupportLibrary = true }
     }
@@ -157,4 +157,15 @@ dependencies {
     androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.ui.test.junit4)
+}
+
+// ── Stage 17 — QA + 1.9.0 release ──
+// KSP must NOT process the JVM test source set (pure tests need no codegen),
+// otherwise the KSP front-end chokes on lambdas/string templates and
+// testDebugUnitTest (including U8QaSweepTest) fails to compile. Design codegen
+// (Hilt/Room/Moshi) continues to run on the main source set below.
+afterEvaluate {
+    tasks.matching { it.name.contains("ksp") && it.name.contains("UnitTest") }.configureEach {
+        enabled = false
+    }
 }
