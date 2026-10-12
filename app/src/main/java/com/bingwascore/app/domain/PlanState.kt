@@ -24,6 +24,14 @@ data class PlanState(
     val isActive: Boolean get() = planId.isNotBlank()
 
     /**
+     * Stage 13 — the expiry worker's question: has the validity window closed?
+     * Inactive plans are never "expired" (there is nothing to lapse), and a
+     * zero timestamp (legacy data) is treated as open-ended, never expired.
+     */
+    fun isExpired(nowMillis: Long): Boolean =
+        isActive && expiresAtMillis in 1..nowMillis
+
+    /**
      * What the credits bubble shows, or null when no plan is active and the
      * caller should fall back to the earned-credit count.
      *
