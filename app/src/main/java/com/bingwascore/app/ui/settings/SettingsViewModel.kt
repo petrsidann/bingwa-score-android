@@ -58,6 +58,14 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch { userPreferences.setProcessSitelinkMessages(value) }
     }
 
+    /** Stage 14 — master switch for the Customers autosave book (default ON). */
+    val customersAutosave: StateFlow<Boolean> = userPreferences.customersAutosave
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
+
+    fun setCustomersAutosave(value: Boolean) {
+        viewModelScope.launch { userPreferences.setCustomersAutosave(value) }
+    }
+
     val simSelection: StateFlow<String> = userPreferences.simSelection
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), UserPreferences.SIM_1)
 

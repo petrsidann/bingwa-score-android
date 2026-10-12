@@ -75,6 +75,9 @@ class UserPreferences @Inject constructor(
         val PLAN_PULLS_LEFT = intPreferencesKey("plan_pulls_left")
         val PLAN_UNLIMITED = booleanPreferencesKey("plan_unlimited")
         val PLAN_EXPIRES_AT = longPreferencesKey("plan_expires_at")
+        // ── Stage 14 — customers autosave book ──
+        /** Master switch for the Customers autosave (every SUCCESSFUL tx upserts a customer). */
+        val CUSTOMERS_AUTOSAVE = booleanPreferencesKey("customers_autosave")
     }
 
     val isLoggedIn: Flow<Boolean> = context.dataStore.data.map { it[Keys.IS_LOGGED_IN] ?: false }
@@ -184,6 +187,18 @@ class UserPreferences @Inject constructor(
         p[Keys.PLAN_UNLIMITED] = state.unlimited
         p[Keys.PLAN_EXPIRES_AT] = state.expiresAtMillis
     }
+
+    // ── Stage 14 — customers autosave book ──
+
+    /**
+     * Master switch for the Customers autosave. Defaults ON so the book fills
+     * itself from day one; turning it OFF stops future upserts but never wipes
+     * the rows already saved.
+     */
+    val customersAutosave: Flow<Boolean> =
+        context.dataStore.data.map { it[Keys.CUSTOMERS_AUTOSAVE] ?: true }
+
+    suspend fun setCustomersAutosave(value: Boolean) = edit { it[Keys.CUSTOMERS_AUTOSAVE] = value }
 
     /**
      * MEGA A — cold-start gate. `STATE_RUNNING` only once the Setup Checklist

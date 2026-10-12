@@ -105,6 +105,8 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
     // MEGA A — inbound routing switches.
     val processMpesaMessages by viewModel.processMpesaMessages.collectAsStateWithLifecycle()
     val processSitelinkMessages by viewModel.processSitelinkMessages.collectAsStateWithLifecycle()
+    // Stage 14 — Customers autosave master switch.
+    val customersAutosave by viewModel.customersAutosave.collectAsStateWithLifecycle()
     if (showAdvancedExplanation) {
         ExplanationDialog(
             title = "Advanced Mode",
@@ -182,6 +184,17 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
                     subtitle = "Handle SiteLink storefront order messages",
                     checked = processSitelinkMessages,
                     onCheckedChange = viewModel::setProcessSitelinkMessages
+                )
+            }
+            Spacer(modifier = Modifier.height(18.dp))
+            // Stage 14 — Customers autosave master switch (default ON).
+            SectionLabel("Customers book")
+            BubbleCard(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
+                SettingsSwitchRow(
+                    title = "Auto-save Customers",
+                    subtitle = "Add every completed bundle's buyer to the Customers book",
+                    checked = customersAutosave,
+                    onCheckedChange = viewModel::setCustomersAutosave
                 )
             }
             Spacer(modifier = Modifier.height(18.dp))

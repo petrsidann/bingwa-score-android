@@ -39,7 +39,6 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ReceiptLong
 import androidx.compose.material.icons.rounded.Autorenew
-import androidx.compose.material.icons.rounded.Block
 import androidx.compose.material.icons.rounded.Bolt
 import androidx.compose.material.icons.rounded.Call
 import androidx.compose.material.icons.rounded.DeviceHub
@@ -51,8 +50,6 @@ import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.SmartToy
 import androidx.compose.material.icons.rounded.Storefront
-import androidx.compose.material.icons.rounded.Subscriptions
-import androidx.compose.material.icons.rounded.VerifiedUser
 import androidx.compose.material.icons.rounded.WorkspacePremium
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.Icon
@@ -87,8 +84,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import com.bingwascore.app.ui.autorenewals.AutoRenewalsScreen
 import com.bingwascore.app.ui.autoreplies.AutoRepliesScreen
-import com.bingwascore.app.ui.authorizedsenders.AuthorizedSendersScreen
-import com.bingwascore.app.ui.blacklist.BlacklistScreen
 import com.bingwascore.app.ui.components.ScreenTransition
 import com.bingwascore.app.ui.components.pressScale
 import com.bingwascore.app.ui.components.pressScale
@@ -105,15 +100,12 @@ import com.bingwascore.app.ui.screens.LoginScreen
 import com.bingwascore.app.ui.screens.SplashScreen
 import com.bingwascore.app.ui.onboarding.SetupChecklistScreen
 import com.bingwascore.app.ui.settings.SettingsScreen
-import com.bingwascore.app.ui.subscriptions.SubscriptionsScreen
 import com.bingwascore.app.ui.transactions.TransactionFilter
 import com.bingwascore.app.ui.transactions.TransactionsScreen
 import com.bingwascore.app.score.ScoreScreen
 import com.bingwascore.app.util.rememberHaptics
 import androidx.compose.material.icons.rounded.Groups
-import androidx.compose.material.icons.rounded.QrCodeScanner
 import com.bingwascore.app.ui.community.CommunityScreen
-import com.bingwascore.app.ui.qr.QrScannerScreen
 import com.bingwascore.app.profile.ProfileScreen
 import com.bingwascore.app.referral.ReferralScreen
 import com.bingwascore.app.announcements.AnnouncementsScreen
@@ -262,41 +254,37 @@ private data class DrawerEntry(val label: String, val icon: ImageVector)
 /**
  * Drawer indexes of the destinations built so far. These MUST stay in the same
  * order as [drawerEntries] — the index is the route key.
+ *
+ * Stage 14 cleanup: Trusted Partners, QR Scanner, Blocked Contacts and
+ * Subscriptions were retired (blocking now lives inside the Customers book as a
+ * filter chip), so the list below is one shorter and re-indexed.
  */
 private const val CUSTOMERS_DRAWER_INDEX = 0
 private const val AUTO_RENEWALS_DRAWER_INDEX = 1
-private const val SUBSCRIPTIONS_DRAWER_INDEX = 2
-private const val SMART_FOLLOW_UP_DRAWER_INDEX = 3
-private const val AUTOPILOT_DRAWER_INDEX = 4
-private const val AGENT_PORTAL_DRAWER_INDEX = 5
-private const val MESH_DRAWER_INDEX = 6
-private const val BLOCKED_CONTACTS_DRAWER_INDEX = 7
-private const val TRUSTED_PARTNERS_DRAWER_INDEX = 8
-private const val REDEEM_COUPON_DRAWER_INDEX = 9
-private const val SETTINGS_DRAWER_INDEX = 10
-private const val ANNOUNCEMENTS_DRAWER_INDEX = 11
-private const val COMMISSION_PULSE_DRAWER_INDEX = 12
-private const val COMMUNITY_DRAWER_INDEX = 13
-private const val QR_SCANNER_DRAWER_INDEX = 14
-private const val MY_PLAN_DRAWER_INDEX = 15
-private const val DIPLOMATICS_DRAWER_INDEX = 16
+private const val SMART_FOLLOW_UP_DRAWER_INDEX = 2
+private const val AUTOPILOT_DRAWER_INDEX = 3
+private const val AGENT_PORTAL_DRAWER_INDEX = 4
+private const val MESH_DRAWER_INDEX = 5
+private const val REDEEM_COUPON_DRAWER_INDEX = 6
+private const val SETTINGS_DRAWER_INDEX = 7
+private const val ANNOUNCEMENTS_DRAWER_INDEX = 8
+private const val COMMISSION_PULSE_DRAWER_INDEX = 9
+private const val COMMUNITY_DRAWER_INDEX = 10
+private const val MY_PLAN_DRAWER_INDEX = 11
+private const val DIPLOMATICS_DRAWER_INDEX = 12
 
 private val drawerEntries = listOf(
     DrawerEntry("Customers", Icons.Rounded.People),
     DrawerEntry("Auto Renewals", Icons.Rounded.Autorenew),
-    DrawerEntry("Subscriptions", Icons.Rounded.Subscriptions),
     DrawerEntry("Smart Follow-Up", Icons.Rounded.SmartToy),
     DrawerEntry("Autopilot", Icons.Rounded.Bolt),
     DrawerEntry("Agent Portal", Icons.Rounded.Storefront),
     DrawerEntry("Bingwa Mesh", Icons.Rounded.DeviceHub),
-    DrawerEntry("Blocked Contacts", Icons.Rounded.Block),
-    DrawerEntry("Trusted Partners", Icons.Rounded.VerifiedUser),
     DrawerEntry("Redeem Coupon", Icons.Rounded.Redeem),
     DrawerEntry("Settings", Icons.Rounded.Settings),
     DrawerEntry("Announcements", Icons.Rounded.Campaign),
     DrawerEntry("Commission Pulse", Icons.Rounded.EmojiEvents),
     DrawerEntry("Community", Icons.Rounded.Groups),
-    DrawerEntry("QR Scanner", Icons.Rounded.QrCodeScanner),
     DrawerEntry("My Plan", Icons.Rounded.WorkspacePremium),
     DrawerEntry("Diplomatics", Icons.Rounded.Language)
 )
@@ -418,19 +406,15 @@ fun MainScreen() {
                 showDialer -> "dialer"
                 selectedDrawerIndex == CUSTOMERS_DRAWER_INDEX -> "customers"
                 selectedDrawerIndex == AUTO_RENEWALS_DRAWER_INDEX -> "autorenewals"
-                selectedDrawerIndex == SUBSCRIPTIONS_DRAWER_INDEX -> "subscriptions"
                 selectedDrawerIndex == SMART_FOLLOW_UP_DRAWER_INDEX -> "smartfollowup"
                 selectedDrawerIndex == AUTOPILOT_DRAWER_INDEX -> "autopilot"
                 selectedDrawerIndex == AGENT_PORTAL_DRAWER_INDEX -> "agentportal"
                 selectedDrawerIndex == MESH_DRAWER_INDEX -> "mesh"
-                selectedDrawerIndex == BLOCKED_CONTACTS_DRAWER_INDEX -> "blockedcontacts"
-                selectedDrawerIndex == TRUSTED_PARTNERS_DRAWER_INDEX -> "trustedpartners"
                 selectedDrawerIndex == REDEEM_COUPON_DRAWER_INDEX -> "coupon"
                 selectedDrawerIndex == SETTINGS_DRAWER_INDEX -> "settings"
                 selectedDrawerIndex == ANNOUNCEMENTS_DRAWER_INDEX -> "announcements"
                 selectedDrawerIndex == COMMISSION_PULSE_DRAWER_INDEX -> "commissionpulse"
                 selectedDrawerIndex == COMMUNITY_DRAWER_INDEX -> "community"
-                selectedDrawerIndex == QR_SCANNER_DRAWER_INDEX -> "qrscanner"
                 selectedDrawerIndex == MY_PLAN_DRAWER_INDEX -> "myplan"
                 selectedDrawerIndex == DIPLOMATICS_DRAWER_INDEX -> "diplomatics"
                 else -> when (selectedTab) {
@@ -455,19 +439,15 @@ fun MainScreen() {
                         "dialer" -> DialerScreen(onClose = { showDialer = false })
                         "customers" -> CustomersScreen()
                         "autorenewals" -> AutoRenewalsScreen()
-                        "subscriptions" -> SubscriptionsScreen()
                         "smartfollowup" -> AutoRepliesScreen()
                         "autopilot" -> EngageBotScreen()
                         "agentportal" -> MyStoreScreen()
                         "mesh" -> MeshScreen()
-                        "blockedcontacts" -> BlacklistScreen()
-                        "trustedpartners" -> AuthorizedSendersScreen()
                         "coupon" -> RedeemCouponScreen()
                         "settings" -> SettingsScreen()
                         "announcements" -> AnnouncementsScreen()
                         "commissionpulse" -> ScoreScreen()
                         "community" -> CommunityScreen()
-                        "qrscanner" -> QrScannerScreen()
                         "myplan" -> MyPlanScreen()
                         "diplomatics" -> DiplomaticsScreen()
                         "referral" -> ReferralScreen()
@@ -486,16 +466,12 @@ fun MainScreen() {
                             onMyStore = { selectedDrawerIndex = AGENT_PORTAL_DRAWER_INDEX },
                             onReferEarn = { showReferral = true },
                             onSettings = { selectedDrawerIndex = SETTINGS_DRAWER_INDEX },
-                            onAuthorizedSenders = { selectedDrawerIndex = TRUSTED_PARTNERS_DRAWER_INDEX },
-                            onBlacklist = { selectedDrawerIndex = BLOCKED_CONTACTS_DRAWER_INDEX },
                             onAbout = { selectedDrawerIndex = SETTINGS_DRAWER_INDEX }
                         )
                         else -> ProfileScreen(
                             onMyStore = { selectedDrawerIndex = AGENT_PORTAL_DRAWER_INDEX },
                             onReferEarn = { showReferral = true },
                             onSettings = { selectedDrawerIndex = SETTINGS_DRAWER_INDEX },
-                            onAuthorizedSenders = { selectedDrawerIndex = TRUSTED_PARTNERS_DRAWER_INDEX },
-                            onBlacklist = { selectedDrawerIndex = BLOCKED_CONTACTS_DRAWER_INDEX },
                             onAbout = { selectedDrawerIndex = SETTINGS_DRAWER_INDEX }
                         )
                     }

@@ -71,7 +71,7 @@ object DbNameHolder {
         Transaction::class, Offer::class, Customer::class, AutoReply::class,
         AgentCommission::class
     ],
-    version = 6,
+    version = 7,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -214,6 +214,47 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * v6 → v7 (Stage 14 — customers autosave book). Adds the roll-up columns
+         * the Customers screen renders without re-scanning the ledger:
+         * - `lastActivityAt` — newest SUCCESSFUL purchase (recent-first order).
+         * - `lastOfferName`   — offer of that newest purchase.
+         * - `totalSpent`      — lifetime spend.
+         * - `txCount`         — number of SUCCESSFUL purchases.
+         * - `firstPurchaseAt` — first-ever SUCCESSFUL purchase.
+         *
+         * Every column is NOT NULL with a default so existing rows migrate in
+         * place; `lastActivityAt` seeds from `createdAt` so legacy customers
+         * keep a sane recent-first order. A non-unique index matches the Room
+         * `@Entity` declaration on `lastActivityAt`.
+         */
+        private val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE `customers` ADD COLUMN `lastActivityAt` INTEGER NOT NULL DEFAULT 0"
+                )
+                db.execSQL(
+                    "UPDATE `customers` SET `lastActivityAt` = `createdAt` WHERE `lastActivityAt` = 0"
+                )
+                db.execSQL(
+                    "ALTER TABLE `customers` ADD COLUMN `lastOfferName` TEXT"
+                )
+                db.execSQL(
+                    "ALTER TABLE `customers` ADD COLUMN `totalSpent` REAL NOT NULL DEFAULT 0"
+                )
+                db.execSQL(
+                    "ALTER TABLE `customers` ADD COLUMN `txCount` INTEGER NOT NULL DEFAULT 0"
+                )
+                db.execSQL(
+                    "ALTER TABLE `customers` ADD COLUMN `firstPurchaseAt` INTEGER NOT NULL DEFAULT 0"
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_customers_lastActivityAt` " +
+                        "ON `customers` (`lastActivityAt`)"
+                )
+            }
+        }
+
         fun getDatabase(context: Context): AppDatabase =
             INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -222,7 +263,8 @@ abstract class AppDatabase : RoomDatabase() {
                     DbNameHolder.dbName
                 )
                     .addMigrations(
-                        MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6
+                        MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6,
+                        MIGRATION_6_7
                     )
                     .fallbackToDestructiveMigration()
                     .build()

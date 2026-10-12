@@ -53,6 +53,13 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions WHERE id = :id LIMIT 1")
     fun getByIdFlow(id: String): Flow<Transaction?>
 
+    /** Stage 14 — every SUCCESSFUL purchase for a phone, newest first (detail sheet). */
+    @Query(
+        "SELECT * FROM transactions WHERE phoneNumber = :phone AND status = 'SUCCESSFUL' " +
+            "ORDER BY createdAt DESC"
+    )
+    fun getSuccessfulByPhone(phone: String): Flow<List<Transaction>>
+
     @Query("SELECT COUNT(*) FROM transactions")
     suspend fun count(): Int
 
@@ -134,7 +141,7 @@ interface OfferDao {
 @Dao
 interface CustomerDao {
 
-    @Query("SELECT * FROM customers ORDER BY createdAt DESC")
+    @Query("SELECT * FROM customers ORDER BY lastActivityAt DESC, phoneNumber DESC")
     fun getAllCustomers(): Flow<List<Customer>>
 
     @Query("SELECT * FROM customers WHERE phoneNumber = :phone LIMIT 1")
@@ -143,7 +150,7 @@ interface CustomerDao {
     @Query("SELECT * FROM customers WHERE phoneNumber = :phone LIMIT 1")
     suspend fun getByPhoneOnce(phone: String): Customer?
 
-    @Query("SELECT * FROM customers WHERE isBlacklisted = 1 ORDER BY createdAt DESC")
+    @Query("SELECT * FROM customers WHERE isBlacklisted = 1 ORDER BY lastActivityAt DESC, phoneNumber DESC")
     fun getBlacklisted(): Flow<List<Customer>>
 
     @Query("SELECT COUNT(*) FROM customers")
