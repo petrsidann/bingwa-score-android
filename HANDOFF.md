@@ -1,19 +1,11 @@
 # ULTRA session end — handoff
 
-## STEP 0 resume state (2026-10-12, Stage 13 shipped)
-- Shipped+green: Stages 1-13 (see git log, "Stage N: ..." commits). U1 USSD engine + E1 balance/dial protected.
-- **Stage 13 — My Plan matrix + simulated M-Pesa**: `PlanCatalog` (pure domain) holds two families:
-  **individual** Starter/Basic/Noob/Pro (pulls budget + days window) and **bulk** Small/Medium/Mega/Ultimate
-  (unlimited within a days window), both ascending by price. A tap opens `PlanConfirmSheet`, a modal that
-  walks `PurchaseState` Idle→Paying (loading "Waiting for M-Pesa…")→Success; on Success it mints a
-  deterministic `receiptFor` ("S"+9 digits) and writes `offer.toPlanState(now)` into `UserPreferences`.
-  Hero shows the **M-Y monogram** (`PlanCatalog.monogramLetters`, "MY" when no plan) + what is LEFT
-  (`PlanState.remainingLabel`); the ledger lists earned credits. `PlanExpiryWorker` runs 2×/day (scheduled
-  in `Workers`) and clears any plan where `PlanState.isExpired(now)` so the Home bubble stops lying.
-- Tests: new `Stage13MyPlanTest` (16 tests, green). `:app:assembleDebug` green. Full suite 246, only the
-  2 known pre-existing `U8QaSweepTest` LIGHT-mode AA failures (also fail at adfe26d; Stage 17 QA sweep).
-- Next group: **Stage 14 (Customers book)** -> Stage 15 Self-Renewal/My Score -> Stage 16 Mesh v2
-  -> Stage 17 Profile/Redeem/Release 1.9.0.
+## STEP 0 resume state (2026-10-12, Stage 14 shipped)
+- Shipped+green: Stages 1-14. U1 USSD engine + E1 balance/dial protected.
+- **Stage 14 — customers book**: new pure domain `CustomerBook` (upsert roll-up, recent-first, blacklist filter, search pad, detail stats, wa.me/tel:/smsto: URIs). `Customer` entity gained lastActivityAt/lastOfferName/totalSpent/txCount/firstPurchaseAt (Room v6→v7 migration, non-destructive). Pipeline `onUssdSuccess`+`markComplete` call a guarded `autosaveCustomer` gated by a Settings toggle (`customersAutosave`, default ON). `CustomersScreen` rebuilt: recent-first initials-avatar rows with last offer, Blacklisted filter chip in the top bar, detail sheet (total spent / first purchase / most-bought / count / last 5) with Blacklist confirm dialog + Contact chooser. **Drawer cleanup**: retired Trusted Partners, QR Scanner, Blocked Contacts, Subscriptions routes+items (Profile rows dropped too); drawer re-indexed.
+- Tests: new `Stage14CustomersTest` (17 tests, green). `:app:assembleDebug` green. Full suite: only the 2 known pre-existing `U8QaSweepTest` LIGHT-mode AA failures (Stage 17 QA sweep).
+- Next group: **Stage 15 (Self-Renewal + My Score)** -> Stage 16 Mesh v2 -> Stage 17 Profile/Redeem/Release 1.9.0.
+
 
 ## STEP 0 resume state (2026-10-12, Stage 12 shipped)
 - Shipped+green: Stages 1-12 (see git log, "Stage N: ..." commits). U1 USSD engine + E1 balance/dial protected.
