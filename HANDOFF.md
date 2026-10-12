@@ -1,10 +1,11 @@
 # ULTRA session end — handoff
 
-## STEP 0 resume state (2026-10-12, Stage 15 shipped)
-- Shipped+green: Stages 1-15. U1 USSD engine + E1 balance/dial protected.
-- **Stage 15 — self-renewal + My Score**: `AutoRenewalsScreen` renamed/rebuilt as **Self-Renewal**: iOS-style composer (offer chips + phone + day/hour chips) builds a `SelfRenewalSchedule.Draft`; a SCHEDULED ledger row is stored + `SelfRenewalWorker` arms an exact WorkManager alarm (`processDueScheduled` dials via the existing pipeline). List = SCHEDULED rows with live countdown chips; on success the row becomes SUCCESSFUL and auto-drops (lives in Completed tx). Autopilot card DELETED from Home; **My Score** analytics card added (new `BoltTrophyLogo` Path): top offers last 24h most→least, busiest/quietest hour ranges, success-rate ring, best weekday — all from Room aggregates via pure `MyScore`. Auto-replies pinned zero-delay (`AUTO_REPLY_DELAY_MILLIS = 0L`).
-- Tests: new `Stage15SelfRenewalTest` (19 tests, green). `:app:compileDebugKotlin` green.
-- Next group: **Stage 16 (Mesh v2 offline P2P)** -> Stage 17 Profile/Redeem/Release 1.9.0.
+## STEP 0 resume state (2026-10-12, Stage 16 shipped)
+- Shipped+green: Stages 1-16. U1 USSD engine + E1 balance/dial protected.
+- **Stage 16 — mesh v2 offline P2P**: new pure core `domain/mesh/` — `MeshCore` (roles Main/Receiver, chain ≤4, routing table amount→Receiver, offline queue, PaymentRequest/StatusUpdate, flush) + `MeshTransport` interface with `LoopbackTransport` (channel-buffered in-memory pair), `BleGattTransport` (6-digit pairing), `WifiDirectTransport` (P2P socket stubs) + `MeshNode` runtime (onPayment routes+queues-on-down; Receiver auto-processes + syncs status back; flushQueue on reconnect). `MeshScreen`/`MeshViewModel` rebuilt: role picker, linked devices with 3-dot signal, routing editor, test-pulse that round-trips a real Main→Receiver over the loopback bus.
+- Tests: new `Stage16MeshTest` (10 tests, green — full loopback lifecycle + queue-visible-when-down + wiring). `:app:assembleDebug` green.
+- Next group: **Stage 17 (Profile club-grade + Redeem + 1.9.0 release)**.
+
 
 
 
