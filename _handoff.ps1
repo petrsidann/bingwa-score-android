@@ -1,0 +1,1 @@
+Get-Content 'docs/HANDOFF.md' | Select-String -Pattern 'Next|Groups still open|Remaining|State|resume|Ultra U|Stage [0-9]|1\.8\.0|1\.9\.0|QA|release|clean|repository|workflows' | Select-Object -Last 14
