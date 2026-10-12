@@ -124,6 +124,8 @@ private val HOME_ROW_HEIGHT = 44.dp
 @Composable
 fun HomeScreen(
     onOpenTransactions: (statusFilter: String?) -> Unit = {},
+    onOpenMyPlan: () -> Unit = {},
+    onOpenDiplomatics: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
@@ -143,9 +145,7 @@ fun HomeScreen(
 
     // POLISH P2 — greeting, credits and the two Home sheets.
     val greeting by viewModel.greeting.collectAsStateWithLifecycle()
-    val credits by viewModel.credits.collectAsStateWithLifecycle()
-    val creditRows by viewModel.creditRows.collectAsStateWithLifecycle()
-    var showCredits by remember { mutableStateOf(false) }
+    val creditsLabel by viewModel.creditsLabel.collectAsStateWithLifecycle()
     var showAutopilot by remember { mutableStateOf(false) }
     var showDiagnostics by remember { mutableStateOf(false) }
 
@@ -223,8 +223,8 @@ fun HomeScreen(
                 HomeTopBar(
                     bucket = greeting.first,
                     language = greeting.second,
-                    credits = credits,
-                    onCreditsClick = { showCredits = true }
+                    creditsLabel = creditsLabel,
+                    onCreditsClick = onOpenMyPlan
                 )
             }
 
@@ -239,10 +239,16 @@ fun HomeScreen(
                         onOpenSheet = { showAutopilot = true },
                         onPause = { viewModel.pauseEngine() }
                     )
+                    // Stage 12 — the language label opens Diplomatics (rotation,
+                    // pinning, cadence); it is a door, not decoration.
                     Text(
                         text = greeting.second.endonym,
                         color = TextDim,
-                        fontSize = 11.sp
+                        fontSize = 11.sp,
+                        modifier = Modifier.clickable {
+                            haptics.tick()
+                            onOpenDiplomatics()
+                        }
                     )
                 }
             }
@@ -337,15 +343,8 @@ fun HomeScreen(
         )
     }
 
-    // POLISH P2 — the two Home sheets and the Autopilot stop confirmation.
-    if (showCredits) {
-        CreditsSheet(
-            credits = credits,
-            rows = creditRows,
-            onDismiss = { showCredits = false }
-        )
-    }
-
+    // POLISH P2 — the Autopilot sheet and diagnostics. The credits sheet moved
+    // to My Plan (Stage 12: the bubble shows what is LEFT and opens My Plan).
     if (showDiagnostics) {
         EngineDiagnosticsDialog(onDismiss = { showDiagnostics = false })
     }

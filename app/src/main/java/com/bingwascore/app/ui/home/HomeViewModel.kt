@@ -13,6 +13,7 @@ import com.bingwascore.app.data.preferences.UserPreferences
 import com.bingwascore.app.data.repository.TransactionRepository
 import com.bingwascore.app.domain.AppProcessingMode
 import com.bingwascore.app.domain.EngineState
+import com.bingwascore.app.domain.PlanState
 import com.bingwascore.app.domain.TransactionStatus
 import com.bingwascore.app.domain.engine.TransactionPipeline
 import com.bingwascore.app.services.BalanceReader
@@ -25,6 +26,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -202,27 +204,57 @@ class HomeViewModel @Inject constructor(
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
+    // ── Stage 12 — plan-backed credits + Diplomatics ─────────────────────────
+
+    /**
+     * The active plan as the credits bubble reads it. Inactive (blank planId)
+     * until Stage 13's purchase flow writes one; the bubble then falls back to
+     * the earned-credit count.
+     */
+    val planState: StateFlow<PlanState> = userPreferences.planState
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PlanState())
+
+    /**
+     * What the credits bubble shows: the plan's REAL remaining (pulls left as a
+     * count, or "N days" for unlimited plans), falling back to earned credits
+     * when no plan is active.
+     */
+    val creditsLabel: StateFlow<String> = combine(planState, credits) { plan, earned ->
+        plan.remainingLabel(System.currentTimeMillis()) ?: "$earned"
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), "0")
+
     /**
      * POLISH P2 — the greeting for this session.
      *
      * The rotation key is `dayOfYear + sessionIndex`: the line holds still for
      * the whole session (no flip on rotation, no flip on resume) and moves on
      * tomorrow, when it is a different day and deserves a different sentence.
+     *
+     * Stage 12 — Diplomatics: a pinned language always wins, and the cadence
+     * (per session / per day) decides whether the session index counts.
      */
     private val _sessionIndex = MutableStateFlow(0)
+
+    private val _pinnedLanguage = MutableStateFlow<Greetings.Language?>(null)
+    private val _cadence = MutableStateFlow(Greetings.Cadence.SESSION)
 
     private val _greeting = MutableStateFlow(greetingForSession())
     val greeting: StateFlow<Pair<Greetings.Bucket, Greetings.Language>> = _greeting.asStateFlow()
 
     /** Called from the screen on resume so the bucket follows the clock. */
     fun refreshGreeting() {
-        _greeting.value = Greetings.currentBucket() to
-            Greetings.languageFor(Greetings.todayIndex(), _sessionIndex.value)
+        _greeting.value = Greetings.currentBucket() to currentLanguage()
     }
 
+    private fun currentLanguage(): Greetings.Language = Greetings.languageFor(
+        dayOfYear = Greetings.todayIndex(),
+        sessionIndex = _sessionIndex.value,
+        cadence = _cadence.value,
+        pinned = _pinnedLanguage.value
+    )
+
     private fun greetingForSession(): Pair<Greetings.Bucket, Greetings.Language> =
-        Greetings.currentBucket() to
-            Greetings.languageFor(Greetings.todayIndex(), _sessionIndex.value)
+        Greetings.currentBucket() to currentLanguage()
 
     // Parity D — Recent Activity: last 5 live rows (DAO already ORDERs BY createdAt DESC).
     /**
@@ -317,6 +349,14 @@ class HomeViewModel @Inject constructor(
             val next = runCatching { userPreferences.greetingSession.first() }.getOrDefault(0) + 1
             _sessionIndex.value = next
             userPreferences.setGreetingSession(next)
+            // Stage 12 — Diplomatics: hydrate pin + cadence so the first line
+            // already honours the agent's choice.
+            _pinnedLanguage.value = runCatching { userPreferences.greetingPinnedLanguage.first() }
+                .getOrDefault("")
+                .ifBlank { null }
+                ?.let { raw -> Greetings.Language.entries.firstOrNull { it.name == raw } }
+            _cadence.value = runCatching { userPreferences.greetingCadence.first() }
+                .getOrDefault(Greetings.Cadence.SESSION)
             refreshGreeting()
         }
     }

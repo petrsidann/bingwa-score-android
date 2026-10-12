@@ -1,5 +1,23 @@
 # ULTRA session end — handoff
 
+## STEP 0 resume state (2026-10-12, Stage 12 shipped)
+- Shipped+green: Stages 1-12 (see git log, "Stage N: ..." commits). U1 USSD engine + E1 balance/dial protected.
+- **Stage 12 — home guards + diplomatics**: Autopilot pill tap NEVER pauses (guard `AutopilotGuard`:
+  `TAP_PAUSES=false`, `HOLD_MILLIS=600`); hold fills a progress ring (`Animatable` 0..1, LinearEasing)
+  driven by a `LaunchedEffect` (the `awaitEachGesture` scope is suspension-restricted, so the gesture
+  only toggles `holding`/reads `committedHold`); completion fires `haptics.press()` + `onPause()`
+  exactly once; early release is a tap and a tap only opens the sheet. Credits bubble now shows
+  plan state via `PlanState.remainingLabel` (pulls count / "N days" / earned-credit fallback).
+  New screens: **My Plan** (drawer 15, Stage 13 expands the matrix) and **Diplomatics** (drawer 16,
+  pin-one-language + session/day cadence; pinned beats rotation; `Cadence.fromValue` falls back).
+- Tests: new `Stage12HomeGuardsTest` (14 tests, green). `:app:assembleDebug` green.
+- Known pre-existing failures (also fail at adfe26d WITHOUT Stage 12): `U8QaSweepTest`
+  `statusLabelsClearAaOnCanvasInEveryTheme` + `textTokensClearAaInEveryTheme` — LIGHT-mode AA
+  contrast (2.86:1, 2.92:1 vs 3:1). Not a Stage 12 regression; fix in Stage 17 QA sweep.
+- Next group: **Stage 13 (My Plan: M-Y monogram, Starter/Basic/Noob/Pro + bulk Small/Medium/Mega/Ultimate,
+  confirm sheet + simulated M-Pesa, plan matrix test, expiry worker)** -> Stage 14 Customers book
+  -> Stage 15 Self-Renewal/My Score -> Stage 16 Mesh v2 -> Stage 17 Profile/Redeem/Release 1.9.0.
+
 ## STEP 0 resume state (2026-10-12, Stage 11 shipped)
 - Shipped+green: Stages 1-11 (see git log, "Stage N: ..." commits). U1 USSD engine + E1 balance/dial protected.
 - **Stage 11 — launch cinematic**: splash PathMeasure stroke now draws with a glowing traveling tip

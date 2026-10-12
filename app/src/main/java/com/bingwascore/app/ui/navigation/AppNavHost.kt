@@ -44,6 +44,7 @@ import androidx.compose.material.icons.rounded.Bolt
 import androidx.compose.material.icons.rounded.Call
 import androidx.compose.material.icons.rounded.DeviceHub
 import androidx.compose.material.icons.rounded.Home
+import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.LocalOffer
 import androidx.compose.material.icons.rounded.People
 import androidx.compose.material.icons.rounded.Person
@@ -52,6 +53,7 @@ import androidx.compose.material.icons.rounded.SmartToy
 import androidx.compose.material.icons.rounded.Storefront
 import androidx.compose.material.icons.rounded.Subscriptions
 import androidx.compose.material.icons.rounded.VerifiedUser
+import androidx.compose.material.icons.rounded.WorkspacePremium
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalDrawerSheet
@@ -92,9 +94,11 @@ import com.bingwascore.app.ui.components.pressScale
 import com.bingwascore.app.ui.components.pressScale
 import com.bingwascore.app.ui.customers.CustomersScreen
 import com.bingwascore.app.ui.dialer.DialerScreen
+import com.bingwascore.app.ui.diplomatics.DiplomaticsScreen
 import com.bingwascore.app.ui.engagebot.EngageBotScreen
 import com.bingwascore.app.ui.home.HomeScreen
 import com.bingwascore.app.ui.mesh.MeshScreen
+import com.bingwascore.app.ui.myplan.MyPlanScreen
 import com.bingwascore.app.ui.mystore.MyStoreScreen
 import com.bingwascore.app.ui.offers.OffersScreen
 import com.bingwascore.app.ui.screens.LoginScreen
@@ -274,6 +278,8 @@ private const val ANNOUNCEMENTS_DRAWER_INDEX = 11
 private const val COMMISSION_PULSE_DRAWER_INDEX = 12
 private const val COMMUNITY_DRAWER_INDEX = 13
 private const val QR_SCANNER_DRAWER_INDEX = 14
+private const val MY_PLAN_DRAWER_INDEX = 15
+private const val DIPLOMATICS_DRAWER_INDEX = 16
 
 private val drawerEntries = listOf(
     DrawerEntry("Customers", Icons.Rounded.People),
@@ -290,7 +296,9 @@ private val drawerEntries = listOf(
     DrawerEntry("Announcements", Icons.Rounded.Campaign),
     DrawerEntry("Commission Pulse", Icons.Rounded.EmojiEvents),
     DrawerEntry("Community", Icons.Rounded.Groups),
-    DrawerEntry("QR Scanner", Icons.Rounded.QrCodeScanner)
+    DrawerEntry("QR Scanner", Icons.Rounded.QrCodeScanner),
+    DrawerEntry("My Plan", Icons.Rounded.WorkspacePremium),
+    DrawerEntry("Diplomatics", Icons.Rounded.Language)
 )
 
 /**
@@ -423,6 +431,8 @@ fun MainScreen() {
                 selectedDrawerIndex == COMMISSION_PULSE_DRAWER_INDEX -> "commissionpulse"
                 selectedDrawerIndex == COMMUNITY_DRAWER_INDEX -> "community"
                 selectedDrawerIndex == QR_SCANNER_DRAWER_INDEX -> "qrscanner"
+                selectedDrawerIndex == MY_PLAN_DRAWER_INDEX -> "myplan"
+                selectedDrawerIndex == DIPLOMATICS_DRAWER_INDEX -> "diplomatics"
                 else -> when (selectedTab) {
                     0 -> "home"
                     1 -> "offers"
@@ -458,12 +468,18 @@ fun MainScreen() {
                         "commissionpulse" -> ScoreScreen()
                         "community" -> CommunityScreen()
                         "qrscanner" -> QrScannerScreen()
+                        "myplan" -> MyPlanScreen()
+                        "diplomatics" -> DiplomaticsScreen()
                         "referral" -> ReferralScreen()
-                        "home" -> HomeScreen(onOpenTransactions = { status ->
-                    transactionFilter = TransactionFilter.fromStatus(status)
-                    selectedTab = 3
-                    selectedDrawerIndex = -1
-                })
+                        "home" -> HomeScreen(
+                            onOpenTransactions = { status ->
+                                transactionFilter = TransactionFilter.fromStatus(status)
+                                selectedTab = 3
+                                selectedDrawerIndex = -1
+                            },
+                            onOpenMyPlan = { selectedDrawerIndex = MY_PLAN_DRAWER_INDEX },
+                            onOpenDiplomatics = { selectedDrawerIndex = DIPLOMATICS_DRAWER_INDEX }
+                        )
                         "offers" -> OffersScreen()
                         "transactions" -> TransactionsScreen(initialFilter = transactionFilter)
                         "profile" -> ProfileScreen(
