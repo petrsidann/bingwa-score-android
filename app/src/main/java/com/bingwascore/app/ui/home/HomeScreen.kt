@@ -229,18 +229,19 @@ fun HomeScreen(
             }
 
             item {
+                // Stage 15 — the Autopilot card is gone; its place is the My
+                // Score analytics card (bolt-in-trophy). The engine still runs
+                // from the Transactions "Queued" flow and the Autopilot drawer.
+                MyScoreCard()
+            }
+
+            item {
+                // Stage 12/15 — the language label opens Diplomatics (rotation,
+                // pinning, cadence); it is a door, not decoration.
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    AutopilotPill(
-                        engineState = engineState,
-                        onOpenSheet = { showAutopilot = true },
-                        onPause = { viewModel.pauseEngine() }
-                    )
-                    // Stage 12 — the language label opens Diplomatics (rotation,
-                    // pinning, cadence); it is a door, not decoration.
                     Text(
                         text = greeting.second.endonym,
                         color = TextDim,

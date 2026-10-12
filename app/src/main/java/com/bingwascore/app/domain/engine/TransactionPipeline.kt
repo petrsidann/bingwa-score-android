@@ -758,6 +758,13 @@ class TransactionPipeline @Inject constructor(
         /** Logcat tag for every engine decision — `adb logcat -s ENGINE`. */
         const val ENGINE_TAG = "ENGINE"
 
+        /**
+         * Stage 15 — auto-replies go out with ZERO delay, straight from the
+         * receiver that finalised the transaction. A follow-up the customer feels
+         * instantly is the whole point; there is no throttle and no queue.
+         */
+        const val AUTO_REPLY_DELAY_MILLIS = 0L
+
         /** How far back a duplicate check looks. */
         private const val DUPLICATE_WINDOW_MILLIS = 12L * 60 * 60 * 1000
     }

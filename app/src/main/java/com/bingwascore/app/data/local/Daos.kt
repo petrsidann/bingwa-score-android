@@ -60,6 +60,22 @@ interface TransactionDao {
     )
     fun getSuccessfulByPhone(phone: String): Flow<List<Transaction>>
 
+    // ── Stage 15 — My Score aggregates ──
+
+    /** Stage 15 — SUCCESSFUL purchases since [since] (My Score top-offers/hours/weekday). */
+    @Query(
+        "SELECT * FROM transactions WHERE status = 'SUCCESSFUL' AND createdAt >= :since " +
+            "ORDER BY createdAt DESC"
+    )
+    fun successfulSince(since: Long): Flow<List<Transaction>>
+
+    /** Stage 15 — SUCCESSFUL and FAILED rows since [since] (success-rate denominator). */
+    @Query(
+        "SELECT * FROM transactions WHERE (status = 'SUCCESSFUL' OR status = 'FAILED') " +
+            "AND createdAt >= :since"
+    )
+    fun settledSince(since: Long): Flow<List<Transaction>>
+
     @Query("SELECT COUNT(*) FROM transactions")
     suspend fun count(): Int
 

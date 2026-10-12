@@ -69,6 +69,12 @@ class TransactionRepository @Inject constructor(
 
     /** Stage 14 — every SUCCESSFUL purchase for a phone, newest first (detail sheet). */
     fun successfulByPhone(phone: String): Flow<List<Transaction>> = dao.getSuccessfulByPhone(phone)
+
+    /** Stage 15 — SUCCESSFUL purchases since [since] (My Score). */
+    fun successfulSince(since: Long): Flow<List<Transaction>> = dao.successfulSince(since)
+
+    /** Stage 15 — SUCCESSFUL + FAILED rows since [since] (success-rate denominator). */
+    fun settledSince(since: Long): Flow<List<Transaction>> = dao.settledSince(since)
 }
 
 @Singleton
