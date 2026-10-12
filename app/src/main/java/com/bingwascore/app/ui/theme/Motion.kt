@@ -101,4 +101,11 @@ object Motion {
      * 200–260ms band where a morph reads as connected motion rather than as a cut.
      */
     const val MORPH_SPRING_MILLIS: Int = 220
+
+    /**
+     * Stage 11 — nav hand-off crossfade. Every route change fades out while the
+     * incoming route fades in over this window, so the sign-in → home hand-off
+     * never renders a blank frame between two destinations.
+     */
+    const val NAV_CROSSFADE: Int = 200
 }

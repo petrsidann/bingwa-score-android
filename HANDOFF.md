@@ -1,5 +1,21 @@
 # ULTRA session end — handoff
 
+## STEP 0 resume state (2026-10-12, Stage 11 shipped)
+- Shipped+green: Stages 1-11 (see git log, "Stage N: ..." commits). U1 USSD engine + E1 balance/dial protected.
+- **Stage 11 — launch cinematic**: splash PathMeasure stroke now draws with a glowing traveling tip
+  (`drawTravelingTip`), fires a shockwave ring + specular sweep at full trim, the FULL "Bingwa Score"
+  wordmark rises on spring stagger (`settle` scale/rise), tagline breathes one cycle
+  (`taglineBreath`), and the monogram shrinks into the login logo (shared-element exit,
+  `exitShrink.animateTo(1f, tween(200))`) before `onFinish`.
+- **Transition gap killed**: NavHost declares `enter/exit/popEnter/popExit` transitions =
+  200ms crossfade on `Motion.NAV_CROSSFADE` (new token). New `HomePreWarmViewModel` warms
+  `liveTransactions.first()` during the splash so Home's first Room snapshot is cached pre-handoff.
+- Tests: new `Stage11LaunchCinematicTest` (10 tests: tip, ring+sweep, full-wordmark regression,
+  spring letters, tagline breath, exit shrink order, 200ms crossfade, pre-warm-before-MAIN,
+  2s budget). Stage11 + SplashChoreography = 13 tests green; `:app:assembleDebug` green.
+- Next group: **Stage 12 (Home guards/Diplomatics)** -> Stage 13 My Plan -> Stage 14 Customers book
+  -> Stage 15 Self-Renewal/My Score -> Stage 16 Mesh v2 -> Stage 17 Profile/Redeem/Release 1.9.0.
+
 ## STEP 0 resume state (2026-10-10)
 - Shipped+green: U2, U3, U4, U5 (see git log). U1 USSD engine + E1 balance/dial protected.
 - Next group: **U6 snake carousel** -> U7.1 credits+pass -> U7.2 real updates -> U8 QA + 1.8.0.

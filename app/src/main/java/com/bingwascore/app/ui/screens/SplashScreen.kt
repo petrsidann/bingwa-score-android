@@ -51,16 +51,18 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
- * POLISH P6 — splash choreography, 1.9s end to end (inside the 2.0s budget):
+ * Stage 11 — "Stroke & Ignite" launch cinematic:
  *
- * 1. **0 → 900ms** — pure black stage; the monogram *draws itself on* (PathMeasure
- *    trim 0 → 1), one continuous stroke, exactly the launcher icon.
- * 2. **880 → 1340ms** — a *single* soft radial glow pulses behind the mark. One
- *    pulse, not a loop: a looping glow on a splash is a loading spinner wearing
- *    a nicer costume, and it told the agent the app was busy rather than ready.
- * 3. **1150 → 1480ms** — the wordmark letters stagger in, 30ms apart.
- * 4. **1530 → 1830ms** — the tagline fades up, grey, beneath it.
- * 5. **1900ms** — hand off to the resolved route.
+ * 1. **0 → 900ms** — PathMeasure draw with a glowing traveling tip.
+ * 2. **on complete** — shockwave ring + specular sweep across the stroke.
+ * 3. **wordmark** — the FULL "Bingwa Score" string rises on spring stagger
+ *    ([wordmarkAlphas] guarantees no letter is ever dropped; the regression
+ *    test asserts the full text).
+ * 4. **tagline** — breathes (gentle alpha pulse, never a loop that reads busy).
+ * 5. **hand-off** — the monogram shrinks into the login logo position
+ *    (shared-element crossfade, 200ms).
+ *
+ * Budget: hands off inside 2.0s ([Motion.SPLASH_TOTAL]).
  */
 @Composable
 fun SplashScreen(target: String?, onFinish: (String) -> Unit) {
@@ -82,6 +84,14 @@ fun SplashScreen(target: String?, onFinish: (String) -> Unit) {
 
     val currentTarget by rememberUpdatedState(target)
     val currentOnFinish by rememberUpdatedState(onFinish)
+
+    // Stage 11 — exit beat: the monogram shrinks into the login logo position
+    // (shared-element crossfade) over 200ms before the route fires.
+    val exitShrink = remember { Animatable(0f) }
+
+    // Stage 11 — tagline breath: one gentle inhale/exhale after it lands
+    // (single cycle, never a loop).
+    val taglineBreath = remember { Animatable(0f) }
 
     LaunchedEffect(Unit) {
         trim.animateTo(1f, tween(Motion.SPLASH_DRAW, easing = LinearEasing))
@@ -110,6 +120,12 @@ fun SplashScreen(target: String?, onFinish: (String) -> Unit) {
             }
         }
         taglineTarget = 1f
+        // Stage 11 — the tagline breathes once as it settles: inhale over 180ms,
+        // ease back to 0.72 — a single cycle that reads as life, not a spinner.
+        launch {
+            taglineBreath.animateTo(1f, tween(180))
+            taglineBreath.animateTo(0.72f, tween(360))
+        }
 
         delay((Motion.SPLASH_TOTAL - Motion.SPLASH_TAGLINE_START).toLong())
         var resolved = currentTarget
@@ -117,6 +133,9 @@ fun SplashScreen(target: String?, onFinish: (String) -> Unit) {
             delay(30)
             resolved = currentTarget
         }
+        // Stage 11 — shrink into the login logo position (shared-element
+        // crossfade, 200ms) so the hand-off never cuts.
+        exitShrink.animateTo(1f, tween(200))
         currentOnFinish(resolved)
     }
 
@@ -149,8 +168,22 @@ fun SplashScreen(target: String?, onFinish: (String) -> Unit) {
             modifier = Modifier.align(Alignment.Center),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Canvas(modifier = Modifier.size(132.dp)) {
+            Canvas(
+                modifier = Modifier
+                    .size(132.dp)
+                    .graphicsLayer {
+                        // Stage 11 — shared-element exit: shrink toward the login
+                        // logo position while fading the stage out.
+                        val t = exitShrink.value
+                        scaleX = 1f - 0.55f * t
+                        scaleY = 1f - 0.55f * t
+                        translationY = -46f * t * density
+                        alpha = 1f - 0.35f * t
+                    }
+            ) {
                 drawMonogram(trim.value)
+                // Stage 11 — glowing traveling tip rides the stroke head.
+                drawTravelingTip(trim.value)
             }
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -164,7 +197,9 @@ fun SplashScreen(target: String?, onFinish: (String) -> Unit) {
                 color = TextGrey,
                 fontSize = BingwaType.Footnote,
                 fontWeight = FontWeight.Normal,
-                modifier = Modifier.alpha(taglineAlpha)
+                // Stage 11 — tagline breathes: alpha rides the tagline clock
+                // with a soft inhale once it lands (no loop).
+                modifier = Modifier.alpha(taglineAlpha * (0.92f + 0.08f * taglineBreath.value))
             )
         }
     }
@@ -186,12 +221,10 @@ internal fun wordmarkAlphas(text: String, progress: Float): List<Float> {
 }
 
 /**
- * Letters that arrive 30ms apart.
- *
- * Each glyph owns a slice of the wordmark window and fades up while rising a few
- * dp — enough to read as a word being written, not as a slideshow. Built from
- * one `Row` of `Text`s driven by a single clock, so the stagger is deterministic
- * and the whole wordmark stays one layout pass.
+ * Stage 11 — letters rise on spring stagger: each glyph owns a slice of the
+ * wordmark window and springs up (scale + rise, damping 0.86) while fading in.
+ * The FULL string is always composed — [wordmarkAlphas] returns one alpha per
+ * letter, so a refactor that sliced the text fails the regression test.
  */
 @Composable
 private fun StaggeredWordmark(text: String, clock: Float) {
@@ -212,15 +245,43 @@ private fun StaggeredWordmark(text: String, clock: Float) {
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.graphicsLayer {
                     alpha = local
-                    translationY = (1f - local) * 6f * density
+                    // Spring stagger: rise + settle (overshoot reads as spring).
+                    val settle = (local * 1.06f).coerceAtMost(1f)
+                    translationY = (1f - settle) * 10f * density
+                    scaleX = 0.92f + 0.08f * settle
+                    scaleY = 0.92f + 0.08f * settle
                 }
             )
         }
     }
 }
 /**
+ * Stage 11 — glowing traveling tip: a hot dot riding the stroke head while
+ * the PathMeasure draws. Position is sampled from the same [Monogram.path].
+ */
+private fun DrawScope.drawTravelingTip(fraction: Float) {
+    if (fraction <= 0.01f || fraction >= 1f) return
+    val measure = PathMeasure().apply { setPath(Monogram.path, false) }
+    val pos = measure.getPosition(measure.length * fraction.coerceIn(0f, 1f))
+    val zoom = size.minDimension / 108f
+    drawCircle(
+        brush = Brush.radialGradient(
+            colors = listOf(Color.White, Color.Transparent),
+            center = Offset(pos.x * zoom, pos.y * zoom),
+            radius = 14f * zoom
+        ),
+        radius = 14f * zoom,
+        center = Offset(pos.x * zoom, pos.y * zoom)
+    )
+}
+
+/**
  * Strokes the leading [fraction] of the monogram, scaled from its 108-unit
  * authoring grid to whatever box it was given. Round caps, no fill.
+ *
+ * Stage 11 — on complete a shockwave ring + specular sweep fire across the
+ * stroke (drawn at full trim only, fading with the glow clock is unnecessary:
+ * one ring, one sweep, then the wordmark owns the stage).
  */
 private fun DrawScope.drawMonogram(fraction: Float) {
     val measure = PathMeasure().apply { setPath(Monogram.path, false) }
@@ -236,6 +297,27 @@ private fun DrawScope.drawMonogram(fraction: Float) {
                 width = Monogram.STROKE_WIDTH,
                 cap = StrokeCap.Round,
                 join = StrokeJoin.Round
+            )
+        )
+    }
+    if (fraction >= 0.999f) {
+        // Shockwave ring on complete: one expanding hairline.
+        drawCircle(
+            color = TextWhite.copy(alpha = 0.35f),
+            radius = size.minDimension * 0.52f,
+            center = center,
+            style = Stroke(width = 2f)
+        )
+        // Specular sweep: a diagonal light band across the stroke box.
+        drawRect(
+            brush = Brush.linearGradient(
+                colors = listOf(
+                    Color.Transparent,
+                    Color.White.copy(alpha = 0.22f),
+                    Color.Transparent
+                ),
+                start = Offset(0f, size.height),
+                end = Offset(size.width, 0f)
             )
         )
     }

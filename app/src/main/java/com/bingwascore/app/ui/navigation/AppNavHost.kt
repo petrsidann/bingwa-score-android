@@ -81,6 +81,8 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import com.bingwascore.app.ui.autorenewals.AutoRenewalsScreen
 import com.bingwascore.app.ui.autoreplies.AutoRepliesScreen
 import com.bingwascore.app.ui.authorizedsenders.AuthorizedSendersScreen
@@ -135,6 +137,7 @@ import com.bingwascore.app.ui.components.iosMaterial
 import androidx.compose.runtime.collectAsState
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
+import com.bingwascore.app.ui.home.HomePreWarmViewModel
 
 object Routes {
     const val SPLASH = "splash"
@@ -150,12 +153,22 @@ object Routes {
 fun AppNavHost() {
     val navController = rememberNavController()
     val splashViewModel: SplashViewModel = hiltViewModel()
+    // Stage 11 — open Room (first snapshot) during the splash cinematic so the
+    // sign-in → home hand-off lands on warm data, never a blank frame.
+    val homePreWarm: HomePreWarmViewModel = hiltViewModel()
     val scope = rememberCoroutineScope()
     val startDestination by splashViewModel.startDestination.collectAsState(initial = null)
 
     NavHost(
         navController = navController,
-        startDestination = Routes.SPLASH
+        startDestination = Routes.SPLASH,
+        // Stage 11 — 200ms crossfade on every hand-off: the outgoing route
+        // fades out while the incoming one fades in, so no frame ever renders
+        // between two destinations (the sign-in → home black gap, gone).
+        enterTransition = { fadeIn(tween(Motion.NAV_CROSSFADE)) },
+        exitTransition = { fadeOut(tween(Motion.NAV_CROSSFADE)) },
+        popEnterTransition = { fadeIn(tween(Motion.NAV_CROSSFADE)) },
+        popExitTransition = { fadeOut(tween(Motion.NAV_CROSSFADE)) }
     ) {
         composable(Routes.SPLASH) {
             // Single decision point: splash -> onboarding (first launch only) -> login -> main.
