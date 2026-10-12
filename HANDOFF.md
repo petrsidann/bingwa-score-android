@@ -1,10 +1,11 @@
 # ULTRA session end — handoff
 
-## STEP 0 resume state (2026-10-12, Stage 14 shipped)
-- Shipped+green: Stages 1-14. U1 USSD engine + E1 balance/dial protected.
-- **Stage 14 — customers book**: new pure domain `CustomerBook` (upsert roll-up, recent-first, blacklist filter, search pad, detail stats, wa.me/tel:/smsto: URIs). `Customer` entity gained lastActivityAt/lastOfferName/totalSpent/txCount/firstPurchaseAt (Room v6→v7 migration, non-destructive). Pipeline `onUssdSuccess`+`markComplete` call a guarded `autosaveCustomer` gated by a Settings toggle (`customersAutosave`, default ON). `CustomersScreen` rebuilt: recent-first initials-avatar rows with last offer, Blacklisted filter chip in the top bar, detail sheet (total spent / first purchase / most-bought / count / last 5) with Blacklist confirm dialog + Contact chooser. **Drawer cleanup**: retired Trusted Partners, QR Scanner, Blocked Contacts, Subscriptions routes+items (Profile rows dropped too); drawer re-indexed.
-- Tests: new `Stage14CustomersTest` (17 tests, green). `:app:assembleDebug` green. Full suite: only the 2 known pre-existing `U8QaSweepTest` LIGHT-mode AA failures (Stage 17 QA sweep).
-- Next group: **Stage 15 (Self-Renewal + My Score)** -> Stage 16 Mesh v2 -> Stage 17 Profile/Redeem/Release 1.9.0.
+## STEP 0 resume state (2026-10-12, Stage 15 shipped)
+- Shipped+green: Stages 1-15. U1 USSD engine + E1 balance/dial protected.
+- **Stage 15 — self-renewal + My Score**: `AutoRenewalsScreen` renamed/rebuilt as **Self-Renewal**: iOS-style composer (offer chips + phone + day/hour chips) builds a `SelfRenewalSchedule.Draft`; a SCHEDULED ledger row is stored + `SelfRenewalWorker` arms an exact WorkManager alarm (`processDueScheduled` dials via the existing pipeline). List = SCHEDULED rows with live countdown chips; on success the row becomes SUCCESSFUL and auto-drops (lives in Completed tx). Autopilot card DELETED from Home; **My Score** analytics card added (new `BoltTrophyLogo` Path): top offers last 24h most→least, busiest/quietest hour ranges, success-rate ring, best weekday — all from Room aggregates via pure `MyScore`. Auto-replies pinned zero-delay (`AUTO_REPLY_DELAY_MILLIS = 0L`).
+- Tests: new `Stage15SelfRenewalTest` (19 tests, green). `:app:compileDebugKotlin` green.
+- Next group: **Stage 16 (Mesh v2 offline P2P)** -> Stage 17 Profile/Redeem/Release 1.9.0.
+
 
 
 ## STEP 0 resume state (2026-10-12, Stage 12 shipped)
