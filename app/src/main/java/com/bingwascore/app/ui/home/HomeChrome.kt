@@ -39,6 +39,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -66,6 +67,7 @@ import com.bingwascore.app.ui.glass.iosMaterial
 import com.bingwascore.app.ui.theme.AccentBlue
 import com.bingwascore.app.ui.theme.FailRed
 import com.bingwascore.app.ui.theme.Hairline
+import com.bingwascore.app.ui.glass.LocalGlassBackdrop
 import com.bingwascore.app.ui.theme.IosMaterialFill
 import com.bingwascore.app.ui.theme.Motion
 import com.bingwascore.app.ui.theme.Raised
@@ -206,6 +208,13 @@ fun CreditsSheet(
     onDismiss: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    // Stage 18 — the sheet owns the modal backdrop: screens blur behind it
+    // (iOS-style modal glass); region passes stand down — blurs never nest.
+    val glassBackdrop = LocalGlassBackdrop.current
+    DisposableEffect(glassBackdrop) {
+        glassBackdrop?.pushModal()
+        onDispose { glassBackdrop?.popModal() }
+    }
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,

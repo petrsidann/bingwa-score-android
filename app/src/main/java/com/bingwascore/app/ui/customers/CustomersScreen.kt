@@ -38,6 +38,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -62,7 +63,9 @@ import com.bingwascore.app.ui.components.BubbleCard
 import com.bingwascore.app.ui.components.EmptyState
 import com.bingwascore.app.util.formatCustomerName
 import com.bingwascore.app.util.screenEnter
+import com.bingwascore.app.ui.glass.LocalGlassBackdrop
 import com.bingwascore.app.ui.theme.AccentBlue
+import com.bingwascore.app.ui.theme.IosMaterialFill
 import com.bingwascore.app.ui.theme.BgBlack
 import com.bingwascore.app.ui.theme.Bubble
 import com.bingwascore.app.ui.theme.FailRed
@@ -150,10 +153,16 @@ fun CustomersScreen(viewModel: CustomersViewModel = hiltViewModel()) {
     val open = selected
     if (open != null) {
         val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        // Stage 18 — the sheet owns the modal backdrop: screens blur behind it.
+        val glassBackdrop = LocalGlassBackdrop.current
+        DisposableEffect(glassBackdrop) {
+            glassBackdrop?.pushModal()
+            onDispose { glassBackdrop?.popModal() }
+        }
         ModalBottomSheet(
             onDismissRequest = viewModel::closeDetail,
             sheetState = sheetState,
-            containerColor = Raised,
+            containerColor = IosMaterialFill,
             dragHandle = null
         ) {
             CustomerDetailSheet(

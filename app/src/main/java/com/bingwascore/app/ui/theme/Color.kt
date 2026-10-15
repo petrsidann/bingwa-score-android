@@ -145,9 +145,9 @@ val TickGreen: Color get() = Color(0xFF00C853)
 
 // ─── Stage 10 — iOS materials (blur ONLY here: nav bars + sheets) ────────────
 
-/** Translucent material fill for nav bars + page sheets. */
+/** Translucent material fill for nav bars + page sheets (Stage 21 — porcelain dim). */
 val IosMaterialFill: Color get() = when (DisplayModeState.mode) {
-    ThemeMode.LIGHT -> Color(0xB8F2F2F7)
+    ThemeMode.LIGHT -> Color(0xB8E2E4E8)
     else -> Color(0xB80B0E15)
 }
 

@@ -30,6 +30,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -53,7 +54,9 @@ import com.bingwascore.app.ui.components.BubbleCard
 import com.bingwascore.app.ui.components.EmptyState
 import com.bingwascore.app.ui.components.PrimaryButton
 import com.bingwascore.app.util.screenEnter
+import com.bingwascore.app.ui.glass.LocalGlassBackdrop
 import com.bingwascore.app.ui.theme.AccentBlue
+import com.bingwascore.app.ui.theme.IosMaterialFill
 import com.bingwascore.app.ui.theme.BgBlack
 import com.bingwascore.app.ui.theme.Bubble
 import com.bingwascore.app.ui.theme.FailRed
@@ -163,10 +166,16 @@ fun AutoRenewalsScreen(viewModel: SelfRenewalViewModel = hiltViewModel()) {
 
     if (showComposer) {
         val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        // Stage 18 — the sheet owns the modal backdrop: screens blur behind it.
+        val glassBackdrop = LocalGlassBackdrop.current
+        DisposableEffect(glassBackdrop) {
+            glassBackdrop?.pushModal()
+            onDispose { glassBackdrop?.popModal() }
+        }
         ModalBottomSheet(
             onDismissRequest = { showComposer = false; viewModel.clearError() },
             sheetState = sheetState,
-            containerColor = Raised,
+            containerColor = IosMaterialFill,
             dragHandle = null
         ) {
             ScheduleComposer(

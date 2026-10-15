@@ -28,7 +28,8 @@ class Stage18MaterialTest {
     fun `sat contrast matches apple recipe`() {
         assertEquals(1.2f, MaterialSpec.SATURATION, 0.001f)
         assertEquals(1.1f, MaterialSpec.CONTRAST, 0.001f)
-        assertEquals(16, MaterialSpec.colorMatrix().size)
+        // Android ColorMatrix layout: 4 rows x 5 columns.
+        assertEquals(20, MaterialSpec.colorMatrix().size)
     }
 
     @Test

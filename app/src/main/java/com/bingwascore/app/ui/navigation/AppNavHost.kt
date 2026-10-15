@@ -29,6 +29,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import com.bingwascore.app.ui.glass.iosMaterial
+import com.bingwascore.app.ui.glass.LocalGlassBackdrop
+import com.bingwascore.app.ui.glass.canMaterialBlur
+import com.bingwascore.app.ui.glass.glassBackdropRegion
+import com.bingwascore.app.ui.glass.glassSource
+import com.bingwascore.app.ui.glass.rememberGlassBackdrop
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
@@ -61,6 +66,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -305,6 +311,9 @@ fun MainScreen() {
     var transactionFilter by remember { mutableStateOf(TransactionFilter.ALL) }
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+    // Stage 18 — one backdrop registry for the shell: pill + drawer blur over
+    // the screens recorded by glassSource (chrome sits outside the recorder).
+    val glassBackdrop = rememberGlassBackdrop()
 
     // POLISH P1 — system back leaves the dialer (and a drawer entry) instead of
     // dropping the agent out of the shell: the dialer is a destination, so it
@@ -314,6 +323,7 @@ fun MainScreen() {
         selectedDrawerIndex = -1
     }
 
+    CompositionLocalProvider(LocalGlassBackdrop provides glassBackdrop) {
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
@@ -321,13 +331,21 @@ fun MainScreen() {
                 drawerContainerColor = Color(0x00000000),
                 modifier = Modifier
                     .fillMaxWidth(0.85f)
+                    // Stage 18 — drawer is a backdrop region while open (blur of
+                    // the screens sliding beneath it); vibrancy lives in the
+                    // blur layer on API31+, tint fallback below.
+                    .glassBackdropRegion(
+                        glassBackdrop, "drawer", RoundedCornerShape(0.dp),
+                        enabled = drawerState.isOpen
+                    )
                     .iosMaterial(
                             shape = RoundedCornerShape(0.dp),
                             tint = if (DisplayModeState.mode == ThemeMode.DARK) {
                                 Color(0xB80B0E15)
                             } else {
-                                Color(0xB8F2F2F7)
-                            }
+                                Color(0xB8E2E4E8)
+                            },
+                            vibrancy = !canMaterialBlur
                         )
             ) {
                 Spacer(modifier = Modifier.height(28.dp))
@@ -442,7 +460,9 @@ fun MainScreen() {
             val resolved = if (showReferral) "referral" else destination
 
             // Stage 10 — flat canvas, no orbs: grouped cards carry the design.
-            Box(modifier = Modifier.fillMaxSize().background(BgBlack)) {
+            // Stage 18 — glassSource records this content as the backdrop the
+            // pill/drawer blur passes replay (transactions move blurred behind).
+            Box(modifier = Modifier.glassSource(glassBackdrop).fillMaxSize().background(BgBlack)) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -494,6 +514,7 @@ fun MainScreen() {
             }
         }
     }
+    } // CompositionLocalProvider(LocalGlassBackdrop)
 }
 /**
  * Stage 10 — floating rounded tab pill (club.com style): inset 12dp margins,
@@ -513,6 +534,8 @@ private fun BottomNavBar(
     onMenu: () -> Unit
 ) {
     val haptics = rememberHaptics()
+    // Stage 18 — the pill is a backdrop region: rows scroll BLURRED beneath it.
+    val glassBackdrop = LocalGlassBackdrop.current
 
     Row(
         modifier = Modifier
@@ -522,14 +545,17 @@ private fun BottomNavBar(
             .padding(horizontal = 12.dp)
             .navigationBarsPadding()
             .padding(bottom = 12.dp)
+            // Stage 18 — backdrop region matches the pill's visual bounds.
+            .glassBackdropRegion(glassBackdrop, "pill", RoundedCornerShape(28.dp))
             .shadow(12.dp, RoundedCornerShape(28.dp))
             .iosMaterial(
                 shape = RoundedCornerShape(28.dp),
                 tint = if (DisplayModeState.mode == ThemeMode.DARK) {
                     Color(0xB80B0E15)
                 } else {
-                    Color(0xB8F2F2F7)
-                }
+                    Color(0xB8E2E4E8)
+                },
+                vibrancy = !canMaterialBlur
             )
             .padding(start = 2.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
         verticalAlignment = Alignment.CenterVertically

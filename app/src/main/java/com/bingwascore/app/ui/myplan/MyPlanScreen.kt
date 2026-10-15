@@ -25,6 +25,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -51,7 +52,9 @@ import com.bingwascore.app.ui.components.PrimaryButton
 import com.bingwascore.app.ui.components.SecondaryButton
 import com.bingwascore.app.ui.components.pressScale
 import com.bingwascore.app.ui.home.CreditRow
+import com.bingwascore.app.ui.glass.LocalGlassBackdrop
 import com.bingwascore.app.ui.theme.AccentBlue
+import com.bingwascore.app.ui.theme.IosMaterialFill
 import com.bingwascore.app.ui.theme.BgBlack
 import com.bingwascore.app.ui.theme.Hairline
 import com.bingwascore.app.ui.theme.IOS_CARD_RADIUS
@@ -409,11 +412,17 @@ private fun PlanConfirmSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val paying = purchase is PurchaseState.Paying
     val success = purchase as? PurchaseState.Success
+    // Stage 18 — the sheet owns the modal backdrop: screens blur behind it.
+    val glassBackdrop = LocalGlassBackdrop.current
+    DisposableEffect(glassBackdrop) {
+        glassBackdrop?.pushModal()
+        onDispose { glassBackdrop?.popModal() }
+    }
 
     ModalBottomSheet(
         onDismissRequest = { if (!paying) onDismiss() },
         sheetState = sheetState,
-        containerColor = Raised,
+        containerColor = IosMaterialFill,
         dragHandle = null
     ) {
         Column(
