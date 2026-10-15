@@ -62,9 +62,11 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalLayoutDirection
 import com.bingwascore.app.ui.components.SecondaryButton
 import com.bingwascore.app.ui.components.StatusDot
+import com.bingwascore.app.ui.glass.iosMaterial
 import com.bingwascore.app.ui.theme.AccentBlue
 import com.bingwascore.app.ui.theme.FailRed
 import com.bingwascore.app.ui.theme.Hairline
+import com.bingwascore.app.ui.theme.IosMaterialFill
 import com.bingwascore.app.ui.theme.Motion
 import com.bingwascore.app.ui.theme.Raised
 import com.bingwascore.app.ui.theme.TextDim
@@ -207,7 +209,7 @@ fun CreditsSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = Raised,
+        containerColor = IosMaterialFill,
         dragHandle = null
     ) {
         Column(
@@ -481,7 +483,7 @@ fun AutopilotSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = Raised,
+        containerColor = IosMaterialFill,
         dragHandle = null
     ) {
         Column(

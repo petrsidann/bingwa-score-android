@@ -50,6 +50,20 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+object SplashBrand {
+    const val WORDMARK = "Bingwa Score"
+    const val TAGLINE = "Your bundle business, automated."
+}
+
+/** Stage 20 — light mode keeps the full choreography on dim porcelain. */
+internal fun splashInk(dark: Boolean): Color = if (dark) TextWhite else Color(0xFF16181D)
+
+/** Stage 20 — soft blue radial glow behind the monogram, both themes. */
+internal val splashGlow: Brush
+    get() = Brush.radialGradient(
+        colors = listOf(AccentBlue.copy(alpha = 0.24f), Color.Transparent)
+    )
+
 /**
  * Stage 11 — "Stroke & Ignite" launch cinematic:
  *
@@ -188,7 +202,7 @@ fun SplashScreen(target: String?, onFinish: (String) -> Unit) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            StaggeredWordmark(text = SPLASH_WORDMARK, clock = clock.value)
+            StaggeredWordmark(text = SplashBrand.WORDMARK, clock = clock.value)
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -212,7 +226,7 @@ internal const val SPLASH_WORDMARK = "Bingwa Score"
  * One alpha per letter of [text], from [progress] (0..1 across the wordmark
  * window). Always returns exactly `text.length` entries — the wordmark is never
  * shortened, only faded — so a refactor that sliced the text would fail
- * [com.bingwascore.app.SplashChoreographyTest] instead of shipping a splash that
+ * the splash choreography test instead of shipping a splash that
  * spells "Bingwa Sco".
  */
 internal fun wordmarkAlphas(text: String, progress: Float): List<Float> {

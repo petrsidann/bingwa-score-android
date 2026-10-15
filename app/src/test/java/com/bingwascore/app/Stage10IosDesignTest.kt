@@ -55,9 +55,10 @@ class Stage10IosDesignTest {
 
     @Test
     fun porcelainHexAndBothThemesResolve() {
-        assertEquals(0xFFF2F2F7.toInt(), PorcelainBg.toArgb())
-        assertEquals(0xFFFFFFFF.toInt(), PorcelainCard.toArgb())
-        assertEquals(0xFF000000.toInt(), PorcelainText.toArgb())
+        // Stage 21 — Porcelain Dim: ~15% darker, glare-free, still AA.
+        assertEquals(0xFFE2E4E8.toInt(), PorcelainBg.toArgb())
+        assertEquals(0xFFF7F8FA.toInt(), PorcelainCard.toArgb())
+        assertEquals(0xFF16181D.toInt(), PorcelainText.toArgb())
         assertEquals(0x4A3C3C43.toInt(), PorcelainSeparator.toArgb())
         assertEquals(0xFF007AFF.toInt(), IosBlue.toArgb())
         assertEquals(0xFF2563EB.toInt(), BrandBlue.toArgb())

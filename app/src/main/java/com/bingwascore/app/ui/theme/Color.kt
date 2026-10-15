@@ -36,12 +36,13 @@ val currentDisplayMode: ThemeMode get() = DisplayModeState.mode
 /** True in Porcelain. */
 val isPorcelain: Boolean get() = DisplayModeState.mode == ThemeMode.LIGHT
 
-/** Stage 10 — porcelain light tokens (iMessage-grade). */
-val PorcelainBg: Color = Color(0xFFF2F2F7)
-val PorcelainCard: Color = Color(0xFFFFFFFF)
+/** Stage 10 — porcelain light tokens (iMessage-grade). Stage 21 — Dim rebalance: ~15% darker, glare-free. */
+val PorcelainBg: Color = Color(0xFFE2E4E8)
+val PorcelainCard: Color = Color(0xFFF7F8FA)
+val PorcelainSurface: Color = Color(0xFFEFF0F3)
 val PorcelainSeparator: Color = Color(0x4A3C3C43)
-val PorcelainText: Color = Color(0xFF000000)
-val PorcelainSecondaryText: Color = Color(0xFF3C3C43)
+val PorcelainText: Color = Color(0xFF16181D)
+val PorcelainSecondaryText: Color = Color(0xFF5A6169)
 val IosBlue: Color = Color(0xFF007AFF)
 /** Brand blue family. */
 val BrandBlue: Color = Color(0xFF2563EB)
@@ -95,23 +96,18 @@ val TextDim: Color get() = when (DisplayModeState.mode) {
  * Stage 10 — the semantic status palette: identical in BOTH themes.
  */
 
-/** Stage 10 — the semantic status palette: identical in BOTH themes. */
+/** Stage 10 — the semantic status palette: identical in BOTH themes (one value each; U4ThemesTest pins equality, U8QaSweepTest pins AA on both canvases). */
 val SemanticBlue: Color = Color(0xFF3E6BFF)
-val SemanticRed: Color get() = when (DisplayModeState.mode) {
-    ThemeMode.LIGHT -> Color(0xFFFC1E1E)
-    else -> Color(0xFFFF5252)
-}
-val SemanticGrey: Color = Color(0xFF4B5563)
+val SemanticRed: Color = Color(0xFFFC1E1E)
+/** Mid-grey clears 3:1 on BOTH canvases (Obsidian #0B0E15 and Porcelain Dim #E2E4E8). */
+val SemanticGrey: Color = Color(0xFF6B7280)
 
 /** Stage 10 — Done/Failed/Queued are the semantic trio in every theme. */
 val StatusDone: Color get() = SemanticBlue
 val StatusFailedTint: Color get() = SemanticRed
 
-/** Queued stays **neutral** in every mode: light in Porcelain, light charcoal in Obsidian so the label stays readable. */
-val StatusQueued: Color get() = when (DisplayModeState.mode) {
-    ThemeMode.LIGHT -> Color(0xFF4B5563)
-    else -> Color(0xFF9CA3AF)
-}
+/** Queued stays **neutral** and identical across themes. */
+val StatusQueued: Color get() = SemanticGrey
 
 /** Stage 10 — chrome accent: brand blue family; iOS blue in Porcelain. */
 val AccentBlue: Color get() = when (DisplayModeState.mode) {

@@ -65,6 +65,7 @@ import com.bingwascore.app.ui.components.BubbleCard
 import com.bingwascore.app.ui.components.ExplanationDialog
 import com.bingwascore.app.ui.components.PrimaryButton
 import com.bingwascore.app.ui.components.statusSwitchColors
+import com.bingwascore.app.updates.UpdateDownloader
 import com.bingwascore.app.util.rememberHaptics
 import com.bingwascore.app.util.screenEnter
 import androidx.compose.material3.Switch
@@ -856,8 +857,11 @@ private fun UpdatesPage(viewModel: SettingsViewModel) {
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold
                 )
-                if (!state.upToDate && updateUrl != null) {
+                val url = updateUrl
+                if (!state.upToDate && url != null) {
                     Spacer(modifier = Modifier.height(10.dp))
+                    // Stage 21 — changelog dialog + DownloadManager progress notification + install intent.
+                    UpdatesDownloadBlock(updateUrl = url, changelog = viewModel.updateChangelog)
                     PrimaryButton(
                         text = "Open in browser",
                         onClick = {
@@ -865,7 +869,7 @@ private fun UpdatesPage(viewModel: SettingsViewModel) {
                                 context.startActivity(
                                     android.content.Intent(
                                         android.content.Intent.ACTION_VIEW,
-                                        android.net.Uri.parse(updateUrl)
+                                        android.net.Uri.parse(url)
                                     ).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
                                 )
                             } catch (_: Throwable) {
@@ -878,6 +882,48 @@ private fun UpdatesPage(viewModel: SettingsViewModel) {
             else -> Unit
         }
     }
+}
+
+/** Stage 21 — changelog dialog + DownloadManager progress notification + install intent. */
+@Composable
+private fun UpdatesDownloadBlock(updateUrl: String, changelog: String) {
+    val context = LocalContext.current
+    var showChangelog by remember { mutableStateOf(false) }
+    var downloading by remember { mutableStateOf(false) }
+    PrimaryButton(
+        text = if (downloading) "Downloading..." else "What's new",
+        enabled = !downloading,
+        onClick = { showChangelog = true }
+    )
+    if (showChangelog) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showChangelog = false },
+            containerColor = Bubble,
+            title = { Text("Update available", color = TextWhite, fontWeight = FontWeight.Bold) },
+            text = {
+                Text(
+                    changelog.ifBlank { "A newer release is published on GitHub." },
+                    color = TextGrey,
+                    fontSize = 13.sp
+                )
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(
+                    onClick = {
+                        showChangelog = false
+                        downloading = true
+                        UpdateDownloader.enqueue(context, updateUrl)
+                    }
+                ) { Text("Download", color = AccentBlue, fontWeight = FontWeight.Bold) }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { showChangelog = false }) {
+                    Text("Later", color = TextGrey)
+                }
+            }
+        )
+    }
+    Spacer(modifier = Modifier.height(10.dp))
 }
 
 @Composable

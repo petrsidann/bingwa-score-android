@@ -54,7 +54,8 @@ class U8QaSweepTest {
         alpha = 1f
     )
     // ── Contrast: text tokens on the theme canvas, x2 themes ──────────────────
-fun textTokensClearAaInEveryTheme() {
+    @Test
+    fun textTokensClearAaInEveryTheme() {
         modes.forEach { mode ->
             installDisplayMode(mode)
             val canvas = canvasFor(mode)
@@ -70,7 +71,8 @@ fun textTokensClearAaInEveryTheme() {
             assertTrue("TextDim below 3:1 ($dimRatio) in $mode", dimRatio >= 3.0)
         }
     }
-fun statusLabelsClearAaOnCanvasInEveryTheme() {
+    @Test
+    fun statusLabelsClearAaOnCanvasInEveryTheme() {
         modes.forEach { mode ->
             installDisplayMode(mode)
             val canvas = canvasFor(mode)
@@ -80,7 +82,8 @@ fun statusLabelsClearAaOnCanvasInEveryTheme() {
             }
         }
     }
-fun ctaPairStaysReadableInEveryTheme() {
+    @Test
+    fun ctaPairStaysReadableInEveryTheme() {
         modes.forEach { mode ->
             installDisplayMode(mode)
             val canvas = canvasFor(mode)
@@ -90,7 +93,8 @@ fun ctaPairStaysReadableInEveryTheme() {
             assertTrue("CTA ink/fill too low in $mode, was $ratio", ratio >= 3.0)
         }
     }
-fun disabledPairStaysReadableInEveryTheme() {
+    @Test
+    fun disabledPairStaysReadableInEveryTheme() {
         modes.forEach { mode ->
             installDisplayMode(mode)
             val canvas = canvasFor(mode)
@@ -100,30 +104,34 @@ fun disabledPairStaysReadableInEveryTheme() {
         }
     }
     // ── Truncation guards: long names must ellipsize, never wrap ─────────────
-fun longNameTruncatesToOneLineEllipsis() {
+    @Test
+    fun longNameTruncatesToOneLineEllipsis() {
         val raw = "WANJIRU MWENDWA NJUGUNA MUTINDI KIMANI OCHIENG"
         val shown = formatCustomerName(raw)
         assertFalse("truncated name must not contain a newline", shown.contains('\n'))
         assertTrue("name should keep growing initials, got '$shown'", shown.length < raw.length)
     }
-fun nameFormatterIsIdempotentAcrossSurfaces() {
+    @Test
+    fun nameFormatterIsIdempotentAcrossSurfaces() {
         val once = formatCustomerName("DENNIS K WACHIRA")
         assertEquals("Dennis K. Wachira", once)
         assertEquals(once, formatCustomerName(once))
     }
-fun emptyStateComponentExistsForAllListScreens() {
+    @Test
+    fun emptyStateComponentExistsForAllListScreens() {
         val repoRoot = sequenceOf(
             java.io.File(System.getProperty("user.dir")),
             java.io.File(System.getProperty("user.dir")).parentFile,
 ).firstOrNull {
     java.io.File(it, "app/src/main/java/com/bingwascore/app").exists()
-} ?: error("repo root not found from user.dir=${System.getProperty("user.dir")})
+} ?: error("repo root not found from user.dir=" + System.getProperty("user.dir"))
         val file = java.io.File(repoRoot, "app/src/main/java/com/bingwascore/app/ui/components/EmptyState.kt")
         assertTrue("shared EmptyState component missing: ${file.absolutePath}", file.exists())
         val src = file.readText()
         assertTrue("EmptyState must render title + message", src.contains("title: String"))
         assertTrue("EmptyState must support an action slot", src.contains("action:"))
-    }
+        val screens = java.io.File(repoRoot, "app/src/main/java/com/bingwascore/app")
+            .walk()
             .filter { it.name.endsWith("Screen.kt") }
             .toList()
         assertTrue("QA sweep found no screens", screens.isNotEmpty())
@@ -135,7 +143,8 @@ fun emptyStateComponentExistsForAllListScreens() {
             users.size >= 10)
     }
     // ── "Queued" wording regression across themes ───────────────────────────
-fun pendingAlwaysReadsQueuedInEveryTheme() {
+    @Test
+    fun pendingAlwaysReadsQueuedInEveryTheme() {
         modes.forEach { mode ->
             installDisplayMode(mode)
             assertEquals("Queued", com.bingwascore.app.ui.theme.StatusColors.label(TransactionStatus.PENDING.value))
@@ -143,7 +152,8 @@ fun pendingAlwaysReadsQueuedInEveryTheme() {
         }
     }
     // ── Two themes only; Obsidian is the default ─────────────────────────────
-fun onlyTwoThemesExistAndDefaultIsObsidian() {
+    @Test
+    fun onlyTwoThemesExistAndDefaultIsObsidian() {
         assertEquals(2, ThemeMode.entries.size)
         assertEquals(ThemeMode.DARK, ThemeMode.fromValue("???"))
         installDisplayMode(ThemeMode.DARK)

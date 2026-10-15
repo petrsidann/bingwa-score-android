@@ -13,10 +13,31 @@ sealed interface UpdateState {
     data object UpToDate : UpdateState
 
     /** A newer release is published. [downloadUrl] opens it in the browser. */
-    data class UpdateAvailable(val latestVersion: String, val downloadUrl: String) : UpdateState
+    data class UpdateAvailable(
+        val latestVersion: String,
+        val downloadUrl: String,
+        val changelog: String = ""
+    ) : UpdateState
+
+    /** Offline or unparsable: callers show the graceful "latest" state. */
+    data object Offline : UpdateState
 
     /** The network/parse step failed — callers surface a generic message. */
     data object Error : UpdateState
+}
+
+/** Stage 21 — semver compare: "1.9.1" > "1.9.0", prefixes tolerated. */
+fun parseSemver(tag: String): List<Int> =
+    tag.removePrefix("v").trim().split(".").map { it.filter(Char::isDigit).toIntOrNull() ?: 0 }
+
+/** True when [latest] is strictly newer than [installed]. */
+fun isNewer(installed: String, latest: String): Boolean {
+    val a = parseSemver(installed); val b = parseSemver(latest)
+    for (i in 0 until maxOf(a.size, b.size)) {
+        val x = a.getOrElse(i) { 0 }; val y = b.getOrElse(i) { 0 }
+        if (y != x) return y > x
+    }
+    return false
 }
 
 /**
@@ -55,14 +76,17 @@ class UpdateChecker {
                     "html_url",
                     "https://github.com/petrsidann/bingwa-score-android/releases"
                 )
+                val changelog = json.optString("body", "").trim().take(2000)
 
                 if (latestTag.isEmpty()) return@withContext UpdateState.Error
 
-                if (latestTag == BuildConfig.VERSION_NAME) {
+                if (!isNewer(BuildConfig.VERSION_NAME, latestTag)) {
                     UpdateState.UpToDate
                 } else {
-                    UpdateState.UpdateAvailable(latestTag, htmlUrl)
+                    UpdateState.UpdateAvailable(latestTag, htmlUrl, changelog)
                 }
+            } catch (e: java.net.UnknownHostException) {
+                UpdateState.Offline
             } catch (_: Throwable) {
                 UpdateState.Error
             }

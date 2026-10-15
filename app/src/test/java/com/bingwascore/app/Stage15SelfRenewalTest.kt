@@ -231,10 +231,14 @@ class Stage15SelfRenewalTest {
     }
 
     @Test
-    fun `the autopilot card is gone and my score is on home`() {
+    fun `the autopilot pill stays on home and my score lives in the drawer`() {
+        // Stage 19 — Home = greeting+credits, autopilot pill, tiles, chart,
+        // airtime, transactions ONLY; My Score moved to the drawer.
         val home = source("app/src/main/java/com/bingwascore/app/ui/home/HomeScreen.kt")
-        assertFalse("no AutopilotPill on Home", home.contains("AutopilotPill("))
-        assertTrue("My Score card is on Home", home.contains("MyScoreCard()"))
+        assertTrue("AutopilotPill is Home's autopilot surface", home.contains("AutopilotPill("))
+        assertFalse("no score UI on Home", home.contains("MyScoreCard("))
+        val nav = source("app/src/main/java/com/bingwascore/app/ui/navigation/AppNavHost.kt")
+        assertTrue("My Score is a drawer item", nav.contains("\"My Score\""))
     }
 
     @Test

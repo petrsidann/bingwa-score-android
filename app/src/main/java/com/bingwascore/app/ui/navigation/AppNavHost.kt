@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
+import com.bingwascore.app.ui.glass.iosMaterial
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
@@ -43,6 +44,7 @@ import androidx.compose.material.icons.rounded.Bolt
 import androidx.compose.material.icons.rounded.Call
 import androidx.compose.material.icons.rounded.DeviceHub
 import androidx.compose.material.icons.rounded.Home
+import androidx.compose.material.icons.rounded.Menu
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.LocalOffer
 import androidx.compose.material.icons.rounded.People
@@ -86,7 +88,6 @@ import com.bingwascore.app.ui.autorenewals.AutoRenewalsScreen
 import com.bingwascore.app.ui.autoreplies.AutoRepliesScreen
 import com.bingwascore.app.ui.components.ScreenTransition
 import com.bingwascore.app.ui.components.pressScale
-import com.bingwascore.app.ui.components.pressScale
 import com.bingwascore.app.ui.customers.CustomersScreen
 import com.bingwascore.app.ui.dialer.DialerScreen
 import com.bingwascore.app.ui.diplomatics.DiplomaticsScreen
@@ -126,10 +127,10 @@ import com.bingwascore.app.ui.showcase.DemoChip
 import com.bingwascore.app.ui.theme.AccentBlue
 import com.bingwascore.app.ui.theme.Motion
 import com.bingwascore.app.ui.theme.BgBlack
+import com.bingwascore.app.ui.theme.DisplayModeState
+import com.bingwascore.app.domain.ThemeMode
 import com.bingwascore.app.ui.theme.Raised
 import com.bingwascore.app.ui.theme.TextWhite
-import com.bingwascore.app.ui.components.IosMaterial
-import com.bingwascore.app.ui.components.iosMaterial
 import androidx.compose.runtime.collectAsState
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
@@ -249,7 +250,7 @@ fun AppNavHost() {
     }
 }
 
-private data class DrawerEntry(val label: String, val icon: ImageVector)
+internal data class DrawerEntry(val label: String, val icon: ImageVector)
 
 /**
  * Drawer indexes of the destinations built so far. These MUST stay in the same
@@ -268,12 +269,12 @@ private const val MESH_DRAWER_INDEX = 5
 private const val REDEEM_COUPON_DRAWER_INDEX = 6
 private const val SETTINGS_DRAWER_INDEX = 7
 private const val ANNOUNCEMENTS_DRAWER_INDEX = 8
-private const val COMMISSION_PULSE_DRAWER_INDEX = 9
+private const val MY_SCORE_DRAWER_INDEX = 9
 private const val COMMUNITY_DRAWER_INDEX = 10
 private const val MY_PLAN_DRAWER_INDEX = 11
 private const val DIPLOMATICS_DRAWER_INDEX = 12
 
-private val drawerEntries = listOf(
+internal val drawerEntries = listOf(
     DrawerEntry("Customers", Icons.Rounded.People),
     DrawerEntry("Auto Renewals", Icons.Rounded.Autorenew),
     DrawerEntry("Smart Follow-Up", Icons.Rounded.SmartToy),
@@ -283,7 +284,7 @@ private val drawerEntries = listOf(
     DrawerEntry("Redeem Coupon", Icons.Rounded.Redeem),
     DrawerEntry("Settings", Icons.Rounded.Settings),
     DrawerEntry("Announcements", Icons.Rounded.Campaign),
-    DrawerEntry("Commission Pulse", Icons.Rounded.EmojiEvents),
+    DrawerEntry("My Score", Icons.Rounded.EmojiEvents),
     DrawerEntry("Community", Icons.Rounded.Groups),
     DrawerEntry("My Plan", Icons.Rounded.WorkspacePremium),
     DrawerEntry("Diplomatics", Icons.Rounded.Language)
@@ -316,7 +317,19 @@ fun MainScreen() {
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
-            ModalDrawerSheet(drawerContainerColor = Raised) {
+            ModalDrawerSheet(
+                drawerContainerColor = Color(0x00000000),
+                modifier = Modifier
+                    .fillMaxWidth(0.85f)
+                    .iosMaterial(
+                            shape = RoundedCornerShape(0.dp),
+                            tint = if (DisplayModeState.mode == ThemeMode.DARK) {
+                                Color(0xB80B0E15)
+                            } else {
+                                Color(0xB8F2F2F7)
+                            }
+                        )
+            ) {
                 Spacer(modifier = Modifier.height(28.dp))
                 Row(
                     modifier = Modifier.padding(horizontal = 24.dp),
@@ -398,7 +411,8 @@ fun MainScreen() {
                     onDialer = {
                         selectedDrawerIndex = -1
                         showDialer = true
-                    }
+                    },
+                    onMenu = { scope.launch { drawerState.open() } }
                 )
             }
         ) { innerPadding ->
@@ -413,7 +427,7 @@ fun MainScreen() {
                 selectedDrawerIndex == REDEEM_COUPON_DRAWER_INDEX -> "coupon"
                 selectedDrawerIndex == SETTINGS_DRAWER_INDEX -> "settings"
                 selectedDrawerIndex == ANNOUNCEMENTS_DRAWER_INDEX -> "announcements"
-                selectedDrawerIndex == COMMISSION_PULSE_DRAWER_INDEX -> "commissionpulse"
+                selectedDrawerIndex == MY_SCORE_DRAWER_INDEX -> "myscore"
                 selectedDrawerIndex == COMMUNITY_DRAWER_INDEX -> "community"
                 selectedDrawerIndex == MY_PLAN_DRAWER_INDEX -> "myplan"
                 selectedDrawerIndex == DIPLOMATICS_DRAWER_INDEX -> "diplomatics"
@@ -446,7 +460,7 @@ fun MainScreen() {
                         "coupon" -> RedeemCouponScreen()
                         "settings" -> SettingsScreen()
                         "announcements" -> AnnouncementsScreen()
-                        "commissionpulse" -> ScoreScreen()
+                        "myscore" -> ScoreScreen()
                         "community" -> CommunityScreen()
                         "myplan" -> MyPlanScreen()
                         "diplomatics" -> DiplomaticsScreen()
@@ -495,7 +509,8 @@ private fun BottomNavBar(
     selected: Int,
     dialerOpen: Boolean,
     onSelect: (Int) -> Unit,
-    onDialer: () -> Unit
+    onDialer: () -> Unit,
+    onMenu: () -> Unit
 ) {
     val haptics = rememberHaptics()
 
@@ -508,10 +523,27 @@ private fun BottomNavBar(
             .navigationBarsPadding()
             .padding(bottom = 12.dp)
             .shadow(12.dp, RoundedCornerShape(28.dp))
-            .iosMaterial(RoundedCornerShape(28.dp))
-            .padding(horizontal = 8.dp, vertical = 6.dp),
+            .iosMaterial(
+                shape = RoundedCornerShape(28.dp),
+                tint = if (DisplayModeState.mode == ThemeMode.DARK) {
+                    Color(0xB80B0E15)
+                } else {
+                    Color(0xB8F2F2F7)
+                }
+            )
+            .padding(start = 2.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        Icon(
+            imageVector = Icons.Rounded.Menu,
+            contentDescription = "Menu",
+            tint = TextGrey,
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .clickable { haptics.tick(); onMenu() }
+                .padding(9.dp)
+        )
         NavTab(Icons.Rounded.Home, "Home", selected == 0 && !dialerOpen) {
             haptics.tick(); onSelect(0)
         }

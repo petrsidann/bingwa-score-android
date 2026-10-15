@@ -8,9 +8,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -229,10 +226,12 @@ fun HomeScreen(
             }
 
             item {
-                // Stage 15 — the Autopilot card is gone; its place is the My
-                // Score analytics card (bolt-in-trophy). The engine still runs
-                // from the Transactions "Queued" flow and the Autopilot drawer.
-                MyScoreCard()
+                // Stage 19 — Home has zero score UI; autopilot pill owns this slot.
+                AutopilotPill(
+                    engineState = engineState,
+                    onOpenSheet = { showAutopilot = true },
+                    onPause = { viewModel.pauseEngine() }
+                )
             }
 
             item {
@@ -587,17 +586,20 @@ private fun MoneyLine(label: String, value: String, modifier: Modifier = Modifie
     }
 }
 
-/** Circular refresh that spins only while the balance read is in flight. */
+/** Circular refresh that spins only while the balance read is in flight. Stage 21 — no always-on loop: static when idle. */
 @Composable
 private fun RefreshButton(loading: Boolean, onClick: () -> Unit) {
-    val transition = rememberInfiniteTransition(label = "refreshSpin")
-    val spin by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(tween(900, easing = LinearEasing)),
-        label = "refreshAngle"
-    )
-    val angle = if (loading) spin else 0f
+    // Gated spin: one-shot rotation while loading, static icon when idle.
+    val spin = remember { Animatable(0f) }
+    LaunchedEffect(loading) {
+        if (loading) {
+            spin.animateTo(360f, animationSpec = tween(900, easing = LinearEasing))
+            spin.snapTo(0f)
+        } else {
+            spin.snapTo(0f)
+        }
+    }
+    val angle = if (loading) spin.value else 0f
 
     Box(
         modifier = Modifier

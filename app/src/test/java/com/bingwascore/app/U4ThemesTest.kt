@@ -50,9 +50,10 @@ class U4ThemesTest {
 
     @Test
     fun porcelainTokensAreIMessageGrade() {
-        assertEquals(0xFFF2F2F7.toInt(), argb(PorcelainBg))
-        assertEquals(0xFFFFFFFF.toInt(), argb(PorcelainCard))
-        assertEquals(0xFF000000.toInt(), argb(PorcelainText))
+        // Stage 21 — Porcelain Dim rebalance: glare-free, ~15% darker, AA kept.
+        assertEquals(0xFFE2E4E8.toInt(), argb(PorcelainBg))
+        assertEquals(0xFFF7F8FA.toInt(), argb(PorcelainCard))
+        assertEquals(0xFF16181D.toInt(), argb(PorcelainText))
         assertEquals(0xFF007AFF.toInt(), argb(IosBlue))
         assertEquals(0xFF2563EB.toInt(), argb(BrandBlue))
         assertEquals(0x4A3C3C43.toInt(), argb(PorcelainSeparator))
@@ -79,7 +80,7 @@ class U4ThemesTest {
         assertEquals(darkFailed, argb(StatusFailedTint))
         assertEquals(darkQueued, argb(StatusQueued))
         assertEquals(argb(SemanticBlue), argb(StatusDone))
-        assertEquals(0xFFFF5252.toInt(), argb(StatusFailedTint))
+        assertEquals(0xFFFC1E1E.toInt(), argb(StatusFailedTint))
         assertEquals(argb(SemanticGrey), argb(StatusQueued))
         installDisplayMode(ThemeMode.DARK)
     }

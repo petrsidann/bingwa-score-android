@@ -75,6 +75,10 @@ class SettingsViewModel @Inject constructor(
     private val _updateUrl = MutableStateFlow<String?>(null)
     val updateUrl: StateFlow<String?> = _updateUrl.asStateFlow()
 
+    /** Stage 21 — release notes body for the changelog dialog. */
+    var updateChangelog: String = ""
+        private set
+
     val appVersion: String = BuildConfig.APP_VERSION
 
     private val _simulateResult = MutableStateFlow<String?>(null)
@@ -157,14 +161,19 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             _updateState.value = UpdateCheckState.Checking
             _updateUrl.value = null
+            updateChangelog = ""
             try {
                 when (val state = UpdateChecker.check()) {
                     is UpdateState.UpToDate ->
                         _updateState.value = UpdateCheckState.Done(upToDate = true)
                     is UpdateState.UpdateAvailable -> {
                         _updateUrl.value = state.downloadUrl
+                        updateChangelog = state.changelog
                         _updateState.value = UpdateCheckState.Done(upToDate = false)
                     }
+                    // Stage 21 — offline is graceful: report "latest", never an error wall.
+                    is UpdateState.Offline ->
+                        _updateState.value = UpdateCheckState.Done(upToDate = true)
                     is UpdateState.Error ->
                         _updateState.value = UpdateCheckState.Done(upToDate = true)
                 }
