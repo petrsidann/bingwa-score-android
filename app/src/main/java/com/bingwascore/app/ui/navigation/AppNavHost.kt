@@ -5,6 +5,7 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
@@ -23,6 +24,7 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.width
@@ -305,216 +307,157 @@ internal val drawerEntries = listOf(
 fun MainScreen() {
     var selectedTab by remember { mutableStateOf(0) }
     var selectedDrawerIndex by remember { mutableStateOf(-1) }
+    var drawerOpen by remember { mutableStateOf(false) }
     var showDialer by remember { mutableStateOf(false) }
     var showReferral by remember { mutableStateOf(false) }
     // R2: Home counters hand a status filter over to the Transactions tab.
     var transactionFilter by remember { mutableStateOf(TransactionFilter.ALL) }
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
-    // Stage 18 — one backdrop registry for the shell: pill + drawer blur over
-    // the screens recorded by glassSource (chrome sits outside the recorder).
+    // Stage 18 — one backdrop registry for the shell: pill blur over the screens
+    // recorded by glassSource (chrome sits outside the recorder).
     val glassBackdrop = rememberGlassBackdrop()
 
     // POLISH P1 — system back leaves the dialer (and a drawer entry) instead of
     // dropping the agent out of the shell: the dialer is a destination, so it
     // behaves like one.
-    BackHandler(enabled = showDialer || selectedDrawerIndex >= 0) {
+    BackHandler(enabled = showDialer || drawerOpen) {
         showDialer = false
-        selectedDrawerIndex = -1
+        drawerOpen = false
     }
 
-    CompositionLocalProvider(LocalGlassBackdrop provides glassBackdrop) {
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        drawerContent = {
-            ModalDrawerSheet(
-                drawerContainerColor = Color(0x00000000),
-                modifier = Modifier
-                    .fillMaxWidth(0.85f)
-                    // Stage 18 — drawer is a backdrop region while open (blur of
-                    // the screens sliding beneath it); vibrancy lives in the
-                    // blur layer on API31+, tint fallback below.
-                    .glassBackdropRegion(
-                        glassBackdrop, "drawer", RoundedCornerShape(0.dp),
-                        enabled = drawerState.isOpen
+    Box(modifier = Modifier.fillMaxSize()) {
+        CompositionLocalProvider(LocalGlassBackdrop provides glassBackdrop) {
+            Scaffold(
+                modifier = Modifier.fillMaxSize(),
+                containerColor = BgBlack,
+                contentWindowInsets = WindowInsets.safeDrawing.only(
+                    WindowInsetsSides.Top + WindowInsetsSides.Horizontal
+                ),
+                bottomBar = {
+                    // U1 — single-active truth: the highlight is derived ONLY from
+                    // the current route. Dialer open -> Dial (2). Drawer open ->
+                    // no tab (-1). Otherwise the active tab.
+                    val navSelected = when {
+                        showDialer -> 2
+                        drawerOpen -> -1
+                        else -> selectedTab
+                    }
+                    BottomNavBar(
+                        selected = navSelected,
+                        dialerOpen = showDialer,
+                        onSelect = {
+                            // POLISH P1 — the dialer is a real destination, not an
+                            // overlay: choosing any tab leaves it.
+                            selectedTab = it
+                            drawerOpen = false
+                            showDialer = false
+                        },
+                        onDialer = {
+                            drawerOpen = false
+                            showDialer = true
+                        },
+                        onMenu = { drawerOpen = true }
                     )
-                    .iosMaterial(
-                            shape = RoundedCornerShape(0.dp),
-                            tint = if (DisplayModeState.mode == ThemeMode.DARK) {
-                                Color(0xB80B0E15)
-                            } else {
-                                Color(0xB8E2E4E8)
-                            },
-                            vibrancy = !canMaterialBlur
-                        )
-            ) {
-                Spacer(modifier = Modifier.height(28.dp))
-                Row(
-                    modifier = Modifier.padding(horizontal = 24.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        "Bingwa Score",
-                        color = TextWhite,
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    DemoChip()
                 }
-                Spacer(modifier = Modifier.height(12.dp))
-                drawerEntries.forEachIndexed { index, entry ->
-                    val selected = selectedDrawerIndex == index
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
+            ) { innerPadding ->
+                val destination = when {
+                    showDialer -> "dialer"
+                    selectedDrawerIndex == CUSTOMERS_DRAWER_INDEX -> "customers"
+                    selectedDrawerIndex == AUTO_RENEWALS_DRAWER_INDEX -> "autorenewals"
+                    selectedDrawerIndex == SMART_FOLLOW_UP_DRAWER_INDEX -> "smartfollowup"
+                    selectedDrawerIndex == AUTOPILOT_DRAWER_INDEX -> "autopilot"
+                    selectedDrawerIndex == AGENT_PORTAL_DRAWER_INDEX -> "agentportal"
+                    selectedDrawerIndex == MESH_DRAWER_INDEX -> "mesh"
+                    selectedDrawerIndex == REDEEM_COUPON_DRAWER_INDEX -> "coupon"
+                    selectedDrawerIndex == SETTINGS_DRAWER_INDEX -> "settings"
+                    selectedDrawerIndex == ANNOUNCEMENTS_DRAWER_INDEX -> "announcements"
+                    selectedDrawerIndex == MY_SCORE_DRAWER_INDEX -> "myscore"
+                    selectedDrawerIndex == COMMUNITY_DRAWER_INDEX -> "community"
+                    selectedDrawerIndex == MY_PLAN_DRAWER_INDEX -> "myplan"
+                    selectedDrawerIndex == DIPLOMATICS_DRAWER_INDEX -> "diplomatics"
+                    else -> when (selectedTab) {
+                        0 -> "home"
+                        1 -> "offers"
+                        3 -> "transactions"
+                        else -> "profile"
+                    }
+                }
+
+                val resolved = if (showReferral) "referral" else destination
+
+                // Stage 10 — flat canvas, no orbs: grouped cards carry the design.
+                // Stage 18 — glassSource records this content as the backdrop the
+                // pill/drawer blur passes replay (transactions move blurred behind).
+                Box(modifier = Modifier.glassSource(glassBackdrop).fillMaxSize().background(BgBlack)) {
+                    Box(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                selectedDrawerIndex = index
-                                showDialer = false
-                                scope.launch { drawerState.close() }
-                            }
-                            .padding(horizontal = 24.dp, vertical = 12.dp)
+                            .fillMaxSize()
+                            .padding(innerPadding)
                     ) {
-                        Icon(
-                            imageVector = entry.icon,
-                            contentDescription = entry.label,
-                            tint = if (selected) AccentBlue else TextWhite.copy(alpha = 0.6f),
-                            modifier = Modifier.size(22.dp)
-                        )
-                        Spacer(modifier = Modifier.size(14.dp))
-                        Text(
-                            entry.label,
-                            color = if (selected) TextWhite else TextWhite.copy(alpha = 0.7f),
-                            fontSize = 14.sp,
-                            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                            modifier = Modifier.weight(1f)
-                        )
-                        // Unread dot for Announcements
-                        if (index == ANNOUNCEMENTS_DRAWER_INDEX) {
-                            Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(PendGrey))
+                        ScreenTransition(screenKey = resolved, modifier = Modifier.fillMaxSize()) {
+                            when (resolved) {
+                                "dialer" -> DialerScreen(onClose = { showDialer = false })
+                                "customers" -> CustomersScreen()
+                                "autorenewals" -> AutoRenewalsScreen()
+                                "smartfollowup" -> AutoRepliesScreen()
+                                "autopilot" -> EngageBotScreen()
+                                "agentportal" -> MyStoreScreen()
+                                "mesh" -> MeshScreen()
+                                "coupon" -> RedeemCouponScreen()
+                                "settings" -> SettingsScreen()
+                                "announcements" -> AnnouncementsScreen()
+                                "myscore" -> ScoreScreen()
+                                "community" -> CommunityScreen()
+                                "myplan" -> MyPlanScreen()
+                                "diplomatics" -> DiplomaticsScreen()
+                                "referral" -> ReferralScreen()
+                                "home" -> HomeScreen(
+                                    onOpenTransactions = { status ->
+                                        transactionFilter = TransactionFilter.fromStatus(status)
+                                        selectedTab = 3
+                                        selectedDrawerIndex = -1
+                                    },
+                                    onOpenMyPlan = { selectedDrawerIndex = MY_PLAN_DRAWER_INDEX },
+                                    onOpenDiplomatics = { selectedDrawerIndex = DIPLOMATICS_DRAWER_INDEX }
+                                )
+                                "offers" -> OffersScreen()
+                                "transactions" -> TransactionsScreen(initialFilter = transactionFilter)
+                                "profile" -> ProfileScreen(
+                                    onMyStore = { selectedDrawerIndex = AGENT_PORTAL_DRAWER_INDEX },
+                                    onReferEarn = { showReferral = true },
+                                    onSettings = { selectedDrawerIndex = SETTINGS_DRAWER_INDEX },
+                                    onAbout = { selectedDrawerIndex = SETTINGS_DRAWER_INDEX }
+                                )
+                                else -> ProfileScreen(
+                                    onMyStore = { selectedDrawerIndex = AGENT_PORTAL_DRAWER_INDEX },
+                                    onReferEarn = { showReferral = true },
+                                    onSettings = { selectedDrawerIndex = SETTINGS_DRAWER_INDEX },
+                                    onAbout = { selectedDrawerIndex = SETTINGS_DRAWER_INDEX }
+                                )
+                            }
                         }
                     }
                 }
-                Spacer(modifier = Modifier.height(24.dp))
             }
         }
-    ) {
-        Scaffold(
-            containerColor = BgBlack,
-            contentWindowInsets = WindowInsets.safeDrawing.only(
-                WindowInsetsSides.Top + WindowInsetsSides.Horizontal
-            ),
-            bottomBar = {
-                // U1 — single-active truth: the highlight is derived ONLY from
-                // the current route. Dialer open -> Dial (2). Any drawer
-                // destination -> no tab (-1). Otherwise the active tab.
-                val navSelected = when {
-                    showDialer -> 2
-                    selectedDrawerIndex >= 0 -> -1
-                    else -> selectedTab
-                }
-                BottomNavBar(
-                    selected = navSelected,
-                    dialerOpen = showDialer,
-                    onSelect = {
-                        // POLISH P1 — the dialer is a real destination, not an
-                        // overlay: choosing any tab leaves it. (It used to sit on
-                        // top of every tab, which is what made it feel like a
-                        // ghost sheet that refused to go away.)
-                        selectedTab = it
-                        selectedDrawerIndex = -1
-                        showDialer = false
-                    },
-                    onDialer = {
-                        selectedDrawerIndex = -1
-                        showDialer = true
-                    },
-                    onMenu = { scope.launch { drawerState.open() } }
-                )
-            }
-        ) { innerPadding ->
-            val destination = when {
-                showDialer -> "dialer"
-                selectedDrawerIndex == CUSTOMERS_DRAWER_INDEX -> "customers"
-                selectedDrawerIndex == AUTO_RENEWALS_DRAWER_INDEX -> "autorenewals"
-                selectedDrawerIndex == SMART_FOLLOW_UP_DRAWER_INDEX -> "smartfollowup"
-                selectedDrawerIndex == AUTOPILOT_DRAWER_INDEX -> "autopilot"
-                selectedDrawerIndex == AGENT_PORTAL_DRAWER_INDEX -> "agentportal"
-                selectedDrawerIndex == MESH_DRAWER_INDEX -> "mesh"
-                selectedDrawerIndex == REDEEM_COUPON_DRAWER_INDEX -> "coupon"
-                selectedDrawerIndex == SETTINGS_DRAWER_INDEX -> "settings"
-                selectedDrawerIndex == ANNOUNCEMENTS_DRAWER_INDEX -> "announcements"
-                selectedDrawerIndex == MY_SCORE_DRAWER_INDEX -> "myscore"
-                selectedDrawerIndex == COMMUNITY_DRAWER_INDEX -> "community"
-                selectedDrawerIndex == MY_PLAN_DRAWER_INDEX -> "myplan"
-                selectedDrawerIndex == DIPLOMATICS_DRAWER_INDEX -> "diplomatics"
-                else -> when (selectedTab) {
-                    0 -> "home"
-                    1 -> "offers"
-                    3 -> "transactions"
-                    else -> "profile"
-                }
-            }
 
-            val resolved = if (showReferral) "referral" else destination
-
-            // Stage 10 — flat canvas, no orbs: grouped cards carry the design.
-            // Stage 18 — glassSource records this content as the backdrop the
-            // pill/drawer blur passes replay (transactions move blurred behind).
-            Box(modifier = Modifier.glassSource(glassBackdrop).fillMaxSize().background(BgBlack)) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding)
-                ) {
-                ScreenTransition(screenKey = resolved, modifier = Modifier.fillMaxSize()) {
-                    when (resolved) {
-                        "dialer" -> DialerScreen(onClose = { showDialer = false })
-                        "customers" -> CustomersScreen()
-                        "autorenewals" -> AutoRenewalsScreen()
-                        "smartfollowup" -> AutoRepliesScreen()
-                        "autopilot" -> EngageBotScreen()
-                        "agentportal" -> MyStoreScreen()
-                        "mesh" -> MeshScreen()
-                        "coupon" -> RedeemCouponScreen()
-                        "settings" -> SettingsScreen()
-                        "announcements" -> AnnouncementsScreen()
-                        "myscore" -> ScoreScreen()
-                        "community" -> CommunityScreen()
-                        "myplan" -> MyPlanScreen()
-                        "diplomatics" -> DiplomaticsScreen()
-                        "referral" -> ReferralScreen()
-                        "home" -> HomeScreen(
-                            onOpenTransactions = { status ->
-                                transactionFilter = TransactionFilter.fromStatus(status)
-                                selectedTab = 3
-                                selectedDrawerIndex = -1
-                            },
-                            onOpenMyPlan = { selectedDrawerIndex = MY_PLAN_DRAWER_INDEX },
-                            onOpenDiplomatics = { selectedDrawerIndex = DIPLOMATICS_DRAWER_INDEX }
-                        )
-                        "offers" -> OffersScreen()
-                        "transactions" -> TransactionsScreen(initialFilter = transactionFilter)
-                        "profile" -> ProfileScreen(
-                            onMyStore = { selectedDrawerIndex = AGENT_PORTAL_DRAWER_INDEX },
-                            onReferEarn = { showReferral = true },
-                            onSettings = { selectedDrawerIndex = SETTINGS_DRAWER_INDEX },
-                            onAbout = { selectedDrawerIndex = SETTINGS_DRAWER_INDEX }
-                        )
-                        else -> ProfileScreen(
-                            onMyStore = { selectedDrawerIndex = AGENT_PORTAL_DRAWER_INDEX },
-                            onReferEarn = { showReferral = true },
-                            onSettings = { selectedDrawerIndex = SETTINGS_DRAWER_INDEX },
-                            onAbout = { selectedDrawerIndex = SETTINGS_DRAWER_INDEX }
-                        )
-                    }
+        // Stage 19 — spring side-sheet drawer (primary): hamburger tap opens the
+        // drawer as an iosMaterial side-sheet with a spring slide (<300ms).
+        // Edge-pull is demoted to secondary — no longer the primary open gesture.
+        SideDrawerSheet(
+            isOpen = drawerOpen,
+            onClose = { drawerOpen = false },
+            glassBackdrop = glassBackdrop
+        ) {
+            DrawerContent(
+                selectedIndex = selectedDrawerIndex,
+                onEntryClick = { index ->
+                    selectedDrawerIndex = index
+                    drawerOpen = false
                 }
-            }
-            }
+            )
         }
     }
-    } // CompositionLocalProvider(LocalGlassBackdrop)
 }
 /**
  * Stage 10 — floating rounded tab pill (club.com style): inset 12dp margins,
@@ -629,6 +572,125 @@ private fun RowScope.NavTab(
             maxLines = 1,
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
         )
+    }
+}
+
+/**
+ * Stage 19 — spring side-sheet drawer (primary): slides in from the left edge
+ * with an iosMaterial background when [isOpen] is true; sits off-screen when
+ * closed. A dimming backdrop taps to close. Hamburger→drawer <300ms spring.
+ * Edge-pull is demoted to secondary — no longer the primary open gesture.
+ */
+@Composable
+fun SideDrawerSheet(
+    isOpen: Boolean,
+    onClose: () -> Unit,
+    glassBackdrop: com.bingwascore.app.ui.glass.GlassBackdropState? = null,
+    content: @Composable () -> Unit
+) {
+    val sheetWidth = 280f
+    val offset by animateFloatAsState(
+        targetValue = if (isOpen) 0f else -sheetWidth,
+        animationSpec = spring(
+            dampingRatio = Motion.DAMPING,
+            stiffness = Spring.StiffnessHigh
+        ),
+        label = "sideDrawerSheet"
+    )
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        if (isOpen) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.35f))
+                    .clickable(onClick = onClose)
+            )
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxHeight()
+                .width(sheetWidth.dp)
+                .offset(x = offset.dp, y = 0.dp)
+                .background(BgBlack)
+                // Stage 18 — drawer is a backdrop region while open; region passes
+                // suspend while a modal owns the backdrop. Edge-pull demoted:
+                // hamburger tap is the primary open gesture.
+                .glassBackdropRegion(
+                        glassBackdrop, "drawer",
+                        RoundedCornerShape(0.dp), enabled = isOpen)
+                .iosMaterial(
+                    shape = RoundedCornerShape(0.dp),
+                    tint = if (DisplayModeState.mode == ThemeMode.DARK) {
+                        Color(0xB80B0E15)
+                    } else {
+                        Color(0xB8E2E4E8)
+                    },
+                    vibrancy = !canMaterialBlur
+                )
+        ) {
+            Column(modifier = Modifier.fillMaxWidth().padding(top = 28.dp)) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 24.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "Bingwa Score",
+                        color = TextWhite,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    DemoChip()
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+                content()
+                Spacer(modifier = Modifier.height(24.dp))
+            }
+        }
+    }
+}
+
+/**
+ * Stage 19 — drawer entry list: Customers → Diplomatics, including My Score
+ * (analytics + achievements screen) at [MY_SCORE_DRAWER_INDEX].
+ */
+@Composable
+fun DrawerContent(
+    selectedIndex: Int,
+    onEntryClick: (Int) -> Unit
+) {
+    drawerEntries.forEachIndexed { index, entry ->
+        val selected = selectedIndex == index
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable {
+                    onEntryClick(index)
+                }
+                .padding(horizontal = 24.dp, vertical = 12.dp)
+        ) {
+            Icon(
+                imageVector = entry.icon,
+                contentDescription = entry.label,
+                tint = if (selected) AccentBlue else TextWhite.copy(alpha = 0.6f),
+                modifier = Modifier.size(22.dp)
+            )
+            Spacer(modifier = Modifier.size(14.dp))
+            Text(
+                entry.label,
+                color = if (selected) TextWhite else TextWhite.copy(alpha = 0.7f),
+                fontSize = 14.sp,
+                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                modifier = Modifier.weight(1f)
+            )
+            // Unread dot for Announcements
+            if (index == ANNOUNCEMENTS_DRAWER_INDEX) {
+                Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(PendGrey))
+            }
+        }
     }
 }
 
