@@ -47,3 +47,6 @@ build_log.txt
 
 # bootstrapper-only JDK discovery artifact; never committed (machine-specific).
 freebuff_jdk.json
+
+.idea/
+config.yaml
