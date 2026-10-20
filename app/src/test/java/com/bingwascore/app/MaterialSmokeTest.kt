@@ -53,7 +53,7 @@ class MaterialSmokeTest {
     fun `pill and drawer are backdrop regions in the shell`() {
         assertTrue("glassSource recorder on the shell", shell.contains("glassSource(glassBackdrop)"))
         assertTrue("pill is a backdrop region", shell.contains("glassBackdropRegion(glassBackdrop, \"pill\""))
-        assertTrue("drawer is a backdrop region", shell.contains("glassBackdropRegion(\n                        glassBackdrop, \"drawer\""))
+        assertTrue("drawer is a backdrop region", shell.replace("\r\n", "\n").contains("glassBackdropRegion(\n                        glassBackdrop, \"drawer\""))
         assertTrue("pill shape radius 28dp", shell.contains("RoundedCornerShape(28.dp)"))
     }
 

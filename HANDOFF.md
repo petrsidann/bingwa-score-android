@@ -1,5 +1,13 @@
 # ULTRA session end — handoff
 
+## STEP 0 resume state (2026-10-20, Stage 18 green)
+
+- Shipped+green: Stages 1–17 (see git log). Three Stage tests + assembleDebug green at rescue commit `0db8469`.
+- **Stage 18 — iOS 27 material engine**: RESOLVED. `glassBackdropRegionX`/`iosMaterialX` were nested inside `glassSource`'s `drawWithContent` block (local, not package-level) and `viewport = size.toSize()` had a receiver mismatch; hoisted both to package level, fixed `viewport = size`, and made `MaterialSmokeTest` drawer assertion CRLF-tolerant. `:app:compileDebugKotlin`, `:app:assembleDebug`, `:app:testDebugUnitTest` (310 tests) all green.
+- Filtered: remove chrome paints, retina draws, drop shadow, drop alpha.
+- Next group: **Stage 19: navigation + home restructure**.
+
+
 ## STEP 0 resume state (2026-10-12, Stage 16 shipped)
 - Shipped+green: Stages 1-16. U1 USSD engine + E1 balance/dial protected.
 - **Stage 16 — mesh v2 offline P2P**: new pure core `domain/mesh/` — `MeshCore` (roles Main/Receiver, chain ≤4, routing table amount→Receiver, offline queue, PaymentRequest/StatusUpdate, flush) + `MeshTransport` interface with `LoopbackTransport` (channel-buffered in-memory pair), `BleGattTransport` (6-digit pairing), `WifiDirectTransport` (P2P socket stubs) + `MeshNode` runtime (onPayment routes+queues-on-down; Receiver auto-processes + syncs status back; flushQueue on reconnect). `MeshScreen`/`MeshViewModel` rebuilt: role picker, linked devices with 3-dot signal, routing editor, test-pulse that round-trips a real Main→Receiver over the loopback bus.

@@ -137,7 +137,7 @@ fun Modifier.glassSource(state: GlassBackdropState): Modifier = this.composed {
             )
             val canvas = drawContext.canvas.nativeCanvas
             val recorder = state.recorderRoot
-            val viewport = size.toSize()
+            val viewport = size
             for (region in state.regions.values.toList()) {
                 val local = Rect(
                     region.rootBounds.left - recorder.x,
@@ -185,12 +185,17 @@ fun Modifier.glassSource(state: GlassBackdropState): Modifier = this.composed {
                     android.graphics.RenderEffect.createChainEffect(matrixFx, blurFx)
                 )
                 canvas.restoreToCount(stack)
+            }
+        }
+    if (modalBlurActive) m = m.blur(MaterialSpec.BLUR_DP.dp)
+    m
+}
 
 /**
  * Register a chrome surface as a backdrop region (id-keyed; drops out of the
  * recorder's pass list the moment it is disabled or leaves the tree).
  */
-fun Modifier.glassBackdropRegionX(
+fun Modifier.glassBackdropRegion(
     state: GlassBackdropState?,
     id: String,
     shape: Shape,
@@ -221,7 +226,7 @@ fun Modifier.glassBackdropRegionX(
  * caller sits on top; backdrop blur comes from [glassSource] below.
  */
 @Composable
-fun Modifier.iosMaterialX(
+fun Modifier.iosMaterial(
     shape: Shape,
     tint: Color = IosMaterialFill,
     vibrancy: Boolean = true
@@ -230,12 +235,6 @@ fun Modifier.iosMaterialX(
     // API31+ backdrop regions carry L2 vibrancy inside the blur layer already.
     if (vibrancy) m = m.background(materialVibrancyTint(), shape)
     return m.border(1.dp, iosPillBorderBrush(), shape)
-}
-
-            }
-        }
-    if (modalBlurActive) m = m.blur(MaterialSpec.BLUR_DP.dp)
-    m
 }
 
 
