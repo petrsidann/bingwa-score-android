@@ -1,11 +1,10 @@
 # ULTRA session end — handoff
 
-## STEP 0 resume state (2026-10-20, Stage 18 green)
+## STEP 0 resume state (2026-10-20, Stage 19 green)
 
-- Shipped+green: Stages 1–17 (see git log). Three Stage tests + assembleDebug green at rescue commit `0db8469`.
-- **Stage 18 — iOS 27 material engine**: RESOLVED. `glassBackdropRegionX`/`iosMaterialX` were nested inside `glassSource`'s `drawWithContent` block (local, not package-level) and `viewport = size.toSize()` had a receiver mismatch; hoisted both to package level, fixed `viewport = size`, and made `MaterialSmokeTest` drawer assertion CRLF-tolerant. `:app:compileDebugKotlin`, `:app:assembleDebug`, `:app:testDebugUnitTest` (310 tests) all green.
-- Filtered: remove chrome paints, retina draws, drop shadow, drop alpha.
-- Next group: **Stage 19: navigation + home restructure**.
+- Shipped+green: Stages 1–18 (see git log). Three Stage tests + assembleDebug green at rescue commit `0db8469`.
+- **Stage 19 — nav + home restructure**: RESOLVED. Replaced `ModalNavigationDrawer` edge-pull with `SideDrawerSheet` spring side-sheet (iosMaterial background, <300ms spring via `Spring.StiffnessHigh` + `Motion.DAMPING`). Hamburger is the LEFT CAP of the floating pill (`RoundedCornerShape(28.dp)` + `iosMaterial`, identical both themes). Drawer gains "My Score" entry at `MY_SCORE_DRAWER_INDEX`. Edge-pull demoted to secondary — hamburger tap is primary open gesture. Home already has zero score UI (no `MyScoreCard` on Home). `MaterialSmokeTest` drawer backdrop-region assertion preserved. `:app:compileDebugKotlin`, `:app:assembleDebug`, `:app:testDebugUnitTest` (310 tests) all green. APK installed and verified on emulator-5554 (docs/gate/home.png, docs/gate/drawer.png).
+- Next group: **U6 snake carousel**.
 
 
 ## STEP 0 resume state (2026-10-12, Stage 16 shipped)
