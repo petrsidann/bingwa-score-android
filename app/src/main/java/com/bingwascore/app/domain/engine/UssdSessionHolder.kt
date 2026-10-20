@@ -6,6 +6,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import javax.inject.Inject
 import javax.inject.Singleton
 
+/** One visible line in the on-screen USSD session console (Stage 9). */
+data class UssdConsoleLine(
+    val kind: String,
+    val text: String,
+    val at: Long = System.currentTimeMillis()
+)
+
 /**
  * Process-wide memory of the last USSD overlay text captured by
  * [com.bingwascore.app.services.UssdAccessibilityService]. The pipeline reads
@@ -50,6 +57,19 @@ class UssdSessionHolder @Inject constructor() {
     @Volatile
     var stepDeadline: Long = 0L
         private set
+
+    private val _console = MutableStateFlow<List<UssdConsoleLine>>(emptyList())
+    /** Stage 9 — live step log for the on-screen USSD session console. */
+    val console: StateFlow<List<UssdConsoleLine>> = _console.asStateFlow()
+
+    /** Appends one console line, capped at the last 60. Thread-safe. */
+    fun appendConsole(kind: String, text: String) {
+        val line = UssdConsoleLine(kind, text)
+        val cur = _console.value
+        _console.value = (cur + line).takeLast(60)
+    }
+
+    fun clearConsole() { _console.value = emptyList() }
 
     fun store(text: String) {
         _lastSessionText.value = text

@@ -1,11 +1,12 @@
 package com.bingwascore.app.ui.onboarding
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,6 +17,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -25,20 +28,16 @@ import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bingwascore.app.ui.components.PrimaryButton
@@ -48,6 +47,7 @@ import com.bingwascore.app.ui.theme.Bubble
 import com.bingwascore.app.ui.theme.TextDim
 import com.bingwascore.app.ui.theme.TextWhite
 import com.bingwascore.app.ui.theme.accentBrush
+import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -141,6 +141,7 @@ object SnakeCarousel {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun OnboardingCarousel(
     onGetStarted: () -> Unit,
@@ -151,18 +152,17 @@ fun OnboardingCarousel(
     val slides = SnakeCarousel.SLIDES
     val count = slides.size
     val settledPage = SnakeCarousel.clampPage(page, count)
+    val pagerState = rememberPagerState(initialPage = settledPage, pageCount = { count })
+    val scope = rememberCoroutineScope()
 
-    // Live drag travel, in px, reset on release.
-    var dragPx by remember { mutableFloatStateOf(0f) }
-    val density = LocalDensity.current
-    val cardWidthPx = with(density) { 340.dp.toPx() }
-    // Drag fraction -> live slide of the snake, capped at half a card each way.
-    val dragFraction = (dragPx / cardWidthPx).coerceIn(-0.5f, 0.5f)
-    val continuousPosition = settledPage - dragFraction * 2f
-
-    val offsets = SnakeCarousel.offsetsDp(continuousPosition, count, spacingDp = 46f)
-    val alphas = SnakeCarousel.alphas(continuousPosition, count)
-    val scales = SnakeCarousel.scales(continuousPosition, count)
+    LaunchedEffect(settledPage) {
+        if (pagerState.currentPage != settledPage) pagerState.scrollToPage(settledPage)
+    }
+    LaunchedEffect(pagerState.currentPage, pagerState.isScrollInProgress) {
+        if (!pagerState.isScrollInProgress && pagerState.currentPage != settledPage) {
+            onPageChange(pagerState.currentPage)
+        }
+    }
 
     Column(
         modifier = Modifier.fillMaxSize().background(BgBlack).statusBarsPadding()
@@ -173,57 +173,48 @@ fun OnboardingCarousel(
         Text("Bingwa Score", color = TextWhite, fontSize = 24.sp, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(4.dp))
         Text("Your bundle business, automated.", color = TextWhite.copy(alpha = 0.5f), fontSize = 13.sp)
-        Spacer(modifier = Modifier.height(48.dp))
+        Spacer(modifier = Modifier.height(32.dp))
 
-        // U6 — the snake: three cards flowing side by side, drag to advance.
-        Box(
-            modifier = Modifier.fillMaxWidth().weight(1f)
-                .pointerInput(settledPage) {
-                    detectHorizontalDragGestures(
-                        onDragEnd = {
-                            val target = SnakeCarousel.settlePage(settledPage, count, dragPx, size.width.toFloat())
-                            dragPx = 0f
-                            if (target != settledPage) onPageChange(target)
-                        },
-                        onDragCancel = { dragPx = 0f }
-                    ) { _, dragAmount ->
-                        dragPx += dragAmount
-                    }
-                },
-            contentAlignment = Alignment.Center
-        ) {
-            slides.forEachIndexed { index, slide ->
-                SnakeCard(
-                    icon = icons[index % icons.size],
-                    title = slide.title,
-                    body = slide.body,
-                    offsetX = offsets[index].dp,
-                    alpha = alphas[index],
-                    scale = scales[index],
-                    onClick = {
-                        if (index != settledPage) onPageChange(index)
-                    }
-                )
-            }
+        // Stage 20 — one page fills the viewport; neighbours never overlap.
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier.fillMaxWidth().weight(1f),
+            contentPadding = PaddingValues(horizontal = 24.dp),
+            pageSpacing = 24.dp,
+            verticalAlignment = Alignment.CenterVertically,
+            key = { it }
+        ) { index ->
+            val pageOffset = abs(
+                (pagerState.currentPage - index) + pagerState.currentPageOffsetFraction
+            ).coerceIn(0f, 1f)
+            PagerCard(
+                icon = icons[index % icons.size],
+                title = slides[index].title,
+                body = slides[index].body,
+                dim = pageOffset
+            )
         }
 
         Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
-            val dots = SnakeCarousel.dotWidthsDp(settledPage, count)
+            val dots = SnakeCarousel.dotWidthsDp(pagerState.currentPage, count)
             dots.forEachIndexed { index, widthDp ->
                 Box(modifier = Modifier.padding(horizontal = 4.dp)
                     .width(widthDp.dp).height(8.dp).clip(CircleShape)
-                    .background(if (index == settledPage) AccentBlue else TextDim))
+                    .background(if (index == pagerState.currentPage) AccentBlue else TextDim))
             }
         }
 
         Spacer(modifier = Modifier.height(20.dp))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             if (settledPage > 0) {
-                PrimaryButton(text = "Back", onClick = { onPageChange(SnakeCarousel.previous(settledPage, count)) }, modifier = Modifier.width(120.dp))
+                PrimaryButton(text = "Back", onClick = { scope.launch { pagerState.animateScrollToPage(SnakeCarousel.previous(settledPage, count)) } }, modifier = Modifier.width(120.dp))
             } else Spacer(modifier = Modifier.width(120.dp))
             PrimaryButton(
                 text = if (settledPage == count - 1) "Get Started" else "Next",
-                onClick = { if (settledPage == count - 1) onGetStarted() else onPageChange(SnakeCarousel.next(settledPage, count)) },
+                onClick = {
+                    if (settledPage == count - 1) onGetStarted()
+                    else scope.launch { pagerState.animateScrollToPage(SnakeCarousel.next(settledPage, count)) }
+                },
                 modifier = Modifier.weight(1f).padding(start = 12.dp)
             )
         }
@@ -231,12 +222,59 @@ fun OnboardingCarousel(
     }
 }
 
+/** Stage 20 — fixed-height page card: icon/title/body column, zero overlap. */
+@Composable
+private fun PagerCard(
+    icon: ImageVector,
+    title: String,
+    body: String,
+    dim: Float
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(360.dp)
+            .clip(RoundedCornerShape(24.dp))
+            .background(Bubble),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
+            Box(modifier = Modifier.size(72.dp).clip(CircleShape).background(accentBrush()),
+                contentAlignment = Alignment.Center) {
+                Icon(icon, contentDescription = null, tint = BgBlack, modifier = Modifier.size(36.dp))
+            }
+            Spacer(modifier = Modifier.height(24.dp))
+            Text(title, color = TextWhite.copy(alpha = 1f - 0.5f * dim), fontSize = 20.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+            Spacer(modifier = Modifier.height(10.dp))
+            Text(body, color = TextWhite.copy(alpha = 0.6f * (1f - 0.5f * dim)), fontSize = 13.sp, textAlign = TextAlign.Center)
+        }
+    }
+}
+
+/** Stage 20 — pager math: Fill pages with fixed gaps, zero overlap. */
+object OnboardingPager {
+
+    const val PAGE_COUNT = 3
+    const val PAGE_GAP_DP = 24f
+
+    /** [startX, endX] per page; neighbours touch at most at the gap edge. */
+    fun pageBounds(pageWidth: Float, gap: Float = PAGE_GAP_DP): List<Pair<Float, Float>> =
+        List(PAGE_COUNT) { i ->
+            val start = i * (pageWidth + gap)
+            start to start + pageWidth
+        }
+
+    /** Inactive text dims with offset: 1 at rest, 0.5 fully away. */
+    fun textAlpha(offset: Float): Float = (1f - 0.5f * offset.coerceIn(0f, 1f))
+}
+
+/** Stage 20 — legacy snake card kept for reference; pager owns the UI now. */
 @Composable
 private fun SnakeCard(
     icon: ImageVector,
     title: String,
     body: String,
-    offsetX: Dp,
+    offsetX: androidx.compose.ui.unit.Dp,
     alpha: Float,
     scale: Float,
     onClick: () -> Unit

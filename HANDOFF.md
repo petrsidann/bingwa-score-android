@@ -1,5 +1,48 @@
 # ULTRA session end — handoff
 
+## STEP 0 resume state (2026-10-12, Stage 16 shipped)
+- Shipped+green: Stages 1-16. U1 USSD engine + E1 balance/dial protected.
+- **Stage 16 — mesh v2 offline P2P**: new pure core `domain/mesh/` — `MeshCore` (roles Main/Receiver, chain ≤4, routing table amount→Receiver, offline queue, PaymentRequest/StatusUpdate, flush) + `MeshTransport` interface with `LoopbackTransport` (channel-buffered in-memory pair), `BleGattTransport` (6-digit pairing), `WifiDirectTransport` (P2P socket stubs) + `MeshNode` runtime (onPayment routes+queues-on-down; Receiver auto-processes + syncs status back; flushQueue on reconnect). `MeshScreen`/`MeshViewModel` rebuilt: role picker, linked devices with 3-dot signal, routing editor, test-pulse that round-trips a real Main→Receiver over the loopback bus.
+- Tests: new `Stage16MeshTest` (10 tests, green — full loopback lifecycle + queue-visible-when-down + wiring). `:app:assembleDebug` green.
+- Next group: **Stage 17 (Profile club-grade + Redeem + 1.9.0 release)**.
+
+
+
+
+## STEP 0 resume state (2026-10-12, Stage 12 shipped)
+- Shipped+green: Stages 1-12 (see git log, "Stage N: ..." commits). U1 USSD engine + E1 balance/dial protected.
+- **Stage 12 — home guards + diplomatics**: Autopilot pill tap NEVER pauses (guard `AutopilotGuard`:
+  `TAP_PAUSES=false`, `HOLD_MILLIS=600`); hold fills a progress ring (`Animatable` 0..1, LinearEasing)
+  driven by a `LaunchedEffect` (the `awaitEachGesture` scope is suspension-restricted, so the gesture
+  only toggles `holding`/reads `committedHold`); completion fires `haptics.press()` + `onPause()`
+  exactly once; early release is a tap and a tap only opens the sheet. Credits bubble now shows
+  plan state via `PlanState.remainingLabel` (pulls count / "N days" / earned-credit fallback).
+  New screens: **My Plan** (drawer 15, Stage 13 expands the matrix) and **Diplomatics** (drawer 16,
+  pin-one-language + session/day cadence; pinned beats rotation; `Cadence.fromValue` falls back).
+- Tests: new `Stage12HomeGuardsTest` (14 tests, green). `:app:assembleDebug` green.
+- Known pre-existing failures (also fail at adfe26d WITHOUT Stage 12): `U8QaSweepTest`
+  `statusLabelsClearAaOnCanvasInEveryTheme` + `textTokensClearAaInEveryTheme` — LIGHT-mode AA
+  contrast (2.86:1, 2.92:1 vs 3:1). Not a Stage 12 regression; fix in Stage 17 QA sweep.
+- Next group: **Stage 13 (My Plan: M-Y monogram, Starter/Basic/Noob/Pro + bulk Small/Medium/Mega/Ultimate,
+  confirm sheet + simulated M-Pesa, plan matrix test, expiry worker)** -> Stage 14 Customers book
+  -> Stage 15 Self-Renewal/My Score -> Stage 16 Mesh v2 -> Stage 17 Profile/Redeem/Release 1.9.0.
+
+## STEP 0 resume state (2026-10-12, Stage 11 shipped)
+- Shipped+green: Stages 1-11 (see git log, "Stage N: ..." commits). U1 USSD engine + E1 balance/dial protected.
+- **Stage 11 — launch cinematic**: splash PathMeasure stroke now draws with a glowing traveling tip
+  (`drawTravelingTip`), fires a shockwave ring + specular sweep at full trim, the FULL "Bingwa Score"
+  wordmark rises on spring stagger (`settle` scale/rise), tagline breathes one cycle
+  (`taglineBreath`), and the monogram shrinks into the login logo (shared-element exit,
+  `exitShrink.animateTo(1f, tween(200))`) before `onFinish`.
+- **Transition gap killed**: NavHost declares `enter/exit/popEnter/popExit` transitions =
+  200ms crossfade on `Motion.NAV_CROSSFADE` (new token). New `HomePreWarmViewModel` warms
+  `liveTransactions.first()` during the splash so Home's first Room snapshot is cached pre-handoff.
+- Tests: new `Stage11LaunchCinematicTest` (10 tests: tip, ring+sweep, full-wordmark regression,
+  spring letters, tagline breath, exit shrink order, 200ms crossfade, pre-warm-before-MAIN,
+  2s budget). Stage11 + SplashChoreography = 13 tests green; `:app:assembleDebug` green.
+- Next group: **Stage 12 (Home guards/Diplomatics)** -> Stage 13 My Plan -> Stage 14 Customers book
+  -> Stage 15 Self-Renewal/My Score -> Stage 16 Mesh v2 -> Stage 17 Profile/Redeem/Release 1.9.0.
+
 ## STEP 0 resume state (2026-10-10)
 - Shipped+green: U2, U3, U4, U5 (see git log). U1 USSD engine + E1 balance/dial protected.
 - Next group: **U6 snake carousel** -> U7.1 credits+pass -> U7.2 real updates -> U8 QA + 1.8.0.

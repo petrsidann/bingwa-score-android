@@ -28,6 +28,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
+import com.bingwascore.app.ui.glass.iosMaterial
+import com.bingwascore.app.ui.glass.LocalGlassBackdrop
+import com.bingwascore.app.ui.glass.canMaterialBlur
+import com.bingwascore.app.ui.glass.glassBackdropRegion
+import com.bingwascore.app.ui.glass.glassSource
+import com.bingwascore.app.ui.glass.rememberGlassBackdrop
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
@@ -39,19 +45,19 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ReceiptLong
 import androidx.compose.material.icons.rounded.Autorenew
-import androidx.compose.material.icons.rounded.Block
 import androidx.compose.material.icons.rounded.Bolt
 import androidx.compose.material.icons.rounded.Call
 import androidx.compose.material.icons.rounded.DeviceHub
 import androidx.compose.material.icons.rounded.Home
+import androidx.compose.material.icons.rounded.Menu
+import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.LocalOffer
 import androidx.compose.material.icons.rounded.People
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.SmartToy
 import androidx.compose.material.icons.rounded.Storefront
-import androidx.compose.material.icons.rounded.Subscriptions
-import androidx.compose.material.icons.rounded.VerifiedUser
+import androidx.compose.material.icons.rounded.WorkspacePremium
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalDrawerSheet
@@ -60,6 +66,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -69,6 +76,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -80,33 +88,31 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import com.bingwascore.app.ui.autorenewals.AutoRenewalsScreen
 import com.bingwascore.app.ui.autoreplies.AutoRepliesScreen
-import com.bingwascore.app.ui.authorizedsenders.AuthorizedSendersScreen
-import com.bingwascore.app.ui.blacklist.BlacklistScreen
 import com.bingwascore.app.ui.components.ScreenTransition
-import com.bingwascore.app.ui.components.pressScale
 import com.bingwascore.app.ui.components.pressScale
 import com.bingwascore.app.ui.customers.CustomersScreen
 import com.bingwascore.app.ui.dialer.DialerScreen
+import com.bingwascore.app.ui.diplomatics.DiplomaticsScreen
 import com.bingwascore.app.ui.engagebot.EngageBotScreen
 import com.bingwascore.app.ui.home.HomeScreen
 import com.bingwascore.app.ui.mesh.MeshScreen
+import com.bingwascore.app.ui.myplan.MyPlanScreen
 import com.bingwascore.app.ui.mystore.MyStoreScreen
 import com.bingwascore.app.ui.offers.OffersScreen
 import com.bingwascore.app.ui.screens.LoginScreen
 import com.bingwascore.app.ui.screens.SplashScreen
 import com.bingwascore.app.ui.onboarding.SetupChecklistScreen
 import com.bingwascore.app.ui.settings.SettingsScreen
-import com.bingwascore.app.ui.subscriptions.SubscriptionsScreen
 import com.bingwascore.app.ui.transactions.TransactionFilter
 import com.bingwascore.app.ui.transactions.TransactionsScreen
 import com.bingwascore.app.score.ScoreScreen
 import com.bingwascore.app.util.rememberHaptics
 import androidx.compose.material.icons.rounded.Groups
-import androidx.compose.material.icons.rounded.QrCodeScanner
 import com.bingwascore.app.ui.community.CommunityScreen
-import com.bingwascore.app.ui.qr.QrScannerScreen
 import com.bingwascore.app.profile.ProfileScreen
 import com.bingwascore.app.referral.ReferralScreen
 import com.bingwascore.app.announcements.AnnouncementsScreen
@@ -127,16 +133,14 @@ import com.bingwascore.app.ui.showcase.DemoChip
 import com.bingwascore.app.ui.theme.AccentBlue
 import com.bingwascore.app.ui.theme.Motion
 import com.bingwascore.app.ui.theme.BgBlack
-import com.bingwascore.app.ui.theme.GlassFillStrong
+import com.bingwascore.app.ui.theme.DisplayModeState
+import com.bingwascore.app.domain.ThemeMode
 import com.bingwascore.app.ui.theme.Raised
 import com.bingwascore.app.ui.theme.TextWhite
-import com.bingwascore.app.ui.components.AmbientOrbs
-import com.bingwascore.app.ui.components.Silica
-import com.bingwascore.app.ui.theme.glassBorderBrush
-import com.bingwascore.app.ui.theme.isSilica
 import androidx.compose.runtime.collectAsState
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
+import com.bingwascore.app.ui.home.HomePreWarmViewModel
 
 object Routes {
     const val SPLASH = "splash"
@@ -152,12 +156,22 @@ object Routes {
 fun AppNavHost() {
     val navController = rememberNavController()
     val splashViewModel: SplashViewModel = hiltViewModel()
+    // Stage 11 — open Room (first snapshot) during the splash cinematic so the
+    // sign-in → home hand-off lands on warm data, never a blank frame.
+    val homePreWarm: HomePreWarmViewModel = hiltViewModel()
     val scope = rememberCoroutineScope()
     val startDestination by splashViewModel.startDestination.collectAsState(initial = null)
 
     NavHost(
         navController = navController,
-        startDestination = Routes.SPLASH
+        startDestination = Routes.SPLASH,
+        // Stage 11 — 200ms crossfade on every hand-off: the outgoing route
+        // fades out while the incoming one fades in, so no frame ever renders
+        // between two destinations (the sign-in → home black gap, gone).
+        enterTransition = { fadeIn(tween(Motion.NAV_CROSSFADE)) },
+        exitTransition = { fadeOut(tween(Motion.NAV_CROSSFADE)) },
+        popEnterTransition = { fadeIn(tween(Motion.NAV_CROSSFADE)) },
+        popExitTransition = { fadeOut(tween(Motion.NAV_CROSSFADE)) }
     ) {
         composable(Routes.SPLASH) {
             // Single decision point: splash -> onboarding (first launch only) -> login -> main.
@@ -242,44 +256,44 @@ fun AppNavHost() {
     }
 }
 
-private data class DrawerEntry(val label: String, val icon: ImageVector)
+internal data class DrawerEntry(val label: String, val icon: ImageVector)
 
 /**
  * Drawer indexes of the destinations built so far. These MUST stay in the same
  * order as [drawerEntries] — the index is the route key.
+ *
+ * Stage 14 cleanup: Trusted Partners, QR Scanner, Blocked Contacts and
+ * Subscriptions were retired (blocking now lives inside the Customers book as a
+ * filter chip), so the list below is one shorter and re-indexed.
  */
 private const val CUSTOMERS_DRAWER_INDEX = 0
 private const val AUTO_RENEWALS_DRAWER_INDEX = 1
-private const val SUBSCRIPTIONS_DRAWER_INDEX = 2
-private const val SMART_FOLLOW_UP_DRAWER_INDEX = 3
-private const val AUTOPILOT_DRAWER_INDEX = 4
-private const val AGENT_PORTAL_DRAWER_INDEX = 5
-private const val MESH_DRAWER_INDEX = 6
-private const val BLOCKED_CONTACTS_DRAWER_INDEX = 7
-private const val TRUSTED_PARTNERS_DRAWER_INDEX = 8
-private const val REDEEM_COUPON_DRAWER_INDEX = 9
-private const val SETTINGS_DRAWER_INDEX = 10
-private const val ANNOUNCEMENTS_DRAWER_INDEX = 11
-private const val COMMISSION_PULSE_DRAWER_INDEX = 12
-private const val COMMUNITY_DRAWER_INDEX = 13
-private const val QR_SCANNER_DRAWER_INDEX = 14
+private const val SMART_FOLLOW_UP_DRAWER_INDEX = 2
+private const val AUTOPILOT_DRAWER_INDEX = 3
+private const val AGENT_PORTAL_DRAWER_INDEX = 4
+private const val MESH_DRAWER_INDEX = 5
+private const val REDEEM_COUPON_DRAWER_INDEX = 6
+private const val SETTINGS_DRAWER_INDEX = 7
+private const val ANNOUNCEMENTS_DRAWER_INDEX = 8
+private const val MY_SCORE_DRAWER_INDEX = 9
+private const val COMMUNITY_DRAWER_INDEX = 10
+private const val MY_PLAN_DRAWER_INDEX = 11
+private const val DIPLOMATICS_DRAWER_INDEX = 12
 
-private val drawerEntries = listOf(
+internal val drawerEntries = listOf(
     DrawerEntry("Customers", Icons.Rounded.People),
     DrawerEntry("Auto Renewals", Icons.Rounded.Autorenew),
-    DrawerEntry("Subscriptions", Icons.Rounded.Subscriptions),
     DrawerEntry("Smart Follow-Up", Icons.Rounded.SmartToy),
     DrawerEntry("Autopilot", Icons.Rounded.Bolt),
     DrawerEntry("Agent Portal", Icons.Rounded.Storefront),
     DrawerEntry("Bingwa Mesh", Icons.Rounded.DeviceHub),
-    DrawerEntry("Blocked Contacts", Icons.Rounded.Block),
-    DrawerEntry("Trusted Partners", Icons.Rounded.VerifiedUser),
     DrawerEntry("Redeem Coupon", Icons.Rounded.Redeem),
     DrawerEntry("Settings", Icons.Rounded.Settings),
     DrawerEntry("Announcements", Icons.Rounded.Campaign),
-    DrawerEntry("Commission Pulse", Icons.Rounded.EmojiEvents),
+    DrawerEntry("My Score", Icons.Rounded.EmojiEvents),
     DrawerEntry("Community", Icons.Rounded.Groups),
-    DrawerEntry("QR Scanner", Icons.Rounded.QrCodeScanner)
+    DrawerEntry("My Plan", Icons.Rounded.WorkspacePremium),
+    DrawerEntry("Diplomatics", Icons.Rounded.Language)
 )
 
 /**
@@ -297,6 +311,9 @@ fun MainScreen() {
     var transactionFilter by remember { mutableStateOf(TransactionFilter.ALL) }
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+    // Stage 18 — one backdrop registry for the shell: pill + drawer blur over
+    // the screens recorded by glassSource (chrome sits outside the recorder).
+    val glassBackdrop = rememberGlassBackdrop()
 
     // POLISH P1 — system back leaves the dialer (and a drawer entry) instead of
     // dropping the agent out of the shell: the dialer is a destination, so it
@@ -306,10 +323,31 @@ fun MainScreen() {
         selectedDrawerIndex = -1
     }
 
+    CompositionLocalProvider(LocalGlassBackdrop provides glassBackdrop) {
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
-            ModalDrawerSheet(drawerContainerColor = Raised) {
+            ModalDrawerSheet(
+                drawerContainerColor = Color(0x00000000),
+                modifier = Modifier
+                    .fillMaxWidth(0.85f)
+                    // Stage 18 — drawer is a backdrop region while open (blur of
+                    // the screens sliding beneath it); vibrancy lives in the
+                    // blur layer on API31+, tint fallback below.
+                    .glassBackdropRegion(
+                        glassBackdrop, "drawer", RoundedCornerShape(0.dp),
+                        enabled = drawerState.isOpen
+                    )
+                    .iosMaterial(
+                            shape = RoundedCornerShape(0.dp),
+                            tint = if (DisplayModeState.mode == ThemeMode.DARK) {
+                                Color(0xB80B0E15)
+                            } else {
+                                Color(0xB8E2E4E8)
+                            },
+                            vibrancy = !canMaterialBlur
+                        )
+            ) {
                 Spacer(modifier = Modifier.height(28.dp))
                 Row(
                     modifier = Modifier.padding(horizontal = 24.dp),
@@ -391,7 +429,8 @@ fun MainScreen() {
                     onDialer = {
                         selectedDrawerIndex = -1
                         showDialer = true
-                    }
+                    },
+                    onMenu = { scope.launch { drawerState.open() } }
                 )
             }
         ) { innerPadding ->
@@ -399,19 +438,17 @@ fun MainScreen() {
                 showDialer -> "dialer"
                 selectedDrawerIndex == CUSTOMERS_DRAWER_INDEX -> "customers"
                 selectedDrawerIndex == AUTO_RENEWALS_DRAWER_INDEX -> "autorenewals"
-                selectedDrawerIndex == SUBSCRIPTIONS_DRAWER_INDEX -> "subscriptions"
                 selectedDrawerIndex == SMART_FOLLOW_UP_DRAWER_INDEX -> "smartfollowup"
                 selectedDrawerIndex == AUTOPILOT_DRAWER_INDEX -> "autopilot"
                 selectedDrawerIndex == AGENT_PORTAL_DRAWER_INDEX -> "agentportal"
                 selectedDrawerIndex == MESH_DRAWER_INDEX -> "mesh"
-                selectedDrawerIndex == BLOCKED_CONTACTS_DRAWER_INDEX -> "blockedcontacts"
-                selectedDrawerIndex == TRUSTED_PARTNERS_DRAWER_INDEX -> "trustedpartners"
                 selectedDrawerIndex == REDEEM_COUPON_DRAWER_INDEX -> "coupon"
                 selectedDrawerIndex == SETTINGS_DRAWER_INDEX -> "settings"
                 selectedDrawerIndex == ANNOUNCEMENTS_DRAWER_INDEX -> "announcements"
-                selectedDrawerIndex == COMMISSION_PULSE_DRAWER_INDEX -> "commissionpulse"
+                selectedDrawerIndex == MY_SCORE_DRAWER_INDEX -> "myscore"
                 selectedDrawerIndex == COMMUNITY_DRAWER_INDEX -> "community"
-                selectedDrawerIndex == QR_SCANNER_DRAWER_INDEX -> "qrscanner"
+                selectedDrawerIndex == MY_PLAN_DRAWER_INDEX -> "myplan"
+                selectedDrawerIndex == DIPLOMATICS_DRAWER_INDEX -> "diplomatics"
                 else -> when (selectedTab) {
                     0 -> "home"
                     1 -> "offers"
@@ -422,57 +459,53 @@ fun MainScreen() {
 
             val resolved = if (showReferral) "referral" else destination
 
-            // POLISH P5 — in Silica the ambient orbs live here, behind every tab
-            // and every drawer destination, so the glass always has something to
-            // refract. In the other two modes this composes to nothing.
-            Box(modifier = Modifier.fillMaxSize()) {
-                AmbientOrbs()
-
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-            ) {
+            // Stage 10 — flat canvas, no orbs: grouped cards carry the design.
+            // Stage 18 — glassSource records this content as the backdrop the
+            // pill/drawer blur passes replay (transactions move blurred behind).
+            Box(modifier = Modifier.glassSource(glassBackdrop).fillMaxSize().background(BgBlack)) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding)
+                ) {
                 ScreenTransition(screenKey = resolved, modifier = Modifier.fillMaxSize()) {
                     when (resolved) {
                         "dialer" -> DialerScreen(onClose = { showDialer = false })
                         "customers" -> CustomersScreen()
                         "autorenewals" -> AutoRenewalsScreen()
-                        "subscriptions" -> SubscriptionsScreen()
                         "smartfollowup" -> AutoRepliesScreen()
                         "autopilot" -> EngageBotScreen()
                         "agentportal" -> MyStoreScreen()
                         "mesh" -> MeshScreen()
-                        "blockedcontacts" -> BlacklistScreen()
-                        "trustedpartners" -> AuthorizedSendersScreen()
                         "coupon" -> RedeemCouponScreen()
                         "settings" -> SettingsScreen()
                         "announcements" -> AnnouncementsScreen()
-                        "commissionpulse" -> ScoreScreen()
+                        "myscore" -> ScoreScreen()
                         "community" -> CommunityScreen()
-                        "qrscanner" -> QrScannerScreen()
+                        "myplan" -> MyPlanScreen()
+                        "diplomatics" -> DiplomaticsScreen()
                         "referral" -> ReferralScreen()
-                        "home" -> HomeScreen(onOpenTransactions = { status ->
-                    transactionFilter = TransactionFilter.fromStatus(status)
-                    selectedTab = 3
-                    selectedDrawerIndex = -1
-                })
+                        "home" -> HomeScreen(
+                            onOpenTransactions = { status ->
+                                transactionFilter = TransactionFilter.fromStatus(status)
+                                selectedTab = 3
+                                selectedDrawerIndex = -1
+                            },
+                            onOpenMyPlan = { selectedDrawerIndex = MY_PLAN_DRAWER_INDEX },
+                            onOpenDiplomatics = { selectedDrawerIndex = DIPLOMATICS_DRAWER_INDEX }
+                        )
                         "offers" -> OffersScreen()
                         "transactions" -> TransactionsScreen(initialFilter = transactionFilter)
                         "profile" -> ProfileScreen(
                             onMyStore = { selectedDrawerIndex = AGENT_PORTAL_DRAWER_INDEX },
                             onReferEarn = { showReferral = true },
                             onSettings = { selectedDrawerIndex = SETTINGS_DRAWER_INDEX },
-                            onAuthorizedSenders = { selectedDrawerIndex = TRUSTED_PARTNERS_DRAWER_INDEX },
-                            onBlacklist = { selectedDrawerIndex = BLOCKED_CONTACTS_DRAWER_INDEX },
                             onAbout = { selectedDrawerIndex = SETTINGS_DRAWER_INDEX }
                         )
                         else -> ProfileScreen(
                             onMyStore = { selectedDrawerIndex = AGENT_PORTAL_DRAWER_INDEX },
                             onReferEarn = { showReferral = true },
                             onSettings = { selectedDrawerIndex = SETTINGS_DRAWER_INDEX },
-                            onAuthorizedSenders = { selectedDrawerIndex = TRUSTED_PARTNERS_DRAWER_INDEX },
-                            onBlacklist = { selectedDrawerIndex = BLOCKED_CONTACTS_DRAWER_INDEX },
                             onAbout = { selectedDrawerIndex = SETTINGS_DRAWER_INDEX }
                         )
                     }
@@ -481,52 +514,62 @@ fun MainScreen() {
             }
         }
     }
+    } // CompositionLocalProvider(LocalGlassBackdrop)
 }
 /**
- * The shell bar.
+ * Stage 10 — floating rounded tab pill (club.com style): inset 12dp margins,
+ * 28dp corner radius, elevated shadow, 5 tabs, active = AccentBlue.
  *
  * U1 — single-active truth: every tab (including Dial) takes the SAME
  * resolved [selected] id, so two tabs can never light at once. Dial is
- * id 2; a drawer destination resolves to -1 (nothing lit). While the
- * Quick Dial overlay is up the rail dims (alpha .55) — one highlight max.
- *
- * Solid `#000000` in Obsidian and Grayscale — five equal tabs, icon + 11sp label,
- * no FAB, no gap: the bar is a rail, not a floating object. In Silica the rail
- * turns to **translucent glass** with a gradient hairline, because a solid bar
- * under a frosted app is the one place the illusion breaks.
+ * id 2; a drawer destination resolves to -1 (nothing lit). The pill body is
+ * a translucent iOS material (blur ONLY here + sheets).
  */
 @Composable
 private fun BottomNavBar(
     selected: Int,
     dialerOpen: Boolean,
     onSelect: (Int) -> Unit,
-    onDialer: () -> Unit
+    onDialer: () -> Unit,
+    onMenu: () -> Unit
 ) {
     val haptics = rememberHaptics()
+    // Stage 18 — the pill is a backdrop region: rows scroll BLURRED beneath it.
+    val glassBackdrop = LocalGlassBackdrop.current
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            // U1 — sheet open = rail dimmed; the one lit tab still reads.
+            // U1 — sheet open = pill dimmed; the one lit tab still reads.
             .graphicsLayer { alpha = if (dialerOpen) 0.55f else 1f }
-            // POLISH P5 — translucent glass in Silica, solid black elsewhere.
-            .background(if (isSilica) GlassFillStrong else BgBlack)
-            .then(
-                if (isSilica) {
-                    Modifier.border(1.dp, glassBorderBrush(strong = true), RectangleShape)
-                } else {
-                    Modifier
-                }
-            )
-            // U4 — frosted nav: the rail frosts with the rest of the glass, so a
-            // solid bar never sits under a blurred app and break the illusion.
-            .then(
-                if (isSilica && Silica.canBlur) Modifier.blur(Silica.CARD_BLUR) else Modifier
-            )
+            .padding(horizontal = 12.dp)
             .navigationBarsPadding()
-            .padding(vertical = 6.dp),
+            .padding(bottom = 12.dp)
+            // Stage 18 — backdrop region matches the pill's visual bounds.
+            .glassBackdropRegion(glassBackdrop, "pill", RoundedCornerShape(28.dp))
+            .shadow(12.dp, RoundedCornerShape(28.dp))
+            .iosMaterial(
+                shape = RoundedCornerShape(28.dp),
+                tint = if (DisplayModeState.mode == ThemeMode.DARK) {
+                    Color(0xB80B0E15)
+                } else {
+                    Color(0xB8E2E4E8)
+                },
+                vibrancy = !canMaterialBlur
+            )
+            .padding(start = 2.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        Icon(
+            imageVector = Icons.Rounded.Menu,
+            contentDescription = "Menu",
+            tint = TextGrey,
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .clickable { haptics.tick(); onMenu() }
+                .padding(9.dp)
+        )
         NavTab(Icons.Rounded.Home, "Home", selected == 0 && !dialerOpen) {
             haptics.tick(); onSelect(0)
         }

@@ -56,17 +56,15 @@ import com.bingwascore.app.util.rememberHaptics
  */
 
 /**
- * The one surface modifier: flat fill, clipped to [shape].
- *
- * POLISH P5 — in Silica this resolves to frosted glass instead of a flat fill,
- * so every card in the app becomes a pane without a single screen having to
- * branch on the theme.
+ * Stage 10 — iOS grouped surface vocabulary: inset grouped lists, 12dp card
+ * radius, 17sp body, capsule primary buttons, iOS switches, page sheets with
+ * grabber, translucent material nav bars (blur ONLY there).
  */
 @Composable
 fun Modifier.bubbleSurface(
     shape: Shape,
     fill: Color = Bubble
-): Modifier = glassSurface(shape = shape, fill = fill)
+): Modifier = this.clip(shape).background(fill)
 
 /**
  * Flat bubble card. Fades + slides in on composition; when [onClick] is provided
@@ -78,7 +76,7 @@ fun Modifier.bubbleSurface(
 @Composable
 fun BubbleCard(
     modifier: Modifier = Modifier,
-    cornerRadius: Dp = 20.dp,
+    cornerRadius: Dp = 12.dp,
     fill: Color = Bubble,
     onClick: (() -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,
@@ -122,11 +120,8 @@ fun BubbleCard(
     }
 }
 /**
- * Primary CTA — solid accent, white bold label, 14dp radius.
- *
- * U4 — Grayscale has no usable hue, so the button becomes a solid **#E0E0E0**
- * chip with **black** text: the one figure/ground pair that stays unambiguous
- * when the accent is gone.
+ * Stage 10 — capsule primary CTA: brand blue fill, white bold 17sp label.
+ * Press scale 0.98, haptic press.
  *
  * Pass [loading] to swap the label for a spinner (e.g. "Dialing…") and block
  * double taps while the work is in flight.
@@ -142,10 +137,9 @@ fun PrimaryButton(
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val haptics = rememberHaptics()
-    val shape = RoundedCornerShape(14.dp)
-    // POLISH P5 — a disabled CTA used to be `Raised` + 45% white ink (~2.4:1),
-    // which read as broken. DisabledFill + DisabledInk clear 4.5:1 in all three
-    // modes, so "Dial Now" looks *unavailable*, not *broken*.
+    // Stage 10 — capsule primary button.
+    val shape = RoundedCornerShape(28.dp)
+    // DisabledFill + DisabledInk clear AA in both themes.
     val enabledNow = enabled && !loading
     val fill = if (enabledNow) CtaFill else DisabledFill
     val ink = if (enabledNow) CtaInk else DisabledInk
@@ -206,8 +200,6 @@ fun SecondaryButton(
             .height(56.dp)
             .clip(shape)
             .background(Color.Transparent)
-            // U4 — Grayscale outlines the secondary action at #9E9E9E so it is
-            // visible against the monochrome canvas.
             .border(1.dp, SecondaryOutline, shape)
             .clickable(
                 enabled = enabled,
@@ -233,10 +225,8 @@ fun SecondaryButton(
  * device without haptics (or a framework quirk) can never crash the toggle — the
  * state change always goes through.
  *
- * POLISH P6 — the default colours were Material's, which on a black surface put
- * a 40%-white thumb on a near-black track: invisible in Obsidian, worse on
- * Silica's translucent fill, and the single most common "is this on?" moment in
- * the app. These defaults clear 3:1 against their own track in all three modes.
+ * Stage 10 — iOS switch: accent track on, raised track off; clears 3:1 in both
+ * themes.
  */
 @Composable
 fun HapticSwitch(

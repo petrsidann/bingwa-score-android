@@ -25,27 +25,20 @@ enum class TransactionStatus(val value: String) {
 }
 
 /**
- * POLISH P5 — display modes (Settings > Appearance).
+ * Stage 10 — iOS design system: exactly two themes.
  *
- * Three readings of the same dark product, no light mode:
+ * - [DARK]     "Obsidian"  — dark, #0B0E15 family.
+ * - [LIGHT]    "Porcelain" — light, iMessage-grade (#F2F2F7 bg, #FFFFFF cards).
  *
- * - [DARK]   "Obsidian" — black + softened electric blue. The default.
- * - [GRAYSCALE] — monochrome chrome, but **semantic colour survives**: a failed
- *   transaction is still red and a completed one still blue, because a ledger
- *   that cannot be read at a glance is a worse ledger.
- * - [SILICA] — glassmorphism: frosted cards, a translucent nav rail, ambient
- *   purple/blue orbs behind everything.
- *
- * [fromValue] retires the old BLUE LIGHT FILTER: an install that had it stored
- * lands on Obsidian, since a warm filter is no longer a mode anyone can pick.
+ * Silica + Grayscale are deleted. [fromValue] maps every retired stored value
+ * (GRAYSCALE, SILICA, BLUE_LIGHT_FILTER) to Obsidian so no install resets oddly.
  */
 enum class ThemeMode(val value: String, val label: String) {
     DARK("DARK", "Obsidian"),
-    GRAYSCALE("GRAYSCALE", "Grayscale"),
-    SILICA("SILICA", "Silica");
+    LIGHT("LIGHT", "Porcelain");
 
     companion object {
-        /** Everything that is not one of the three above reads as Obsidian. */
+        /** Everything unknown — incl. retired modes — reads as Obsidian. */
         fun fromValue(value: String?): ThemeMode =
             entries.firstOrNull { it.value == value } ?: DARK
     }

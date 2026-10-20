@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.bingwascore.app.domain.AppProcessingMode
@@ -63,6 +64,20 @@ class UserPreferences @Inject constructor(
         val FCM_TOKEN = stringPreferencesKey("fcm_token")
         /** POLISH P2 — cold-start counter that keys the rotating greeting. */
         val GREETING_SESSION = intPreferencesKey("greeting_session")
+        // ── Stage 12 — Diplomatics + plan-backed credits ──
+        /** Pinned greeting language (Language.name); blank = keep rotating. */
+        val GREETING_PINNED_LANGUAGE = stringPreferencesKey("greeting_pinned_language")
+        /** Rotation cadence: "session" (default) or "day". */
+        val GREETING_CADENCE = stringPreferencesKey("greeting_cadence")
+        /** Active plan, as the credits bubble reads it (Stage 13 fills on purchase). */
+        val PLAN_ID = stringPreferencesKey("plan_id")
+        val PLAN_DISPLAY_NAME = stringPreferencesKey("plan_display_name")
+        val PLAN_PULLS_LEFT = intPreferencesKey("plan_pulls_left")
+        val PLAN_UNLIMITED = booleanPreferencesKey("plan_unlimited")
+        val PLAN_EXPIRES_AT = longPreferencesKey("plan_expires_at")
+        // ── Stage 14 — customers autosave book ──
+        /** Master switch for the Customers autosave (every SUCCESSFUL tx upserts a customer). */
+        val CUSTOMERS_AUTOSAVE = booleanPreferencesKey("customers_autosave")
     }
 
     val isLoggedIn: Flow<Boolean> = context.dataStore.data.map { it[Keys.IS_LOGGED_IN] ?: false }
@@ -135,6 +150,55 @@ class UserPreferences @Inject constructor(
     val greetingSession: Flow<Int> = context.dataStore.data.map { it[Keys.GREETING_SESSION] ?: 0 }
 
     suspend fun setGreetingSession(value: Int) = edit { it[Keys.GREETING_SESSION] = value }
+
+    // ── Stage 12 — Diplomatics (greeting language) + plan state ──────────────
+
+    /** Pinned greeting language as [com.bingwascore.app.ui.home.Greetings.Language.name]; "" = rotating. */
+    val greetingPinnedLanguage: Flow<String> =
+        context.dataStore.data.map { it[Keys.GREETING_PINNED_LANGUAGE] ?: "" }
+
+    /** Rotation cadence, parsed through the domain enum (unknown -> SESSION). */
+    val greetingCadence: Flow<com.bingwascore.app.ui.home.Greetings.Cadence> =
+        context.dataStore.data.map {
+            com.bingwascore.app.ui.home.Greetings.Cadence.fromValue(it[Keys.GREETING_CADENCE])
+        }
+
+    suspend fun setGreetingPinnedLanguage(value: String) =
+        edit { it[Keys.GREETING_PINNED_LANGUAGE] = value }
+
+    suspend fun setGreetingCadence(value: com.bingwascore.app.ui.home.Greetings.Cadence) =
+        edit { it[Keys.GREETING_CADENCE] = value.value }
+
+    /** The active plan as the credits bubble reads it; inactive PlanState when none. */
+    val planState: Flow<com.bingwascore.app.domain.PlanState> = context.dataStore.data.map { prefs ->
+        com.bingwascore.app.domain.PlanState(
+            planId = prefs[Keys.PLAN_ID] ?: "",
+            displayName = prefs[Keys.PLAN_DISPLAY_NAME] ?: "",
+            pullsLeft = prefs[Keys.PLAN_PULLS_LEFT] ?: 0,
+            unlimited = prefs[Keys.PLAN_UNLIMITED] ?: false,
+            expiresAtMillis = prefs[Keys.PLAN_EXPIRES_AT] ?: 0L
+        )
+    }
+
+    suspend fun setPlanState(state: com.bingwascore.app.domain.PlanState) = edit { p ->
+        p[Keys.PLAN_ID] = state.planId
+        p[Keys.PLAN_DISPLAY_NAME] = state.displayName
+        p[Keys.PLAN_PULLS_LEFT] = state.pullsLeft
+        p[Keys.PLAN_UNLIMITED] = state.unlimited
+        p[Keys.PLAN_EXPIRES_AT] = state.expiresAtMillis
+    }
+
+    // ── Stage 14 — customers autosave book ──
+
+    /**
+     * Master switch for the Customers autosave. Defaults ON so the book fills
+     * itself from day one; turning it OFF stops future upserts but never wipes
+     * the rows already saved.
+     */
+    val customersAutosave: Flow<Boolean> =
+        context.dataStore.data.map { it[Keys.CUSTOMERS_AUTOSAVE] ?: true }
+
+    suspend fun setCustomersAutosave(value: Boolean) = edit { it[Keys.CUSTOMERS_AUTOSAVE] = value }
 
     /**
      * MEGA A — cold-start gate. `STATE_RUNNING` only once the Setup Checklist

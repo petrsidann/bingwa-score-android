@@ -4,7 +4,7 @@ Bingwa Score helps Safaricom airtime agents sell bundles faster: one-tap dialing
 auto-renewals, botted replies, USSD automation and commission tracking — all on
 your phone.
 
-**Current release: 1.8.0 (versionCode 8)** — ULTRA ship: snake-carousel
+**Current release: 1.9.0 (versionCode 9)** — iOS-grade release: status contrast, credits, redeem & release tooling.
 onboarding, credits + pass ladder, real update checks, and a full QA sweep
 (contrast / truncation / empty states across Obsidian, Grayscale and Silica).
 
@@ -39,12 +39,12 @@ onboarding, credits + pass ladder, real update checks, and a full QA sweep
 | Raised | `#1C1C1C` | sheets and pressed surfaces |
 | Hairline | `#2A2A2A` | borders and dividers |
 | TextWhite | `#FFFFFF` | titles and values |
-| TextGrey | `#9E9E9E` | metadata |
+| TextGrey | `#4B5563` | metadata |
 | TextDim | `#6B6B6B` | quiet labels |
 | AccentBlue | `#2962FF` | primary actions, selected tabs |
 | ChartBlue | `#3D6FFF` | commission chart line |
 | FailRed | `#FF5252` | failures and delete |
-| PendGrey | `#9E9E9E` | pending / scheduled |
+| PendGrey | `#4B5563` | pending / scheduled |
 | TickGreen | `#00C853` | the complete-action tick, and nothing else |
 
 **Display modes** (Settings → Appearance, no light mode):

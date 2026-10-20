@@ -6,3 +6,6 @@ GREEN: run only the named test, then commit "Ultra U<n>.<k>: <what>" + push IMME
 GUARDRAILS: no orange/amber; blur ONLY in Silica theme; no light/white mode; brand blue #2563EB family; never regress U1 USSD engine or E1 balance/dial (extend only); notification budget = 1 state notification + 3 event types; PENDING displays as "Queued"; never machine paths in gradle.properties; never secrets/tokens in repo or prompts.
 OUTPUT: terse, max 8 lines per group.
 REMAINING ROADMAP: U6 snake carousel -> U7.1 credits+pass -> U7.2 real updates -> U8 QA + 1.8.0 release.
+NAMING (mandatory): every commit, branch and PR title uses human stage names so the Actions list reads like a production log:
+"Stage 6: dial snake carousel", "Stage 7: credits + pass + updates", "Stage 8: QA + 1.8.0 release".
+NEVER uuid/task-id/machine names in commits, branches or PRs. Rename or delete any that exist.

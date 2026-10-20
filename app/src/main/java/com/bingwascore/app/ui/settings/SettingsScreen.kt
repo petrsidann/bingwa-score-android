@@ -65,6 +65,7 @@ import com.bingwascore.app.ui.components.BubbleCard
 import com.bingwascore.app.ui.components.ExplanationDialog
 import com.bingwascore.app.ui.components.PrimaryButton
 import com.bingwascore.app.ui.components.statusSwitchColors
+import com.bingwascore.app.updates.UpdateDownloader
 import com.bingwascore.app.util.rememberHaptics
 import com.bingwascore.app.util.screenEnter
 import androidx.compose.material3.Switch
@@ -105,6 +106,8 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
     // MEGA A — inbound routing switches.
     val processMpesaMessages by viewModel.processMpesaMessages.collectAsStateWithLifecycle()
     val processSitelinkMessages by viewModel.processSitelinkMessages.collectAsStateWithLifecycle()
+    // Stage 14 — Customers autosave master switch.
+    val customersAutosave by viewModel.customersAutosave.collectAsStateWithLifecycle()
     if (showAdvancedExplanation) {
         ExplanationDialog(
             title = "Advanced Mode",
@@ -182,6 +185,17 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
                     subtitle = "Handle SiteLink storefront order messages",
                     checked = processSitelinkMessages,
                     onCheckedChange = viewModel::setProcessSitelinkMessages
+                )
+            }
+            Spacer(modifier = Modifier.height(18.dp))
+            // Stage 14 — Customers autosave master switch (default ON).
+            SectionLabel("Customers book")
+            BubbleCard(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
+                SettingsSwitchRow(
+                    title = "Auto-save Customers",
+                    subtitle = "Add every completed bundle's buyer to the Customers book",
+                    checked = customersAutosave,
+                    onCheckedChange = viewModel::setCustomersAutosave
                 )
             }
             Spacer(modifier = Modifier.height(18.dp))
@@ -461,9 +475,8 @@ private fun ThemePreviewCard(
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = when (mode) {
-                        ThemeMode.DARK -> "Black canvas, softened electric blue"
-                        ThemeMode.GRAYSCALE -> "Monochrome chrome, status colour kept"
-                        ThemeMode.SILICA -> "Frosted glass over ambient colour"
+                        ThemeMode.DARK -> "Dark canvas, brand blue"
+                        ThemeMode.LIGHT -> "iMessage-grade light, iOS blue"
                     },
                     color = TextWhite.copy(alpha = 0.55f),
                     fontSize = 12.sp
@@ -492,31 +505,26 @@ private fun ThemePreviewCard(
 }
 
 /**
- * The miniature.
- *
- * Painted with the tokens of the mode it *represents* (not the mode currently on
- * screen), so the preview of Silica looks like Silica while Obsidian is still
- * active. That is the whole reason this page is worth scrolling to.
+ * The miniature — painted with the tokens of the mode it *represents*, so the
+ * Porcelain preview is light while Obsidian is still active.
  */
 @Composable
 private fun ThemePreviewStrip(mode: ThemeMode, selected: Boolean) {
     val shape = RoundedCornerShape(12.dp)
-    val glass = mode == ThemeMode.SILICA
     val canvas = when (mode) {
-        ThemeMode.SILICA -> Color(0xFF07070C)
-        else -> Color(0xFF000000)
+        ThemeMode.LIGHT -> Color(0xFFF2F2F7)
+        else -> Color(0xFF0B0E15)
     }
     val surface = when (mode) {
-        ThemeMode.SILICA -> Color(0x1FFFFFFF)
-        else -> Color(0xFF141414)
+        ThemeMode.LIGHT -> Color(0xFFFFFFFF)
+        else -> Color(0xFF131824)
     }
     val chrome = when (mode) {
-        ThemeMode.GRAYSCALE -> Color(0xFFBDBDBD)
-        else -> Color(0xFF4176FF)
+        ThemeMode.LIGHT -> Color(0xFF007AFF)
+        else -> Color(0xFF2563EB)
     }
-    // POLISH P5 — the dots keep their semantics even in the monochrome preview.
-    val done = if (mode == ThemeMode.GRAYSCALE) Color(0xFFBDBDBD) else Color(0xFF3E6BFF)
-    val failed = if (mode == ThemeMode.GRAYSCALE) Color(0xFF757575) else Color(0xFFFF5252)
+    val done = Color(0xFF3E6BFF)
+    val failed = Color(0xFFFF5252)
 
     Box(
         modifier = Modifier
@@ -526,22 +534,6 @@ private fun ThemePreviewStrip(mode: ThemeMode, selected: Boolean) {
             .background(canvas)
             .border(1.dp, if (selected) chrome.copy(alpha = 0.6f) else Hairline, shape)
     ) {
-        if (glass) {
-            // The orbs, miniaturised: two soft colour fields behind the card.
-            androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
-                drawCircle(
-                    color = Color(0x553E6BFF),
-                    radius = size.height * 1.1f,
-                    center = androidx.compose.ui.geometry.Offset(size.width * 0.2f, size.height * 0.3f)
-                )
-                drawCircle(
-                    color = Color(0x448C6BFF),
-                    radius = size.height * 1.2f,
-                    center = androidx.compose.ui.geometry.Offset(size.width * 0.85f, size.height * 0.8f)
-                )
-            }
-        }
-
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
@@ -865,8 +857,11 @@ private fun UpdatesPage(viewModel: SettingsViewModel) {
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold
                 )
-                if (!state.upToDate && updateUrl != null) {
+                val url = updateUrl
+                if (!state.upToDate && url != null) {
                     Spacer(modifier = Modifier.height(10.dp))
+                    // Stage 21 — changelog dialog + DownloadManager progress notification + install intent.
+                    UpdatesDownloadBlock(updateUrl = url, changelog = viewModel.updateChangelog)
                     PrimaryButton(
                         text = "Open in browser",
                         onClick = {
@@ -874,7 +869,7 @@ private fun UpdatesPage(viewModel: SettingsViewModel) {
                                 context.startActivity(
                                     android.content.Intent(
                                         android.content.Intent.ACTION_VIEW,
-                                        android.net.Uri.parse(updateUrl)
+                                        android.net.Uri.parse(url)
                                     ).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
                                 )
                             } catch (_: Throwable) {
@@ -887,6 +882,48 @@ private fun UpdatesPage(viewModel: SettingsViewModel) {
             else -> Unit
         }
     }
+}
+
+/** Stage 21 — changelog dialog + DownloadManager progress notification + install intent. */
+@Composable
+private fun UpdatesDownloadBlock(updateUrl: String, changelog: String) {
+    val context = LocalContext.current
+    var showChangelog by remember { mutableStateOf(false) }
+    var downloading by remember { mutableStateOf(false) }
+    PrimaryButton(
+        text = if (downloading) "Downloading..." else "What's new",
+        enabled = !downloading,
+        onClick = { showChangelog = true }
+    )
+    if (showChangelog) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showChangelog = false },
+            containerColor = Bubble,
+            title = { Text("Update available", color = TextWhite, fontWeight = FontWeight.Bold) },
+            text = {
+                Text(
+                    changelog.ifBlank { "A newer release is published on GitHub." },
+                    color = TextGrey,
+                    fontSize = 13.sp
+                )
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(
+                    onClick = {
+                        showChangelog = false
+                        downloading = true
+                        UpdateDownloader.enqueue(context, updateUrl)
+                    }
+                ) { Text("Download", color = AccentBlue, fontWeight = FontWeight.Bold) }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { showChangelog = false }) {
+                    Text("Later", color = TextGrey)
+                }
+            }
+        )
+    }
+    Spacer(modifier = Modifier.height(10.dp))
 }
 
 @Composable

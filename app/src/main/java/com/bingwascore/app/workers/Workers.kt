@@ -156,6 +156,8 @@ object Schedulers {
             scheduleSmsPoll(context)
             // POLISH P1 — silent *144# sweep keeps the balance honest.
             BalanceWorker.schedule(context)
+            // Stage 13 — a lapsed plan never outlives its window in the UI.
+            PlanExpiryWorker.schedule(context)
             WatchdogWorker.schedule(context)
         } catch (t: Throwable) {
             Timber.e(t, "Failed to schedule workers")

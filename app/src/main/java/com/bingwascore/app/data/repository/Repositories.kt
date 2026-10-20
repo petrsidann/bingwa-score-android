@@ -66,6 +66,15 @@ class TransactionRepository @Inject constructor(
 
     /** Parity F — commission ledger target: newest sale with no commission stamped. */
     suspend fun getLatestWithoutCommission(): Transaction? = dao.getLatestWithoutCommission()
+
+    /** Stage 14 — every SUCCESSFUL purchase for a phone, newest first (detail sheet). */
+    fun successfulByPhone(phone: String): Flow<List<Transaction>> = dao.getSuccessfulByPhone(phone)
+
+    /** Stage 15 — SUCCESSFUL purchases since [since] (My Score). */
+    fun successfulSince(since: Long): Flow<List<Transaction>> = dao.successfulSince(since)
+
+    /** Stage 15 — SUCCESSFUL + FAILED rows since [since] (success-rate denominator). */
+    fun settledSince(since: Long): Flow<List<Transaction>> = dao.settledSince(since)
 }
 
 @Singleton
@@ -113,6 +122,34 @@ class CustomerRepository @Inject constructor(
     suspend fun update(customer: Customer) = dao.update(customer)
 
     suspend fun delete(customer: Customer) = dao.delete(customer)
+
+    /**
+     * Stage 14 — autosave upsert. Folds a SUCCESSFUL purchase into the customer
+     * row keyed by phone (see [com.bingwascore.app.domain.CustomerBook.upsert]).
+     * Reads the current row, applies the roll-up and writes it back under Room's
+     * REPLACE conflict strategy, so a brand-new phone mints a row too.
+     */
+    suspend fun upsertFromSale(
+        phone: String,
+        name: String?,
+        offerName: String,
+        amount: Double,
+        at: Long
+    ) {
+        val existing = dao.getByPhoneOnce(phone)
+        val merged = com.bingwascore.app.domain.CustomerBook.upsert(
+            existing = existing,
+            sale = com.bingwascore.app.domain.CustomerBook.Sale(
+                phone = phone,
+                name = name,
+                offerName = offerName,
+                amount = amount,
+                at = at
+            ),
+            now = at
+        )
+        dao.insert(merged)
+    }
 }
 
 @Singleton

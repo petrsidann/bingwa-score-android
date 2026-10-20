@@ -2,146 +2,106 @@ package com.bingwascore.app
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.unit.dp
 import com.bingwascore.app.domain.ThemeMode
-import com.bingwascore.app.ui.components.Silica
+import com.bingwascore.app.ui.components.IosMaterial
 import com.bingwascore.app.ui.theme.AccentBlue
+import com.bingwascore.app.ui.theme.BgBlack
+import com.bingwascore.app.ui.theme.BrandBlue
+import com.bingwascore.app.ui.theme.Bubble
 import com.bingwascore.app.ui.theme.CtaFill
 import com.bingwascore.app.ui.theme.CtaInk
 import com.bingwascore.app.ui.theme.DisabledFill
 import com.bingwascore.app.ui.theme.DisabledInk
-import com.bingwascore.app.ui.theme.GRAYSCALE_DOT_SATURATION
-import com.bingwascore.app.ui.theme.GlassFill
-import com.bingwascore.app.ui.theme.GlassFillStrong
-import com.bingwascore.app.ui.theme.ORB_BLUR
-import com.bingwascore.app.ui.theme.OrbBlue
-import com.bingwascore.app.ui.theme.OrbViolet
-import com.bingwascore.app.ui.theme.SecondaryOutline
+import com.bingwascore.app.ui.theme.IosBlue
+import com.bingwascore.app.ui.theme.PorcelainBg
+import com.bingwascore.app.ui.theme.PorcelainCard
+import com.bingwascore.app.ui.theme.PorcelainSeparator
+import com.bingwascore.app.ui.theme.PorcelainText
 import com.bingwascore.app.ui.theme.SemanticBlue
 import com.bingwascore.app.ui.theme.SemanticGrey
 import com.bingwascore.app.ui.theme.StatusDone
 import com.bingwascore.app.ui.theme.StatusFailedTint
 import com.bingwascore.app.ui.theme.StatusQueued
+import com.bingwascore.app.ui.theme.TextWhite
 import com.bingwascore.app.ui.theme.installDisplayMode
-import com.bingwascore.app.ui.theme.saturate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * U4 — themes alive.
- *
- * Laws:
- *  1. Grayscale keeps DISTINCT desaturated tints: Done silver-blue, Failed
- *     charcoal-red, Queued neutral. They are different colours, not one grey.
- *  2. Dots keep 60% saturation in Grayscale.
- *  3. Grayscale CTA is solid #E0E0E0 with black text; the secondary outline is
- *     #9E9E9E.
- *  4. Silica is blur 32dp, 18% white tint, orbs 8% alpha with a 140dp soft edge.
+ * Stage 10 — iOS design system laws:
+ *  1. Exactly two themes; retired values land on Obsidian.
+ *  2. Porcelain tokens are iMessage-grade exact hex.
+ *  3. Statuses identical in both themes; CTA is brand blue + white ink.
+ *  4. Disabled pair clears AA in both themes.
  *  5. Nothing in the palette is orange/amber.
  */
 class U4ThemesTest {
 
     private fun argb(c: Color): Int = c.toArgb()
 
-    // ── Law 1: distinct desaturated Grayscale tints ───────────────────────────
-
     @Test
-    fun grayscaleStatusTintsAreDistinct() {
-        installDisplayMode(ThemeMode.GRAYSCALE)
-
-        val done = argb(StatusDone)
-        val failed = argb(StatusFailedTint)
-        val queued = argb(StatusQueued)
-
-        assertFalse("Done and Failed must differ", done == failed)
-        assertFalse("Done and Queued must differ", done == queued)
-        assertFalse("Failed and Queued must differ", failed == queued)
-
-        // Done is silver-BLUE: blue channel is the strongest of the three.
-        assertTrue("Done must read silver-blue", StatusDone.blue >= StatusDone.red)
-        // Failed is charcoal-RED: red channel is the strongest.
-        assertTrue("Failed must read charcoal-red", StatusFailedTint.red >= StatusFailedTint.blue)
-        // Queued stays neutral: all three channels equal.
-        assertEquals(StatusQueued.red, StatusQueued.green, 0.0001f)
-        assertEquals(StatusQueued.green, StatusQueued.blue, 0.0001f)
+    fun twoThemesOnly() {
+        assertEquals(2, ThemeMode.entries.size)
+        assertEquals(ThemeMode.DARK, ThemeMode.fromValue("GRAYSCALE"))
+        assertEquals(ThemeMode.DARK, ThemeMode.fromValue("SILICA"))
     }
 
     @Test
-    fun obsidianKeepsFullSemanticStatusColour() {
+    fun porcelainTokensAreIMessageGrade() {
+        // Stage 21 — Porcelain Dim rebalance: glare-free, ~15% darker, AA kept.
+        assertEquals(0xFFE2E4E8.toInt(), argb(PorcelainBg))
+        assertEquals(0xFFF7F8FA.toInt(), argb(PorcelainCard))
+        assertEquals(0xFF16181D.toInt(), argb(PorcelainText))
+        assertEquals(0xFF007AFF.toInt(), argb(IosBlue))
+        assertEquals(0xFF2563EB.toInt(), argb(BrandBlue))
+        assertEquals(0x4A3C3C43.toInt(), argb(PorcelainSeparator))
+    }
+
+    @Test
+    fun porcelainSurfacesResolveToLightTokens() {
+        installDisplayMode(ThemeMode.LIGHT)
+        assertEquals(argb(PorcelainBg), argb(BgBlack))
+        assertEquals(argb(PorcelainCard), argb(Bubble))
+        assertEquals(argb(PorcelainText), argb(TextWhite))
+        assertEquals(argb(IosBlue), argb(AccentBlue))
         installDisplayMode(ThemeMode.DARK)
+    }
+
+    @Test
+    fun statusesIdenticalInBothThemes() {
+        installDisplayMode(ThemeMode.DARK)
+        val darkDone = argb(StatusDone)
+        val darkFailed = argb(StatusFailedTint)
+        val darkQueued = argb(StatusQueued)
+        installDisplayMode(ThemeMode.LIGHT)
+        assertEquals(darkDone, argb(StatusDone))
+        assertEquals(darkFailed, argb(StatusFailedTint))
+        assertEquals(darkQueued, argb(StatusQueued))
         assertEquals(argb(SemanticBlue), argb(StatusDone))
-        assertEquals(0xFFFF5252.toInt(), argb(StatusFailedTint))
+        assertEquals(0xFFFC1E1E.toInt(), argb(StatusFailedTint))
         assertEquals(argb(SemanticGrey), argb(StatusQueued))
-    }
-
-    // ── Law 2: dots keep 60% saturation ───────────────────────────────────────
-
-    @Test
-    fun dotSaturationIsSixtyPercent() {
-        assertEquals(0.6f, GRAYSCALE_DOT_SATURATION, 0.0001f)
+        installDisplayMode(ThemeMode.DARK)
     }
 
     @Test
-    fun saturateZeroIsPureLuminanceGrey() {
-        val grey = saturate(Color(0xFFFF0000), 0f)
-        assertEquals(grey.red, grey.green, 0.0001f)
-        assertEquals(grey.green, grey.blue, 0.0001f)
-    }
-
-    @Test
-    fun saturateKeepsSomeHueAtSixtyPercent() {
-        val red = saturate(Color(0xFFFF0000), 0.6f)
-        assertTrue("red must survive at 60%", red.red > red.green)
-        // …and it is pulled toward grey, unlike the untouched colour.
-        assertTrue(red.green > 0f)
-    }
-
-    // ── Law 3: Grayscale CTA + secondary outline ──────────────────────────────
-
-    @Test
-    fun grayscaleCtaIsSolidLightChipWithBlackInk() {
-        installDisplayMode(ThemeMode.GRAYSCALE)
-        assertEquals(0xFFE0E0E0.toInt(), argb(CtaFill))
-        assertEquals(0xFF000000.toInt(), argb(CtaInk))
-        assertEquals(0xFF9E9E9E.toInt(), argb(SecondaryOutline))
-    }
-
-    @Test
-    fun blueModesKeepTheBrandCta() {
+    fun bothThemesKeepTheBrandCta() {
         installDisplayMode(ThemeMode.DARK)
         assertEquals(argb(AccentBlue), argb(CtaFill))
-        installDisplayMode(ThemeMode.SILICA)
+        installDisplayMode(ThemeMode.LIGHT)
         assertEquals(argb(AccentBlue), argb(CtaFill))
-    }
-
-    // ── Law 4: Silica glass numbers ───────────────────────────────────────────
-
-    @Test
-    fun silicaBlursAtThirtyTwoDp() {
-        assertEquals(32.dp, Silica.CARD_BLUR)
+        assertEquals(argb(TextWhite), argb(CtaInk))
+        installDisplayMode(ThemeMode.DARK)
     }
 
     @Test
-    fun glassTintIsEighteenPercentWhite() {
-        assertEquals(0.18f, GlassFill.alpha, 0.01f)
-        assertTrue(GlassFillStrong.alpha >= GlassFill.alpha)
+    fun iosMaterialBlurRadius() {
+        assertEquals(24, IosMaterial.BAR_BLUR.value.toInt())
     }
-
-    @Test
-    fun orbsAreEightPercentWithAOneHundredFortyDpSoftEdge() {
-        assertEquals(0.08f, OrbBlue.alpha, 0.01f)
-        assertEquals(0.08f, OrbViolet.alpha, 0.01f)
-        assertEquals(140.dp, ORB_BLUR)
-    }
-
-    // ── Law 5: no orange/amber anywhere in the token palette ──────────────────
 
     private fun isOrangeAmber(c: Color): Boolean =
         c.red > c.green && c.green > c.blue && c.red > 0.5f && (c.red - c.blue) > 0.25f
-
-    // ── Law 6: Obsidian disabled-state contrast sweep ────────────────────────
 
     /** WCAG relative luminance. */
     private fun luminance(c: Color): Double {
@@ -169,12 +129,12 @@ class U4ThemesTest {
     )
 
     @Test
-    fun disabledPairClearsAaInEveryMode() {
-        listOf(ThemeMode.DARK, ThemeMode.GRAYSCALE, ThemeMode.SILICA).forEach { mode ->
+    fun disabledPairClearsAaInBothThemes() {
+        listOf(
+            ThemeMode.DARK to Color(0xFF0B0E15),
+            ThemeMode.LIGHT to PorcelainBg
+        ).forEach { (mode, canvas) ->
             installDisplayMode(mode)
-            // Silica's glass tokens are translucent, so the real contrast is
-            // measured on the flattened colour over the black canvas.
-            val canvas = Color(0xFF000000)
             val fill = over(DisabledFill, canvas)
             val ink = over(DisabledInk, fill)
             val ratio = contrast(ink, fill)
@@ -183,13 +143,7 @@ class U4ThemesTest {
                 ratio >= 4.0
             )
         }
-    }
-
-    @Test
-    fun grayscaleChipContrastIsStrong() {
-        installDisplayMode(ThemeMode.GRAYSCALE)
-        val ratio = contrast(over(CtaInk, CtaFill), CtaFill)
-        assertTrue("black on #E0E0E0 must be very high, was $ratio", ratio >= 10.0)
+        installDisplayMode(ThemeMode.DARK)
     }
 
     @Test
@@ -199,5 +153,10 @@ class U4ThemesTest {
         tokens.forEach { token ->
             assertFalse("orange/amber token leaked: $token", isOrangeAmber(token))
         }
+        installDisplayMode(ThemeMode.LIGHT)
+        tokens.forEach { token ->
+            assertFalse("orange/amber token leaked: $token", isOrangeAmber(token))
+        }
+        installDisplayMode(ThemeMode.DARK)
     }
 }

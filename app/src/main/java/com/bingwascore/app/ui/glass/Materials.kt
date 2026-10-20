@@ -1,130 +1,241 @@
 package com.bingwascore.app.ui.glass
 
-import androidx.compose.runtime.Composable
+import android.graphics.Paint
+import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Stable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.composed
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Matrix
+import androidx.compose.ui.graphics.Outline
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.graphics.asAndroidPath
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import com.bingwascore.app.ui.components.Silica
-import com.bingwascore.app.ui.theme.isSilica
+import com.bingwascore.app.ui.theme.AccentBlue
+import com.bingwascore.app.ui.theme.IosMaterialFill
+import com.bingwascore.app.ui.theme.iosPillBorderBrush
 
 /**
- * STAGE 18 — the iOS material engine.
- *
- * One modifier, [iosMaterial], that renders an Apple-style vibrancy pane:
- *
- *  1. a real backdrop blur at [Materials.BLUR] (24dp) where the platform can
- *     do one (API 31+),
- *  2. a translucent scrim fill below API 31 so the pane still reads as glass,
- *  3. a vibrancy tint in the 8-12% white band over the pane,
- *  4. a ColorMatrix that lifts saturation x[SATURATION] and contrast
- *     x[CONTRAST] on everything painted through the layer — the "vibrant" look
- *     that makes content behind iOS bars pop through them.
- *
- * Chrome-only: this is for the floating pill nav (both themes get the pane;
- * Obsidian falls back to the scrim), drawer, sheets and scrolling top bars.
- * Content rows never carry it, and it must never be nested inside another
- * blurred surface — one blur per visual stack, radius <= 28dp.
+ * Paint.setRenderEffect exists only on API31+ jars/devices; resolved reflectively
+ * once so the engine compiles against older stubs and never touches it below 31.
  */
-object Materials {
+private val paintSetRenderEffect: java.lang.reflect.Method? by lazy {
+    runCatching {
+        Paint::class.java.getMethod("setRenderEffect", android.graphics.RenderEffect::class.java)
+    }.getOrNull()
+}
 
-    /** The one blur radius of the engine: 24dp, within the <=28dp chrome budget. */
-    val BLUR: Dp = 24.dp
+/**
+ * Stage 18 — iOS 27 material engine.
+ *
+ * True backdrop blur: [glassSource] wraps the BACKDROP content (the screens)
+ * and replays it once per registered chrome region inside a saveLayer whose
+ * Paint carries a RenderEffect chain — transactions scrolling under the pill
+ * really appear blurred and moving behind it.
+ *
+ * Layer order back→front (Apple's in-blur recipe):
+ *   L1 blur(24dp) of the content behind — saveLayer + RenderEffect blur, API31+.
+ *   L2 vibrancy tint — accent at 8–12% alpha, drawn INSIDE the blur layer.
+ *   L3 ColorMatrix saturation 1.2 + contrast 1.1 on the blurred layer.
+ *   L4 content — the chrome surface ([iosMaterial] consumer) draws on top.
+ *
+ * Perf guard: chrome surfaces only (pill, drawer, sheets, top bars); never in
+ * list items; never nested (region passes suspend while a modal owns the
+ * backdrop); radius ≤28dp; regions skip their pass when offscreen.
+ * API <31: layered scrim tint, no blur.
+ */
 
-    /** Colour-matrix saturation boost (law: 1.2). */
-    const val SATURATION: Float = 1.2f
+/** Compose-only vibrancy tint (kept out of MaterialSpec so JVM tests stay pure). */
+@Composable
+internal fun materialVibrancyTint(): Color = AccentBlue.copy(alpha = MaterialSpec.VIBRANCY_ALPHA)
 
-    /** Colour-matrix contrast boost (law: 1.1). */
-    const val CONTRAST: Float = 1.1f
+/** True when the running device can render the real backdrop-blur chain. */
+val canMaterialBlur: Boolean get() = MaterialSpec.canBlur(Build.VERSION.SDK_INT)
 
-    /** Vibrancy tint alpha band: 8-12% white. */
-    const val VIBRANCY_ALPHA_MIN: Float = 0.08f
-    const val VIBRANCY_ALPHA_MAX: Float = 0.12f
+/** A chrome region that wants backdrop blur, in ROOT coordinates. */
+internal data class GlassRegion(val rootBounds: Rect, val shape: Shape, val size: IntSize)
 
-    /** The default vibrancy tint: 10% white — dead centre of the band. */
-    val VibrancyTint: Color = Color.White.copy(alpha = 0.10f)
+/**
+ * Shared backdrop registry: chrome surfaces register their bounds; the
+ * [glassSource] recorder draws one blur pass per live region. [modalDepth]
+ * suspends region passes while a modal owns the backdrop, so blurs never nest.
+ */
+@Stable
+class GlassBackdropState {
+    internal val regions = mutableStateMapOf<String, GlassRegion>()
+    internal var recorderRoot by mutableStateOf(Offset.Zero)
+    var modalDepth by mutableIntStateOf(0)
+        internal set
 
-    /** Scrim fallback under API 31: same family as the Silica glass fill (18%). */
-    val ScrimFallback: Color = Color.White.copy(alpha = 0.18f)
+    internal fun setRegion(id: String, rootBounds: Rect, shape: Shape, size: IntSize) {
+        regions[id] = GlassRegion(rootBounds, shape, size)
+    }
 
-    /**
-     * The 4x5 colour-matrix values (row-major, Android order) that combine
-     * contrast about mid-grey with the saturation lift:
-     *   out = S * (C * (in - 0.5) + 0.5)  in luminance-preserving form.
-     */
-    fun colorMatrixValues(): FloatArray {
-        val c = CONTRAST
-        val s = SATURATION
-        val bias = (1f - c) / 2f          // contrast shift around mid-grey
-        val cs = c * s                    // combined diagonal scale
-        // Saturation matrix applied on top of the contrast scale:
-        //   M = satMatrix * diag(c,c,c); offset = sat * (bias + 0.5*(1-c)) ... simplified:
-        val lr = 0.2126f
-        val lg = 0.7152f
-        val lb = 0.0722f
-        val off = bias + 0.5f             // pre-shift constant per channel
-        fun row(sr: Float, sg: Float, sb: Float) = floatArrayOf(
-            cs * (sr + (1f - s)), cs * sg, cs * sb, 0f, cs * off * (if (sr > 0f) 1f else 1f) * 0f +
-                (off * cs - 0.5f * cs * 1f) * 0f + 0f
-        )
-        // Build explicitly instead: out_r = cs*((1-s)*L_r*in + s*in_r) + cs*bias... keep it readable:
-        val k = 1f - s
-        val m00 = cs * (lr * k + s); val m01 = cs * lg * k; val m02 = cs * lb * k
-        val m10 = cs * lr * k;       val m11 = cs * (lg * k + s); val m12 = cs * lb * k
-        val m20 = cs * lr * k;       val m21 = cs * lg * k;       val m22 = cs * (lb * k + s)
-        val o = cs * bias            // same shift on every channel (contrast about 0.5)
-        return floatArrayOf(
-            m00, m01, m02, 0f, o,
-            m10, m11, m12, 0f, o,
-            m20, m21, m22, 0f, o,
-            0f,  0f,  0f,  1f, 0f,
-        )
+    internal fun removeRegion(id: String) {
+        regions.remove(id)
+    }
+
+    /** A modal owns the backdrop: region passes stand down (no nested blurs). */
+    fun pushModal() {
+        modalDepth++
+    }
+
+    fun popModal() {
+        modalDepth = (modalDepth - 1).coerceAtLeast(0)
+    }
+}
+
+@Composable
+fun rememberGlassBackdrop(): GlassBackdropState = remember { GlassBackdropState() }
+
+/** Root-level backdrop state for the app shell (null outside the shell = no-op). */
+val LocalGlassBackdrop = staticCompositionLocalOf<GlassBackdropState?> { null }
+
+/**
+ * The recorder: wrap the BACKDROP content (screens). Chrome (pill, drawer)
+ * sits OUTSIDE this node so the replay stays sharp outside the regions.
+ */
+fun Modifier.glassSource(state: GlassBackdropState): Modifier = this.composed {
+    // Modal blur: the whole backdrop blurs behind sheets (iOS-style) and the
+    // region passes stand down — one blur surface, never nested.
+    val modalBlurActive = state.modalDepth > 0 && canMaterialBlur
+    val vibrancyTint = materialVibrancyTint()
+    var m: Modifier = this
+        .onGloballyPositioned { state.recorderRoot = it.positionInRoot() }
+        .drawWithContent {
+            // Sharp backdrop everywhere outside chrome regions.
+            drawContent()
+            if (!canMaterialBlur) return@drawWithContent
+            if (state.modalDepth > 0) return@drawWithContent
+            if (state.regions.isEmpty()) return@drawWithContent
+            val radiusPx = MaterialSpec.BLUR_DP.dp.toPx()
+            val androidPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+            // L1 — blur of the content behind (Apple's in-blur recipe base).
+            val blurFx = android.graphics.RenderEffect.createBlurEffect(
+                radiusPx, radiusPx, android.graphics.Shader.TileMode.CLAMP
+            )
+            val canvas = drawContext.canvas.nativeCanvas
+            val recorder = state.recorderRoot
+            val viewport = size.toSize()
+            for (region in state.regions.values.toList()) {
+                val local = Rect(
+                    region.rootBounds.left - recorder.x,
+                    region.rootBounds.top - recorder.y,
+                    region.rootBounds.right - recorder.x,
+                    region.rootBounds.bottom - recorder.y
+                )
+                // Perf guard — offscreen/closed regions cost nothing.
+                if (local.right < 0f || local.bottom < 0f ||
+                    local.left > viewport.width || local.top > viewport.height
+                ) continue
+                val outline = region.shape.createOutline(
+                    Size(region.size.width.toFloat(), region.size.height.toFloat()),
+                    layoutDirection, this@drawWithContent
+                )
+                val path = Path()
+                when (outline) {
+                    is Outline.Rounded -> path.addRoundRect(outline.roundRect)
+                    is Outline.Rectangle -> path.addRect(outline.rect)
+                    is Outline.Generic -> path.addPath(outline.path)
+                }
+                path.transform(Matrix().apply { translate(local.left, local.top) })
+                val stack = canvas.save()
+                canvas.clipPath(path.asAndroidPath())
+                canvas.saveLayer(
+                    local.left - radiusPx, local.top - radiusPx,
+                    local.right + radiusPx, local.bottom + radiusPx,
+                    androidPaint
+                )
+                drawContent()
+                // L2 — vibrancy: accent at 8–12% alpha over the blurred region.
+                drawRect(
+                    vibrancyTint,
+                    topLeft = Offset(local.left - radiusPx, local.top - radiusPx),
+                    size = Size(local.width + 2 * radiusPx, local.height + 2 * radiusPx)
+                )
+                // L3 — saturation 1.2 + contrast 1.1 on the blurred layer.
+                val matrixFx = android.graphics.RenderEffect.createColorFilterEffect(
+                    android.graphics.ColorMatrixColorFilter(
+                        android.graphics.ColorMatrix(MaterialSpec.colorMatrix())
+                    )
+                )
+                paintSetRenderEffect?.invoke(
+                    androidPaint,
+                    android.graphics.RenderEffect.createChainEffect(matrixFx, blurFx)
+                )
+                canvas.restoreToCount(stack)
+
+/**
+ * Register a chrome surface as a backdrop region (id-keyed; drops out of the
+ * recorder's pass list the moment it is disabled or leaves the tree).
+ */
+fun Modifier.glassBackdropRegionX(
+    state: GlassBackdropState?,
+    id: String,
+    shape: Shape,
+    enabled: Boolean = true
+): Modifier {
+    if (state == null) return this
+    return this.onGloballyPositioned { coords ->
+        if (!enabled) {
+            state.removeRegion(id)
+        } else {
+            val origin = coords.positionInRoot()
+            state.setRegion(
+                id,
+                Rect(
+                    origin.x, origin.y,
+                    origin.x + coords.size.width, origin.y + coords.size.height
+                ),
+                shape,
+                coords.size
+            )
+        }
     }
 }
 
 /**
- * The iOS material pane modifier — the Stage 18 engine. On Silica it paints:
- * clip -> 24dp blur (API 31+) or scrim fill (below) -> vibrancy tint ->
- * gradient hairline, with the 1.2/1.1 colour matrix on the render layer.
- * In Obsidian/Grayscale it returns an opaque [base] fill (no blur, no glass —
- * the guardrail that keeps blur exclusive to Silica).
+ * L4 — chrome glass fill: translucent scrim tint + vibrancy fallback (API<31,
+ * or surfaces with no backdrop region) + hairline border. Content drawn by the
+ * caller sits on top; backdrop blur comes from [glassSource] below.
  */
 @Composable
-fun Modifier.iosMaterial(
+fun Modifier.iosMaterialX(
     shape: Shape,
-    base: Color,
-    tint: Color = Materials.VibrancyTint,
-    hairline: Boolean = true
+    tint: Color = IosMaterialFill,
+    vibrancy: Boolean = true
 ): Modifier {
-    check(tint.alpha >= Materials.VIBRANCY_ALPHA_MIN &&
-          tint.alpha <= Materials.VIBRANCY_ALPHA_MAX) {
-        "Stage 18: vibrancy tint must sit in the 8-12% white band"
-    }
-    var m: Modifier = this.clip(shape)
-    if (isSilica) {
-        if (Silica.canBlur) {
-            // Real backdrop blur on the pane itself (chrome layer only).
-            m = m.graphicsLayer {
-                colorMatrix = android.graphics.ColorMatrix().apply {
-                    set(*Materials.colorMatrixValues())
-                }
-            }.blur(Materials.BLUR)
-        } else {
-            // API < 31 cannot blur: the scrim carries the glass look instead.
-            m = m.background(Materials.ScrimFallback)
-        }
-        m = m.background(tint)
-        if (hairline) {
-            m = m.border(1.dp, com.bingwascore.app.ui.theme.glassBorderBrush(), shape)
-        }
-    } else {
-        m = m.background(base)
-    }
-    return m
+    var m = this.clip(shape).background(tint)
+    // API31+ backdrop regions carry L2 vibrancy inside the blur layer already.
+    if (vibrancy) m = m.background(materialVibrancyTint(), shape)
+    return m.border(1.dp, iosPillBorderBrush(), shape)
 }
+
+            }
+        }
+    if (modalBlurActive) m = m.blur(MaterialSpec.BLUR_DP.dp)
+    m
+}
+
+

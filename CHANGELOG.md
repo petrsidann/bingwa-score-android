@@ -1,5 +1,21 @@
 # Changelog
 
+## PRODUCTION LOG — stage numbering (Stages 1–8 predate the rename)
+
+| Stage | Historical commit | Title |
+|-------|-------------------|-------|
+| 1 | `46be194` | Ultra U1: USSD session truth |
+| 2 | `6947a7b` | Ultra U2: autopilot 3-state |
+| 3 | `fa201ac` | Ultra U3: home/graph/splash right-size |
+| 4 | `576adaa` | Ultra U4: themes alive |
+| 5 | `eec8cdd` | Ultra U5: transactions surgical |
+| 6 | `662cae0` | Ultra U6.1: snake carousel logic + onboarding UI + tests |
+| 7 | `737a919` | Ultra U7.1: credits + pass ladder logic with tests |
+| 8 | `6ef1164` | Stage 8: QA + 1.8.0 release |
+| 9 | `9af4319` | Stage 9: dial truth round 2 |
+| 10 | `ffd09a3` | Stage 10: iOS design system |
+| 11 | `adfe26d` | Stage 11: launch cinematic |
+
 ## 1.8.0 — ULTRA U6–U8 (2026-10-10)
 
 ### U6 — Snake carousel onboarding

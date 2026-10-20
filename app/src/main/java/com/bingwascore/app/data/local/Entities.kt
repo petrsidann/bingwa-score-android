@@ -145,16 +145,34 @@ data class Offer(
     }
 }
 
-/** A customer identified by phone number. */
+/**
+ * A customer identified by phone number.
+ *
+ * Stage 14 — an autosave roll-up: every SUCCESSFUL transaction upserts this row
+ * by phone (see [com.bingwascore.app.domain.CustomerBook.upsert]). The trailing
+ * columns are the running roll-up the Customers book renders without ever
+ * re-scanning the ledger: last activity, last offer, lifetime spend, purchase
+ * count and the first-purchase date.
+ */
 @Entity(
     tableName = "customers",
-    indices = [Index("isBlacklisted")]
+    indices = [Index("isBlacklisted"), Index("lastActivityAt")]
 )
 data class Customer(
     @PrimaryKey val phoneNumber: String,
     val name: String? = null,
     val isBlacklisted: Boolean = false,
-    val createdAt: Long
+    val createdAt: Long,
+    /** Epoch millis of the newest SUCCESSFUL purchase — drives recent-first. */
+    val lastActivityAt: Long = createdAt,
+    /** Offer name of the newest SUCCESSFUL purchase. */
+    val lastOfferName: String? = null,
+    /** Lifetime spend across every SUCCESSFUL purchase. */
+    val totalSpent: Double = 0.0,
+    /** Number of SUCCESSFUL purchases for this phone. */
+    val txCount: Int = 0,
+    /** Epoch millis of the first-ever SUCCESSFUL purchase. */
+    val firstPurchaseAt: Long = 0L
 )
 
 /** A canned SMS reply template used by the auto-reply engine. */

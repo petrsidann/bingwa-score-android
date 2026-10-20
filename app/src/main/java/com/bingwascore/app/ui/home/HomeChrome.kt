@@ -1,11 +1,17 @@
 package com.bingwascore.app.ui.home
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -33,6 +39,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -44,6 +51,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -53,9 +63,12 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalLayoutDirection
 import com.bingwascore.app.ui.components.SecondaryButton
 import com.bingwascore.app.ui.components.StatusDot
+import com.bingwascore.app.ui.glass.iosMaterial
 import com.bingwascore.app.ui.theme.AccentBlue
 import com.bingwascore.app.ui.theme.FailRed
 import com.bingwascore.app.ui.theme.Hairline
+import com.bingwascore.app.ui.glass.LocalGlassBackdrop
+import com.bingwascore.app.ui.theme.IosMaterialFill
 import com.bingwascore.app.ui.theme.Motion
 import com.bingwascore.app.ui.theme.Raised
 import com.bingwascore.app.ui.theme.TextDim
@@ -63,7 +76,7 @@ import com.bingwascore.app.ui.theme.TextGrey
 import com.bingwascore.app.ui.theme.TextWhite
 import com.bingwascore.app.ui.theme.TickGreen
 import com.bingwascore.app.util.rememberHaptics
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /**
  * POLISH P2 — the Home top bar, as three small pieces of chrome.
@@ -111,12 +124,13 @@ fun GreetingLine(
 }
 
 /**
- * The credits bubble: +1 per successful transaction, so it is a running tally of
- * sales rather than a vanity counter. A star glyph plus the number, tinted by
- * how much the week has earned.
+ * The credits bubble: Stage 12 — it shows what is LEFT, not what was earned.
+ * The label comes from the plan (pulls remaining as a count, or "N days" for
+ * unlimited plans) and falls back to the earned-credit count when no plan is
+ * active. Tapping it opens My Plan.
  */
 @Composable
-fun CreditsBubble(credits: Int, onClick: () -> Unit, modifier: Modifier = Modifier) {
+fun CreditsBubble(label: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val haptics = rememberHaptics()
     val shape = RoundedCornerShape(50)
     Row(
@@ -140,7 +154,7 @@ fun CreditsBubble(credits: Int, onClick: () -> Unit, modifier: Modifier = Modifi
         )
         Spacer(modifier = Modifier.width(5.dp))
         Text(
-            text = "$credits",
+            text = label,
             color = TextWhite,
             fontSize = 12.sp,
             fontWeight = FontWeight.Bold
@@ -164,7 +178,7 @@ private fun BubbleRaised(): Color = Raised
 fun HomeTopBar(
     bucket: Greetings.Bucket,
     language: Greetings.Language,
-    credits: Int,
+    creditsLabel: String,
     onCreditsClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -176,7 +190,7 @@ fun HomeTopBar(
     ) {
         GreetingLine(bucket = bucket, language = language, modifier = Modifier.weight(1f))
         Spacer(modifier = Modifier.width(12.dp))
-        CreditsBubble(credits = credits, onClick = onCreditsClick)
+        CreditsBubble(label = creditsLabel, onClick = onCreditsClick)
     }
 }
 
@@ -194,10 +208,17 @@ fun CreditsSheet(
     onDismiss: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    // Stage 18 — the sheet owns the modal backdrop: screens blur behind it
+    // (iOS-style modal glass); region passes stand down — blurs never nest.
+    val glassBackdrop = LocalGlassBackdrop.current
+    DisposableEffect(glassBackdrop) {
+        glassBackdrop?.pushModal()
+        onDispose { glassBackdrop?.popModal() }
+    }
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = Raised,
+        containerColor = IosMaterialFill,
         dragHandle = null
     ) {
         Column(
@@ -299,13 +320,14 @@ fun CreditsSheet(
  * engine on?" look like the app's most important decision. It is not — it is a
  * heartbeat, and it reads as one in a 36dp pill.
  *
- * The asymmetry is deliberate: **tap** is free (it opens the Autopilot sheet),
- * but **stopping** takes a 600ms hold, after which a confirmation asks once more.
- * The engine silently stops dialling when an agent brushes past a switch, and a
- * stalled engine is a lost sale every minute it stays off — so the destructive
- * act gets two deliberate steps, and the safe one gets none.
+ * Stage 12 — the asymmetry is enforced and now visible: **tap** is free (it
+ * opens the Autopilot sheet, it NEVER pauses), but **pausing** takes a 600ms
+ * hold whose progress is drawn as a ring around the radar glyph, with one
+ * haptic at completion. A stalled engine is a lost sale every minute it stays
+ * off — so the destructive act gets a deliberate, visible gesture.
+ * ([AutopilotGuard] holds the pure contract this pill implements.)
  */
-@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AutopilotPill(
     engineState: com.bingwascore.app.domain.EngineState,
@@ -314,11 +336,40 @@ fun AutopilotPill(
     modifier: Modifier = Modifier
 ) {
     val haptics = rememberHaptics()
-    var armed by remember { mutableStateOf(false) }
     val shape = RoundedCornerShape(50)
     val isRunning = engineState == com.bingwascore.app.domain.EngineState.RUNNING
     val isPaused = engineState == com.bingwascore.app.domain.EngineState.PAUSED
     val isStopped = engineState == com.bingwascore.app.domain.EngineState.STOPPED
+
+    // Stage 12 — the hold's visible ring: 0f..1f over AutopilotGuard.HOLD_MILLIS.
+    val holdProgress = remember { Animatable(0f) }
+    val ringProgress = holdProgress.value
+
+    // Stage 12 — set true on press, cleared on release/completion. The gesture
+    // scope is restricted, so the ring + commit run here instead.
+    var holding by remember { mutableStateOf(false) }
+    // Set when the full 600ms course completes, consumed by the gesture on
+    // release so a committed pause is never mistaken for an early tap.
+    var committedHold by remember { mutableStateOf(false) }
+    LaunchedEffect(holding) {
+        if (holding) {
+            holdProgress.animateTo(
+                1f,
+                tween(
+                    AutopilotGuard.HOLD_MILLIS.toInt(),
+                    easing = LinearEasing
+                )
+            )
+            // Full course only: one haptic, one pause — then reset the ring.
+            haptics.press()
+            committedHold = true
+            onPause()
+            holding = false
+            holdProgress.snapTo(0f)
+        } else {
+            holdProgress.snapTo(0f)
+        }
+    }
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -340,33 +391,74 @@ fun AutopilotPill(
                 },
                 shape
             )
-            .combinedClickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onLongClick = {
+            .pointerInput(isRunning) {
+                // Stage 12 — hold-to-pause: the gesture only tracks press/release;
+                // [holdJob] (a LaunchedEffect outside this restricted scope) fills
+                // the ring over 600ms and pauses once at completion.
+                awaitEachGesture {
+                    awaitFirstDown(requireUnconsumed = false)
+                    committedHold = false
                     if (isRunning) {
-                        haptics.press()
-                        armed = true
+                        holding = true
+                        var released = false
+                        while (!released) {
+                            val event = awaitPointerEvent()
+                            if (event.changes.none { it.pressed }) released = true
+                        }
+                        if (committedHold) {
+                            // The hold ran its full course — already paused, do nothing more.
+                            committedHold = false
+                            holding = false
+                        } else {
+                            // Released early — that is a tap, and a tap only opens the sheet.
+                            holding = false
+                            haptics.tick()
+                            onOpenSheet()
+                        }
+                    } else {
+                        // Not running: every press is a tap into the sheet.
+                        var released = false
+                        while (!released) {
+                            val event = awaitPointerEvent()
+                            if (event.changes.none { it.pressed }) released = true
+                        }
+                        haptics.tick()
+                        onOpenSheet()
                     }
-                },
-                onClick = {
-                    armed = false
-                    haptics.tick()
-                    onOpenSheet()
                 }
-            )
+            }
             .padding(horizontal = 12.dp, vertical = 8.dp)
     ) {
-        Icon(
-            imageVector = Icons.Rounded.Radar,
-            contentDescription = null,
-            tint = when {
-                isRunning -> AccentBlue
-                isPaused -> TextGrey
-                else -> TextDim
-            },
-            modifier = Modifier.size(15.dp)
-        )
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier.size(22.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.Radar,
+                contentDescription = null,
+                tint = when {
+                    isRunning -> AccentBlue
+                    isPaused -> TextGrey
+                    else -> TextDim
+                },
+                modifier = Modifier.size(15.dp)
+            )
+            // Stage 12 — the visible hold-progress ring, drawn only while holding.
+            if (ringProgress > 0f) {
+                Canvas(modifier = Modifier.size(22.dp)) {
+                    drawArc(
+                        color = AccentBlue,
+                        startAngle = -90f,
+                        sweepAngle = 360f * ringProgress,
+                        useCenter = false,
+                        style = Stroke(
+                            width = 2.dp.toPx(),
+                            cap = StrokeCap.Round
+                        )
+                    )
+                }
+            }
+        }
         Spacer(modifier = Modifier.width(7.dp))
         Text(
             text = when (engineState) {
@@ -378,15 +470,6 @@ fun AutopilotPill(
             fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold
         )
-    }
-
-    // Hold for 600ms pauses the engine
-    LaunchedEffect(armed) {
-        if (armed) {
-            delay(Motion.ARM_HOLD_MILLIS)
-            armed = false
-            onPause()
-        }
     }
 }
 
@@ -409,7 +492,7 @@ fun AutopilotSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = Raised,
+        containerColor = IosMaterialFill,
         dragHandle = null
     ) {
         Column(

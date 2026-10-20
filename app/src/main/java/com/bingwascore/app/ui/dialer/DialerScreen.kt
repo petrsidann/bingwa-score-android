@@ -1,5 +1,8 @@
 package com.bingwascore.app.ui.dialer
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -33,6 +36,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -50,6 +54,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bingwascore.app.data.local.Offer
+import com.bingwascore.app.domain.engine.UssdConsoleLine
 import com.bingwascore.app.domain.engine.UssdSessionEngine
 import com.bingwascore.app.ui.components.PrimaryButton
 import com.bingwascore.app.ui.components.pressScale
@@ -111,6 +116,9 @@ fun DialerScreen(onClose: () -> Unit, viewModel: DialerViewModel = hiltViewModel
     }
 
     val selectedOffer = offers.firstOrNull { it.id == selectedOfferId } ?: offers.firstOrNull()
+    // Stage 9 — live USSD session console lines.
+    val consoleLines by viewModel.console.collectAsStateWithLifecycle()
+    var consoleOpen by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -212,6 +220,19 @@ fun DialerScreen(onClose: () -> Unit, viewModel: DialerViewModel = hiltViewModel
             loading = isDialing,
             loadingText = "Dialing...",
             onClick = viewModel::dialNow
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+        // Stage 9 — collapsible on-screen USSD session console: live step log
+        // (code sent, response text, next input, escalation) so every stall
+        // is visible without logcat.
+        UssdSessionConsole(
+            lines = consoleLines,
+            open = consoleOpen,
+            onToggle = {
+                haptics.tick()
+                consoleOpen = !consoleOpen
+            }
         )
     }
 
@@ -406,6 +427,93 @@ private fun OfferChip(offer: Offer, selected: Boolean, onClick: () -> Unit) {
             color = if (selected) BgBlack.copy(alpha = 0.7f) else TextWhite.copy(alpha = 0.5f),
             fontSize = 11.sp
         )
+    }
+}
+
+/**
+ * Stage 9 — collapsible on-screen USSD session console.
+ *
+ * Header always visible ("Session log", line count chevron); body expands
+ * with [AnimatedVisibility] listing code sent / response / next input /
+ * escalation lines, newest last. Empty state names the idle truth.
+ */
+@Composable
+private fun UssdSessionConsole(
+    lines: List<UssdConsoleLine>,
+    open: Boolean,
+    onToggle: () -> Unit
+) {
+    val shape = RoundedCornerShape(14.dp)
+    val interaction = remember { MutableInteractionSource() }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(Bubble)
+            .border(1.dp, Hairline, shape)
+            .clickable(
+                interactionSource = interaction,
+                indication = null,
+                onClick = onToggle
+            )
+            .padding(horizontal = 14.dp, vertical = 12.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                "Session log",
+                color = TextWhite,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.weight(1f)
+            )
+            Text(
+                if (lines.isEmpty()) "idle" else "${lines.size} steps",
+                color = TextFaint,
+                fontSize = 11.sp
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                if (open) "▾" else "▸",
+                color = TextFaint,
+                fontSize = 13.sp
+            )
+        }
+        AnimatedVisibility(
+            visible = open,
+            enter = expandVertically(),
+            exit = shrinkVertically()
+        ) {
+            Column(modifier = Modifier.padding(top = 10.dp)) {
+                if (lines.isEmpty()) {
+                    Text(
+                        "No session yet — dial to watch each step land here.",
+                        color = TextFaint,
+                        fontSize = 12.sp
+                    )
+                } else {
+                    lines.forEach { line ->
+                        Row(modifier = Modifier.padding(vertical = 2.dp)) {
+                            Text(
+                                "[${line.kind}] ",
+                                color = when (line.kind) {
+                                    "escalation" -> FailRed
+                                    "input" -> AccentBlue
+                                    else -> TickGreen
+                                },
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                line.text,
+                                color = TextGrey,
+                                fontSize = 11.sp,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 

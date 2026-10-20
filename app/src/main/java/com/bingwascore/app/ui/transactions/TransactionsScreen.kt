@@ -863,7 +863,7 @@ private fun DayHeader(day: String) {
 @Composable
 private fun FilterChip(label: String, selected: Boolean, onClick: () -> Unit) {
     val interactionSource = remember { MutableInteractionSource() }
-    val shape = RoundedCornerShape(10.dp)
+    val shape = RoundedCornerShape(14.dp)
     Box(
         modifier = Modifier
             .pressScale(interactionSource)
@@ -874,12 +874,15 @@ private fun FilterChip(label: String, selected: Boolean, onClick: () -> Unit) {
                 indication = null,
                 onClick = onClick
             )
-            .padding(horizontal = 12.dp, vertical = 8.dp)
+            // Stage 9 — medium pills: 14h/10v sits between the old large
+            // (18/12) and the tiny (12/8); 13sp label keeps "Dennis K. Wachira"
+            // rows + chips on one visual register.
+            .padding(horizontal = 14.dp, vertical = 10.dp)
     ) {
         Text(
             label,
             color = if (selected) TextWhite else TextGrey,
-            fontSize = 12.sp,
+            fontSize = 13.sp,
             fontWeight = FontWeight.SemiBold
         )
     }

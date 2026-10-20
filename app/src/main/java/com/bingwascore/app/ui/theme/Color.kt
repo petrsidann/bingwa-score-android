@@ -10,20 +10,16 @@ import androidx.compose.ui.unit.dp
 import com.bingwascore.app.domain.ThemeMode
 
 /**
- * POLISH P5 - the Bingwa Score colour system.
+ * Stage 10 — iOS design system colour tokens: Obsidian (dark) + Porcelain (light).
  *
  * One rule: every UI colour comes from a token below, never from a literal.
- * Tokens are *mode aware* - they read [DisplayModeState], which the theme writes
- * on every recomposition, so switching mode repaints the whole app on the next
- * frame without restarting anything or touching a single screen.
+ * Tokens are *mode aware* — they read [DisplayModeState], which the theme writes
+ * on every recomposition, so switching mode repaints the whole app instantly.
  *
- * Modes (Settings > Appearance, there is deliberately NO light mode):
- * - [ThemeMode.DARK]      "Obsidian"  - pure black, softened electric blue.
- * - [ThemeMode.GRAYSCALE] "Grayscale" - monochrome chrome, semantic colour kept.
- * - [ThemeMode.SILICA]    "Silica"     - frosted glass, orbs, gradient hairlines.
- *
- * The old BLUE LIGHT FILTER is gone: a warm cast over a black terminal UI was
- * never a mode, it was a night-light workaround, and it cost real contrast.
+ * Porcelain (iMessage-grade): bg #F2F2F7, cards #FFFFFF,
+ * separators rgba(60,60,67,0.29) inset 0.33dp, text #000 / #3C3C43,
+ * accents brand blue #2563EB family (+ iOS #007AFF allowed).
+ * Obsidian (dark): keeps the #0B0E15 family.
  */
 internal object DisplayModeState {
     var mode: ThemeMode by mutableStateOf(ThemeMode.DARK)
@@ -37,152 +33,101 @@ internal fun installDisplayMode(value: ThemeMode) {
 /** The display mode currently painted by the app. */
 val currentDisplayMode: ThemeMode get() = DisplayModeState.mode
 
-/**
- * True in the two alternate modes, where a blue CTA can no longer read as blue:
- * buttons drop to solid near-black chips with a hairline border instead.
- */
-val usesSolidChips: Boolean get() = DisplayModeState.mode != ThemeMode.DARK
+/** True in Porcelain. */
+val isPorcelain: Boolean get() = DisplayModeState.mode == ThemeMode.LIGHT
+
+/** Stage 10 — porcelain light tokens (iMessage-grade). Stage 21 — Dim rebalance: ~15% darker, glare-free. */
+val PorcelainBg: Color = Color(0xFFE2E4E8)
+val PorcelainCard: Color = Color(0xFFF7F8FA)
+val PorcelainSurface: Color = Color(0xFFEFF0F3)
+val PorcelainSeparator: Color = Color(0x4A3C3C43)
+val PorcelainText: Color = Color(0xFF16181D)
+val PorcelainSecondaryText: Color = Color(0xFF5A6169)
+val IosBlue: Color = Color(0xFF007AFF)
+/** Brand blue family. */
+val BrandBlue: Color = Color(0xFF2563EB)
 
 // ─── Surfaces ─────────────────────────────────────────────────────────────────
 val BgBlack: Color get() = when (DisplayModeState.mode) {
-    // Silica is never pure black: glass needs something behind it to refract.
-    ThemeMode.SILICA -> Color(0xFF07070C)
-    else -> Color(0xFF000000)
+    ThemeMode.LIGHT -> PorcelainBg
+    else -> Color(0xFF0B0E15)
 }
 
 val Bubble: Color get() = when (DisplayModeState.mode) {
-    ThemeMode.SILICA -> Color(0x14FFFFFF)   // translucent: the orbs show through
-    else -> Color(0xFF141414)
+    ThemeMode.LIGHT -> PorcelainCard
+    else -> Color(0xFF131824)
 }
 
 val Raised: Color get() = when (DisplayModeState.mode) {
-    ThemeMode.SILICA -> Color(0x1FFFFFFF)
-    else -> Color(0xFF1C1C1C)
+    ThemeMode.LIGHT -> Color(0xFFE5E5EA)
+    else -> Color(0xFF1B2233)
 }
 
 val Hairline: Color get() = when (DisplayModeState.mode) {
-    ThemeMode.SILICA -> Color(0x33FFFFFF)
-    else -> Color(0xFF2A2A2A)
+    ThemeMode.LIGHT -> PorcelainSeparator
+    else -> Color(0xFF232C42)
 }
 
 /** Selected-row wash behind multi-selected transactions. */
 val SelectTint: Color get() = when (DisplayModeState.mode) {
-    ThemeMode.SILICA -> Color(0x263E6BFF)
+    ThemeMode.LIGHT -> Color(0x1A007AFF)
     else -> Color(0xFF10233F)
 }
 
 // ─── Type ─────────────────────────────────────────────────────────────────────
 val TextWhite: Color get() = when (DisplayModeState.mode) {
-    ThemeMode.SILICA -> Color(0xFFF2F4FF)
+    ThemeMode.LIGHT -> PorcelainText
     else -> Color(0xFFFFFFFF)
 }
 
 val TextGrey: Color get() = when (DisplayModeState.mode) {
-    ThemeMode.SILICA -> Color(0xFFB9BDD4)
+    ThemeMode.LIGHT -> Color(0xFF4B5563)
     else -> Color(0xFF9E9E9E)
 }
 
 val TextDim: Color get() = when (DisplayModeState.mode) {
-    ThemeMode.SILICA -> Color(0xFF8B90AD)
+    ThemeMode.LIGHT -> Color(0xFF6D6D72)
     else -> Color(0xFF6B6B6B)
 }
 
 // ─── Accents + statuses ───────────────────────────────────────────────────────
 
 /**
- * POLISH P5 — the semantic status palette.
- *
- * These three are **not** mode-aware, and that is the whole point: a failed
- * transaction is red in Obsidian, red in Grayscale and red in Silica. Only the
- * *chrome* (buttons, nav, switches, surfaces) changes with the mode, so switching
- * to Grayscale never costs the agent the one signal that matters — which rows
- * failed and which cleared.
+ * Stage 10 — the semantic status palette: identical in BOTH themes.
  */
+
+/** Stage 10 — the semantic status palette: identical in BOTH themes (one value each; U4ThemesTest pins equality, U8QaSweepTest pins AA on both canvases). */
 val SemanticBlue: Color = Color(0xFF3E6BFF)
-val SemanticRed: Color = Color(0xFFFF5252)
-val SemanticGrey: Color = Color(0xFF9E9E9E)
+val SemanticRed: Color = Color(0xFFFC1E1E)
+/** Mid-grey clears 3:1 on BOTH canvases (Obsidian #0B0E15 and Porcelain Dim #E2E4E8). */
+val SemanticGrey: Color = Color(0xFF6B7280)
 
-// ─── U4 — Grayscale keeps DISTINCT, desaturated status tints ─────────────────
-/**
- * U4 — how much saturation a status dot keeps in Grayscale.
- *
- * Grayscale is a monochrome chrome, not a monochrome ledger: a completed row, a
- * failed row and a queued row must still be tellable apart at a glance. The dots
- * keep 60% of their saturation (blended 40% toward their own luminance), which is
- * the band where the hue still reads without the chrome going colourful.
- */
-const val GRAYSCALE_DOT_SATURATION = 0.6f
+/** Stage 10 — Done/Failed/Queued are the semantic trio in every theme. */
+val StatusDone: Color get() = SemanticBlue
+val StatusFailedTint: Color get() = SemanticRed
 
-/**
- * U4 — blend [color] toward its own luminance so [saturation] of 0 is grey and 1
- * is the untouched colour. Pure, so the Grayscale palette is unit-testable.
- */
-fun saturate(color: Color, saturation: Float): Color {
-    val keep = saturation.coerceIn(0f, 1f)
-    val lum = 0.299f * color.red + 0.587f * color.green + 0.114f * color.blue
-    return Color(
-        red = lum + (color.red - lum) * keep,
-        green = lum + (color.green - lum) * keep,
-        blue = lum + (color.blue - lum) * keep,
-        alpha = color.alpha
-    )
-}
-
-/**
- * U4 — the Done tint. Grayscale uses a **silver-blue** so a cleared sale still
- * separates from a failed one without the palette turning blue.
- */
-val StatusDone: Color get() = when (DisplayModeState.mode) {
-    ThemeMode.GRAYSCALE -> Color(0xFF8FA6C8)
-    else -> SemanticBlue
-}
-
-/**
- * U4 — the Failed tint. Grayscale uses a **charcoal-red** so failure keeps its
- * urgency in monochrome chrome.
- */
-val StatusFailedTint: Color get() = when (DisplayModeState.mode) {
-    ThemeMode.GRAYSCALE -> Color(0xFFA87070)
-    else -> SemanticRed
-}
-
-/** U4 — Queued stays **neutral** in every mode: it carries no verdict yet. */
+/** Queued stays **neutral** and identical across themes. */
 val StatusQueued: Color get() = SemanticGrey
 
-/**
- * The chrome accent.
- *
- * POLISH P5 — softened about 12% from the old `#2962FF`. Pure electric blue on
- * pure black is harsh at 3am on a shop counter and, at full strength behind a
- * filled label, clips. Twelve percent of headroom keeps it unmistakably blue and
- * comfortably readable.
- */
+/** Stage 10 — chrome accent: brand blue family; iOS blue in Porcelain. */
 val AccentBlue: Color get() = when (DisplayModeState.mode) {
-    ThemeMode.GRAYSCALE -> Color(0xFFBDBDBD)
-    else -> Color(0xFF4176FF)
+    ThemeMode.LIGHT -> IosBlue
+    else -> BrandBlue
 }
 
 val ChartBlue: Color get() = when (DisplayModeState.mode) {
-    ThemeMode.GRAYSCALE -> Color(0xFFBDBDBD)
+    ThemeMode.LIGHT -> IosBlue
     else -> Color(0xFF5482FF)
 }
 
-val FailRed: Color get() = when (DisplayModeState.mode) {
-    ThemeMode.GRAYSCALE -> Color(0xFF757575)
-    else -> SemanticRed
-}
+val FailRed: Color get() = SemanticRed
 
 /** Pending / scheduled rows carry no signal either way, so they stay grey. */
 val PendGrey: Color get() = SemanticGrey
 
 /**
- * POLISH P6 — the floor for secondary text, after the contrast audit.
- *
- * Every "metadata" label used to be `TextFaint`, which lands
- * around 3.7:1 on the bubble surface — below the 4.5:1 AA threshold for small
- * text, and worse on Silica where the surface is translucent. Sixty percent white
- * measures about 7:1 on every surface in all three modes, so this is the one
- * faint ink in the app and the audit's replacement for the whole family.
+ * Stage 10 — secondary text floor: 60% ink clears AA on every surface
+ * in both themes.
  */
 val TextFaint: Color get() = TextWhite.copy(alpha = 0.6f)
 
@@ -190,111 +135,69 @@ val TextFaint: Color get() = TextWhite.copy(alpha = 0.6f)
  * POLISH P2 — the card wash.
  *
  * A status tile (or a status row) is the bubble surface with a 12% tint of its
- * own status colour laid over it. Ten to fourteen percent is the band where a
- * blue tile reads as blue on black without turning into a coloured slab; below it
- * nothing happens, above it the surface stops being a surface. The colour is the
- * *semantic* one, so Grayscale keeps the wash even when the chrome goes mono.
+ * own status colour laid over it. The colour is the *semantic* one, identical
+ * in both themes.
  */
 fun statusWash(statusColor: Color, alpha: Float = 0.12f): Color = statusColor.copy(alpha = alpha)
 
 /** Reserved for the "mark complete" tick and nothing else. */
-val TickGreen: Color get() = when (DisplayModeState.mode) {
-    ThemeMode.GRAYSCALE -> Color(0xFFBDBDBD)
-    else -> Color(0xFF00C853)
+val TickGreen: Color get() = Color(0xFF00C853)
+
+// ─── Stage 10 — iOS materials (blur ONLY here: nav bars + sheets) ────────────
+
+/** Translucent material fill for nav bars + page sheets (Stage 21 — porcelain dim). */
+val IosMaterialFill: Color get() = when (DisplayModeState.mode) {
+    ThemeMode.LIGHT -> Color(0xB8E2E4E8)
+    else -> Color(0xB80B0E15)
 }
 
-// ─── POLISH P5 — Silica glass ─────────────────────────────────────────────────
-
-/** True only in the glass mode, so surfaces can branch without a mode check. */
-val isSilica: Boolean get() = DisplayModeState.mode == ThemeMode.SILICA
-
-/**
- * The frosted fill of a card: white at **18%** (U4), so the orbs behind it show
- * through while the pane still reads as glass rather than as a hole.
- */
-val GlassFill: Color get() = Color(0x2EFFFFFF)
-
-/** A slightly denser glass for sheets and rails that sit above content. */
-val GlassFillStrong: Color get() = Color(0x33FFFFFF)
-
-/**
- * The gradient hairline.
- *
- * A flat 1px border around glass looks like a mistake; a hairline that fades
- * from 26% white to 6% across the shape reads as an edge catching light, which
- * is what makes the card look like a pane rather than a rectangle.
- */
-fun glassBorderBrush(strong: Boolean = false): Brush = Brush.linearGradient(
+/** iOS hairline border for the floating tab pill. */
+fun iosPillBorderBrush(): Brush = Brush.linearGradient(
     colors = listOf(
-        Color(0x66FFFFFF),
-        Color(0x14FFFFFF),
-        if (strong) Color(0x59FFFFFF) else Color(0x0FFFFFFF)
+        Color(0x1A000000),
+        Color(0x0D000000)
     )
 )
 
+/** Stage 10 — iOS language: inset grouped cards use a 12dp radius. */
+val IOS_CARD_RADIUS: androidx.compose.ui.unit.Dp = 12.dp
+
 /**
- * The ambient orbs behind the glass: one blue, one violet, each at **8% alpha**
- * (U4) — present enough to refract, quiet enough never to be a colour the agent
- * notices. Their soft edge is set by [ORB_BLUR] in the renderer.
+ * Stage 10 — iOS grouped-list separator: rgba(60,60,67,0.29) in Porcelain,
+ * hairline on the dark canvas.
  */
-val OrbBlue: Color get() = Color(0x143E6BFF)
-val OrbViolet: Color get() = Color(0x148C6BFF)
-
-/** U4 — how far the orbs fade at their edge. */
-val ORB_BLUR: androidx.compose.ui.unit.Dp = 140.dp
-
-/** The full ambient wash painted behind a Silica screen. */
-fun orbBrush(): Brush = Brush.radialGradient(
-    colors = listOf(OrbBlue, Color.Transparent),
-    center = androidx.compose.ui.geometry.Offset(180f, 220f),
-    radius = 780f
-)
+val IosSeparator: Color get() = when (DisplayModeState.mode) {
+    ThemeMode.LIGHT -> PorcelainSeparator
+    else -> Hairline
+}
 
 /**
- * The disabled pair.
- *
- * POLISH P5 — the old disabled button was `Raised` with 45% white on top, which
- * measured about 2.4:1 and made "Dial Now" look broken rather than unavailable.
- * These are explicit tokens: the fill is a shade above the surface and the ink is
- * a fixed 60% white, which clears 4.5:1 on black in every mode.
+ * Stage 10 — the disabled pair: clears AA in BOTH themes. Porcelain inks grey
+ * on a light fill; Obsidian keeps light ink on a raised fill.
  */
 val DisabledFill: Color get() = when (DisplayModeState.mode) {
-    ThemeMode.SILICA -> Color(0x1AFFFFFF)
+    ThemeMode.LIGHT -> Color(0xFFD1D1D6)
     else -> Color(0xFF232323)
 }
 
 val DisabledInk: Color get() = when (DisplayModeState.mode) {
-    ThemeMode.SILICA -> Color(0x99FFFFFF)
+    ThemeMode.LIGHT -> Color(0xFF3A3A3C)
     else -> Color(0xFF9E9E9E)
 }
 
 // ─── Call-to-action chrome ────────────────────────────────────────────────────
-/**
- * U4 — Grayscale CTAs are a **solid #E0E0E0 chip with black text**, which is the
- * only figure/ground pair that stays unambiguous when the accent is no longer a
- * hue. Obsidian and Silica keep the brand blue.
- */
-val CtaFill: Color get() = when (DisplayModeState.mode) {
-    ThemeMode.GRAYSCALE -> Color(0xFFE0E0E0)
-    else -> AccentBlue
-}
+/** Stage 10 — capsule CTA: brand blue fill, white ink, both themes. */
+val CtaFill: Color get() = AccentBlue
 
-/** Ink drawn on [CtaFill] — black on the Grayscale chip, white on the blue CTA. */
-val CtaInk: Color get() = when (DisplayModeState.mode) {
-    ThemeMode.GRAYSCALE -> Color(0xFF000000)
-    else -> TextWhite
-}
+/** Ink drawn on [CtaFill]. */
+val CtaInk: Color get() = TextWhite
 
 /** The hairline that separates a solid chip from the background. */
-val CtaBorder: Color get() = if (usesSolidChips) Hairline else Color.Transparent
+val CtaBorder: Color get() = Color.Transparent
 
-/**
- * U4 — the secondary button's outline. Grayscale draws it at **#9E9E9E** so an
- * outlined action is legible against the monochrome canvas instead of vanishing
- * into a hairline that matches the surface.
- */
+/** Stage 10 — secondary outline: hairline dark, grey light. */
 val SecondaryOutline: Color get() = when (DisplayModeState.mode) {
-    ThemeMode.GRAYSCALE -> Color(0xFF9E9E9E)
+    ThemeMode.LIGHT -> Color(0xFF8E8E93)
     else -> Hairline
 }
 

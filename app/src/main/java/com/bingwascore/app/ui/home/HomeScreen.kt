@@ -8,9 +8,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -124,6 +121,8 @@ private val HOME_ROW_HEIGHT = 44.dp
 @Composable
 fun HomeScreen(
     onOpenTransactions: (statusFilter: String?) -> Unit = {},
+    onOpenMyPlan: () -> Unit = {},
+    onOpenDiplomatics: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
@@ -143,9 +142,7 @@ fun HomeScreen(
 
     // POLISH P2 — greeting, credits and the two Home sheets.
     val greeting by viewModel.greeting.collectAsStateWithLifecycle()
-    val credits by viewModel.credits.collectAsStateWithLifecycle()
-    val creditRows by viewModel.creditRows.collectAsStateWithLifecycle()
-    var showCredits by remember { mutableStateOf(false) }
+    val creditsLabel by viewModel.creditsLabel.collectAsStateWithLifecycle()
     var showAutopilot by remember { mutableStateOf(false) }
     var showDiagnostics by remember { mutableStateOf(false) }
 
@@ -223,26 +220,35 @@ fun HomeScreen(
                 HomeTopBar(
                     bucket = greeting.first,
                     language = greeting.second,
-                    credits = credits,
-                    onCreditsClick = { showCredits = true }
+                    creditsLabel = creditsLabel,
+                    onCreditsClick = onOpenMyPlan
                 )
             }
 
             item {
+                // Stage 19 — Home has zero score UI; autopilot pill owns this slot.
+                AutopilotPill(
+                    engineState = engineState,
+                    onOpenSheet = { showAutopilot = true },
+                    onPause = { viewModel.pauseEngine() }
+                )
+            }
+
+            item {
+                // Stage 12/15 — the language label opens Diplomatics (rotation,
+                // pinning, cadence); it is a door, not decoration.
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    AutopilotPill(
-                        engineState = engineState,
-                        onOpenSheet = { showAutopilot = true },
-                        onPause = { viewModel.pauseEngine() }
-                    )
                     Text(
                         text = greeting.second.endonym,
                         color = TextDim,
-                        fontSize = 11.sp
+                        fontSize = 11.sp,
+                        modifier = Modifier.clickable {
+                            haptics.tick()
+                            onOpenDiplomatics()
+                        }
                     )
                 }
             }
@@ -337,15 +343,8 @@ fun HomeScreen(
         )
     }
 
-    // POLISH P2 — the two Home sheets and the Autopilot stop confirmation.
-    if (showCredits) {
-        CreditsSheet(
-            credits = credits,
-            rows = creditRows,
-            onDismiss = { showCredits = false }
-        )
-    }
-
+    // POLISH P2 — the Autopilot sheet and diagnostics. The credits sheet moved
+    // to My Plan (Stage 12: the bubble shows what is LEFT and opens My Plan).
     if (showDiagnostics) {
         EngineDiagnosticsDialog(onDismiss = { showDiagnostics = false })
     }
@@ -587,17 +586,20 @@ private fun MoneyLine(label: String, value: String, modifier: Modifier = Modifie
     }
 }
 
-/** Circular refresh that spins only while the balance read is in flight. */
+/** Circular refresh that spins only while the balance read is in flight. Stage 21 — no always-on loop: static when idle. */
 @Composable
 private fun RefreshButton(loading: Boolean, onClick: () -> Unit) {
-    val transition = rememberInfiniteTransition(label = "refreshSpin")
-    val spin by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(tween(900, easing = LinearEasing)),
-        label = "refreshAngle"
-    )
-    val angle = if (loading) spin else 0f
+    // Gated spin: one-shot rotation while loading, static icon when idle.
+    val spin = remember { Animatable(0f) }
+    LaunchedEffect(loading) {
+        if (loading) {
+            spin.animateTo(360f, animationSpec = tween(900, easing = LinearEasing))
+            spin.snapTo(0f)
+        } else {
+            spin.snapTo(0f)
+        }
+    }
+    val angle = if (loading) spin.value else 0f
 
     Box(
         modifier = Modifier

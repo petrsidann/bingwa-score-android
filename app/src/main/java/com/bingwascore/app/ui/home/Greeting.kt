@@ -35,6 +35,24 @@ object Greetings {
         ARABIC("العربية", rtl = true)
     }
 
+    /**
+     * Stage 12 — how often the greeting language moves on.
+     *
+     * SESSION keeps the original behaviour (a fresh language every cold start,
+     * stable within the session). DAY pins the rotation to the calendar day so
+     * an app restart mid-shift does not flip the line under the agent.
+     */
+    enum class Cadence(val value: String) {
+        SESSION("session"),
+        DAY("day");
+
+        companion object {
+            /** Safe parse: unknown/absent storage falls back to SESSION. */
+            fun fromValue(raw: String?): Cadence =
+                entries.firstOrNull { it.value == raw } ?: SESSION
+        }
+    }
+
     /** Hour-of-day -> bucket. Boundaries are the ones a human would use. */
     fun bucketFor(hourOfDay: Int): Bucket = when (hourOfDay) {
         in 0..4 -> Bucket.EARLY_MORNING
@@ -55,10 +73,24 @@ object Greetings {
      *
      * [sessionIndex] is persisted and bumped once per cold start, so the greeting
      * holds still while the agent works and still changes day to day.
+     *
+     * Stage 12 — Diplomatics: [cadence] DAY ignores the session index (one
+     * language per calendar day), and a non-null [pinned] language always wins
+     * over the rotation.
      */
-    fun languageFor(dayOfYear: Int, sessionIndex: Int): Language {
+    fun languageFor(
+        dayOfYear: Int,
+        sessionIndex: Int,
+        cadence: Cadence = Cadence.SESSION,
+        pinned: Language? = null
+    ): Language {
+        pinned?.let { return it }
         val entries = Language.entries
-        return entries[Math.floorMod(dayOfYear + sessionIndex, entries.size)]
+        val key = when (cadence) {
+            Cadence.SESSION -> dayOfYear + sessionIndex
+            Cadence.DAY -> dayOfYear
+        }
+        return entries[Math.floorMod(key, entries.size)]
     }
 
     /** Today's day-of-year, used as the rotation key. */

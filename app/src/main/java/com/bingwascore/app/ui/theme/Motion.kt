@@ -12,8 +12,17 @@ object Motion {
     /** Stagger delay (ms) between successive list rows / cards. */
     const val STAGGER: Int = 40
 
-    /** Spring damping ratio — 0.8f gives a soft, slightly bouncy feel. */
-    const val DAMPING: Float = 0.8f
+    /**
+     * Stage 10 — iOS spring: response 0.35 / damping 0.86. [DAMPING] is the
+     * shared damping ratio every spring in the app reads.
+     */
+    const val DAMPING: Float = 0.86f
+
+    /** Stage 10 — spring response duration (ms-equivalent for tweens). */
+    const val SPRING_RESPONSE_MILLIS: Int = 350
+
+    /** Stage 10 — press scale: held nodes shrink to 0.98. */
+    const val PRESS_SCALE: Float = 0.98f
 
     // ── Durations (ms) ────────────────────────────────────────────────────────
 
@@ -92,4 +101,11 @@ object Motion {
      * 200–260ms band where a morph reads as connected motion rather than as a cut.
      */
     const val MORPH_SPRING_MILLIS: Int = 220
+
+    /**
+     * Stage 11 — nav hand-off crossfade. Every route change fades out while the
+     * incoming route fades in over this window, so the sign-in → home hand-off
+     * never renders a blank frame between two destinations.
+     */
+    const val NAV_CROSSFADE: Int = 200
 }

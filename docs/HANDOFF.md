@@ -3,9 +3,7 @@
 ## Where the tree is
 - Green groups shipped: `Ultra U2: autopilot 3-state`, `Ultra U3: home/graph/splash right-size`,
   `Ultra U4: themes alive`, `Ultra U5: transactions surgical` (see `git log`).
-- Verified on this tree: `:app:compileDebugKotlin` green, full
-  `:app:testDebugUnitTest` green (177 tests), `:app:assembleDebug` green with a
-  fresh APK at `app/build/outputs/apk/debug/app-debug.apk`.
+- Stage 17 (this session) complete: contrast remediation (every light-theme text/micro/secondary token `#9E9E9E` → `#4B5563`, propagated through `Color.kt`, `StatusColors.kt`, `README.md`), stale CI workflow `build.yml` ("Build Android APK") deleted — only `build-apk.yml` ("Build APK") remains, and release candidate `v1.9.0` landed (`versionName 1.9.0`, `versionCode 9`, `APP_VERSION 1.9.0`).
 - Next group: U6 (see "Groups still open" below).
 - `docs/HANDOFF.md` is the live handoff; refresh it at every session end.
 - `freebuff_jdk.json` is gitignored; never commit it.
@@ -98,11 +96,19 @@
   and asserted again in `U5TransactionsTest`.
 - JVM tests: `U5TransactionsTest` (14).
 
+## Stage 17 — contrast remediation & 1.9.0 release (DONE)
+- `SemanticGrey`/`TextGrey` (light) → `Color(0xFF4B5563)` (text/micro/secondary, ≥4.5:1 on `#F2F2F7`).
+- `StatusQueued` → light `#4B5563` (Porcelain), light-charcoal `#9CA3AF` (Obsidian) so labels stay 3:1 in both themes.
+- `DisabledInk` #9E9E9E literal removed; `TextGrey`/`SemanticGrey` opaque `#4B5563`.
+- `U8QaSweepTest` (both themes) green: 0 failures; no `#9E9E9E` family remains.
+- Deleted stale CI workflow `build.yml` ("Build Android APK"); only `build-apk.yml` ("Build APK") remains.
+- Release candidate `v1.9.0` landed: `versionName 1.9.0`, `versionCode 9`, `APP_VERSION 1.9.0` in `app/build.gradle.kts`.
+
 ## Groups still open (ULTRA)
-- **U6 → U8**: the original ULTRA prompt that defines these groups is **not in the
-  repo** (only the U1/U2-era text survives in git) and is not in the agent's
-  context. Do not invent acceptance criteria — ask the user for the U6–U8 spec,
-  then commit + push each green group and refresh this file.
+- U6 → U8: the original ULTRA prompt that defines these groups is not in this repo
+  and is not in the agent's context. Do not invent acceptance criteria — ask the
+  user for the U6–U8 spec, then commit + push each green group and refresh this
+  file.
 
 ## Track-only (no surface exists yet)
 - Audit A6 "Editor / credit accept": the repo has no dedicated Editor/credit

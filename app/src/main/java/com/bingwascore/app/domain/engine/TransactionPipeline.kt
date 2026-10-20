@@ -266,6 +266,7 @@ class TransactionPipeline @Inject constructor(
                 )
             )
             Timber.i("Transaction %s SUCCESSFUL", transactionId)
+            autosaveCustomer(transaction)
             sendReply(
                 transaction.phoneNumber, transaction.amount, transaction.offerName,
                 transaction.mpesaReceipt ?: transaction.id, transaction.customerName?.firstName(),
@@ -373,10 +374,33 @@ class TransactionPipeline @Inject constructor(
                 transactionRepository.update(
                     transaction.copy(status = TransactionStatus.SUCCESSFUL.value)
                 )
+                autosaveCustomer(transaction)
                 Timber.i("Transaction %s marked complete", transactionId)
             }
         } catch (t: Throwable) {
             Timber.e(t, "markComplete failed for %s", transactionId)
+        }
+    }
+
+    /**
+     * Stage 14 — Customers autosave. On every SUCCESSFUL purchase, upsert the
+     * payer into the Customers book (recent-activity roll-up) so the book fills
+     * itself with no manual entry. Gated by the Settings toggle (default ON) and
+     * fully guarded — a bookkeeping miss must never take the money path down.
+     */
+    private suspend fun autosaveCustomer(transaction: Transaction) {
+        try {
+            if (!userPreferences.customersAutosave.first()) return
+            val phone = transaction.phoneNumber.ifBlank { return }
+            customerRepository.upsertFromSale(
+                phone = phone,
+                name = transaction.customerName,
+                offerName = transaction.offerName,
+                amount = transaction.amount,
+                at = System.currentTimeMillis()
+            )
+        } catch (t: Throwable) {
+            Timber.e(t, "Customer autosave failed for %s", transaction.id)
         }
     }
 
@@ -733,6 +757,13 @@ class TransactionPipeline @Inject constructor(
     companion object {
         /** Logcat tag for every engine decision — `adb logcat -s ENGINE`. */
         const val ENGINE_TAG = "ENGINE"
+
+        /**
+         * Stage 15 — auto-replies go out with ZERO delay, straight from the
+         * receiver that finalised the transaction. A follow-up the customer feels
+         * instantly is the whole point; there is no throttle and no queue.
+         */
+        const val AUTO_REPLY_DELAY_MILLIS = 0L
 
         /** How far back a duplicate check looks. */
         private const val DUPLICATE_WINDOW_MILLIS = 12L * 60 * 60 * 1000

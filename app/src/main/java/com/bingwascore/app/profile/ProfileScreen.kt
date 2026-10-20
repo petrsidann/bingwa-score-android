@@ -16,13 +16,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Block
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.Storefront
-import androidx.compose.material.icons.rounded.VerifiedUser
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -65,8 +63,6 @@ fun ProfileScreen(
     onMyStore: () -> Unit = {},
     onReferEarn: () -> Unit = {},
     onSettings: () -> Unit = {},
-    onAuthorizedSenders: () -> Unit = {},
-    onBlacklist: () -> Unit = {},
     onAbout: () -> Unit = {}
 ) {
     val userName by viewModel.userName.collectAsStateWithLifecycle()
@@ -184,8 +180,6 @@ fun ProfileScreen(
         ProfileMenuRow("Agent Portal", Icons.Rounded.Storefront, onMyStore)
         ProfileMenuRow("Refer & Earn", Icons.Rounded.Share, onReferEarn)
         ProfileMenuRow("Settings", Icons.Rounded.Settings, onSettings)
-        ProfileMenuRow("Trusted Partners", Icons.Rounded.VerifiedUser, onAuthorizedSenders)
-        ProfileMenuRow("Blocked Contacts", Icons.Rounded.Block, onBlacklist)
         ProfileMenuRow("About", Icons.Rounded.Info, onAbout)
         Spacer(modifier = Modifier.height(24.dp))
         }

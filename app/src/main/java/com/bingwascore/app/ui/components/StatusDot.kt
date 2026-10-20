@@ -13,11 +13,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.bingwascore.app.domain.ThemeMode
-import com.bingwascore.app.ui.theme.GRAYSCALE_DOT_SATURATION
 import com.bingwascore.app.ui.theme.Motion
-import com.bingwascore.app.ui.theme.currentDisplayMode
-import com.bingwascore.app.ui.theme.saturate
 
 /**
  * POLISH P2 — the status dot.
@@ -31,9 +27,7 @@ import com.bingwascore.app.ui.theme.saturate
  * the agent is watching **lights up** instead of popping, which is why the caller
  * pairs it with a haptic tick at the moment the status flips.
  *
- * U4 — in Grayscale the dot is drawn at [GRAYSCALE_DOT_SATURATION] (60%) so the
- * hue still separates done/failed/queued without the monochrome chrome turning
- * colourful. Applied here once, so every dot in the app obeys it.
+ * Stage 10 — identical in Obsidian + Porcelain: the semantic hue always reads.
  */
 @Composable
 fun StatusDot(
@@ -42,11 +36,7 @@ fun StatusDot(
     modifier: Modifier = Modifier,
     size: Dp = 10.dp
 ) {
-    val ink = if (currentDisplayMode == ThemeMode.GRAYSCALE) {
-        saturate(color, GRAYSCALE_DOT_SATURATION)
-    } else {
-        color
-    }
+    val ink = color
     val glow by animateFloatAsState(
         targetValue = if (lit) 1f else 0f,
         animationSpec = tween(Motion.DOT_FADE),

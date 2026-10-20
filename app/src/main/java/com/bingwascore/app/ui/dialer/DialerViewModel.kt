@@ -52,11 +52,18 @@ class DialerViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val transactionRepository: TransactionRepository,
     private val userPreferences: UserPreferences,
-    offerRepository: OfferRepository
+    offerRepository: OfferRepository,
+    sessionHolder: com.bingwascore.app.domain.engine.UssdSessionHolder
 ) : ViewModel() {
 
     val offers: StateFlow<List<Offer>> =
         offerRepository.activeOffers.stateIn(
+            viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList()
+        )
+
+    /** Stage 9 — live USSD step log for the on-screen session console. */
+    val console: StateFlow<List<com.bingwascore.app.domain.engine.UssdConsoleLine>> =
+        sessionHolder.console.stateIn(
             viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList()
         )
 
