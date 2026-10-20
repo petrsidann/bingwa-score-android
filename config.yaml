@@ -1,0 +1,29 @@
+model_list:
+  # === 1. CEREBRAS (Ultra-Fast Llama 3.1 70B) ===
+  - model_name: free-coder-route
+    litellm_params:
+      model: cerebras/llama3.1-70b
+      api_key: "os.environ/CEREBRAS_API_KEY"
+
+  # === 2. GOOGLE AI STUDIO (Gemini 1.5 Flash - Big Context Window) ===
+  - model_name: free-coder-route
+    litellm_params:
+      model: gemini/gemini-1.5-flash
+      api_key: "os.environ/GEMINI_API_KEY"
+
+  # === 3. NVIDIA NIM (Llama 3.1 70B Core Backup) ===
+  - model_name: free-coder-route
+    litellm_params:
+      model: nvidia/meta/llama-3.1-70b-instruct
+      api_key: "os.environ/NVIDIA_API_KEY"
+      api_base: "https://nvidia.com"
+
+  # === 4. OPENROUTER FREE ROUTER (Qwen 2.5 Coder 32B Safety Net) ===
+  - model_name: free-coder-route
+    litellm_params:
+      model: openrouter/qwen/qwen-2.5-coder-32b:free
+      api_key: "os.environ/OPENROUTER_API_KEY"
+
+router_settings:
+  routing_strategy: "failover"
+  allowed_fails: 1
