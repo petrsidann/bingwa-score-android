@@ -5,6 +5,8 @@ plugins {
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
     id("kotlin-parcelize")
+    // Stage 19.7: preview-pure screens + paparazzi eyes
+    id("app.cash.paparazzi")
 }
 
 android {
