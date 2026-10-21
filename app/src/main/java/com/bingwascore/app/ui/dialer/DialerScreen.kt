@@ -62,7 +62,6 @@ import com.bingwascore.app.util.rememberHaptics
 import com.bingwascore.app.util.screenEnter
 import kotlinx.coroutines.delay
 import com.bingwascore.app.ui.theme.Hairline
-import com.bingwascore.app.ui.theme.Hairline
 import com.bingwascore.app.ui.theme.Bubble
 import com.bingwascore.app.ui.theme.AccentBlue
 import com.bingwascore.app.ui.theme.TickGreen
@@ -73,9 +72,42 @@ import com.bingwascore.app.ui.theme.TextGrey
 import com.bingwascore.app.ui.theme.TextFaint
 import com.bingwascore.app.ui.theme.TextWhite
 
+/**
+ * Stage 19.7 — the PURE dialer surface.
+ *
+ * The number field, the offer chips, the live dial string and the session log
+ * all read from here; the permission launcher and the ViewModel live in the
+ * wrapper.
+ */
+data class DialerScreenState(
+    val offers: List<Offer> = emptyList(),
+    val phone: String = "",
+    val selectedOfferId: String? = null,
+    val feedback: DialerFeedback? = null,
+    val isDialing: Boolean = false,
+    val missingPermissions: List<String> = emptyList(),
+    val result: DialResult? = null,
+    val consoleLines: List<UssdConsoleLine> = emptyList(),
+    val consoleOpen: Boolean = false
+)
+
+/** Stage 19.7 — every dialer side effect as a plain callback. */
+data class DialerScreenCallbacks(
+    val onClose: () -> Unit = {},
+    val onPhoneChange: (String) -> Unit = {},
+    val onPhoneBlur: () -> Unit = {},
+    val onSelectOffer: (Offer) -> Unit = {},
+    val onDialNow: () -> Unit = {},
+    val onToggleConsole: () -> Unit = {},
+    val onRequestPermissions: () -> Unit = {},
+    val onConsumeResult: () -> Unit = {}
+)
+
 /** Full-screen quick dialer opened from the glass bottom bar call FAB. */
 @Composable
 fun DialerScreen(onClose: () -> Unit, viewModel: DialerViewModel = hiltViewModel()) {
+    // STAGE 19.7 — the wrapper owns the ViewModel, the permission launcher and
+    // every one-shot effect the content only reports.
     val offers by viewModel.offers.collectAsStateWithLifecycle()
     val phone by viewModel.phone.collectAsStateWithLifecycle()
     val selectedOfferId by viewModel.selectedOfferId.collectAsStateWithLifecycle()
@@ -120,6 +152,59 @@ fun DialerScreen(onClose: () -> Unit, viewModel: DialerViewModel = hiltViewModel
     val consoleLines by viewModel.console.collectAsStateWithLifecycle()
     var consoleOpen by remember { mutableStateOf(false) }
 
+    val state = DialerScreenState(
+        offers = offers,
+        phone = phone,
+        selectedOfferId = selectedOfferId,
+        feedback = feedback,
+        isDialing = isDialing,
+        missingPermissions = missingPermissions,
+        result = result,
+        consoleLines = consoleLines,
+        consoleOpen = consoleOpen
+    )
+
+    val callbacks = DialerScreenCallbacks(
+        onClose = onClose,
+        onPhoneChange = viewModel::setPhone,
+        onPhoneBlur = viewModel::formatPhone,
+        onSelectOffer = {
+            haptics.tick()
+            viewModel.selectOffer(it)
+        },
+        onDialNow = viewModel::dialNow,
+        onToggleConsole = {
+            haptics.tick()
+            consoleOpen = !consoleOpen
+        },
+        onRequestPermissions = {
+            permissionLauncher.launch(
+                arrayOf(
+                    android.Manifest.permission.CALL_PHONE,
+                    android.Manifest.permission.READ_PHONE_STATE
+                )
+            )
+        },
+        onConsumeResult = viewModel::consumeResult
+    )
+
+    DialerScreenContent(state = state, callbacks = callbacks)
+}
+
+/**
+ * Stage 19.7 — the pure dialer body.
+ *
+ * Nothing here touches a ViewModel, an Activity or a lifecycle: the state comes
+ * in, the callbacks go out.
+ */
+@Composable
+fun DialerScreenContent(
+    state: DialerScreenState,
+    callbacks: DialerScreenCallbacks = DialerScreenCallbacks()
+) {
+    val selectedOffer = state.offers.firstOrNull { it.id == state.selectedOfferId }
+        ?: state.offers.firstOrNull()
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -139,7 +224,7 @@ fun DialerScreen(onClose: () -> Unit, viewModel: DialerViewModel = hiltViewModel
             Box(
                 modifier = Modifier
                     .clip(CircleShape)
-                    .clickable(onClick = onClose)
+                    .clickable(onClick = callbacks.onClose)
                     .padding(6.dp)
             ) {
                 Icon(
@@ -153,17 +238,17 @@ fun DialerScreen(onClose: () -> Unit, viewModel: DialerViewModel = hiltViewModel
 
         Spacer(modifier = Modifier.height(24.dp))
         GlassPhoneField(
-            value = phone,
-            onValueChange = viewModel::setPhone,
+            value = state.phone,
+            onValueChange = callbacks.onPhoneChange,
             // Parity E — normalise to 07XXXXXXXX the moment the field blurs.
-            onBlur = viewModel::formatPhone
+            onBlur = callbacks.onPhoneBlur
         )
 
         Spacer(modifier = Modifier.height(22.dp))
         Text("Active offers", color = TextWhite.copy(alpha = 0.5f), fontSize = 12.sp)
         Spacer(modifier = Modifier.height(10.dp))
 
-        if (offers.isEmpty()) {
+        if (state.offers.isEmpty()) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = Icons.Rounded.Inbox,
@@ -180,14 +265,11 @@ fun DialerScreen(onClose: () -> Unit, viewModel: DialerViewModel = hiltViewModel
             }
         } else {
             LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                items(offers, key = { it.id }) { offer ->
+                items(state.offers, key = { it.id }) { offer ->
                     OfferChip(
                         offer = offer,
                         selected = offer.id == selectedOffer?.id,
-                        onClick = {
-                            haptics.tick()
-                            viewModel.selectOffer(offer)
-                        }
+                        onClick = { callbacks.onSelectOffer(offer) }
                     )
                 }
             }
@@ -195,17 +277,17 @@ fun DialerScreen(onClose: () -> Unit, viewModel: DialerViewModel = hiltViewModel
 
         Spacer(modifier = Modifier.weight(1f))
 
-        if (phone.isNotBlank() && selectedOffer != null) {
+        if (state.phone.isNotBlank() && selectedOffer != null) {
             // U1 — live dial truth: the real dial string, split on '*', each
             // segment lighting white -> accent left-to-right while the dial runs.
             DialSegments(
-                code = UssdSessionEngine.generateDialString(selectedOffer.ussdCode, phone),
-                dialing = isDialing
+                code = UssdSessionEngine.generateDialString(selectedOffer.ussdCode, state.phone),
+                dialing = state.isDialing
             )
             Spacer(modifier = Modifier.height(8.dp))
         }
 
-        feedback?.let { value ->
+        state.feedback?.let { value ->
             Text(
                 value.message,
                 color = if (value.isError) FailRed else TickGreen,
@@ -216,10 +298,10 @@ fun DialerScreen(onClose: () -> Unit, viewModel: DialerViewModel = hiltViewModel
 
         PrimaryButton(
             text = "Dial Now",
-            enabled = phone.isNotBlank() && selectedOffer != null,
-            loading = isDialing,
+            enabled = state.phone.isNotBlank() && selectedOffer != null,
+            loading = state.isDialing,
             loadingText = "Dialing...",
-            onClick = viewModel::dialNow
+            onClick = callbacks.onDialNow
         )
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -227,21 +309,18 @@ fun DialerScreen(onClose: () -> Unit, viewModel: DialerViewModel = hiltViewModel
         // (code sent, response text, next input, escalation) so every stall
         // is visible without logcat.
         UssdSessionConsole(
-            lines = consoleLines,
-            open = consoleOpen,
-            onToggle = {
-                haptics.tick()
-                consoleOpen = !consoleOpen
-            }
+            lines = state.consoleLines,
+            open = state.consoleOpen,
+            onToggle = callbacks.onToggleConsole
         )
     }
 
     // POLISH P1 — the result dialog. The headline is the verdict; the body is the
     // operator's exact reply, because "it failed" without the carrier's wording
     // is the one thing an agent cannot take to Safaricom support.
-    result?.let { outcome ->
+    state.result?.let { outcome ->
         androidx.compose.material3.AlertDialog(
-            onDismissRequest = viewModel::consumeResult,
+            onDismissRequest = callbacks.onConsumeResult,
             containerColor = Bubble,
             titleContentColor = TextWhite,
             textContentColor = TextGrey,
@@ -275,7 +354,7 @@ fun DialerScreen(onClose: () -> Unit, viewModel: DialerViewModel = hiltViewModel
                 )
             },
             confirmButton = {
-                androidx.compose.material3.TextButton(onClick = viewModel::consumeResult) {
+                androidx.compose.material3.TextButton(onClick = callbacks.onConsumeResult) {
                     Text("Done", color = AccentBlue, fontWeight = FontWeight.Bold)
                 }
             }
@@ -516,4 +595,3 @@ private fun UssdSessionConsole(
         }
     }
 }
-

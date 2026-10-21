@@ -7,14 +7,11 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,15 +29,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Bolt
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material3.Icon
 import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -53,21 +47,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -78,22 +61,20 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bingwascore.app.data.local.Transaction
+import com.bingwascore.app.domain.EngineState
 import com.bingwascore.app.domain.TransactionStatus
 import com.bingwascore.app.ui.components.BubbleCard
 import com.bingwascore.app.ui.components.DarkSnackbarHost
-import com.bingwascore.app.ui.components.HapticSwitch
 import com.bingwascore.app.ui.components.StatusDot
 import com.bingwascore.app.ui.theme.AccentBlue
 import com.bingwascore.app.ui.theme.BgBlack
-import com.bingwascore.app.ui.theme.ChartBlue
 import com.bingwascore.app.ui.theme.Hairline
-import com.bingwascore.app.ui.theme.PendGrey
 import com.bingwascore.app.ui.theme.StatusColors
 import com.bingwascore.app.ui.theme.TextDim
 import com.bingwascore.app.ui.theme.TextGrey
 import com.bingwascore.app.ui.theme.TextWhite
-import com.bingwascore.app.ui.theme.TickGreen
 import com.bingwascore.app.ui.theme.statusWash
+import com.bingwascore.app.util.Haptics
 import com.bingwascore.app.util.formatCustomerName
 import com.bingwascore.app.util.rememberHaptics
 import java.text.SimpleDateFormat
@@ -111,6 +92,50 @@ private const val MASK = "******"
 private val HOME_ROW_HEIGHT = 44.dp
 
 /**
+ * Stage 19.7 — the PURE Home surface.
+ *
+ * Everything the screen renders comes from here: no ViewModel, no Activity, no
+ * lifecycle. The wrapper ([HomeScreen]) collects the state and hands it over, so
+ * a snapshot test can render the exact Home an agent sees with fake numbers.
+ */
+data class HomeScreenState(
+    val greetingBucket: Greetings.Bucket = Greetings.Bucket.MORNING,
+    val greetingLanguage: Greetings.Language = Greetings.Language.SWAHILI,
+    val creditsLabel: String = "0",
+    val successful: Int = 0,
+    val failed: Int = 0,
+    val pending: Int = 0,
+    val commission: List<Double> = List(7) { 0.0 },
+    val airtimeToday: Double = 0.0,
+    val balance: Double? = null,
+    val balanceLoading: Boolean = false,
+    val balanceError: String? = null,
+    val statsLoading: Boolean = false,
+    val engineState: EngineState = EngineState.RUNNING,
+    val transactions: List<Transaction> = emptyList(),
+    val permissionsMissing: Boolean = false,
+    val valuesVisible: Boolean = false
+)
+
+/**
+ * Stage 19.7 — every side effect Home can fire, as a plain callback.
+ *
+ * The pure content never reaches for a ViewModel or a system dialog: it asks.
+ */
+data class HomeScreenCallbacks(
+    val onOpenTransactions: (String?) -> Unit = {},
+    val onOpenMyPlan: () -> Unit = {},
+    val onOpenDiplomatics: () -> Unit = {},
+    val onRequestPermissions: () -> Unit = {},
+    val onPermissionNotNow: () -> Unit = {},
+    val onRefreshBalance: () -> Unit = {},
+    val onToggleValues: () -> Unit = {},
+    val onOpenDiagnostics: () -> Unit = {},
+    val onOpenAutopilotSheet: () -> Unit = {},
+    val onAutopilotPause: () -> Unit = {}
+)
+
+/**
  * REBRAND R2 — Home, rebuilt as a trading terminal.
  *
  * Reading order is deliberate and flat: three counters you can drill into, one
@@ -125,7 +150,11 @@ fun HomeScreen(
     onOpenDiplomatics: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel()
 ) {
+    // STAGE 19.7 — the wrapper owns every platform binding: the ViewModel, the
+    // Activity context, the lifecycle and the permission launcher. The content
+    // below sees plain state and plain callbacks.
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
     val haptics = rememberHaptics()
 
     val successful by viewModel.successfulCount.collectAsStateWithLifecycle()
@@ -170,9 +199,6 @@ fun HomeScreen(
         viewModel.refreshBalance()
     }
 
-    // POLISH P1 — coming back to Home is the moment the number must be true, so
-    // the silent *144# runs again on every ON_RESUME (the 30-minute worker covers
-    // the stretches where the agent is elsewhere).
     // POLISH P2 — when a sale lands while the agent is watching, the status dot
     // lights with its 300ms fade and a single haptic tick: completion is *felt*,
     // not just read. One tick per completed transaction, never a burst.
@@ -182,7 +208,6 @@ fun HomeScreen(
         celebratedCount = successful
     }
 
-    val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
@@ -196,155 +221,46 @@ fun HomeScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    // POLISH P1 — permissions are requested behind a themed prompt instead of
-    // ambushing the agent with a system sheet they did not ask for.
-    if (permissionsMissing) {
-        PhoneAccessPrompt(
-            onGrant = {
-                haptics.press()
-                permissionLauncher.launch(REQUIRED_PERMISSION_ARRAY)
-            },
-            onNotNow = { permissionsMissing = false }
-        )
-    }
+    val state = HomeScreenState(
+        greetingBucket = greeting.first,
+        greetingLanguage = greeting.second,
+        creditsLabel = creditsLabel,
+        successful = successful,
+        failed = failed,
+        pending = pending,
+        commission = commission,
+        airtimeToday = airtimeToday,
+        balance = balance,
+        balanceLoading = balanceLoading,
+        balanceError = balanceError,
+        statsLoading = statsLoading,
+        engineState = engineState,
+        transactions = transactions,
+        permissionsMissing = permissionsMissing,
+        valuesVisible = valuesVisible
+    )
 
-    Box(modifier = Modifier.fillMaxSize().background(BgBlack)) {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            // POLISH P2 — tighter everywhere: the old 14dp rhythm plus 30sp
-            // numerals pushed the first real row below the fold on a 5" phone.
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            item {
-                HomeTopBar(
-                    bucket = greeting.first,
-                    language = greeting.second,
-                    creditsLabel = creditsLabel,
-                    onCreditsClick = onOpenMyPlan
-                )
-            }
+    val callbacks = HomeScreenCallbacks(
+        onOpenTransactions = onOpenTransactions,
+        onOpenMyPlan = onOpenMyPlan,
+        onOpenDiplomatics = onOpenDiplomatics,
+        onRequestPermissions = { permissionLauncher.launch(REQUIRED_PERMISSION_ARRAY) },
+        onPermissionNotNow = { permissionsMissing = false },
+        onRefreshBalance = {
+            permissionsMissing = missingPermissions(context)
+            viewModel.refreshBalance()
+        },
+        onToggleValues = { valuesVisible = !valuesVisible },
+        onOpenDiagnostics = { showDiagnostics = true },
+        onOpenAutopilotSheet = { showAutopilot = true },
+        onAutopilotPause = { viewModel.pauseEngine() }
+    )
 
-            item {
-                // Stage 19 — Home has zero score UI; autopilot pill owns this slot.
-                AutopilotPill(
-                    engineState = engineState,
-                    onOpenSheet = { showAutopilot = true },
-                    onPause = { viewModel.pauseEngine() }
-                )
-            }
+    HomeScreenContent(state = state, callbacks = callbacks, snackbarHostState = snackbarHostState)
 
-            item {
-                // Stage 12/15 — the language label opens Diplomatics (rotation,
-                // pinning, cadence); it is a door, not decoration.
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = greeting.second.endonym,
-                        color = TextDim,
-                        fontSize = 11.sp,
-                        modifier = Modifier.clickable {
-                            haptics.tick()
-                            onOpenDiplomatics()
-                        }
-                    )
-                }
-            }
-
-            if (permissionsMissing) {
-                item {
-                    PermissionCard {
-                        haptics.press()
-                        permissionLauncher.launch(
-                            arrayOf(Manifest.permission.CALL_PHONE, Manifest.permission.READ_PHONE_STATE)
-                        )
-                    }
-                }
-            }
-
-            item {
-                CountersRow(
-                    completed = successful,
-                    failed = failed,
-                    pending = pending,
-                    onOpenTransactions = onOpenTransactions
-                )
-            }
-
-            item { CommissionChartCard(series = commission) }
-
-            item {
-                MoneyRow(
-                    airtimeToday = airtimeToday,
-                    balance = balance,
-                    loading = balanceLoading,
-                    valuesVisible = valuesVisible,
-                    onToggleVisibility = {
-                        haptics.tick()
-                        valuesVisible = !valuesVisible
-                    },
-                    onRefresh = {
-                        haptics.tick()
-                        permissionsMissing = missingPermissions(context)
-                        viewModel.refreshBalance()
-                    },
-                    onOpenDiagnostics = { showDiagnostics = true }
-                )
-            }
-
-            item { SectionHeader("Transactions", "${transactions.size} total") }
-
-            // R6 — shimmer ONLY where a list is actually loading.
-            if (statsLoading) {
-                items(4) { HomeRowSkeleton() }
-            } else if (transactions.isEmpty()) {
-                item {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 4.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            when (engineState) {
-                                com.bingwascore.app.domain.EngineState.STOPPED ->
-                                    "Autopilot stopped — history lives in Transactions."
-                                else -> "Nothing yet — every bundle you dial lands here."
-                            },
-                            color = TextGrey,
-                            fontSize = 12.sp,
-                            modifier = Modifier.weight(1f)
-                        )
-                        if (engineState == com.bingwascore.app.domain.EngineState.STOPPED) {
-                            Text(
-                                "Start",
-                                color = AccentBlue,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                modifier = Modifier.clickable {
-                                    showAutopilot = true
-                                }
-                            )
-                        }
-                    }
-                }
-            } else {
-                items(transactions, key = { it.id }) { tx ->
-                    HomeTransactionRow(tx = tx, engineState = engineState)
-                }
-            }
-        }
-
-        DarkSnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier.align(Alignment.BottomCenter)
-        )
-    }
-
-    // POLISH P2 — the Autopilot sheet and diagnostics. The credits sheet moved
-    // to My Plan (Stage 12: the bubble shows what is LEFT and opens My Plan).
+    // The two Home surfaces that need a live platform context stay in the
+    // wrapper: the diagnostics dialog reads the device, the sheet drives the
+    // engine.
     if (showDiagnostics) {
         EngineDiagnosticsDialog(onDismiss = { showDiagnostics = false })
     }
@@ -371,16 +287,166 @@ fun HomeScreen(
             }
         )
     }
-
 }
 
-/** Sends the agent to this app's system page — the fastest route to permissions. */
-private fun openAppSettings(context: Context) {
-    runCatching {
-        context.startActivity(
-            android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
-                .setData(android.net.Uri.fromParts("package", context.packageName, null))
-                .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+/**
+ * Stage 19.7 — the pure Home body.
+ *
+ * No ViewModel, no Activity, no lifecycle: given a [HomeScreenState] and a
+ * [HomeScreenCallbacks] this renders the whole screen, which is exactly what a
+ * snapshot test needs to see.
+ */
+@Composable
+fun HomeScreenContent(
+    state: HomeScreenState,
+    callbacks: HomeScreenCallbacks = HomeScreenCallbacks(),
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
+    haptics: Haptics = rememberHaptics()
+) {
+    // The credits bubble is the door to My Plan: one tap, one destination.
+    val onOpenMyPlan = callbacks.onOpenMyPlan
+
+    Box(modifier = Modifier.fillMaxSize().background(BgBlack)) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            // POLISH P2 — tighter everywhere: the old 14dp rhythm plus 30sp
+            // numerals pushed the first real row below the fold on a 5" phone.
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            item {
+                HomeTopBar(
+                    bucket = state.greetingBucket,
+                    language = state.greetingLanguage,
+                    creditsLabel = state.creditsLabel,
+                    onCreditsClick = onOpenMyPlan
+                )
+            }
+
+            item {
+                // Stage 19 — Home has zero score UI; autopilot pill owns this slot.
+                AutopilotPill(
+                    engineState = state.engineState,
+                    onOpenSheet = callbacks.onOpenAutopilotSheet,
+                    onPause = callbacks.onAutopilotPause
+                )
+            }
+
+            item {
+                // Stage 12/15 — the language label opens Diplomatics (rotation,
+                // pinning, cadence); it is a door, not decoration.
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = state.greetingLanguage.endonym,
+                        color = TextDim,
+                        fontSize = 11.sp,
+                        modifier = Modifier.clickable {
+                            haptics.tick()
+                            callbacks.onOpenDiplomatics()
+                        }
+                    )
+                }
+            }
+
+            if (state.permissionsMissing) {
+                item {
+                    PermissionCard {
+                        haptics.press()
+                        callbacks.onRequestPermissions()
+                    }
+                }
+            }
+
+            item {
+                CountersRow(
+                    completed = state.successful,
+                    failed = state.failed,
+                    pending = state.pending,
+                    onOpenTransactions = callbacks.onOpenTransactions
+                )
+            }
+
+            item { CommissionChartCard(series = state.commission) }
+
+            item {
+                MoneyRow(
+                    airtimeToday = state.airtimeToday,
+                    balance = state.balance,
+                    loading = state.balanceLoading,
+                    valuesVisible = state.valuesVisible,
+                    onToggleVisibility = {
+                        haptics.tick()
+                        callbacks.onToggleValues()
+                    },
+                    onRefresh = {
+                        haptics.tick()
+                        callbacks.onRefreshBalance()
+                    },
+                    onOpenDiagnostics = callbacks.onOpenDiagnostics
+                )
+            }
+
+            item { SectionHeader("Transactions", "${state.transactions.size} total") }
+
+            // R6 — shimmer ONLY where a list is actually loading.
+            if (state.statsLoading) {
+                items(4) { HomeRowSkeleton() }
+            } else if (state.transactions.isEmpty()) {
+                item {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 4.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            when (state.engineState) {
+                                EngineState.STOPPED ->
+                                    "Autopilot stopped — history lives in Transactions."
+                                else -> "Nothing yet — every bundle you dial lands here."
+                            },
+                            color = TextGrey,
+                            fontSize = 12.sp,
+                            modifier = Modifier.weight(1f)
+                        )
+                        if (state.engineState == EngineState.STOPPED) {
+                            Text(
+                                "Start",
+                                color = AccentBlue,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier.clickable {
+                                    callbacks.onOpenAutopilotSheet()
+                                }
+                            )
+                        }
+                    }
+                }
+            } else {
+                items(state.transactions, key = { it.id }) { tx ->
+                    HomeTransactionRow(tx = tx, engineState = state.engineState)
+                }
+            }
+        }
+
+        DarkSnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter)
+        )
+    }
+
+    // POLISH P1 — permissions are requested behind a themed prompt instead of
+    // ambushing the agent with a system sheet they did not ask for.
+    if (state.permissionsMissing) {
+        PhoneAccessPrompt(
+            onGrant = {
+                haptics.press()
+                callbacks.onRequestPermissions()
+            },
+            onNotNow = callbacks.onPermissionNotNow
         )
     }
 }
@@ -631,10 +697,10 @@ private fun RefreshButton(loading: Boolean, onClick: () -> Unit) {
 @Composable
 private fun HomeTransactionRow(
     tx: Transaction,
-    engineState: com.bingwascore.app.domain.EngineState = com.bingwascore.app.domain.EngineState.RUNNING
+    engineState: EngineState = EngineState.RUNNING
 ) {
     val statusColor = StatusColors.color(tx.status)
-    val showPausedBadge = engineState == com.bingwascore.app.domain.EngineState.PAUSED &&
+    val showPausedBadge = engineState == EngineState.PAUSED &&
         tx.status == TransactionStatus.PENDING.value
     BubbleCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 14.dp) {
         Row(
@@ -804,4 +870,3 @@ private fun PhoneAccessPrompt(onGrant: () -> Unit, onNotNow: () -> Unit) {
         }
     )
 }
-

@@ -63,6 +63,7 @@ import com.bingwascore.app.ui.theme.TextDim
 import com.bingwascore.app.ui.theme.TextGrey
 import com.bingwascore.app.ui.theme.TextWhite
 import com.bingwascore.app.ui.theme.TickGreen
+import com.bingwascore.app.util.Haptics
 import com.bingwascore.app.util.formatCustomerName
 import com.bingwascore.app.util.rememberHaptics
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -155,6 +156,23 @@ class MyPlanViewModel @Inject constructor(
 }
 
 /**
+ * Stage 19.7 — the PURE My Plan surface: the hero card, the plan matrix and the
+ * earned-credit ledger.
+ */
+data class MyPlanScreenState(
+    val plan: PlanState = PlanState(),
+    val credits: Int = 0,
+    val creditRows: List<CreditRow> = emptyList(),
+    val purchase: PurchaseState = PurchaseState.Idle
+)
+
+/** Stage 19.7 — every My Plan side effect as a plain callback. */
+data class MyPlanScreenCallbacks(
+    val onPurchase: (offer: PlanOffer) -> Unit = {},
+    val onResetPurchase: () -> Unit = {}
+)
+
+/**
  * Stage 13 — My Plan: the M-Y monogram hero, the plan matrix and the ledger.
  *
  * The hero answers "what do I have left?" (plan + countdown, or earned-credit
@@ -163,12 +181,40 @@ class MyPlanViewModel @Inject constructor(
  */
 @Composable
 fun MyPlanScreen(viewModel: MyPlanViewModel = hiltViewModel()) {
+    // STAGE 19.7 — the wrapper owns the ViewModel; the content below is pure.
     val plan by viewModel.planState.collectAsStateWithLifecycle()
     val credits by viewModel.credits.collectAsStateWithLifecycle()
     val rows by viewModel.creditRows.collectAsStateWithLifecycle()
     val purchase by viewModel.purchaseState.collectAsStateWithLifecycle()
-    val haptics = rememberHaptics()
+
+    MyPlanScreenContent(
+        state = MyPlanScreenState(
+            plan = plan,
+            credits = credits,
+            creditRows = rows,
+            purchase = purchase
+        ),
+        callbacks = MyPlanScreenCallbacks(
+            onPurchase = { offer -> viewModel.purchase(offer.planId) },
+            onResetPurchase = { viewModel.resetPurchase() }
+        )
+    )
+}
+
+/**
+ * Stage 19.7 — the pure My Plan body.
+ */
+@Composable
+fun MyPlanScreenContent(
+    state: MyPlanScreenState = MyPlanScreenState(),
+    callbacks: MyPlanScreenCallbacks = MyPlanScreenCallbacks(),
+    haptics: Haptics = rememberHaptics()
+) {
     var pendingPlan by remember { mutableStateOf<PlanOffer?>(null) }
+    val plan = state.plan
+    val credits = state.credits
+    val rows = state.creditRows
+    val purchase = state.purchase
     val label = plan.remainingLabel(System.currentTimeMillis()) ?: "$credits"
 
     Column(
@@ -313,9 +359,9 @@ fun MyPlanScreen(viewModel: MyPlanViewModel = hiltViewModel()) {
         PlanConfirmSheet(
             offer = offer,
             purchase = purchase,
-            onPay = { viewModel.purchase(offer.planId) },
+            onPay = { callbacks.onPurchase(offer) },
             onDismiss = {
-                viewModel.resetPurchase()
+                callbacks.onResetPurchase()
                 pendingPlan = null
             }
         )

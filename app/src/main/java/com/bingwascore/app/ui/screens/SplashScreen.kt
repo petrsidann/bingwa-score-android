@@ -80,6 +80,43 @@ internal val splashGlow: Brush
  */
 @Composable
 fun SplashScreen(target: String?, onFinish: (String) -> Unit) {
+    // STAGE 19.7 — thin wrapper: the splash has no ViewModel, so the wrapper
+    // only hands the target and the hand-off to the pure content.
+    SplashScreenContent(target = target, onFinish = onFinish)
+}
+
+/**
+ * Stage 19.7 — the PURE splash surface.
+ *
+ * [settled] renders the frame the choreography lands on (full monogram, full
+ * wordmark, tagline in) without waiting for the animation clock, which is what
+ * a snapshot test needs to see.
+ */
+@Composable
+fun SplashScreenContent(
+    target: String?,
+    onFinish: (String) -> Unit,
+    settled: Boolean = false
+) {
+    if (settled) {
+        // The frame the choreography lands on: the monogram fully drawn, the
+        // wordmark fully in, the tagline breathing at rest.
+        val trim = remember { Animatable(1f) }
+        val glow = remember { Animatable(0f) }
+        val clock = remember { Animatable(1f) }
+        val taglineBreath = remember { Animatable(0.72f) }
+        val exitShrink = remember { Animatable(0f) }
+        SplashStage(
+            trim = trim,
+            glow = glow,
+            clock = clock,
+            taglineAlpha = 1f,
+            taglineBreath = taglineBreath,
+            exitShrink = exitShrink
+        )
+        return
+    }
+
     // The draw-on is a real animation the Canvas samples every frame.
     val trim = remember { Animatable(0f) }
 
@@ -153,6 +190,30 @@ fun SplashScreen(target: String?, onFinish: (String) -> Unit) {
         currentOnFinish(resolved)
     }
 
+    SplashStage(
+        trim = trim,
+        glow = glow,
+        clock = clock,
+        taglineAlpha = taglineAlpha,
+        taglineBreath = taglineBreath,
+        exitShrink = exitShrink
+    )
+}
+
+/**
+ * Stage 19.7 — the splash stage itself: the monogram, the wordmark and the
+ * tagline, drawn from plain values so both the live choreography and a
+ * snapshot render the same thing.
+ */
+@Composable
+private fun SplashStage(
+    trim: Animatable<Float, androidx.compose.animation.core.AnimationVector1D>,
+    glow: Animatable<Float, androidx.compose.animation.core.AnimationVector1D>,
+    clock: Animatable<Float, androidx.compose.animation.core.AnimationVector1D>,
+    taglineAlpha: Float,
+    taglineBreath: Animatable<Float, androidx.compose.animation.core.AnimationVector1D>,
+    exitShrink: Animatable<Float, androidx.compose.animation.core.AnimationVector1D>
+) {
     Box(
         modifier = Modifier
             .fillMaxSize()

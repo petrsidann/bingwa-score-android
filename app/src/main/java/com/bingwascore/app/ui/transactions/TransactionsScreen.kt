@@ -125,6 +125,48 @@ import java.util.Locale
 import kotlinx.coroutines.launch
 
 /**
+ * Stage 19.7 — the PURE Transactions surface.
+ *
+ * The ledger, the chips, the search morph, the selection bar and the focus
+ * sheet all read from here; the ViewModel and the Toast live in the wrapper.
+ */
+data class TransactionsScreenState(
+    val transactions: List<Transaction> = emptyList(),
+    val selectedFilter: TransactionFilter = TransactionFilter.ALL,
+    val isLoading: Boolean = false,
+    val selectedIds: Set<String> = emptySet(),
+    val hasSelection: Boolean = false,
+    val searchQuery: String = "",
+    val searchOpen: Boolean = false,
+    val phoneFilter: String? = null,
+    val isRefreshing: Boolean = false,
+    val focusTransaction: Transaction? = null
+)
+
+/** Stage 19.7 — every Transactions side effect as a plain callback. */
+data class TransactionsScreenCallbacks(
+    val onQueryChange: (String) -> Unit = {},
+    val onOpenSearch: () -> Unit = {},
+    val onCloseSearch: () -> Unit = {},
+    val onExitSelection: () -> Unit = {},
+    val onDeleteSelected: () -> Unit = {},
+    val onExport: () -> Unit = {},
+    val onFilterSelect: (TransactionFilter) -> Unit = {},
+    val onRowClick: (Transaction) -> Unit = {},
+    val onRowLongClick: (Transaction) -> Unit = {},
+    val onClearPhoneFilter: () -> Unit = {},
+    val onSelectAll: () -> Unit = {},
+    val onRetrySelected: () -> Unit = {},
+    val onFocusDismiss: () -> Unit = {},
+    val onFocusRetry: (Transaction) -> Unit = {},
+    val onFocusComplete: (Transaction) -> Unit = {},
+    val onFocusSchedule: (Transaction) -> Unit = {},
+    val onFocusDelete: (Transaction) -> Unit = {},
+    val onFocusEditUssd: (Transaction, String) -> Unit = { _, _ -> },
+    val onFocusViewAllFromNumber: (Transaction) -> Unit = {}
+)
+
+/**
  * REBRAND R3 — Transactions.
  *
  * The list is the product: sticky day headers, pull-to-refresh, and a long-press
@@ -136,6 +178,8 @@ fun TransactionsScreen(
     initialFilter: TransactionFilter = TransactionFilter.ALL,
     viewModel: TransactionsViewModel = hiltViewModel()
 ) {
+    // STAGE 19.7 — the wrapper owns the ViewModel, the Toast and every piece of
+    // screen state the content only reads.
     val context = LocalContext.current
     val haptics = rememberHaptics()
     val scope = rememberCoroutineScope()
@@ -166,39 +210,150 @@ fun TransactionsScreen(
         }
     }
 
+    val visible = remember(transactions, phoneFilter, searchQuery) {
+        val byPhone = if (phoneFilter == null) {
+            transactions
+        } else {
+            transactions.filter { it.phoneNumber == phoneFilter }
+        }
+        if (searchQuery.isBlank()) {
+            byPhone
+        } else {
+            // POLISH P3 — one field matches name OR phone OR id,
+            // because an agent looks a sale up by whichever one
+            // they happen to have in front of them.
+            byPhone.filter { it.matches(searchQuery) }
+        }
+    }
+
+    val state = TransactionsScreenState(
+        transactions = visible,
+        selectedFilter = selectedFilter,
+        isLoading = isLoading,
+        selectedIds = selectedIds,
+        hasSelection = hasSelection,
+        searchQuery = searchQuery,
+        searchOpen = searchOpen,
+        phoneFilter = phoneFilter,
+        isRefreshing = isRefreshing,
+        focusTransaction = selectedTransaction
+    )
+
+    val callbacks = TransactionsScreenCallbacks(
+        onQueryChange = { searchQuery = it },
+        onOpenSearch = { searchOpen = true },
+        onCloseSearch = {
+            searchOpen = false
+            searchQuery = ""
+        },
+        onExitSelection = {
+            haptics.tick()
+            viewModel.clearSelection()
+        },
+        onDeleteSelected = {
+            haptics.press()
+            viewModel.softDeleteSelected { removed ->
+                scope.launch {
+                    val result = snackbarHostState.showSnackbar(
+                        message = "${removed.size} transaction(s) deleted",
+                        actionLabel = "Undo",
+                        duration = SnackbarDuration.Short
+                    )
+                    if (result == SnackbarResult.ActionPerformed) {
+                        viewModel.restoreAll(removed)
+                    }
+                }
+            }
+        },
+        onExport = viewModel::exportCsv,
+        onFilterSelect = {
+            haptics.tick()
+            viewModel.setFilter(it)
+            viewModel.pruneSelection()
+        },
+        onRowClick = { transaction ->
+            if (hasSelection) {
+                haptics.tick()
+                viewModel.toggleSelection(transaction.id)
+            } else {
+                selectedTransaction = transaction
+            }
+        },
+        onRowLongClick = { transaction ->
+            // POLISH P3 — one long-press, one check.
+            haptics.press()
+            viewModel.beginSelection(transaction.id)
+        },
+        onClearPhoneFilter = { phoneFilter = null },
+        onSelectAll = {
+            haptics.press()
+            viewModel.toggleSelectAll()
+        },
+        onRetrySelected = {
+            haptics.press()
+            viewModel.retrySelected()
+        },
+        onFocusDismiss = { selectedTransaction = null },
+        onFocusRetry = {
+            viewModel.retry(it)
+            selectedTransaction = null
+        },
+        onFocusComplete = {
+            viewModel.complete(it)
+            selectedTransaction = null
+        },
+        onFocusSchedule = {
+            viewModel.schedule(it)
+            selectedTransaction = null
+        },
+        onFocusDelete = {
+            viewModel.delete(it)
+            selectedTransaction = null
+        },
+        onFocusEditUssd = { transaction, code -> viewModel.updateUssd(transaction, code) },
+        onFocusViewAllFromNumber = { transaction ->
+            phoneFilter = transaction.phoneNumber
+            selectedTransaction = null
+        }
+    )
+
+    TransactionsScreenContent(
+        state = state,
+        callbacks = callbacks,
+        allSelected = allSelected,
+        pullState = pullState,
+        snackbarHostState = snackbarHostState
+    )
+}
+
+/**
+ * Stage 19.7 — the pure Transactions body: the morphing header, the chip row,
+ * the ledger, the selection bar and the focus sheet.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TransactionsScreenContent(
+    state: TransactionsScreenState,
+    callbacks: TransactionsScreenCallbacks = TransactionsScreenCallbacks(),
+    allSelected: Boolean = false,
+    pullState: androidx.compose.material3.pulltorefresh.PullToRefreshState = rememberPullToRefreshState { state.isRefreshing },
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() }
+) {
+    val scope = rememberCoroutineScope()
+
     Box(modifier = Modifier.fillMaxSize().background(BgBlack)) {
         Column(modifier = Modifier.fillMaxSize().screenEnter()) {
             TransactionsTopBar(
-                selecting = hasSelection,
-                count = selectedIds.size,
-                recordCount = transactions.size,
-                query = searchQuery,
-                onQueryChange = { searchQuery = it },
-                onOpenSearch = { searchOpen = true },
-                onCloseSearch = {
-                    searchOpen = false
-                    searchQuery = ""
-                },
-                onExit = {
-                    haptics.tick()
-                    viewModel.clearSelection()
-                },
-                onDelete = {
-                    haptics.press()
-                    viewModel.softDeleteSelected { removed ->
-                        scope.launch {
-                            val result = snackbarHostState.showSnackbar(
-                                message = "${removed.size} transaction(s) deleted",
-                                actionLabel = "Undo",
-                                duration = SnackbarDuration.Short
-                            )
-                            if (result == SnackbarResult.ActionPerformed) {
-                                viewModel.restoreAll(removed)
-                            }
-                        }
-                    }
-                },
-                onExport = viewModel::exportCsv
+                selecting = state.hasSelection,
+                count = state.selectedIds.size,
+                recordCount = state.transactions.size,
+                query = state.searchQuery,
+                onQueryChange = callbacks.onQueryChange,
+                onOpenSearch = callbacks.onOpenSearch,
+                onCloseSearch = callbacks.onCloseSearch,
+                onExit = callbacks.onExitSelection,
+                onDelete = callbacks.onDeleteSelected,
+                onExport = callbacks.onExport
             )
 
             LazyRow(
@@ -211,52 +366,23 @@ fun TransactionsScreen(
                 ) { filter ->
                     FilterChip(
                         label = filter.label,
-                        selected = selectedFilter == filter,
-                        onClick = {
-                            haptics.tick()
-                            viewModel.setFilter(filter)
-                            viewModel.pruneSelection()
-                        }
+                        selected = state.selectedFilter == filter,
+                        onClick = { callbacks.onFilterSelect(filter) }
                     )
                 }
             }
 Box(modifier = Modifier.fillMaxSize().nestedScroll(pullState.nestedScrollConnection)) {
                 TransactionBody(
-                    transactions = remember(transactions, phoneFilter, searchQuery) {
-                        val byPhone = if (phoneFilter == null) {
-                            transactions
-                        } else {
-                            transactions.filter { it.phoneNumber == phoneFilter }
-                        }
-                        if (searchQuery.isBlank()) {
-                            byPhone
-                        } else {
-                            // POLISH P3 — one field matches name OR phone OR id,
-                            // because an agent looks a sale up by whichever one
-                            // they happen to have in front of them.
-                            byPhone.filter { it.matches(searchQuery) }
-                        }
-                    },
-                    searchQuery = searchQuery,
-                    phoneFilter = phoneFilter,
-                    onClearPhoneFilter = { phoneFilter = null },
-                    selectedFilter = selectedFilter,
-                    isLoading = isLoading,
-                    hasSelection = hasSelection,
-                    isSelected = { it.id in selectedIds },
-                    onRowClick = { transaction ->
-                        if (hasSelection) {
-                            haptics.tick()
-                            viewModel.toggleSelection(transaction.id)
-                        } else {
-                            selectedTransaction = transaction
-                        }
-                    },
-                    onRowLongClick = { transaction ->
-                        // POLISH P3 — one long-press, one check.
-                        haptics.press()
-                        viewModel.beginSelection(transaction.id)
-                    }
+                    transactions = state.transactions,
+                    searchQuery = state.searchQuery,
+                    phoneFilter = state.phoneFilter,
+                    onClearPhoneFilter = callbacks.onClearPhoneFilter,
+                    selectedFilter = state.selectedFilter,
+                    isLoading = state.isLoading,
+                    hasSelection = state.hasSelection,
+                    isSelected = { it.id in state.selectedIds },
+                    onRowClick = callbacks.onRowClick,
+                    onRowLongClick = callbacks.onRowLongClick
                 )
 
                 PullToRefreshContainer(
@@ -267,7 +393,7 @@ Box(modifier = Modifier.fillMaxSize().nestedScroll(pullState.nestedScrollConnect
         }
 
         AnimatedVisibility(
-            visible = hasSelection,
+            visible = state.hasSelection,
             enter = fadeIn(tween(Motion.FADE)) + scaleIn(
                 animationSpec = spring(dampingRatio = Motion.DAMPING),
                 initialScale = 0.94f
@@ -279,19 +405,13 @@ Box(modifier = Modifier.fillMaxSize().nestedScroll(pullState.nestedScrollConnect
             modifier = Modifier.align(Alignment.BottomCenter)
         ) {
             SelectionBottomBar(
-                count = selectedIds.size,
+                count = state.selectedIds.size,
                 allSelected = allSelected,
                 retryEnabled = rulesForSelection(
-                    transactions.filter { it.id in selectedIds }.map { it.status }
+                    state.transactions.filter { it.id in state.selectedIds }.map { it.status }
                 ).canRetry,
-                onSelectAll = {
-                    haptics.press()
-                    viewModel.toggleSelectAll()
-                },
-                onRetry = {
-                    haptics.press()
-                    viewModel.retrySelected()
-                }
+                onSelectAll = callbacks.onSelectAll,
+                onRetry = callbacks.onRetrySelected
             )
         }
 
@@ -303,7 +423,7 @@ Box(modifier = Modifier.fillMaxSize().nestedScroll(pullState.nestedScrollConnect
 
     // REBRAND R4 — the focus sheet. The list behind it dims toward black (a
     // focus shift, not a modal veil) and the sheet itself can be dragged down.
-    if (selectedTransaction != null) {
+    state.focusTransaction?.let { sheet ->
         val dim by animateFloatAsState(
             targetValue = 1f,
             // U5 — the focus dim rides the same 220ms morph window.
@@ -320,10 +440,9 @@ Box(modifier = Modifier.fillMaxSize().nestedScroll(pullState.nestedScrollConnect
                     .clickable(
                         indication = null,
                         interactionSource = remember { MutableInteractionSource() }
-                    ) { selectedTransaction = null }
+                    ) { callbacks.onFocusDismiss() }
             )
 
-            val sheet = selectedTransaction ?: return@Box
             Column(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -343,7 +462,7 @@ Box(modifier = Modifier.fillMaxSize().nestedScroll(pullState.nestedScrollConnect
                                             heightPx,
                                             spring(dampingRatio = 0.9f, stiffness = 500f)
                                         )
-                                        selectedTransaction = null
+                                        callbacks.onFocusDismiss()
                                     } else {
                                         sheetOffset.animateTo(
                                             0f,
@@ -380,18 +499,15 @@ Box(modifier = Modifier.fillMaxSize().nestedScroll(pullState.nestedScrollConnect
 
                 TransactionFocusSheet(
                     transaction = sheet,
-                    stats = remember(sheet.id, transactions.size) {
-                        clientStatsFor(transactions, sheet.phoneNumber)
+                    stats = remember(sheet.id, state.transactions.size) {
+                        clientStatsFor(state.transactions, sheet.phoneNumber)
                     },
-                    onRetry = { viewModel.retry(sheet); selectedTransaction = null },
-                    onComplete = { viewModel.complete(sheet); selectedTransaction = null },
-                    onSchedule = { viewModel.schedule(sheet); selectedTransaction = null },
-                    onDelete = { viewModel.delete(sheet); selectedTransaction = null },
-                    onEditUssd = { code -> viewModel.updateUssd(sheet, code) },
-                    onViewAllFromNumber = {
-                        phoneFilter = sheet.phoneNumber
-                        selectedTransaction = null
-                    }
+                    onRetry = { callbacks.onFocusRetry(sheet) },
+                    onComplete = { callbacks.onFocusComplete(sheet) },
+                    onSchedule = { callbacks.onFocusSchedule(sheet) },
+                    onDelete = { callbacks.onFocusDelete(sheet) },
+                    onEditUssd = { code -> callbacks.onFocusEditUssd(sheet, code) },
+                    onViewAllFromNumber = { callbacks.onFocusViewAllFromNumber(sheet) }
                 )
             }
         }

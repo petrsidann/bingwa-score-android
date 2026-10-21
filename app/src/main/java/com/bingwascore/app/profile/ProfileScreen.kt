@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.bingwascore.app.domain.EngineState
 import com.bingwascore.app.ui.components.BubbleCard
 import com.bingwascore.app.ui.components.HapticSwitch
 import com.bingwascore.app.ui.theme.PendGrey
@@ -57,6 +58,36 @@ import com.bingwascore.app.ui.theme.TextFaint
 import com.bingwascore.app.ui.theme.TextWhite
 import com.bingwascore.app.util.screenEnter
 
+/**
+ * Stage 19.7 — the PURE Profile surface.
+ *
+ * The identity card, the Autopilot switch and the menu rows all read from here;
+ * the ViewModel lives in the wrapper.
+ */
+data class ProfileScreenState(
+    val userName: String = "Bingwa User",
+    val phone: String = "",
+    val levelName: String = "Bronze",
+    val score: Int = 0,
+    val engineEnabled: Boolean = true,
+    val engineState: EngineState = EngineState.RUNNING,
+    val editState: ProfileEditState = ProfileEditState()
+)
+
+/** Stage 19.7 — every Profile side effect as a plain callback. */
+data class ProfileScreenCallbacks(
+    val onMyStore: () -> Unit = {},
+    val onReferEarn: () -> Unit = {},
+    val onSettings: () -> Unit = {},
+    val onAbout: () -> Unit = {},
+    val onUpdateName: (String) -> Unit = {},
+    val onUpdatePhone: (String) -> Unit = {},
+    val onSave: () -> Unit = {},
+    val onCancelEditing: () -> Unit = {},
+    val onStartEditing: () -> Unit = {},
+    val onToggleEngine: () -> Unit = {}
+)
+
 @Composable
 fun ProfileScreen(
     viewModel: ProfileViewModel = hiltViewModel(),
@@ -65,6 +96,7 @@ fun ProfileScreen(
     onSettings: () -> Unit = {},
     onAbout: () -> Unit = {}
 ) {
+    // STAGE 19.7 — the wrapper owns the ViewModel; the content below is pure.
     val userName by viewModel.userName.collectAsStateWithLifecycle()
     val phone by viewModel.phone.collectAsStateWithLifecycle()
     val levelName by viewModel.levelName.collectAsStateWithLifecycle()
@@ -73,6 +105,41 @@ fun ProfileScreen(
     val engineState by viewModel.engineState.collectAsStateWithLifecycle()
     val editState by viewModel.editState.collectAsStateWithLifecycle()
 
+    val state = ProfileScreenState(
+        userName = userName,
+        phone = phone,
+        levelName = levelName,
+        score = score,
+        engineEnabled = engineEnabled,
+        engineState = engineState,
+        editState = editState
+    )
+
+    val callbacks = ProfileScreenCallbacks(
+        onMyStore = onMyStore,
+        onReferEarn = onReferEarn,
+        onSettings = onSettings,
+        onAbout = onAbout,
+        onUpdateName = viewModel::updateName,
+        onUpdatePhone = viewModel::updatePhone,
+        onSave = viewModel::saveProfile,
+        onCancelEditing = viewModel::cancelEditing,
+        onStartEditing = viewModel::startEditing,
+        onToggleEngine = viewModel::toggleEngine
+    )
+
+    ProfileScreenContent(state = state, callbacks = callbacks)
+}
+
+/**
+ * Stage 19.7 — the pure Profile body: the editable identity card, the Autopilot
+ * switch and the four menu doors.
+ */
+@Composable
+fun ProfileScreenContent(
+    state: ProfileScreenState,
+    callbacks: ProfileScreenCallbacks = ProfileScreenCallbacks()
+) {
     Box(
         modifier = Modifier.fillMaxSize().screenEnter().background(BgBlack)
     ) {
@@ -96,62 +163,62 @@ fun ProfileScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        (if (editState.isEditing) editState.name else userName)
+                        (if (state.editState.isEditing) state.editState.name else state.userName)
                             .ifBlank { "B" }.take(1).uppercase(),
                         color = BgBlack, fontSize = 22.sp, fontWeight = FontWeight.Bold
                     )
                 }
                 Spacer(modifier = Modifier.width(14.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    if (editState.isEditing) {
-                        ProfileField("Name", editState.name, viewModel::updateName)
+                    if (state.editState.isEditing) {
+                        ProfileField("Name", state.editState.name, callbacks.onUpdateName)
                         Spacer(modifier = Modifier.height(8.dp))
-                        ProfileField("Phone", editState.phone, viewModel::updatePhone)
+                        ProfileField("Phone", state.editState.phone, callbacks.onUpdatePhone)
                     } else {
-                        Text(userName, color = TextWhite, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                        Text(state.userName, color = TextWhite, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                         Text(
-                            phone.ifEmpty { "No phone set" },
+                            state.phone.ifEmpty { "No phone set" },
                             color = TextWhite.copy(alpha = 0.5f),
                             fontSize = 12.sp
                         )
                     }
                     Spacer(modifier = Modifier.height(6.dp))
-                    LevelBadge(levelName)
+                    LevelBadge(state.levelName)
                 }
             }
 
             Spacer(modifier = Modifier.height(12.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Score: $score pts", color = TextWhite.copy(alpha = 0.7f), fontSize = 13.sp)
+                Text("Score: ${state.score} pts", color = TextWhite.copy(alpha = 0.7f), fontSize = 13.sp)
             }
 
             // Inline validation + save state, exactly like the offer settings form.
-            editState.errorMessage?.let {
+            state.editState.errorMessage?.let {
                 Spacer(modifier = Modifier.height(10.dp))
                 Text(it, color = FailRed, fontSize = 12.sp)
             }
-            editState.savedMessage?.let {
+            state.editState.savedMessage?.let {
                 Spacer(modifier = Modifier.height(10.dp))
                 Text(it, color = TickGreen, fontSize = 12.sp)
             }
 
             Spacer(modifier = Modifier.height(12.dp))
-            if (editState.isEditing) {
+            if (state.editState.isEditing) {
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     PrimaryButton(
-                        text = if (editState.isSaving) "Saving…" else "Save",
-                        enabled = !editState.isSaving,
-                        onClick = viewModel::saveProfile,
+                        text = if (state.editState.isSaving) "Saving…" else "Save",
+                        enabled = !state.editState.isSaving,
+                        onClick = callbacks.onSave,
                         modifier = Modifier.weight(1f)
                     )
                     PrimaryButton(
                         text = "Cancel",
-                        onClick = viewModel::cancelEditing,
+                        onClick = callbacks.onCancelEditing,
                         modifier = Modifier.weight(1f)
                     )
                 }
             } else {
-                PrimaryButton(text = "Edit Profile", onClick = viewModel::startEditing)
+                PrimaryButton(text = "Edit Profile", onClick = callbacks.onStartEditing)
             }
         }
         Spacer(modifier = Modifier.height(16.dp))
@@ -160,27 +227,30 @@ fun ProfileScreen(
                 Column(modifier = Modifier.weight(1f)) {
                     Text("Bingwa Autopilot", color = TextWhite, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                     Text(
-                        text = when (engineState) {
-                            com.bingwascore.app.domain.EngineState.RUNNING -> "Running"
-                            com.bingwascore.app.domain.EngineState.PAUSED -> "Paused"
-                            com.bingwascore.app.domain.EngineState.STOPPED -> "Stopped"
+                        text = when (state.engineState) {
+                            EngineState.RUNNING -> "Running"
+                            EngineState.PAUSED -> "Paused"
+                            EngineState.STOPPED -> "Stopped"
                         },
-                        color = when (engineState) {
-                            com.bingwascore.app.domain.EngineState.RUNNING -> TickGreen
-                            com.bingwascore.app.domain.EngineState.PAUSED -> TextWhite.copy(alpha = 0.7f)
-                            com.bingwascore.app.domain.EngineState.STOPPED -> TextWhite.copy(alpha = 0.5f)
+                        color = when (state.engineState) {
+                            EngineState.RUNNING -> TickGreen
+                            EngineState.PAUSED -> TextWhite.copy(alpha = 0.7f)
+                            EngineState.STOPPED -> TextWhite.copy(alpha = 0.5f)
                         },
                         fontSize = 12.sp
                     )
                 }
-                HapticSwitch(checked = engineEnabled, onCheckedChange = { viewModel.toggleEngine() })
+                HapticSwitch(
+                    checked = state.engineEnabled,
+                    onCheckedChange = { callbacks.onToggleEngine() }
+                )
             }
         }
         Spacer(modifier = Modifier.height(16.dp))
-        ProfileMenuRow("Agent Portal", Icons.Rounded.Storefront, onMyStore)
-        ProfileMenuRow("Refer & Earn", Icons.Rounded.Share, onReferEarn)
-        ProfileMenuRow("Settings", Icons.Rounded.Settings, onSettings)
-        ProfileMenuRow("About", Icons.Rounded.Info, onAbout)
+        ProfileMenuRow("Agent Portal", Icons.Rounded.Storefront, callbacks.onMyStore)
+        ProfileMenuRow("Refer & Earn", Icons.Rounded.Share, callbacks.onReferEarn)
+        ProfileMenuRow("Settings", Icons.Rounded.Settings, callbacks.onSettings)
+        ProfileMenuRow("About", Icons.Rounded.Info, callbacks.onAbout)
         Spacer(modifier = Modifier.height(24.dp))
         }
     }

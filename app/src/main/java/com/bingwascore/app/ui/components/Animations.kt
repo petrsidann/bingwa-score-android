@@ -16,6 +16,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.unit.dp
 import com.bingwascore.app.ui.theme.Motion
 import com.bingwascore.app.util.screenEnter
@@ -54,6 +55,11 @@ fun Modifier.pressScale(
  */
 @Composable
 fun Modifier.enterAnimation(delayMillis: Int = 0): Modifier {
+    // Stage 19.7 — a preview/snapshot renders the SETTLED card, never a
+    // half-faded one: the enter clock does not run outside a live frame, so
+    // inspection mode draws the card exactly as it lands.
+    if (LocalInspectionMode.current) return this
+
     val density = LocalDensity.current
     val slideDistance = with(density) { 16.dp.toPx() }
     val fade = remember(delayMillis) { Animatable(0f) }

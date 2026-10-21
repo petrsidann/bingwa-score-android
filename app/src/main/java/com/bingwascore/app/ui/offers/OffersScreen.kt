@@ -20,10 +20,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -31,12 +29,12 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.Call
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Apps
-import androidx.compose.material.icons.rounded.AutoAwesome
-import androidx.compose.material.icons.rounded.Call
 import androidx.compose.material.icons.rounded.LocalOffer
 import androidx.compose.material.icons.rounded.SignalCellularAlt
 import androidx.compose.material.icons.rounded.Sms
@@ -58,11 +56,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -77,11 +74,11 @@ import com.bingwascore.app.ui.components.PrimaryButton
 import com.bingwascore.app.ui.components.HapticSwitch
 import com.bingwascore.app.ui.components.ShimmerBlock
 import com.bingwascore.app.ui.components.pressScale
+import com.bingwascore.app.util.Haptics
 import com.bingwascore.app.util.rememberHaptics
 import com.bingwascore.app.util.screenEnter
 import com.bingwascore.app.ui.theme.Hairline
 import com.bingwascore.app.ui.theme.Raised
-import com.bingwascore.app.ui.theme.Hairline
 import com.bingwascore.app.ui.theme.Bubble
 import com.bingwascore.app.ui.theme.AccentBlue
 import com.bingwascore.app.ui.theme.TickGreen
@@ -90,12 +87,10 @@ import com.bingwascore.app.ui.theme.accentBrush
 import com.bingwascore.app.ui.theme.FailRed
 import com.bingwascore.app.ui.theme.Motion
 import com.bingwascore.app.ui.theme.BgBlack
-import com.bingwascore.app.ui.theme.Raised
 import com.bingwascore.app.ui.theme.TextDim
 import com.bingwascore.app.ui.theme.TextGrey
 import com.bingwascore.app.ui.theme.TextFaint
 import com.bingwascore.app.ui.theme.TextWhite
-import androidx.compose.ui.text.style.TextOverflow
 import java.util.Locale
 
 /** Statuses a fallback dial rule can trigger on. */
@@ -105,8 +100,68 @@ private val FALLBACK_STATUSES = listOf(
     TransactionStatus.UNMATCHED
 )
 
+/**
+ * Stage 19.7 — the PURE Offers surface.
+ *
+ * The shelf, the category chips, the grid and the batch bar all read from here;
+ * the ViewModel lives in the wrapper.
+ */
+data class OffersScreenState(
+    val offers: List<Offer> = emptyList(),
+    val rules: List<OfferTransitionRule> = emptyList(),
+    val isLoading: Boolean = false,
+    val ruleError: String? = null,
+    val settingsState: OfferSettingsState = OfferSettingsState(),
+    val isBatching: Boolean = false,
+    val lastDialPhone: String = "",
+    val category: OfferCategory = OfferCategory.ALL,
+    val selectionMode: Boolean = false,
+    val selectedIds: Set<String> = emptySet(),
+    val batchPhone: String = "",
+    val confirmOffers: List<Offer>? = null
+)
+
+/**
+ * Stage 19.7 — every Offers side effect as a plain callback.
+ */
+data class OffersScreenCallbacks(
+    val onCategorySelect: (OfferCategory) -> Unit = {},
+    val onToggle: (Offer) -> Unit = {},
+    val onOpenSettings: (Offer) -> Unit = {},
+    val onOpenActions: (Offer) -> Unit = {},
+    val onLongPress: (Offer) -> Unit = {},
+    val onSelectToggle: (Offer) -> Unit = {},
+    val onAddClick: () -> Unit = {},
+    val onBatchPhoneChange: (String) -> Unit = {},
+    val onBatchCancel: () -> Unit = {},
+    val onBatchDial: () -> Unit = {},
+    val onConfirmDial: () -> Unit = {},
+    val onDismissConfirm: () -> Unit = {},
+    val onAddOffer: (name: String, price: Int, code: String) -> Unit = { _, _, _ -> },
+    val onSaveSettings: (
+        numberOfRetries: String,
+        retryIntervalMins: String,
+        ussdTimeoutSeconds: String,
+        autoReschedule: Boolean,
+        rescheduleTime: String,
+        completionMessage: String,
+        type: String,
+        strictMode: Boolean,
+        autoRetry: Boolean,
+        autoRetryConnectionProblems: Boolean,
+        silentBatch: Boolean,
+        tag: String?,
+        relayDevice: String?
+    ) -> Unit = { _, _, _, _, _, _, _, _, _, _, _, _, _ -> },
+    val onClearRuleError: () -> Unit = {},
+    val onSaveRule: (OfferTransitionRule) -> Unit = {},
+    val onDeleteRule: (OfferTransitionRule) -> Unit = {}
+)
+
 @Composable
 fun OffersScreen(viewModel: OffersViewModel = hiltViewModel()) {
+    // STAGE 19.7 — the wrapper owns the ViewModel and every piece of screen
+    // state the content only reads.
     val haptics = rememberHaptics()
     val offers by viewModel.offers.collectAsStateWithLifecycle()
     val rules by viewModel.transitionRules.collectAsStateWithLifecycle()
@@ -134,159 +189,116 @@ fun OffersScreen(viewModel: OffersViewModel = hiltViewModel()) {
     var batchPhone by remember { mutableStateOf("") }
     var confirmOffers by remember { mutableStateOf<List<Offer>?>(null) }
 
-    val selectedOffers = offers.filter { it.id in selectedIds }
-
-    fun exitSelection() {
-        selectionMode = false
-        selectedIds = emptySet()
-    }
-
     // Prefill the batch phone with the last dialled customer (Dialer parity).
     LaunchedEffect(lastDialPhone) {
         if (batchPhone.isBlank() && lastDialPhone.isNotBlank()) batchPhone = lastDialPhone
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .screenEnter()
-            .background(BgBlack)
-    ) {
-        // REBRAND R1 — flat black stage; the offer cards are bubbles, so there
-        // is no ambient art left to refract behind them.
+    val state = OffersScreenState(
+        offers = offers,
+        rules = rules,
+        isLoading = isLoading,
+        ruleError = ruleError,
+        settingsState = settingsState,
+        isBatching = isBatching,
+        lastDialPhone = lastDialPhone,
+        category = category,
+        selectionMode = selectionMode,
+        selectedIds = selectedIds,
+        batchPhone = batchPhone,
+        confirmOffers = confirmOffers
+    )
 
-        Column(modifier = Modifier.fillMaxSize()) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 6.dp)
-            ) {
-                Text("Offers", color = TextWhite, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-                Text(
-                    if (selectionMode) "${selectedOffers.size} selected"
-                    else "${offers.size} offer(s)",
-                    color = TextWhite.copy(alpha = 0.5f),
-                    fontSize = 12.sp
-                )
-            }
-
-            // POLISH P4 — the category chips, derived from the offer type.
-            CategoryChips(
-                selected = category,
-                counts = remember(offers) { OfferCategory.entries.associateWith { cat ->
-                    OfferCategory.filter(offers, cat).size
-                } },
-                onSelect = {
-                    haptics.tick()
-                    category = it
-                }
-            )
-
-            if (isLoading) {
-                // Parity E — shimmer skeletons while the offers load.
-                OfferSkeleton()
-            } else if (offers.isEmpty()) {
-                EmptyState(
-                    icon = Icons.Rounded.LocalOffer,
-                    title = "No offers yet",
-                    message = "Tap the + button to add your first bundle offer — then dial it in one tap.",
-                    modifier = Modifier.padding(20.dp)
-                )
+    val callbacks = OffersScreenCallbacks(
+        onCategorySelect = {
+            haptics.tick()
+            category = it
+        },
+        onToggle = { viewModel.toggleActive(it) },
+        onOpenSettings = { settingsOffer = it },
+        onOpenActions = { actionsOffer = it },
+        onLongPress = {
+            selectionMode = true
+            selectedIds = selectedIds + it.id
+        },
+        onSelectToggle = {
+            selectedIds = if (it.id in selectedIds) {
+                selectedIds - it.id
             } else {
-                val visible = remember(offers, category) { OfferCategory.filter(offers, category) }
-                if (visible.isEmpty()) {
-                    // POLISH P4 — an empty category says so, in its own words.
-                    EmptyState(
-                        icon = categoryIcon(category),
-                        title = "No ${category.label.lowercase(Locale.ROOT)} offers",
-                        message = "Add a ${category.label.lowercase(Locale.ROOT)} bundle with the + " +
-                            "button, or pick another category.",
-                        modifier = Modifier.padding(20.dp)
-                    )
+                selectedIds + it.id
+            }
+        },
+        onAddClick = { showAddSheet = true },
+        onBatchPhoneChange = { batchPhone = it },
+        onBatchCancel = {
+            selectionMode = false
+            selectedIds = emptySet()
+        },
+        onBatchDial = {
+            val targets = offers.filter { it.id in selectedIds }
+            if (targets.isNotEmpty()) {
+                // Silent offers need no confirmation; anything else gets
+                // exactly ONE dialog listing them before queueing.
+                if (BatchDialPlanner.requiresConfirmation(targets)) {
+                    confirmOffers = targets
                 } else {
-                    // POLISH P4 — a two-column grid, so an agent with eight offers
-                    // sees all eight without scrolling past one giant card at a
-                    // time.
-                    LazyVerticalGrid(
-                        columns = GridCells.Adaptive(minSize = OFFER_GRID_MIN_WIDTH.dp),
-                        contentPadding = PaddingValues(
-                            start = 16.dp,
-                            end = 16.dp,
-                            top = 8.dp,
-                            bottom = if (selectionMode) 280.dp else 96.dp
-                        ),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        itemsIndexed(visible, key = { _, offer -> offer.id }) { index, offer ->
-                            OfferCard(
-                                offer = offer,
-                                enterDelayMillis = minOf(index, 6) * Motion.STAGGER,
-                                selectionMode = selectionMode,
-                                selected = offer.id in selectedIds,
-                                onToggle = { viewModel.toggleActive(offer) },
-                                onOpenSettings = { settingsOffer = offer },
-                                onOpenActions = { actionsOffer = offer },
-                                onLongPress = {
-                                    selectionMode = true
-                                    selectedIds = selectedIds + offer.id
-                                },
-                                onSelectToggle = {
-                                    selectedIds = if (offer.id in selectedIds) {
-                                        selectedIds - offer.id
-                                    } else {
-                                        selectedIds + offer.id
-                                    }
-                                }
-                            )
-                        }
-                    }
+                    viewModel.batchDial(targets, batchPhone)
+                    selectionMode = false
+                    selectedIds = emptySet()
                 }
             }
-        }
-
-        if (!selectionMode) {
-            AddOfferFab(
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(20.dp),
-                onClick = { showAddSheet = true }
-            )
-        }
-
-        // Parity F — floating silent batch bar (replaces the FAB while selecting).
-        if (selectionMode) {
-            BatchDialBar(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(20.dp),
-                count = selectedOffers.size,
-                silentCount = selectedOffers.count { it.silentBatch },
-                phone = batchPhone,
-                onPhoneChange = { batchPhone = it },
-                isBatching = isBatching,
-                onCancel = { exitSelection() },
-                onDial = {
-                    val targets = selectedOffers
-                    if (targets.isNotEmpty()) {
-                        // Silent offers need no confirmation; anything else gets
-                        // exactly ONE dialog listing them before queueing.
-                        if (BatchDialPlanner.requiresConfirmation(targets)) {
-                            confirmOffers = targets
-                        } else {
-                            viewModel.batchDial(targets, batchPhone)
-                            exitSelection()
-                        }
-                    }
+        },
+        onConfirmDial = {
+            val targets = confirmOffers ?: emptyList()
+            if (targets.isNotEmpty()) {
+                viewModel.batchDial(targets, batchPhone)
+            }
+            confirmOffers = null
+            selectionMode = false
+            selectedIds = emptySet()
+        },
+        onDismissConfirm = { confirmOffers = null },
+        onAddOffer = { name, price, code ->
+            viewModel.addOffer(name, price, code)
+            showAddSheet = false
+        },
+        onSaveSettings = { retries, intervalMins, timeoutSeconds, reschedule, runTime,
+            completionMsg, type, strict, retry, retryNetwork, silent, tagValue, relay ->
+            settingsOffer?.let { offer ->
+                viewModel.saveOfferSettings(
+                    offer = offer,
+                    numberOfRetries = retries,
+                    retryIntervalMins = intervalMins,
+                    ussdTimeoutSeconds = timeoutSeconds,
+                    autoReschedule = reschedule,
+                    rescheduleTime = runTime,
+                    completionMessage = completionMsg,
+                    type = type,
+                    strictMode = strict,
+                    autoRetry = retry,
+                    autoRetryConnectionProblems = retryNetwork,
+                    silentBatch = silent,
+                    tag = tagValue,
+                    relayDevice = relay
+                )
+                // Only dismiss once the write actually succeeded — the sheet
+                // stays open showing the inline error otherwise.
+                if (settingsState.errorMessage == null && !settingsState.isLoading) {
+                    settingsOffer = null
                 }
-            )
-        }
-    }
+            }
+        },
+        onClearRuleError = viewModel::clearSettingsError,
+        onSaveRule = viewModel::saveTransitionRule,
+        onDeleteRule = viewModel::deleteTransitionRule
+    )
+
+    OffersScreenContent(state = state, callbacks = callbacks)
 
     // Parity F — the single confirmation for non-silent offers.
-    confirmOffers?.let { targets ->
+    state.confirmOffers?.let { targets ->
         AlertDialog(
-            onDismissRequest = { confirmOffers = null },
+            onDismissRequest = callbacks.onDismissConfirm,
             containerColor = Raised,
             title = {
                 Text(
@@ -312,18 +324,12 @@ fun OffersScreen(viewModel: OffersViewModel = hiltViewModel()) {
                 }
             },
             confirmButton = {
-                TextButton(
-                    onClick = {
-                        viewModel.batchDial(targets, batchPhone)
-                        confirmOffers = null
-                        exitSelection()
-                    }
-                ) {
+                TextButton(onClick = callbacks.onConfirmDial) {
                     Text("Queue anyway", color = AccentBlue, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { confirmOffers = null }) {
+                TextButton(onClick = callbacks.onDismissConfirm) {
                     Text("Cancel", color = TextWhite.copy(alpha = 0.6f))
                 }
             }
@@ -333,10 +339,7 @@ fun OffersScreen(viewModel: OffersViewModel = hiltViewModel()) {
     if (showAddSheet) {
         AddOfferSheet(
             onDismiss = { showAddSheet = false },
-            onAdd = { name, price, code ->
-                viewModel.addOffer(name, price, code)
-                showAddSheet = false
-            }
+            onAdd = callbacks.onAddOffer
         )
     }
 
@@ -345,32 +348,8 @@ fun OffersScreen(viewModel: OffersViewModel = hiltViewModel()) {
             offer = offer,
             settingsState = settingsState,
             onDismiss = { settingsOffer = null },
-            onClearError = { viewModel.clearSettingsError() },
-            onSave = { retries, intervalMins, timeoutSeconds, reschedule, runTime,
-                      completionMsg, type, strict, retry, retryNetwork, silent,
-                      tagValue, relay ->
-                viewModel.saveOfferSettings(
-                    offer = offer,
-                    numberOfRetries = retries,
-                    retryIntervalMins = intervalMins,
-                    ussdTimeoutSeconds = timeoutSeconds,
-                    autoReschedule = reschedule,
-                    rescheduleTime = runTime,
-                    completionMessage = completionMsg,
-                    type = type,
-                    strictMode = strict,
-                    autoRetry = retry,
-                    autoRetryConnectionProblems = retryNetwork,
-                    silentBatch = silent,
-                    tag = tagValue,
-                    relayDevice = relay
-                )
-                // Only dismiss once the write actually succeeded — the sheet
-                // stays open showing the inline error otherwise.
-                if (settingsState.errorMessage == null && !settingsState.isLoading) {
-                    settingsOffer = null
-                }
-            }
+            onClearError = callbacks.onClearRuleError,
+            onSave = callbacks.onSaveSettings
         )
     }
 
@@ -380,11 +359,141 @@ fun OffersScreen(viewModel: OffersViewModel = hiltViewModel()) {
             offers = offers,
             rules = rules,
             ruleError = ruleError,
-            onClearRuleError = viewModel::clearRuleError,
+            onClearRuleError = callbacks.onClearRuleError,
             onDismiss = { actionsOffer = null },
-            onSaveRule = viewModel::saveTransitionRule,
-            onDeleteRule = viewModel::deleteTransitionRule
+            onSaveRule = callbacks.onSaveRule,
+            onDeleteRule = callbacks.onDeleteRule
         )
+    }
+}
+
+/**
+ * Stage 19.7 — the pure Offers body: the shelf, the chips, the grid and the
+ * floating batch bar. Nothing here knows about a ViewModel.
+ */
+@Composable
+fun OffersScreenContent(
+    state: OffersScreenState,
+    callbacks: OffersScreenCallbacks = OffersScreenCallbacks(),
+    haptics: Haptics = rememberHaptics()
+) {
+    val offers = state.offers
+    val selectedOffers = offers.filter { it.id in state.selectedIds }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .screenEnter()
+            .background(BgBlack)
+    ) {
+        // REBRAND R1 — flat black stage; the offer cards are bubbles, so there
+        // is no ambient art left to refract behind them.
+
+        Column(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 6.dp)
+            ) {
+                Text("Offers", color = TextWhite, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                Text(
+                    if (state.selectionMode) "${selectedOffers.size} selected"
+                    else "${offers.size} offer(s)",
+                    color = TextWhite.copy(alpha = 0.5f),
+                    fontSize = 12.sp
+                )
+            }
+
+            // POLISH P4 — the category chips, derived from the offer type.
+            CategoryChips(
+                selected = state.category,
+                counts = remember(offers) { OfferCategory.entries.associateWith { cat ->
+                    OfferCategory.filter(offers, cat).size
+                } },
+                onSelect = {
+                    haptics.tick()
+                    callbacks.onCategorySelect(it)
+                }
+            )
+
+            if (state.isLoading) {
+                // Parity E — shimmer skeletons while the offers load.
+                OfferSkeleton()
+            } else if (offers.isEmpty()) {
+                EmptyState(
+                    icon = Icons.Rounded.LocalOffer,
+                    title = "No offers yet",
+                    message = "Tap the + button to add your first bundle offer — then dial it in one tap.",
+                    modifier = Modifier.padding(20.dp)
+                )
+            } else {
+                val visible = remember(offers, state.category) { OfferCategory.filter(offers, state.category) }
+                if (visible.isEmpty()) {
+                    // POLISH P4 — an empty category says so, in its own words.
+                    EmptyState(
+                        icon = categoryIcon(state.category),
+                        title = "No ${state.category.label.lowercase(Locale.ROOT)} offers",
+                        message = "Add a ${state.category.label.lowercase(Locale.ROOT)} bundle with the + " +
+                            "button, or pick another category.",
+                        modifier = Modifier.padding(20.dp)
+                    )
+                } else {
+                    // POLISH P4 — a two-column grid, so an agent with eight offers
+                    // sees all eight without scrolling past one giant card at a
+                    // time.
+                    LazyVerticalGrid(
+                        columns = GridCells.Adaptive(minSize = OFFER_GRID_MIN_WIDTH.dp),
+                        contentPadding = PaddingValues(
+                            start = 16.dp,
+                            end = 16.dp,
+                            top = 8.dp,
+                            bottom = if (state.selectionMode) 280.dp else 96.dp
+                        ),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        itemsIndexed(visible, key = { _, offer -> offer.id }) { index, offer ->
+                            OfferCard(
+                                offer = offer,
+                                enterDelayMillis = minOf(index, 6) * Motion.STAGGER,
+                                selectionMode = state.selectionMode,
+                                selected = offer.id in state.selectedIds,
+                                onToggle = { callbacks.onToggle(offer) },
+                                onOpenSettings = { callbacks.onOpenSettings(offer) },
+                                onOpenActions = { callbacks.onOpenActions(offer) },
+                                onLongPress = { callbacks.onLongPress(offer) },
+                                onSelectToggle = { callbacks.onSelectToggle(offer) }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        if (!state.selectionMode) {
+            AddOfferFab(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(20.dp),
+                onClick = callbacks.onAddClick
+            )
+        }
+
+        // Parity F — floating silent batch bar (replaces the FAB while selecting).
+        if (state.selectionMode) {
+            BatchDialBar(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(20.dp),
+                count = selectedOffers.size,
+                silentCount = selectedOffers.count { it.silentBatch },
+                phone = state.batchPhone,
+                onPhoneChange = { callbacks.onBatchPhoneChange(it) },
+                isBatching = state.isBatching,
+                onCancel = callbacks.onBatchCancel,
+                onDial = callbacks.onBatchDial
+            )
+        }
     }
 }
 
@@ -1180,12 +1289,6 @@ private fun RuleRow(rule: OfferTransitionRule, onDelete: () -> Unit) {
     }
 }
 
-
-
-
-
-
-
 /**
  * Parity F — "SILENT" chip on offers flagged for silent batch dial: they are
  * queued without the per-dial confirmation the advanced offers get.
@@ -1288,4 +1391,3 @@ private fun BatchDialBar(
         )
     }
 }
-

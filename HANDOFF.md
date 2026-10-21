@@ -1,5 +1,23 @@
 # ULTRA session end — handoff
 
+## STEP 0 resume state (2026-10-21, Stage 19.7 shipped)
+
+- Shipped+green: Stages 1–19 + **Stage 19.7 (preview-pure screens + eyes green)**. U1 USSD engine + E1 balance/dial protected.
+- **Stage 19.7 — preview-pure screens**: every screen in the screen map is now a PURE `XScreenContent(state, callbacks)`
+  composable with a thin `XScreen` wrapper that hoists the platform bits — Home, Offers, Dialer, Transactions,
+  Profile, Onboarding, Splash, My Plan. No `hiltViewModel`, no Activity, no `LifecycleOwner`, no
+  `rememberLauncherForActivityResult` inside a Content. Callbacks are plain lambdas (empty by default), so a
+  snapshot renders the real surface with no ViewModel in sight. `Haptics.Disabled` is the no-op haptics for previews.
+- **Eyes green**: Paparazzi **1.3.5** (root plugin + `app.cash.paparazzi` in the app module) renders all 8 screens
+  × both themes (18 goldens) from fake state — `Stage19ScreensPreviewTest`. Goldens live in
+  `app/src/test/snapshots/images/`, the agent eyes are copied to `docs/gate/` by `loop.ps1`.
+  Enter animations settle in inspection mode (`LocalInspectionMode`), so a snapshot shows the landed screen,
+  not a half-faded one. `:app:assembleDebug` + `:app:testDebugUnitTest` (328 tests) green.
+- Wordmark is exactly "Bingwa Score" (splash + onboarding); the Home Autopilot pill renders in BOTH themes;
+  layout is identical row-for-row across themes (verified by pixel audit of the recorded PNGs).
+- Next group: **U6 snake carousel** -> U7.1 credits+pass -> U7.2 real updates -> U8 QA + 1.8.0 release.
+
+
 ## STEP 0 resume state (2026-10-20, Stage 19 green)
 
 - Shipped+green: Stages 1–18 (see git log). Three Stage tests + assembleDebug green at rescue commit `0db8469`.

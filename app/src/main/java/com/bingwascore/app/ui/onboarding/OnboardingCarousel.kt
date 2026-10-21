@@ -141,6 +141,19 @@ object SnakeCarousel {
     }
 }
 
+/**
+ * Stage 19.7 — the PURE onboarding surface: the page index and the two doors.
+ */
+data class OnboardingCarouselState(
+    val page: Int = 0
+)
+
+/** Stage 19.7 — every onboarding side effect as a plain callback. */
+data class OnboardingCarouselCallbacks(
+    val onGetStarted: () -> Unit = {},
+    val onPageChange: (Int) -> Unit = {}
+)
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun OnboardingCarousel(
@@ -148,10 +161,31 @@ fun OnboardingCarousel(
     page: Int = 0,
     onPageChange: (Int) -> Unit = {}
 ) {
+    // STAGE 19.7 — thin wrapper: the carousel has no ViewModel, so the wrapper
+    // only hands the state and the callbacks to the pure content.
+    OnboardingCarouselContent(
+        state = OnboardingCarouselState(page = page),
+        callbacks = OnboardingCarouselCallbacks(
+            onGetStarted = onGetStarted,
+            onPageChange = onPageChange
+        )
+    )
+}
+
+/**
+ * Stage 19.7 — the pure onboarding body: the wordmark, the pager and the
+ * Back / Next doors.
+ */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun OnboardingCarouselContent(
+    state: OnboardingCarouselState = OnboardingCarouselState(),
+    callbacks: OnboardingCarouselCallbacks = OnboardingCarouselCallbacks()
+) {
     val icons = listOf(Icons.Rounded.AutoMode, Icons.Rounded.Refresh, Icons.Rounded.EmojiEvents)
     val slides = SnakeCarousel.SLIDES
     val count = slides.size
-    val settledPage = SnakeCarousel.clampPage(page, count)
+    val settledPage = SnakeCarousel.clampPage(state.page, count)
     val pagerState = rememberPagerState(initialPage = settledPage, pageCount = { count })
     val scope = rememberCoroutineScope()
 
@@ -160,7 +194,7 @@ fun OnboardingCarousel(
     }
     LaunchedEffect(pagerState.currentPage, pagerState.isScrollInProgress) {
         if (!pagerState.isScrollInProgress && pagerState.currentPage != settledPage) {
-            onPageChange(pagerState.currentPage)
+            callbacks.onPageChange(pagerState.currentPage)
         }
     }
 
@@ -212,7 +246,7 @@ fun OnboardingCarousel(
             PrimaryButton(
                 text = if (settledPage == count - 1) "Get Started" else "Next",
                 onClick = {
-                    if (settledPage == count - 1) onGetStarted()
+                    if (settledPage == count - 1) callbacks.onGetStarted()
                     else scope.launch { pagerState.animateScrollToPage(SnakeCarousel.next(settledPage, count)) }
                 },
                 modifier = Modifier.weight(1f).padding(start = 12.dp)

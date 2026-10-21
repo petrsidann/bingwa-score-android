@@ -7,6 +7,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalInspectionMode
 import com.bingwascore.app.ui.theme.Motion
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -21,6 +22,11 @@ import kotlinx.coroutines.launch
  */
 @Composable
 fun Modifier.screenEnter(delayMs: Int = 0): Modifier {
+    // Stage 19.7 — a preview/snapshot renders the SETTLED screen: the enter
+    // clock does not run outside a live frame, so inspection mode draws the
+    // screen exactly as it lands.
+    if (LocalInspectionMode.current) return this
+
     val alphaAnim = remember(delayMs) { Animatable(0f) }
     val offsetAnim = remember(delayMs) { Animatable(24f) }
 
