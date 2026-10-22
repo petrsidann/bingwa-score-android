@@ -5,10 +5,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -17,7 +19,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PageSize
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -35,20 +39,25 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.bingwascore.app.ui.brand.BrandWordmark
 import com.bingwascore.app.ui.components.PrimaryButton
 import com.bingwascore.app.ui.theme.AccentBlue
 import com.bingwascore.app.ui.theme.BgBlack
 import com.bingwascore.app.ui.theme.Bubble
 import com.bingwascore.app.ui.theme.TextDim
+import com.bingwascore.app.ui.theme.TextGrey
 import com.bingwascore.app.ui.theme.TextWhite
 import com.bingwascore.app.ui.theme.accentBrush
 import kotlinx.coroutines.launch
 import kotlin.math.abs
+import kotlin.math.min
 import kotlin.math.roundToInt
 
 /**
@@ -142,6 +151,69 @@ object SnakeCarousel {
 }
 
 /**
+ * Stage 21 — the pager geometry, in ONE place, so the UI and the JVM tests
+ * share the same numbers.
+ */
+object OnboardingPager {
+
+    /** Three pages, always. */
+    const val PAGE_COUNT: Int = 3
+
+    /** The gap between two pages, in dp. */
+    const val PAGE_GAP_DP: Float = 24f
+
+    /** The card radius, in dp. */
+    const val CARD_RADIUS_DP: Float = 24f
+
+    /** The smallest legal touch target (Material), in dp. */
+    const val MIN_TOUCH_TARGET_DP: Float = 44f
+
+    /** The card height on a tall screen, in dp. */
+    const val CARD_HEIGHT_DP: Float = 300f
+
+    /** The card height on a short screen (landscape, a small phone), in dp. */
+    const val CARD_HEIGHT_COMPACT_DP: Float = 132f
+
+    /** Below this screen height the layout switches to the compact stack. */
+    const val TIGHT_HEIGHT_DP: Float = 560f
+
+    /** [startX, endX] per page; neighbours touch at most at the gap edge. */
+    fun pageBounds(pageWidth: Float, gap: Float = PAGE_GAP_DP): List<Pair<Float, Float>> =
+        List(PAGE_COUNT) { i ->
+            val start = i * (pageWidth + gap)
+            start to start + pageWidth
+        }
+
+    /** Inactive pages fade with their distance from the settled page. */
+    fun pageAlpha(offset: Float): Float = 1f - 0.55f * offset.coerceIn(0f, 1f)
+
+    /** Inactive text dims with offset: 1 at rest, 0.5 fully away. */
+    fun textAlpha(offset: Float): Float = 1f - 0.5f * offset.coerceIn(0f, 1f)
+
+    /**
+     * The dot indicator weight per dot for a continuous pager [position]: the
+     * active pill slides from dot to dot instead of jumping.
+     */
+    fun dotWeights(position: Float, count: Int = PAGE_COUNT): List<Float> {
+        require(count > 0) { "the indicator needs at least one dot" }
+        val p = position.coerceIn(0f, (count - 1).toFloat())
+        return List(count) { i -> (1f - abs(i - p)).coerceIn(0f, 1f) }
+    }
+
+    /**
+     * The scale that fits [contentHeight] inside [availableHeight].
+     *
+     * Never larger than one (content is never blown up) and never smaller
+     * than the fit (content is never clipped) — this is what keeps the pages
+     * whole in ANY rotation.
+     */
+    fun fitScale(contentHeight: Float, availableHeight: Float): Float {
+        if (contentHeight <= 0f || availableHeight <= 0f) return 1f
+        return min(1f, availableHeight / contentHeight)
+    }
+}
+
+/**
  * Stage 19.7 — the PURE onboarding surface: the page index and the two doors.
  */
 data class OnboardingCarouselState(
@@ -151,6 +223,7 @@ data class OnboardingCarouselState(
 /** Stage 19.7 — every onboarding side effect as a plain callback. */
 data class OnboardingCarouselCallbacks(
     val onGetStarted: () -> Unit = {},
+    val onSkip: () -> Unit = {},
     val onPageChange: (Int) -> Unit = {}
 )
 
@@ -159,7 +232,8 @@ data class OnboardingCarouselCallbacks(
 fun OnboardingCarousel(
     onGetStarted: () -> Unit,
     page: Int = 0,
-    onPageChange: (Int) -> Unit = {}
+    onPageChange: (Int) -> Unit = {},
+    onSkip: () -> Unit = onGetStarted
 ) {
     // STAGE 19.7 — thin wrapper: the carousel has no ViewModel, so the wrapper
     // only hands the state and the callbacks to the pure content.
@@ -167,14 +241,21 @@ fun OnboardingCarousel(
         state = OnboardingCarouselState(page = page),
         callbacks = OnboardingCarouselCallbacks(
             onGetStarted = onGetStarted,
+            onSkip = onSkip,
             onPageChange = onPageChange
         )
     )
 }
 
 /**
- * Stage 19.7 — the pure onboarding body: the wordmark, the pager and the
- * Back / Next doors.
+ * Stage 21 — the onboarding body, rebuilt as a real pager.
+ *
+ * One `HorizontalPager` with `PageSize.Fill`: every page owns the full
+ * width, the pages are 24dp apart, and an inactive page fades with its
+ * offset from the settled page. The card has a FIXED height, and the copy
+ * inside it is measured at its natural size and scaled down to fit — so a
+ * landscape phone shows the same page, slightly smaller, instead of a
+ * cut-off title. Nothing overlaps and nothing clips, in either theme.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -198,146 +279,280 @@ fun OnboardingCarouselContent(
         }
     }
 
-    Column(
-        modifier = Modifier.fillMaxSize().background(BgBlack).statusBarsPadding()
-            .navigationBarsPadding().padding(horizontal = 20.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Spacer(modifier = Modifier.height(48.dp))
-        Text("Bingwa Score", color = TextWhite, fontSize = 24.sp, fontWeight = FontWeight.Bold)
-        Spacer(modifier = Modifier.height(4.dp))
-        Text("Your bundle business, automated.", color = TextWhite.copy(alpha = 0.5f), fontSize = 13.sp)
-        Spacer(modifier = Modifier.height(32.dp))
+    BoxWithConstraints(modifier = Modifier.fillMaxSize().background(BgBlack)) {
+        // Stage 21 — one layout for every screen: a short screen (landscape,
+        // a small phone) drops the tagline and shrinks the card; a tall
+        // screen keeps the full stack.
+        val tight = maxHeight < OnboardingPager.TIGHT_HEIGHT_DP.dp
 
-        // Stage 20 — one page fills the viewport; neighbours never overlap.
-        HorizontalPager(
-            state = pagerState,
-            modifier = Modifier.fillMaxWidth().weight(1f),
-            contentPadding = PaddingValues(horizontal = 24.dp),
-            pageSpacing = 24.dp,
-            verticalAlignment = Alignment.CenterVertically,
-            key = { it }
-        ) { index ->
-            val pageOffset = abs(
-                (pagerState.currentPage - index) + pagerState.currentPageOffsetFraction
-            ).coerceIn(0f, 1f)
-            PagerCard(
-                icon = icons[index % icons.size],
-                title = slides[index].title,
-                body = slides[index].body,
-                dim = pageOffset
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .padding(horizontal = 20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Spacer(modifier = Modifier.height(if (tight) 8.dp else 40.dp))
+            Text(
+                BrandWordmark.TEXT,
+                color = TextWhite,
+                fontSize = if (tight) 20.sp else 24.sp,
+                fontWeight = FontWeight.Bold
             )
-        }
-
-        Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
-            val dots = SnakeCarousel.dotWidthsDp(pagerState.currentPage, count)
-            dots.forEachIndexed { index, widthDp ->
-                Box(modifier = Modifier.padding(horizontal = 4.dp)
-                    .width(widthDp.dp).height(8.dp).clip(CircleShape)
-                    .background(if (index == pagerState.currentPage) AccentBlue else TextDim))
+            if (!tight) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    "Your bundle business, automated.",
+                    color = TextGrey,
+                    fontSize = 13.sp
+                )
             }
-        }
+            Spacer(modifier = Modifier.height(if (tight) 12.dp else 24.dp))
 
-        Spacer(modifier = Modifier.height(20.dp))
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            if (settledPage > 0) {
-                PrimaryButton(text = "Back", onClick = { scope.launch { pagerState.animateScrollToPage(SnakeCarousel.previous(settledPage, count)) } }, modifier = Modifier.width(120.dp))
-            } else Spacer(modifier = Modifier.width(120.dp))
-            PrimaryButton(
-                text = if (settledPage == count - 1) "Get Started" else "Next",
-                onClick = {
-                    if (settledPage == count - 1) callbacks.onGetStarted()
-                    else scope.launch { pagerState.animateScrollToPage(SnakeCarousel.next(settledPage, count)) }
-                },
-                modifier = Modifier.weight(1f).padding(start = 12.dp)
-            )
+            BoxWithConstraints(
+                modifier = Modifier.fillMaxWidth().weight(1f),
+                contentAlignment = Alignment.Center
+            ) {
+                // The card never grows past the room it was given.
+                val cardHeight = minOf(
+                    if (tight) OnboardingPager.CARD_HEIGHT_COMPACT_DP.dp else OnboardingPager.CARD_HEIGHT_DP.dp,
+                    maxHeight
+                )
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier.fillMaxWidth().height(cardHeight),
+                    pageSize = PageSize.Fill,
+                    contentPadding = PaddingValues(horizontal = 24.dp),
+                    pageSpacing = OnboardingPager.PAGE_GAP_DP.dp,
+                    verticalAlignment = Alignment.CenterVertically,
+                    key = { it }
+                ) { index ->
+                    val pageOffset = abs(
+                        (pagerState.currentPage - index) + pagerState.currentPageOffsetFraction
+                    ).coerceIn(0f, 1f)
+                    OnboardingPage(
+                        icon = icons[index % icons.size],
+                        title = slides[index].title,
+                        body = slides[index].body,
+                        offset = pageOffset,
+                        compact = tight,
+                        height = cardHeight
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(if (tight) 12.dp else 20.dp))
+
+            // Stage 21 — the indicator follows the pager, dot by dot.
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                val position = pagerState.currentPage + pagerState.currentPageOffsetFraction
+                OnboardingPager.dotWeights(position, count).forEachIndexed { index, weight ->
+                    Box(
+                        modifier = Modifier
+                            .padding(horizontal = 4.dp)
+                            .width((8f + 12f * weight).dp)
+                            .height(8.dp)
+                            .clip(CircleShape)
+                            .background(if (weight > 0.02f) AccentBlue else TextDim)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(if (tight) 12.dp else 20.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (settledPage > 0) {
+                    OnboardingGhostButton(
+                        text = "Back",
+                        onClick = {
+                            scope.launch {
+                                pagerState.animateScrollToPage(SnakeCarousel.previous(settledPage, count))
+                            }
+                        }
+                    )
+                } else {
+                    OnboardingGhostButton(text = "Skip", onClick = callbacks.onSkip)
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                PrimaryButton(
+                    text = if (settledPage == count - 1) "Get Started" else "Next",
+                    onClick = {
+                        if (settledPage == count - 1) {
+                            callbacks.onGetStarted()
+                        } else {
+                            scope.launch {
+                                pagerState.animateScrollToPage(SnakeCarousel.next(settledPage, count))
+                            }
+                        }
+                    },
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(if (tight) 12.dp else 24.dp))
         }
-        Spacer(modifier = Modifier.height(24.dp))
     }
 }
 
-/** Stage 20 — fixed-height page card: icon/title/body column, zero overlap. */
+/**
+ * Stage 21 — one page: the glyph, the title and the body, in one column,
+ * on a fixed-height card. The whole card fades with the page offset.
+ */
 @Composable
-private fun PagerCard(
+private fun OnboardingPage(
     icon: ImageVector,
     title: String,
     body: String,
-    dim: Float
+    offset: Float,
+    compact: Boolean,
+    height: Dp
 ) {
+    val textAlpha = OnboardingPager.textAlpha(offset)
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(360.dp)
-            .clip(RoundedCornerShape(24.dp))
+            .height(height)
+            .graphicsLayer { alpha = OnboardingPager.pageAlpha(offset) }
+            .clip(RoundedCornerShape(OnboardingPager.CARD_RADIUS_DP.dp))
             .background(Bubble),
         contentAlignment = Alignment.Center
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
-            Box(modifier = Modifier.size(72.dp).clip(CircleShape).background(accentBrush()),
-                contentAlignment = Alignment.Center) {
-                Icon(icon, contentDescription = null, tint = BgBlack, modifier = Modifier.size(36.dp))
+        FittedContent(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 16.dp),
+            maxHeight = height - 32.dp
+        ) {
+            if (compact) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    OnboardingGlyph(icon = icon, size = 44.dp)
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            title,
+                            color = TextWhite.copy(alpha = textAlpha),
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            body,
+                            color = TextGrey.copy(alpha = textAlpha),
+                            fontSize = 12.sp
+                        )
+                    }
+                }
+            } else {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    OnboardingGlyph(icon = icon, size = 72.dp)
+                    Spacer(modifier = Modifier.height(20.dp))
+                    Text(
+                        title,
+                        color = TextWhite.copy(alpha = textAlpha),
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        body,
+                        color = TextGrey.copy(alpha = textAlpha),
+                        fontSize = 13.sp,
+                        textAlign = TextAlign.Center
+                    )
+                }
             }
-            Spacer(modifier = Modifier.height(24.dp))
-            Text(title, color = TextWhite.copy(alpha = 1f - 0.5f * dim), fontSize = 20.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
-            Spacer(modifier = Modifier.height(10.dp))
-            Text(body, color = TextWhite.copy(alpha = 0.6f * (1f - 0.5f * dim)), fontSize = 13.sp, textAlign = TextAlign.Center)
         }
     }
 }
 
-/** Stage 20 — pager math: Fill pages with fixed gaps, zero overlap. */
-object OnboardingPager {
-
-    const val PAGE_COUNT = 3
-    const val PAGE_GAP_DP = 24f
-
-    /** [startX, endX] per page; neighbours touch at most at the gap edge. */
-    fun pageBounds(pageWidth: Float, gap: Float = PAGE_GAP_DP): List<Pair<Float, Float>> =
-        List(PAGE_COUNT) { i ->
-            val start = i * (pageWidth + gap)
-            start to start + pageWidth
-        }
-
-    /** Inactive text dims with offset: 1 at rest, 0.5 fully away. */
-    fun textAlpha(offset: Float): Float = (1f - 0.5f * offset.coerceIn(0f, 1f))
-}
-
-/** Stage 20 — legacy snake card kept for reference; pager owns the UI now. */
+/** Stage 21 — the blue glyph disc that opens every page. */
 @Composable
-private fun SnakeCard(
-    icon: ImageVector,
-    title: String,
-    body: String,
-    offsetX: androidx.compose.ui.unit.Dp,
-    alpha: Float,
-    scale: Float,
-    onClick: () -> Unit
-) {
-    val density = LocalDensity.current
-    val translationPx = with(density) { offsetX.toPx() }
+private fun OnboardingGlyph(icon: ImageVector, size: Dp) {
     Box(
-        modifier = Modifier
-            .graphicsLayer {
-                translationX = translationPx
-                scaleX = scale
-                scaleY = scale
-                this.alpha = alpha
-            }
-            .size(width = 300.dp, height = 340.dp)
-            .clip(RoundedCornerShape(24.dp))
-            .background(Bubble)
-            .clickable(onClick = onClick),
+        modifier = Modifier.size(size).clip(CircleShape).background(accentBrush()),
         contentAlignment = Alignment.Center
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
-            Box(modifier = Modifier.size(72.dp).clip(CircleShape).background(accentBrush()),
-                contentAlignment = Alignment.Center) {
-                Icon(icon, contentDescription = null, tint = BgBlack, modifier = Modifier.size(36.dp))
-            }
-            Spacer(modifier = Modifier.height(24.dp))
-            Text(title, color = TextWhite.copy(alpha = alpha), fontSize = 20.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
-            Spacer(modifier = Modifier.height(10.dp))
-            Text(body, color = TextWhite.copy(alpha = 0.6f * alpha), fontSize = 13.sp, textAlign = TextAlign.Center)
+        Icon(
+            icon,
+            contentDescription = null,
+            tint = BgBlack,
+            modifier = Modifier.size(size * 0.5f)
+        )
+    }
+}
+
+/**
+ * Stage 21 — content that FITS, never clips.
+ *
+ * The card has a fixed height, but the copy inside it is measured at its
+ * natural size and then scaled down to whatever the card can hold. A short
+ * screen therefore shows the SAME page, slightly smaller, instead of a
+ * title with its last line cut off.
+ */
+@Composable
+private fun FittedContent(
+    maxHeight: Dp,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
+    Box(modifier = modifier, contentAlignment = Alignment.Center) {
+        Box(
+            modifier = Modifier
+                .wrapContentSize(align = Alignment.Center)
+                .layout { measurable, constraints ->
+                    val natural = measurable.measure(
+                        constraints.copy(minHeight = 0, maxHeight = Constraints.Infinity)
+                    )
+                    val scale = OnboardingPager.fitScale(
+                        contentHeight = natural.height.toFloat(),
+                        availableHeight = constraints.maxHeight.toFloat()
+                    )
+                    layout(
+                        (natural.width * scale).roundToInt(),
+                        (natural.height * scale).roundToInt()
+                    ) {
+                        natural.placeWithLayer(0, 0) {
+                            scaleX = scale
+                            scaleY = scale
+                        }
+                    }
+                }
+        ) {
+            content()
         }
+    }
+}
+
+/**
+ * Stage 21 — the quiet door (Skip / Back): no fill, one hairline of space,
+ * and a touch target that clears 44dp.
+ */
+@Composable
+private fun OnboardingGhostButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .defaultMinSize(
+                minWidth = OnboardingPager.MIN_TOUCH_TARGET_DP.dp,
+                minHeight = OnboardingPager.MIN_TOUCH_TARGET_DP.dp
+            )
+            .clip(RoundedCornerShape(22.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(text, color = TextGrey, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
     }
 }

@@ -39,6 +39,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.bingwascore.app.ui.brand.BrandWordmark
 import com.bingwascore.app.ui.components.Monogram
 import com.bingwascore.app.ui.theme.AccentBlue
 import com.bingwascore.app.ui.theme.BgBlack
@@ -46,17 +47,27 @@ import com.bingwascore.app.ui.theme.BingwaType
 import com.bingwascore.app.ui.theme.Motion
 import com.bingwascore.app.ui.theme.TextGrey
 import com.bingwascore.app.ui.theme.TextWhite
+import com.bingwascore.app.ui.theme.isPorcelain
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 object SplashBrand {
-    const val WORDMARK = "Bingwa Score"
+    /** Stage 21 — the wordmark is ONE constant for the whole app. */
+    const val WORDMARK: String = BrandWordmark.TEXT
     const val TAGLINE = "Your bundle business, automated."
 }
 
 /** Stage 20 — light mode keeps the full choreography on dim porcelain. */
 internal fun splashInk(dark: Boolean): Color = if (dark) TextWhite else Color(0xFF16181D)
+
+/**
+ * Stage 21 — the resting halo behind the monogram.
+ *
+ * Blue in both themes; a touch stronger on dim porcelain, where the glow has
+ * less of the frame to fight against than it does on obsidian.
+ */
+internal fun splashGlowAlpha(dark: Boolean): Float = if (dark) 0.12f else 0.22f
 
 /** Stage 20 — soft blue radial glow behind the monogram, both themes. */
 internal val splashGlow: Brush
@@ -219,22 +230,36 @@ private fun SplashStage(
             .fillMaxSize()
             .background(BgBlack)
     ) {
-        if (glow.value > 0.01f) {
-            Canvas(
-                modifier = Modifier
-                    .align(Alignment.Center)
-                    .size(320.dp)
-            ) {
-                drawCircle(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            AccentBlue.copy(alpha = 0.30f * glow.value),
-                            Color.Transparent
-                        ),
-                        center = center,
-                        radius = size.minDimension / 2f
+        // Stage 21 — the halo: ONE soft blue radial glow behind the monogram,
+        // in BOTH themes, at rest and during the ignition pulse. On dim
+        // porcelain it reads as light on paper; on obsidian it reads as light
+        // in the dark. The light splash therefore carries the same
+        // choreography as the dark one — no layout jump, no missing beat.
+        Canvas(
+            modifier = Modifier
+                .align(Alignment.Center)
+                .size(320.dp)
+        ) {
+            val pulse = glow.value
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        AccentBlue.copy(alpha = splashGlowAlpha(dark = !isPorcelain) * (1f + 0.8f * pulse)),
+                        Color.Transparent
                     ),
+                    center = center,
                     radius = size.minDimension / 2f
+                ),
+                radius = size.minDimension / 2f
+            )
+            // The shockwave: one expanding hairline, alive only while the
+            // glow pulses (so the resting frame stays clean).
+            if (pulse > 0.01f) {
+                drawCircle(
+                    color = AccentBlue.copy(alpha = 0.35f * pulse),
+                    radius = size.minDimension * (0.22f + 0.16f * pulse),
+                    center = center,
+                    style = Stroke(width = 2f)
                 )
             }
         }
@@ -256,14 +281,14 @@ private fun SplashStage(
                         alpha = 1f - 0.35f * t
                     }
             ) {
-                drawMonogram(trim.value)
+                drawMonogram(trim.value, glow.value)
                 // Stage 11 — glowing traveling tip rides the stroke head.
                 drawTravelingTip(trim.value)
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            StaggeredWordmark(text = SplashBrand.WORDMARK, clock = clock.value)
+            StaggeredWordmark(text = BrandWordmark.TEXT, clock = clock.value)
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -281,17 +306,20 @@ private fun SplashStage(
 }
 
 /** The wordmark, as its own constant: one source for the stagger width. */
-internal const val SPLASH_WORDMARK = "Bingwa Score"
+internal val SPLASH_WORDMARK: String = BrandWordmark.TEXT
 
 /**
  * One alpha per letter of [text], from [progress] (0..1 across the wordmark
  * window). Always returns exactly `text.length` entries — the wordmark is never
  * shortened, only faded — so a refactor that sliced the text would fail
  * the splash choreography test instead of shipping a splash that
- * spells "Bingwa Sco".
+ * spells "Bingwa Scor".
  */
 internal fun wordmarkAlphas(text: String, progress: Float): List<Float> {
-    val capped = progress.coerceIn(0f, (text.length - 1).toFloat())
+    // Stage 21 — the window reaches the FULL length: capping it at
+    // `length - 1` left the last letter stuck at zero alpha, which is how the
+    // splash shipped "Bingwa Scor" instead of "Bingwa Score".
+    val capped = progress.coerceIn(0f, text.length.toFloat())
     return List(text.length) { index -> (capped - index).coerceIn(0f, 1f) }
 }
 
@@ -341,7 +369,9 @@ private fun DrawScope.drawTravelingTip(fraction: Float) {
     val zoom = size.minDimension / 108f
     drawCircle(
         brush = Brush.radialGradient(
-            colors = listOf(Color.White, Color.Transparent),
+            // Stage 21 — a white core inside a brand-blue halo: the tip reads
+            // on obsidian AND on dim porcelain.
+            colors = listOf(Color.White, AccentBlue.copy(alpha = 0.9f), Color.Transparent),
             center = Offset(pos.x * zoom, pos.y * zoom),
             radius = 14f * zoom
         ),
@@ -354,11 +384,11 @@ private fun DrawScope.drawTravelingTip(fraction: Float) {
  * Strokes the leading [fraction] of the monogram, scaled from its 108-unit
  * authoring grid to whatever box it was given. Round caps, no fill.
  *
- * Stage 11 — on complete a shockwave ring + specular sweep fire across the
- * stroke (drawn at full trim only, fading with the glow clock is unnecessary:
- * one ring, one sweep, then the wordmark owns the stage).
+ * Stage 21 — the ignite is a brand-blue band that rides the STROKE itself
+ * (a rectangle sweep leaves a visible box edge on the canvas) and it burns
+ * only while the glow pulses.
  */
-private fun DrawScope.drawMonogram(fraction: Float) {
+private fun DrawScope.drawMonogram(fraction: Float, pulse: Float = 0f) {
     val measure = PathMeasure().apply { setPath(Monogram.path, false) }
     val segment = Path()
     measure.getSegment(0f, measure.length * fraction.coerceIn(0f, 1f), segment, true)
@@ -375,25 +405,25 @@ private fun DrawScope.drawMonogram(fraction: Float) {
             )
         )
     }
-    if (fraction >= 0.999f) {
-        // Shockwave ring on complete: one expanding hairline.
-        drawCircle(
-            color = TextWhite.copy(alpha = 0.35f),
-            radius = size.minDimension * 0.52f,
-            center = center,
-            style = Stroke(width = 2f)
-        )
-        // Specular sweep: a diagonal light band across the stroke box.
-        drawRect(
-            brush = Brush.linearGradient(
-                colors = listOf(
-                    Color.Transparent,
-                    Color.White.copy(alpha = 0.22f),
-                    Color.Transparent
+    if (pulse > 0.01f) {
+        scale(zoom, zoom, pivot = Offset.Zero) {
+            drawPath(
+                path = segment,
+                brush = Brush.linearGradient(
+                    colors = listOf(
+                        Color.Transparent,
+                        AccentBlue.copy(alpha = 0.9f * pulse),
+                        Color.Transparent
+                    ),
+                    start = Offset(0f, 108f),
+                    end = Offset(108f, 0f)
                 ),
-                start = Offset(0f, size.height),
-                end = Offset(size.width, 0f)
+                style = Stroke(
+                    width = Monogram.STROKE_WIDTH,
+                    cap = StrokeCap.Round,
+                    join = StrokeJoin.Round
+                )
             )
-        )
+        }
     }
 }
