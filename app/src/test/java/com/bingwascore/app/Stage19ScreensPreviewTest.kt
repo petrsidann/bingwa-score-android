@@ -126,6 +126,27 @@ class Stage19ScreensPreviewTest {
         ProfileScreenContent(state = FakeProfile.state)
     }
 
+    // ── Porcelain Dim (Stage 22) ────────────────────────────────────────────
+    //
+    // The third theme: the lights dimmed. These three goldens prove the dim
+    // canvas, the soft blue accent and the dimmed status tints on the three
+    // screens an agent lives in.
+
+    @Test
+    fun homePorcelainDim() = snapshot(ThemeMode.PORCELAIN_DIM) {
+        HomeScreenContent(state = FakeHome.state, haptics = Haptics.Disabled)
+    }
+
+    @Test
+    fun offersPorcelainDim() = snapshot(ThemeMode.PORCELAIN_DIM) {
+        OffersScreenContent(state = FakeOffers.state, haptics = Haptics.Disabled)
+    }
+
+    @Test
+    fun profilePorcelainDim() = snapshot(ThemeMode.PORCELAIN_DIM) {
+        ProfileScreenContent(state = FakeProfile.state)
+    }
+
     // Stage 21 — the onboarding and the splash moved to their own suite
     // (Stage21FirstRunPreviewTest): the first run is the one surface that
     // must be proven in EVERY page, BOTH themes and in landscape.

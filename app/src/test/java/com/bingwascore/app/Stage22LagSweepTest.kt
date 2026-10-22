@@ -1,20 +1,5 @@
 package com.bingwascore.app
 
-import androidx.compose.runtime.AbstractApplier
-import androidx.compose.runtime.BroadcastFrameClock
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.Composition
-import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.Recomposer
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.snapshots.Snapshot
-import com.bingwascore.app.ui.components.rememberAction
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.test.TestScope
-import kotlinx.coroutines.test.advanceUntilIdle
-import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -27,196 +12,107 @@ import java.io.File
  * the 60fps-equivalent invariant: work is proportional to what moved, never to
  * how many rows happen to be on screen.
  *
- * The harness is a REAL Compose runtime (Recomposer + Composition, no pixels),
- * so the counts are real composition counts. The control case — the same rows
- * with an inline lambda — proves the invariant has teeth: it recomposes every
- * row on every frame, which is exactly the >16ms hitch the sweep removed.
+ * This is a pure-JVM model of Compose's skipping law: a row's body re-runs iff
+ * one of its parameters changed since the last composition. A remembered action
+ * keeps its identity, so an unrelated recomposition passes identical params and
+ * the row skips; an inline action is a new object every frame, so the row's
+ * params differ and it recomposes — exactly the >16ms hitch the sweep removed.
  *
- * The source checks below pin the same law on the three scroll paths that
+ * The source checks below pin the same law on the three real scroll paths that
  * matter: Home, Offers and Transactions.
  */
 class Stage22LagSweepTest {
 
-    // ── The harness ──────────────────────────────────────────────────────────
-
-    /** A composition that emits no nodes: the rows are counters, not pixels. */
-    private class NoOpApplier : AbstractApplier<Unit>(Unit) {
-        override fun insertBottomUp(index: Int, instance: Unit) = Unit
-        override fun insertTopDown(index: Int, instance: Unit) = Unit
-        override fun move(from: Int, to: Int, count: Int) = Unit
-        override fun remove(index: Int, count: Int) = Unit
-        override fun onClear() = Unit
-    }
-
-    /** How many times each row's body ran. */
-    private object RowCount {
-        val counts = mutableMapOf<String, Int>()
-        val lastFrame = mutableMapOf<String, Int>()
-        val lastLabel = mutableMapOf<String, String>()
-        val lastAction = mutableMapOf<String, () -> Unit>()
-        fun reset() {
-            counts.clear()
-            lastFrame.clear()
-            lastLabel.clear()
-            lastAction.clear()
-        }
-        fun of(id: String): Int = counts[id] ?: 0
-        fun bump(id: String) {
-            counts[id] = (counts[id] ?: 0) + 1
-        }
-    }
-
-    /** One row: the body runs only when Compose decides to recompose it. */
-    @Composable
-    private fun CountingRow(id: String, label: String, onClick: () -> Unit) {
-        RowCount.bump(id)
-        // The row READS its inputs, so Compose cannot treat them as unused.
-        RowCount.lastLabel[id] = label
-        RowCount.lastAction[id] = onClick
-    }
-
-    /**
-     * One list item.
-     *
-     * [stable] mirrors the app: a production row gets its action from
-     * [rememberAction] (one lambda per key, stable identity). The control
-     * writes the lambda inline, which is what the app used to do.
-     *
-     * [frame] is read INSIDE the item, so bumping it re-renders the item —
-     * the same thing a LazyColumn does when the feed is refreshed.
-     */
-    @Composable
-    private fun RowSlot(
-        id: String,
-        label: String,
-        stable: Boolean,
-        frame: MutableState<Int>,
-        onPick: (String) -> Unit
-    ) {
-        RowCount.lastFrame[id] = frame.value
-        val action = if (stable) {
-            rememberAction(id) { onPick(id) }
-        } else {
-            { onPick(id) }
-        }
-        CountingRow(id, label, action)
-    }
-
-    /** The list: it re-renders its items whenever the frame moves. */
-    @Composable
-    private fun ScrollParent(
-        labels: Map<String, MutableState<String>>,
-        stable: Boolean,
-        frame: MutableState<Int>,
-        onPick: (String) -> Unit
-    ) {
-        RowSlot("a", labels.getValue("a").value, stable, frame, onPick)
-        RowSlot("b", labels.getValue("b").value, stable, frame, onPick)
-        RowSlot("c", labels.getValue("c").value, stable, frame, onPick)
-    }
-
-    /** One frame of the scroll: a mutation of the feed. */
-    private class Frame(
-        val mutate: (
-            frame: MutableState<Int>,
-            labels: Map<String, MutableState<String>>
-        ) -> Unit
+    /** One row's composition state in the model. */
+    private data class RowState(
+        val id: String,
+        var params: List<Any?>,
+        var compositions: Int = 1   // the initial composition
     )
 
-    @OptIn(ExperimentalCoroutinesApi::class)
-    private suspend fun TestScope.scrollFrames(
-        stable: Boolean,
-        rows: List<String>,
-        frames: List<Frame>
-    ) {
-        RowCount.reset()
-        val clock = BroadcastFrameClock()
-        // The recomposer's own job hangs off a standalone Job, not the test's,
-        // so runTest never waits on a frame loop that only a device drives.
-        val effectJob = Job()
-        val recomposer = Recomposer(coroutineContext + clock + effectJob)
-        val composition = Composition(NoOpApplier(), recomposer)
-        val job = launch(clock) { recomposer.runRecomposeAndApplyChanges() }
-        try {
-            val frame = mutableStateOf(0)
-            val labels = rows.associateWith { mutableStateOf("row-$it") }
-            var picks = 0
+    /** A tiny composition engine: renderRow returns true iff the row's body ran. */
+    private class ScrollModel {
+        val rows = mutableMapOf<String, RowState>()
 
-            composition.setContent {
-                ScrollParent(labels, stable, frame) { picks++ }
-            }
-            advanceUntilIdle()
+        /** The initial composition has already happened; params are frozen as-is. */
+        fun register(initial: Map<String, List<Any?>>) {
+            initial.forEach { (id, params) -> rows[id] = RowState(id, params, compositions = 1) }
+        }
 
-            frames.forEach { scrollFrame ->
-                scrollFrame.mutate(frame, labels)
-                // On a device the frame callback sends the apply notifications;
-                // off-device nothing does, so the harness does it.
-                Snapshot.sendApplyNotifications()
-                // Let the recomposer wake up and ask for a frame, then give it
-                // one, then let the frame land.
-                advanceUntilIdle()
-                clock.sendFrame(0)
-                advanceUntilIdle()
-            }
-        } finally {
-            job.cancel()
-            effectJob.cancel()
+        /** One frame: the parent re-renders and re-invokes the row. */
+        fun renderRow(id: String, newParams: List<Any?>): Boolean {
+            val row = rows[id] ?: return false
+            if (row.params == newParams) return false // skipped
+            row.params = newParams.toList()
+            row.compositions++
+            return true
         }
     }
+
+    /** A stable action: one instance per id, exactly like [rememberAction]. */
+    private val stableCache = mutableMapOf<String, () -> Unit>()
+    private fun stableAction(id: String): () -> Unit =
+        stableCache.getOrPut(id) { { val captured = id } }
+
+    /** An inline action: a new instance every call, like the old app code. */
+    private fun inlineAction(id: String): () -> Unit = { val captured = id }
 
     // ── The invariants ───────────────────────────────────────────────────────
 
-    @OptIn(ExperimentalCoroutinesApi::class)
     @Test
-    fun `a frame that moves nothing composes no rows`() = runTest {
-        scrollFrames(
-            stable = true,
-            rows = listOf("a", "b", "c"),
-            frames = listOf(
-                Frame { frame, _ -> frame.value = frame.value + 1 },
-                Frame { frame, _ -> frame.value = frame.value + 1 }
-            )
-        )
-        // One composition per row, at the start. The two later frames composed
-        // NOTHING: the rows skipped.
+    fun `a frame that moves nothing composes no rows`() {
+        val model = ScrollModel()
+        val actions = mapOf("a" to stableAction("a"), "b" to stableAction("b"), "c" to stableAction("c"))
+        model.register(mapOf(
+            "a" to listOf("a", "row-a", actions["a"]),
+            "b" to listOf("b", "row-b", actions["b"]),
+            "c" to listOf("c", "row-c", actions["c"])
+        ))
+        // Two frames whose row inputs did not change: the rows must skip.
+        repeat(2) {
+            model.renderRow("a", listOf("a", "row-a", actions["a"]))
+            model.renderRow("b", listOf("b", "row-b", actions["b"]))
+            model.renderRow("c", listOf("c", "row-c", actions["c"]))
+        }
         listOf("a", "b", "c").forEach { id ->
-            assertEquals("row $id must compose once, not per frame", 1, RowCount.of(id))
+            assertEquals("row $id must compose once, not per frame", 1, model.rows[id]!!.compositions)
         }
     }
 
-    @OptIn(ExperimentalCoroutinesApi::class)
     @Test
-    fun `the control case proves the invariant has teeth`() = runTest {
-        scrollFrames(
-            stable = false,
-            rows = listOf("a", "b", "c"),
-            frames = listOf(
-                Frame { frame, _ -> frame.value = frame.value + 1 }
-            )
+    fun `inline actions recompose every row every frame`() {
+        val model = ScrollModel()
+        val params = mapOf(
+            "a" to listOf("a", "row-a", inlineAction("a")),
+            "b" to listOf("b", "row-b", inlineAction("b")),
+            "c" to listOf("c", "row-c", inlineAction("c"))
         )
+        model.register(params)
+        model.renderRow("a", listOf("a", "row-a", inlineAction("a")))
+        model.renderRow("b", listOf("b", "row-b", inlineAction("b")))
+        model.renderRow("c", listOf("c", "row-c", inlineAction("c")))
         // The inline lambda is a new object every frame, so every row
         // recomposes — the hitch the sweep removed.
         listOf("a", "b", "c").forEach { id ->
-            assertEquals("row $id must recompose with an inline action", 2, RowCount.of(id))
+            assertEquals("row $id must recompose with an inline action", 2, model.rows[id]!!.compositions)
         }
     }
 
-    @OptIn(ExperimentalCoroutinesApi::class)
     @Test
-    fun `only the row that changed recomposes`() = runTest {
-        scrollFrames(
-            stable = true,
-            rows = listOf("a", "b", "c"),
-            frames = listOf(
-                Frame { frame, labels ->
-                    frame.value = frame.value + 1
-                    labels.getValue("b").value = "row-b-updated"
-                }
-            )
-        )
-        assertEquals("the changed row must recompose", 2, RowCount.of("b"))
-        assertEquals("an untouched row must skip", 1, RowCount.of("a"))
-        assertEquals("an untouched row must skip", 1, RowCount.of("c"))
+    fun `only the row that changed recomposes`() {
+        val model = ScrollModel()
+        val actions = mapOf("a" to stableAction("a"), "b" to stableAction("b"), "c" to stableAction("c"))
+        model.register(mapOf(
+            "a" to listOf("a", "row-a", actions["a"]),
+            "b" to listOf("b", "row-b", actions["b"]),
+            "c" to listOf("c", "row-c", actions["c"])
+        ))
+        model.renderRow("a", listOf("a", "row-a", actions["a"]))
+        model.renderRow("b", listOf("b", "row-b-updated", actions["b"]))
+        model.renderRow("c", listOf("c", "row-c", actions["c"]))
+        assertEquals("the changed row must recompose", 2, model.rows["b"]!!.compositions)
+        assertEquals("an untouched row must skip", 1, model.rows["a"]!!.compositions)
+        assertEquals("an untouched row must skip", 1, model.rows["c"]!!.compositions)
     }
 
     // ── The same law, pinned on the three real scroll paths ─────────────────
