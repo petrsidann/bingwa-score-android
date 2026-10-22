@@ -27,7 +27,9 @@ import javax.inject.Inject
 sealed interface UpdateCheckState {
     data object Idle : UpdateCheckState
     data object Checking : UpdateCheckState
-    data class Done(val upToDate: Boolean) : UpdateCheckState
+
+    /** [latestVersion] is the version the manifest offers, when there is one. */
+    data class Done(val upToDate: Boolean, val latestVersion: String? = null) : UpdateCheckState
 }
 
 @HiltViewModel
@@ -155,7 +157,7 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch { userPreferences.setSimSelection(value) }
     }
 
-    /** Hits the GitHub releases endpoint and compares the latest tag to BuildConfig.VERSION_NAME. */
+    /** Stage 22 — reads the release manifest (`/updates/latest.json`) and compares it to this build. */
     fun checkForUpdates() {
         if (_updateState.value is UpdateCheckState.Checking) return
         viewModelScope.launch {
@@ -163,13 +165,16 @@ class SettingsViewModel @Inject constructor(
             _updateUrl.value = null
             updateChangelog = ""
             try {
-                when (val state = UpdateChecker.check()) {
+                when (val state = UpdateChecker.check(context)) {
                     is UpdateState.UpToDate ->
                         _updateState.value = UpdateCheckState.Done(upToDate = true)
                     is UpdateState.UpdateAvailable -> {
                         _updateUrl.value = state.downloadUrl
                         updateChangelog = state.changelog
-                        _updateState.value = UpdateCheckState.Done(upToDate = false)
+                        _updateState.value = UpdateCheckState.Done(
+                            upToDate = false,
+                            latestVersion = state.latestVersion
+                        )
                     }
                     // Stage 21 — offline is graceful: report "latest", never an error wall.
                     is UpdateState.Offline ->

@@ -85,6 +85,13 @@ import java.util.Locale
 private const val MASK = "******"
 
 /**
+ * Stage 22 — the clock bucket: the relative labels only need half-minute
+ * resolution, and bucketing keeps every row's timestamp stable between
+ * frames (so a row skips instead of recomposing for a label that did not move).
+ */
+private const val CLOCK_BUCKET_MILLIS = 30_000L
+
+/**
  * U3 — the compact Home activity row. 44dp is ~30% shorter than the old padded
  * row: the numbers are the interface, and a home feed that shows four rows
  * instead of three is a better feed.
@@ -306,6 +313,21 @@ fun HomeScreenContent(
     // The credits bubble is the door to My Plan: one tap, one destination.
     val onOpenMyPlan = callbacks.onOpenMyPlan
 
+    // Stage 22 — the lag sweep: ONE clock read per frame, bucketed to the half
+    // minute so the rows only recompose when a label would really change.
+    //
+    // The rows used to read the wall clock each, so a 200-row feed did 200
+    // clock reads (and 200 date formats) on every recomposition.
+    val now = (System.currentTimeMillis() / CLOCK_BUCKET_MILLIS) * CLOCK_BUCKET_MILLIS
+
+    // Stage 22 — capture only what the rows need.
+    //
+    // The item lambda used to close over the whole [HomeScreenState] (an
+    // unstable object: it holds a list), so ANY state change re-ran every
+    // visible row. The rows only care about the engine state, so that is all
+    // the lambda captures now — and a row skips when it does not change.
+    val engineState = state.engineState
+
     Box(modifier = Modifier.fillMaxSize().background(BgBlack)) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -427,7 +449,7 @@ fun HomeScreenContent(
                 }
             } else {
                 items(state.transactions, key = { it.id }) { tx ->
-                    HomeTransactionRow(tx = tx, engineState = state.engineState)
+                    HomeTransactionRow(tx = tx, engineState = engineState, now = now)
                 }
             }
         }
@@ -697,7 +719,8 @@ private fun RefreshButton(loading: Boolean, onClick: () -> Unit) {
 @Composable
 private fun HomeTransactionRow(
     tx: Transaction,
-    engineState: EngineState = EngineState.RUNNING
+    engineState: EngineState = EngineState.RUNNING,
+    now: Long = System.currentTimeMillis()
 ) {
     val statusColor = StatusColors.color(tx.status)
     val showPausedBadge = engineState == EngineState.PAUSED &&
@@ -731,7 +754,7 @@ private fun HomeTransactionRow(
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    "${tx.offerName} · ${timeAgo(tx.createdAt)}",
+                    "${tx.offerName} · ${timeAgo(tx.createdAt, now)}",
                     color = TextGrey,
                     fontSize = 12.sp,
                     maxLines = 1,
@@ -781,10 +804,15 @@ private fun HomeRowSkeleton() {
 
 private val timeFormat = SimpleDateFormat("d MMM, HH:mm", Locale.getDefault())
 
-/** "just now", "12m ago", "3d ago", then an absolute stamp. */
-private fun timeAgo(millis: Long): String {
+/**
+ * "just now", "12m ago", "3d ago", then an absolute stamp.
+ *
+ * Stage 22 — [now] is passed IN: the row never reads the clock itself, so a
+ * long feed costs one clock read per frame instead of one per row.
+ */
+private fun timeAgo(millis: Long, now: Long = System.currentTimeMillis()): String {
     if (millis <= 0L) return "—"
-    val minutes = (System.currentTimeMillis() - millis) / 60_000L
+    val minutes = (now - millis) / 60_000L
     return when {
         minutes < 1 -> "just now"
         minutes < 60 -> "${minutes}m ago"

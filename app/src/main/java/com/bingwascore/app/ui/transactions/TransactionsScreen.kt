@@ -101,6 +101,7 @@ import com.bingwascore.app.ui.components.PrimaryButton
 import com.bingwascore.app.ui.components.SecondaryButton
 import com.bingwascore.app.ui.components.ShimmerBlock
 import com.bingwascore.app.ui.components.pressScale
+import com.bingwascore.app.ui.components.rememberAction
 import com.bingwascore.app.ui.showcase.DemoChip
 import com.bingwascore.app.ui.theme.AccentBlue
 import com.bingwascore.app.ui.theme.BgBlack
@@ -372,6 +373,11 @@ fun TransactionsScreenContent(
                 }
             }
 Box(modifier = Modifier.fillMaxSize().nestedScroll(pullState.nestedScrollConnection)) {
+                // Stage 22 — the lag sweep: the membership test keeps its
+                // identity, so the ledger does not re-run when only the
+                // selection changed (and vice versa).
+                val selectedIds = state.selectedIds
+                val isSelected = remember(selectedIds) { { tx: Transaction -> tx.id in selectedIds } }
                 TransactionBody(
                     transactions = state.transactions,
                     searchQuery = state.searchQuery,
@@ -380,7 +386,7 @@ Box(modifier = Modifier.fillMaxSize().nestedScroll(pullState.nestedScrollConnect
                     selectedFilter = state.selectedFilter,
                     isLoading = state.isLoading,
                     hasSelection = state.hasSelection,
-                    isSelected = { it.id in state.selectedIds },
+                    isSelected = isSelected,
                     onRowClick = callbacks.onRowClick,
                     onRowLongClick = callbacks.onRowLongClick
                 )
@@ -404,12 +410,15 @@ Box(modifier = Modifier.fillMaxSize().nestedScroll(pullState.nestedScrollConnect
             ),
             modifier = Modifier.align(Alignment.BottomCenter)
         ) {
+            // Stage 22 — the lag sweep: the retry rule is derived ONCE per
+            // change, not once per recomposition over the whole ledger.
+            val selectedStatuses = remember(state.transactions, state.selectedIds) {
+                state.transactions.filter { it.id in state.selectedIds }.map { it.status }
+            }
             SelectionBottomBar(
                 count = state.selectedIds.size,
                 allSelected = allSelected,
-                retryEnabled = rulesForSelection(
-                    state.transactions.filter { it.id in state.selectedIds }.map { it.status }
-                ).canRetry,
+                retryEnabled = rulesForSelection(selectedStatuses).canRetry,
                 onSelectAll = callbacks.onSelectAll,
                 onRetry = callbacks.onRetrySelected
             )
@@ -596,8 +605,11 @@ private fun TransactionBody(
                             transaction = transaction,
                             selecting = hasSelection,
                             selected = isSelected(transaction),
-                            onClick = { onRowClick(transaction) },
-                            onLongClick = { onRowLongClick(transaction) }
+                            // Stage 22 — the lag sweep: the row's actions keep
+                            // their identity, so a new transaction never re-runs
+                            // every visible row.
+                            onClick = rememberAction(transaction.id) { onRowClick(transaction) },
+                            onLongClick = rememberAction(transaction.id) { onRowLongClick(transaction) }
                         )
                     }
                 }

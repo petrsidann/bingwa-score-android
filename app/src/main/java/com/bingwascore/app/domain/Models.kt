@@ -25,17 +25,21 @@ enum class TransactionStatus(val value: String) {
 }
 
 /**
- * Stage 10 — iOS design system: exactly two themes.
+ * Stage 10 — iOS design system: two themes. Stage 22 adds the third.
  *
- * - [DARK]     "Obsidian"  — dark, #0B0E15 family.
- * - [LIGHT]    "Porcelain" — light, iMessage-grade (#F2F2F7 bg, #FFFFFF cards).
+ * - [DARK]           "Obsidian"      — dark, #0B0E15 family.
+ * - [LIGHT]          "Porcelain"     — light, iMessage-grade (#E2E4E8 bg, #F7F8FA cards).
+ * - [PORCELAIN_DIM]  "Porcelain Dim" — the LIGHTS DIMMED: a dim porcelain canvas
+ *   with soft blue accents. It is NOT a dark theme — the surfaces stay light
+ *   enough to read as porcelain, and it never takes over as Obsidian black.
  *
  * Silica + Grayscale are deleted. [fromValue] maps every retired stored value
  * (GRAYSCALE, SILICA, BLUE_LIGHT_FILTER) to Obsidian so no install resets oddly.
  */
 enum class ThemeMode(val value: String, val label: String) {
     DARK("DARK", "Obsidian"),
-    LIGHT("LIGHT", "Porcelain");
+    LIGHT("LIGHT", "Porcelain"),
+    PORCELAIN_DIM("PORCELAIN_DIM", "Porcelain Dim");
 
     companion object {
         /** Everything unknown — incl. retired modes — reads as Obsidian. */

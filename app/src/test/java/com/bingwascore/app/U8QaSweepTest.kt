@@ -28,9 +28,10 @@ import org.junit.Test
  * every surface at once. Pure JVM — no Compose runtime needed.
  */
 class U8QaSweepTest {
-    private val modes = listOf(ThemeMode.DARK, ThemeMode.LIGHT)
+    private val modes = listOf(ThemeMode.DARK, ThemeMode.LIGHT, ThemeMode.PORCELAIN_DIM)
     private fun canvasFor(mode: ThemeMode): Color = when (mode) {
         ThemeMode.LIGHT -> Color(0xFFF2F2F7)
+        ThemeMode.PORCELAIN_DIM -> Color(0xFFC9CED6)
         else -> Color(0xFF0B0E15)
     }
     /** WCAG relative luminance. */
@@ -151,17 +152,22 @@ class U8QaSweepTest {
             assertEquals("Queued", com.bingwascore.app.ui.theme.StatusColors.label(TransactionStatus.PROCESSING.value))
         }
     }
-    // ── Two themes only; Obsidian is the default ─────────────────────────────
+    // ── Three themes; Obsidian is the default, Porcelain Dim is the third ────
     @Test
-    fun onlyTwoThemesExistAndDefaultIsObsidian() {
-        assertEquals(2, ThemeMode.entries.size)
+    fun threeThemesExistAndDefaultIsObsidian() {
+        assertEquals(3, ThemeMode.entries.size)
         assertEquals(ThemeMode.DARK, ThemeMode.fromValue("???"))
         installDisplayMode(ThemeMode.DARK)
         val white = Color(0xFFFFFFFF).toArgb()
         assertTrue("obsidian canvas must stay dark", luminance(Color(0xFF0B0E15)) < 0.03)
         installDisplayMode(ThemeMode.LIGHT)
         assertTrue("porcelain canvas must stay light", luminance(Color(0xFFF2F2F7)) > 0.8)
+        // Stage 22 — Porcelain Dim is a LIGHT canvas: dimmed, never black.
+        installDisplayMode(ThemeMode.PORCELAIN_DIM)
+        val dim = luminance(Color(0xFFC9CED6))
+        assertTrue("porcelain dim must not be a dark theme ($dim)", dim > 0.3)
+        assertTrue("porcelain dim must stay dimmer than porcelain ($dim)", dim < 0.8)
         installDisplayMode(ThemeMode.DARK)
-        assertEquals(-1, white) // sanity of the ARB helper itself
+        assertEquals(-1, white) // sanity of the ARGB helper itself
     }
 }

@@ -74,6 +74,7 @@ import com.bingwascore.app.ui.components.PrimaryButton
 import com.bingwascore.app.ui.components.HapticSwitch
 import com.bingwascore.app.ui.components.ShimmerBlock
 import com.bingwascore.app.ui.components.pressScale
+import com.bingwascore.app.ui.components.rememberAction
 import com.bingwascore.app.util.Haptics
 import com.bingwascore.app.util.rememberHaptics
 import com.bingwascore.app.util.screenEnter
@@ -378,7 +379,11 @@ fun OffersScreenContent(
     haptics: Haptics = rememberHaptics()
 ) {
     val offers = state.offers
-    val selectedOffers = offers.filter { it.id in state.selectedIds }
+    // Stage 22 — the lag sweep: the selection is derived ONCE per change, not
+    // once per recomposition (it used to filter the whole shelf every frame).
+    val selectedOffers = remember(offers, state.selectedIds) {
+        offers.filter { it.id in state.selectedIds }
+    }
 
     Box(
         modifier = Modifier
@@ -458,11 +463,14 @@ fun OffersScreenContent(
                                 enterDelayMillis = minOf(index, 6) * Motion.STAGGER,
                                 selectionMode = state.selectionMode,
                                 selected = offer.id in state.selectedIds,
-                                onToggle = { callbacks.onToggle(offer) },
-                                onOpenSettings = { callbacks.onOpenSettings(offer) },
-                                onOpenActions = { callbacks.onOpenActions(offer) },
-                                onLongPress = { callbacks.onLongPress(offer) },
-                                onSelectToggle = { callbacks.onSelectToggle(offer) }
+                                // Stage 22 — the lag sweep: the card's actions keep
+                                // their identity, so an unrelated recomposition
+                                // never re-runs every visible card.
+                                onToggle = rememberAction(offer.id) { callbacks.onToggle(offer) },
+                                onOpenSettings = rememberAction(offer.id) { callbacks.onOpenSettings(offer) },
+                                onOpenActions = rememberAction(offer.id) { callbacks.onOpenActions(offer) },
+                                onLongPress = rememberAction(offer.id) { callbacks.onLongPress(offer) },
+                                onSelectToggle = rememberAction(offer.id) { callbacks.onSelectToggle(offer) }
                             )
                         }
                     }

@@ -5,7 +5,8 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * Stage 10 — the iOS theme contract: exactly two themes (Obsidian + Porcelain).
+ * Stage 10 — the iOS theme contract: Obsidian + Porcelain.
+ * Stage 22 — Porcelain Dim joins them: the lights dimmed, not the sun off.
  *
  * Retired stored values (GRAYSCALE, SILICA, BLUE_LIGHT_FILTER) resolve to
  * Obsidian so no install resets oddly; stored values round-trip.
@@ -13,14 +14,14 @@ import org.junit.Test
 class ThemeModeTest {
 
     @Test
-    fun `there are exactly two modes`() {
-        assertEquals(2, ThemeMode.entries.size)
+    fun `there are exactly three modes`() {
+        assertEquals(3, ThemeMode.entries.size)
         assertEquals(
-            listOf("DARK", "LIGHT"),
+            listOf("DARK", "LIGHT", "PORCELAIN_DIM"),
             ThemeMode.entries.map { it.value }
         )
         assertEquals(
-            listOf("Obsidian", "Porcelain"),
+            listOf("Obsidian", "Porcelain", "Porcelain Dim"),
             ThemeMode.entries.map { it.label }
         )
     }

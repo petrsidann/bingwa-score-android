@@ -43,7 +43,8 @@ class U4ThemesTest {
 
     @Test
     fun twoThemesOnly() {
-        assertEquals(2, ThemeMode.entries.size)
+        // Stage 22 — three themes now: Obsidian, Porcelain, Porcelain Dim.
+        assertEquals(3, ThemeMode.entries.size)
         assertEquals(ThemeMode.DARK, ThemeMode.fromValue("GRAYSCALE"))
         assertEquals(ThemeMode.DARK, ThemeMode.fromValue("SILICA"))
     }
@@ -82,6 +83,12 @@ class U4ThemesTest {
         assertEquals(argb(SemanticBlue), argb(StatusDone))
         assertEquals(0xFFFC1E1E.toInt(), argb(StatusFailedTint))
         assertEquals(argb(SemanticGrey), argb(StatusQueued))
+        // Stage 22 — Porcelain Dim DEEPENS the tints, because the shared ones
+        // fall below 3:1 on the dim canvas. Queued stays neutral.
+        installDisplayMode(ThemeMode.PORCELAIN_DIM)
+        assertEquals(argb(BrandBlue), argb(StatusDone))
+        assertEquals(0xFFC42B1F.toInt(), argb(StatusFailedTint))
+        assertEquals(argb(SemanticGrey), argb(StatusQueued))
         installDisplayMode(ThemeMode.DARK)
     }
 
@@ -92,6 +99,10 @@ class U4ThemesTest {
         installDisplayMode(ThemeMode.LIGHT)
         assertEquals(argb(AccentBlue), argb(CtaFill))
         assertEquals(argb(TextWhite), argb(CtaInk))
+        // Stage 22 — Porcelain Dim paints its blue chip with white ink.
+        installDisplayMode(ThemeMode.PORCELAIN_DIM)
+        assertEquals(argb(AccentBlue), argb(CtaFill))
+        assertEquals(0xFFFFFFFF.toInt(), argb(CtaInk))
         installDisplayMode(ThemeMode.DARK)
     }
 
@@ -132,7 +143,10 @@ class U4ThemesTest {
     fun disabledPairClearsAaInBothThemes() {
         listOf(
             ThemeMode.DARK to Color(0xFF0B0E15),
-            ThemeMode.LIGHT to PorcelainBg
+            ThemeMode.LIGHT to PorcelainBg,
+            // Stage 22 — the dim canvas is darker, so the dim pair must clear AA
+            // on ITS canvas, not on porcelain's.
+            ThemeMode.PORCELAIN_DIM to Color(0xFFC9CED6)
         ).forEach { (mode, canvas) ->
             installDisplayMode(mode)
             val fill = over(DisabledFill, canvas)
@@ -148,14 +162,12 @@ class U4ThemesTest {
 
     @Test
     fun paletteHasNoOrangeOrAmber() {
-        installDisplayMode(ThemeMode.DARK)
-        val tokens = listOf(AccentBlue, CtaFill, StatusDone, StatusFailedTint, StatusQueued)
-        tokens.forEach { token ->
-            assertFalse("orange/amber token leaked: $token", isOrangeAmber(token))
-        }
-        installDisplayMode(ThemeMode.LIGHT)
-        tokens.forEach { token ->
-            assertFalse("orange/amber token leaked: $token", isOrangeAmber(token))
+        listOf(ThemeMode.DARK, ThemeMode.LIGHT, ThemeMode.PORCELAIN_DIM).forEach { mode ->
+            installDisplayMode(mode)
+            val tokens = listOf(AccentBlue, CtaFill, StatusDone, StatusFailedTint, StatusQueued)
+            tokens.forEach { token ->
+                assertFalse("orange/amber token leaked: $token", isOrangeAmber(token))
+            }
         }
         installDisplayMode(ThemeMode.DARK)
     }

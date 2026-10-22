@@ -90,7 +90,6 @@ private enum class SettingsPage(val title: String) {
     SIM_SELECTION("SIM Selection"),
     SIMULATE_PAYMENT("Test Drive"),
     BACKUP_RESTORE("Backup & Restore"),
-    UPDATES("Check For Updates"),
     ABOUT("About"),
     TERMS("Terms of Service"),
     PRIVACY("Privacy Policy"),
@@ -103,6 +102,10 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
     var currentPage by remember { mutableStateOf<SettingsPage?>(null) }
 
     val showAdvancedExplanation by viewModel.showAdvancedExplanation.collectAsStateWithLifecycle()
+    // Stage 22 — the in-app update check and the dialog that carries its answer.
+    val updateState by viewModel.updateState.collectAsStateWithLifecycle()
+    val updateUrl by viewModel.updateUrl.collectAsStateWithLifecycle()
+    var updateDialogOpen by remember { mutableStateOf(false) }
     // MEGA A — inbound routing switches.
     val processMpesaMessages by viewModel.processMpesaMessages.collectAsStateWithLifecycle()
     val processSitelinkMessages by viewModel.processSitelinkMessages.collectAsStateWithLifecycle()
@@ -139,7 +142,6 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
                     SettingsPage.SIM_SELECTION -> SimSelectionPage(viewModel)
                     SettingsPage.SIMULATE_PAYMENT -> SimulatePaymentPage(viewModel)
                     SettingsPage.BACKUP_RESTORE -> BackupRestorePage(viewModel)
-                    SettingsPage.UPDATES -> UpdatesPage(viewModel)
                     SettingsPage.ABOUT -> AboutPage(viewModel)
                     SettingsPage.TERMS -> TermsPage()
                     SettingsPage.PRIVACY -> PrivacyPage()
@@ -236,9 +238,14 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
             )
             SettingsRow(
                 icon = Icons.Rounded.SystemUpdateAlt,
-                title = "Check For Updates",
-                subtitle = "Keep the app on the latest release",
-                onClick = { currentPage = SettingsPage.UPDATES }
+                title = "Check for updates",
+                subtitle = "Compare this build against the latest release",
+                onClick = {
+                    // Stage 22 — the row runs the check and the answer arrives
+                    // in a dialog, right here on the Settings page.
+                    updateDialogOpen = true
+                    viewModel.checkForUpdates()
+                }
             )
             SettingsRow(
                 icon = Icons.Rounded.Info,
@@ -270,6 +277,19 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
             )
             Spacer(modifier = Modifier.height(24.dp))
         }
+    }
+
+    // Stage 22 — the check ran; the answer arrives in a dialog.
+    val done = updateState as? UpdateCheckState.Done
+    if (updateDialogOpen && done != null) {
+        UpdateResultDialog(
+            state = done,
+            currentVersion = viewModel.appVersion,
+            latestVersion = done.latestVersion,
+            downloadUrl = updateUrl,
+            changelog = viewModel.updateChangelog,
+            onDismiss = { updateDialogOpen = false }
+        )
     }
 }
 
@@ -477,6 +497,7 @@ private fun ThemePreviewCard(
                     text = when (mode) {
                         ThemeMode.DARK -> "Dark canvas, brand blue"
                         ThemeMode.LIGHT -> "iMessage-grade light, iOS blue"
+                        ThemeMode.PORCELAIN_DIM -> "Dimmed lights, soft blue accents"
                     },
                     color = TextWhite.copy(alpha = 0.55f),
                     fontSize = 12.sp
@@ -513,14 +534,17 @@ private fun ThemePreviewStrip(mode: ThemeMode, selected: Boolean) {
     val shape = RoundedCornerShape(12.dp)
     val canvas = when (mode) {
         ThemeMode.LIGHT -> Color(0xFFF2F2F7)
+        ThemeMode.PORCELAIN_DIM -> Color(0xFFC9CED6)
         else -> Color(0xFF0B0E15)
     }
     val surface = when (mode) {
         ThemeMode.LIGHT -> Color(0xFFFFFFFF)
+        ThemeMode.PORCELAIN_DIM -> Color(0xFFDBDFE5)
         else -> Color(0xFF131824)
     }
     val chrome = when (mode) {
         ThemeMode.LIGHT -> Color(0xFF007AFF)
+        ThemeMode.PORCELAIN_DIM -> Color(0xFF2F6AE0)
         else -> Color(0xFF2563EB)
     }
     val done = Color(0xFF3E6BFF)
@@ -817,113 +841,91 @@ private fun BackupRestorePage(viewModel: SettingsViewModel) {
 
 // __CHUNK5__
 
+/**
+ * Stage 22 — the update RESULT, in a dialog.
+ *
+ * The Settings row runs the check against the release manifest
+ * (`/updates/latest.json`); the answer lands here. One dialog, two truths:
+ * you are on the latest build, or a newer one is waiting.
+ */
 @Composable
-private fun UpdatesPage(viewModel: SettingsViewModel) {
-    val updateState by viewModel.updateState.collectAsStateWithLifecycle()
-    val updateUrl by viewModel.updateUrl.collectAsStateWithLifecycle()
+private fun UpdateResultDialog(
+    state: UpdateCheckState.Done,
+    currentVersion: String,
+    latestVersion: String?,
+    downloadUrl: String?,
+    changelog: String,
+    onDismiss: () -> Unit
+) {
     val context = LocalContext.current
-
-    PageTitle("Check For Updates")
-    PageIntro("Compare this build against the latest GitHub release.")
-    BubbleCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 12.dp)
-    ) {
-        Text("Current version", color = TextWhite.copy(alpha = 0.5f), fontSize = 12.sp)
-        Spacer(modifier = Modifier.height(2.dp))
-        Text(
-            "Bingwa Score v${viewModel.appVersion}",
-            color = TextWhite,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.SemiBold
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        PrimaryButton(
-            text = when (updateState) {
-                is UpdateCheckState.Checking -> "Checking..."
-                else -> "Check For Updates"
-            },
-            enabled = updateState !is UpdateCheckState.Checking,
-            onClick = viewModel::checkForUpdates
-        )
-        when (val state = updateState) {
-            is UpdateCheckState.Done -> {
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    if (state.upToDate) "You're on the latest version."
-                    else "Update available — download the latest release.",
-                    color = if (state.upToDate) TickGreen else TextWhite,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-                val url = updateUrl
-                if (!state.upToDate && url != null) {
-                    Spacer(modifier = Modifier.height(10.dp))
-                    // Stage 21 — changelog dialog + DownloadManager progress notification + install intent.
-                    UpdatesDownloadBlock(updateUrl = url, changelog = viewModel.updateChangelog)
-                    PrimaryButton(
-                        text = "Open in browser",
-                        onClick = {
-                            try {
-                                context.startActivity(
-                                    android.content.Intent(
-                                        android.content.Intent.ACTION_VIEW,
-                                        android.net.Uri.parse(url)
-                                    ).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-                                )
-                            } catch (_: Throwable) {
-                                Toast.makeText(context, "Could not open browser", Toast.LENGTH_SHORT).show()
-                            }
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = Bubble,
+        title = {
+            Text(
+                if (state.upToDate) "You're up to date" else "Update available",
+                color = TextWhite,
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Text(
+                if (state.upToDate) {
+                    "Bingwa Score $currentVersion is the latest release."
+                } else {
+                    buildString {
+                        append("Bingwa Score ")
+                        append(latestVersion ?: "a newer build")
+                        append(" is available. You are on ")
+                        append(currentVersion)
+                        append(".")
+                        if (changelog.isNotBlank()) {
+                            append("\n\n")
+                            append(changelog)
                         }
-                    )
-                }
-            }
-            else -> Unit
-        }
-    }
-}
-
-/** Stage 21 — changelog dialog + DownloadManager progress notification + install intent. */
-@Composable
-private fun UpdatesDownloadBlock(updateUrl: String, changelog: String) {
-    val context = LocalContext.current
-    var showChangelog by remember { mutableStateOf(false) }
-    var downloading by remember { mutableStateOf(false) }
-    PrimaryButton(
-        text = if (downloading) "Downloading..." else "What's new",
-        enabled = !downloading,
-        onClick = { showChangelog = true }
-    )
-    if (showChangelog) {
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = { showChangelog = false },
-            containerColor = Bubble,
-            title = { Text("Update available", color = TextWhite, fontWeight = FontWeight.Bold) },
-            text = {
-                Text(
-                    changelog.ifBlank { "A newer release is published on GitHub." },
-                    color = TextGrey,
-                    fontSize = 13.sp
-                )
-            },
-            confirmButton = {
-                androidx.compose.material3.TextButton(
-                    onClick = {
-                        showChangelog = false
-                        downloading = true
-                        UpdateDownloader.enqueue(context, updateUrl)
                     }
-                ) { Text("Download", color = AccentBlue, fontWeight = FontWeight.Bold) }
-            },
-            dismissButton = {
-                androidx.compose.material3.TextButton(onClick = { showChangelog = false }) {
+                },
+                color = TextGrey,
+                fontSize = 13.sp
+            )
+        },
+        confirmButton = {
+            androidx.compose.material3.TextButton(
+                onClick = {
+                    val url = downloadUrl
+                    if (!state.upToDate && url != null) {
+                        UpdateDownloader.enqueue(context, url)
+                        try {
+                            context.startActivity(
+                                android.content.Intent(
+                                    android.content.Intent.ACTION_VIEW,
+                                    android.net.Uri.parse(url)
+                                ).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                            )
+                        } catch (_: Throwable) {
+                            Toast.makeText(context, "Could not open browser", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                    onDismiss()
+                }
+            ) {
+                Text(
+                    if (state.upToDate) "Close" else "Download",
+                    color = AccentBlue,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        },
+        dismissButton = if (state.upToDate) {
+            null
+        } else {
+            {
+                androidx.compose.material3.TextButton(onClick = onDismiss) {
                     Text("Later", color = TextGrey)
                 }
             }
-        )
-    }
-    Spacer(modifier = Modifier.height(10.dp))
+        }
+    )
 }
 
 @Composable

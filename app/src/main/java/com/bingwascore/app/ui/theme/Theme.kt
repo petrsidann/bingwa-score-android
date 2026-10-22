@@ -31,8 +31,8 @@ fun BingwaScoreTheme(
     installDisplayMode(themeMode)
 
     val scheme = remember(themeMode) {
-        if (themeMode == ThemeMode.LIGHT) {
-            lightColorScheme(
+        when (themeMode) {
+            ThemeMode.LIGHT -> lightColorScheme(
                 primary = IosBlue,
                 secondary = IosBlue,
                 tertiary = TickGreen,
@@ -44,8 +44,21 @@ fun BingwaScoreTheme(
                 onBackground = PorcelainText,
                 onSurface = PorcelainText
             )
-        } else {
-            darkColorScheme(
+            // Stage 22 — PORCELAIN DIM: the lights dimmed. A light scheme on a
+            // dim porcelain canvas with the SOFT blue accent — never Obsidian.
+            ThemeMode.PORCELAIN_DIM -> lightColorScheme(
+                primary = PorcelainDimAccent,
+                secondary = PorcelainDimAccent,
+                tertiary = TickGreen,
+                background = PorcelainDimBg,
+                surface = PorcelainDimCard,
+                onPrimary = Color.White,
+                error = PorcelainDimFailed,
+                outline = PorcelainDimSeparator,
+                onBackground = PorcelainDimText,
+                onSurface = PorcelainDimText
+            )
+            else -> darkColorScheme(
                 primary = BrandBlue,
                 secondary = ChartBlue,
                 tertiary = TickGreen,
