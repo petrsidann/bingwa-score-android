@@ -58,8 +58,12 @@ object SplashBrand {
     const val TAGLINE = "Your bundle business, automated."
 }
 
-/** Stage 20 — light mode keeps the full choreography on dim porcelain. */
-internal fun splashInk(dark: Boolean): Color = if (dark) TextWhite else Color(0xFF16181D)
+/**
+ * Stage 21 — the splash ink, per theme, WITHOUT asking the global display
+ * mode: white ink on obsidian, dark ink on dim porcelain. The splash draws
+ * the same mark in both themes, so the ink is a decision, not a lookup.
+ */
+internal fun splashInk(dark: Boolean): Color = if (dark) Color(0xFFFFFFFF) else Color(0xFF16181D)
 
 /**
  * Stage 21 — the resting halo behind the monogram.
@@ -67,7 +71,7 @@ internal fun splashInk(dark: Boolean): Color = if (dark) TextWhite else Color(0x
  * Blue in both themes; a touch stronger on dim porcelain, where the glow has
  * less of the frame to fight against than it does on obsidian.
  */
-internal fun splashGlowAlpha(dark: Boolean): Float = if (dark) 0.12f else 0.22f
+internal fun splashGlowAlpha(dark: Boolean): Float = if (dark) 0.10f else 0.17f
 
 /** Stage 20 — soft blue radial glow behind the monogram, both themes. */
 internal val splashGlow: Brush
@@ -225,6 +229,10 @@ private fun SplashStage(
     taglineBreath: Animatable<Float, androidx.compose.animation.core.AnimationVector1D>,
     exitShrink: Animatable<Float, androidx.compose.animation.core.AnimationVector1D>
 ) {
+    // Stage 21 — the ink is decided once, per theme: white on obsidian, dark
+    // on dim porcelain. The layout is identical, so the two splash screens
+    // never jump between themes.
+    val ink = splashInk(dark = !isPorcelain)
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -281,14 +289,14 @@ private fun SplashStage(
                         alpha = 1f - 0.35f * t
                     }
             ) {
-                drawMonogram(trim.value, glow.value)
+                drawMonogram(trim.value, glow.value, ink)
                 // Stage 11 — glowing traveling tip rides the stroke head.
                 drawTravelingTip(trim.value)
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            StaggeredWordmark(text = BrandWordmark.TEXT, clock = clock.value)
+            StaggeredWordmark(text = BrandWordmark.TEXT, clock = clock.value, ink = ink)
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -330,7 +338,7 @@ internal fun wordmarkAlphas(text: String, progress: Float): List<Float> {
  * letter, so a refactor that sliced the text fails the regression test.
  */
 @Composable
-private fun StaggeredWordmark(text: String, clock: Float) {
+private fun StaggeredWordmark(text: String, clock: Float, ink: Color = TextWhite) {
     // The clock runs across the wordmark window; map it onto 0..1.
     val windowMillis = Motion.SPLASH_TAGLINE_START - Motion.SPLASH_WORDMARK_START
     val elapsed = (clock * windowMillis).toInt()
@@ -343,7 +351,7 @@ private fun StaggeredWordmark(text: String, clock: Float) {
             val local = alphas.getOrElse(index) { 0f }
             Text(
                 text = char.toString(),
-                color = TextWhite,
+                color = ink,
                 fontSize = BingwaType.Title,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.graphicsLayer {
@@ -388,7 +396,7 @@ private fun DrawScope.drawTravelingTip(fraction: Float) {
  * (a rectangle sweep leaves a visible box edge on the canvas) and it burns
  * only while the glow pulses.
  */
-private fun DrawScope.drawMonogram(fraction: Float, pulse: Float = 0f) {
+private fun DrawScope.drawMonogram(fraction: Float, pulse: Float = 0f, ink: Color = TextWhite) {
     val measure = PathMeasure().apply { setPath(Monogram.path, false) }
     val segment = Path()
     measure.getSegment(0f, measure.length * fraction.coerceIn(0f, 1f), segment, true)
@@ -397,7 +405,7 @@ private fun DrawScope.drawMonogram(fraction: Float, pulse: Float = 0f) {
     scale(zoom, zoom, pivot = Offset.Zero) {
         drawPath(
             path = segment,
-            color = TextWhite,
+            color = ink,
             style = Stroke(
                 width = Monogram.STROKE_WIDTH,
                 cap = StrokeCap.Round,

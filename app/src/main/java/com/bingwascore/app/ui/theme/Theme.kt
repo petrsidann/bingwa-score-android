@@ -4,7 +4,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import com.bingwascore.app.domain.ThemeMode
@@ -21,9 +20,15 @@ fun BingwaScoreTheme(
     themeMode: ThemeMode = ThemeMode.DARK,
     content: @Composable () -> Unit
 ) {
-    // SideEffect (not a direct write) keeps the state change outside the
-    // composition pass: the new palette lands on the very next frame.
-    SideEffect { installDisplayMode(themeMode) }
+    // Stage 21 — the palette is installed BEFORE the content composes.
+    //
+    // The colour tokens read the mode WHILE they draw, so a `SideEffect`
+    // (which lands after the composition) painted the first frame in the
+    // PREVIOUS theme: the light splash came up dark for one frame, and the
+    // light onboarding wore a dark canvas under a white card. The write
+    // happens here instead — it converges (the value only changes when the
+    // theme really changed), so no extra frame is burned.
+    installDisplayMode(themeMode)
 
     val scheme = remember(themeMode) {
         if (themeMode == ThemeMode.LIGHT) {

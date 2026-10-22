@@ -18,9 +18,6 @@ import com.bingwascore.app.ui.myplan.MyPlanScreenContent
 import com.bingwascore.app.ui.myplan.MyPlanScreenState
 import com.bingwascore.app.ui.offers.OffersScreenContent
 import com.bingwascore.app.ui.offers.OffersScreenState
-import com.bingwascore.app.ui.onboarding.OnboardingCarouselContent
-import com.bingwascore.app.ui.onboarding.OnboardingCarouselState
-import com.bingwascore.app.ui.screens.SplashScreenContent
 import com.bingwascore.app.ui.theme.BingwaScoreTheme
 import com.bingwascore.app.ui.transactions.TransactionFilter
 import com.bingwascore.app.ui.transactions.TransactionsScreenContent
@@ -129,29 +126,9 @@ class Stage19ScreensPreviewTest {
         ProfileScreenContent(state = FakeProfile.state)
     }
 
-    // ── Onboarding ──────────────────────────────────────────────────────────
-
-    @Test
-    fun onboardingDark() = snapshot(ThemeMode.DARK) {
-        OnboardingCarouselContent(state = OnboardingCarouselState(page = 0))
-    }
-
-    @Test
-    fun onboardingLight() = snapshot(ThemeMode.LIGHT) {
-        OnboardingCarouselContent(state = OnboardingCarouselState(page = 0))
-    }
-
-    // ── Splash ──────────────────────────────────────────────────────────────
-
-    @Test
-    fun splashDark() = snapshot(ThemeMode.DARK) {
-        SplashScreenContent(target = "main", onFinish = {}, settled = true)
-    }
-
-    @Test
-    fun splashLight() = snapshot(ThemeMode.LIGHT) {
-        SplashScreenContent(target = "main", onFinish = {}, settled = true)
-    }
+    // Stage 21 — the onboarding and the splash moved to their own suite
+    // (Stage21FirstRunPreviewTest): the first run is the one surface that
+    // must be proven in EVERY page, BOTH themes and in landscape.
 
     // ── My Plan ─────────────────────────────────────────────────────────────
 

@@ -1,5 +1,35 @@
 # ULTRA session end — handoff
 
+## STEP 0 resume state (2026-10-22, Stage 21 shipped)
+
+- Shipped+green: Stages 1–20 + **Stage 21 (first-run + splash truth)**. U1 USSD engine + E1 balance/dial protected.
+- **Stage 21 — the first run tells the truth**: the onboarding is a REAL `HorizontalPager` (`PageSize.Fill`, a 24dp
+  page gap, a fixed-height card, a per-page icon/title/body column, inactive pages fading with the page offset and a
+  dot pill that slides with the pager). The card copy is measured at its natural size and **scaled to fit**, so a
+  short screen shows the same page, smaller — never a cut-off title, never smashed slides. Skip / Back / Next all
+  clear 44dp. Landscape is a first-class citizen and has its own golden suite.
+- **The wordmark was BROKEN, now fixed**: `wordmarkAlphas` capped the stagger at `length - 1`, so the last letter
+  never rose — the splash shipped **"Bingwa Scor"**. The cap is `length` now, and the string lives in ONE place
+  (`BrandWordmark.TEXT` = "Bingwa Score"), rendered by the splash and the onboarding alike.
+  `Stage21FirstRunTruthTest` asserts the STRING (never pixels) in BOTH themes.
+- **The splash has theme parity**: stroke-ignite monogram, a traveling blue tip, an ignition band that rides the
+  STROKE (the old rectangle sweep left a visible box edge on the canvas) and a soft blue radial halo on dim
+  porcelain, with a dark-ink monogram. The halo is always on (a resting light); the pulse rides on top of it. The
+  ink is a decision, not a lookup: `splashInk(dark)` = white / #16181D.
+- **The palette landed one frame late** (a `SideEffect` in the theme): the first frame of a light screen was painted
+  with the PREVIOUS theme — the light splash came up dark for one frame, the light onboarding wore a dark canvas
+  under a white card. `BingwaScoreTheme` now installs the palette BEFORE the content composes.
+- **Eyes green**: 14 new goldens (onboarding pages 1–3 + splash, both themes, portrait AND landscape) in
+  `Stage21FirstRunPreviewTest` + `Stage21FirstRunLandscapePreviewTest`; every PNG was viewed and accepted. The old
+  Stage 19 onboarding/splash goldens moved to the new suite (one owner per surface). `:app:assembleDebug` +
+  `:app:testDebugUnitTest` (371 tests) green; Paparazzi verify green.
+- Known drift (pre-existing, not Stage 21): the 4 Home goldens re-record differently at another hour of the day —
+  `Greeting` reads `System.currentTimeMillis()`. The My Plan + first-run goldens are clock-anchored and
+  byte-stable. Known pre-existing: `CtaInk` is mode-aware, so the blue CTA label in Porcelain is dark ink (4.3:1
+  on #007AFF — clears large-text AA). It is a global design-system token, so Stage 21 left it alone.
+- Next group: **U6 snake carousel** -> U7.1 credits+pass -> U7.2 real updates -> U8 QA + 1.8.0 release.
+
+
 ## STEP 0 resume state (2026-10-22, Stage 20 shipped)
 
 - Shipped+green: Stages 1–19.7 + **Stage 20 (my plan meta-grade)**. U1 USSD engine + E1 balance/dial protected.

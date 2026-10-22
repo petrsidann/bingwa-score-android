@@ -172,7 +172,7 @@ object OnboardingPager {
     const val CARD_HEIGHT_DP: Float = 300f
 
     /** The card height on a short screen (landscape, a small phone), in dp. */
-    const val CARD_HEIGHT_COMPACT_DP: Float = 132f
+    const val CARD_HEIGHT_COMPACT_DP: Float = 168f
 
     /** Below this screen height the layout switches to the compact stack. */
     const val TIGHT_HEIGHT_DP: Float = 560f
@@ -431,44 +431,33 @@ private fun OnboardingPage(
                 .padding(horizontal = 20.dp, vertical = 16.dp),
             maxHeight = height - 32.dp
         ) {
-            if (compact) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    OnboardingGlyph(icon = icon, size = 44.dp)
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            title,
-                            color = TextWhite.copy(alpha = textAlpha),
-                            fontSize = 17.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            body,
-                            color = TextGrey.copy(alpha = textAlpha),
-                            fontSize = 12.sp
-                        )
-                    }
-                }
-            } else {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    OnboardingGlyph(icon = icon, size = 72.dp)
-                    Spacer(modifier = Modifier.height(20.dp))
-                    Text(
-                        title,
-                        color = TextWhite.copy(alpha = textAlpha),
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.Center
-                    )
-                    Spacer(modifier = Modifier.height(10.dp))
-                    Text(
-                        body,
-                        color = TextGrey.copy(alpha = textAlpha),
-                        fontSize = 13.sp,
-                        textAlign = TextAlign.Center
-                    )
-                }
+            // Stage 21 — ONE page grammar in every rotation: the glyph, the
+            // title and the body, centred. A short screen (landscape, a small
+            // phone) simply uses smaller type — the page never smashes and
+            // never clips.
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                OnboardingGlyph(
+                    icon = icon,
+                    size = if (compact) 48.dp else 72.dp
+                )
+                Spacer(modifier = Modifier.height(if (compact) 12.dp else 20.dp))
+                Text(
+                    title,
+                    color = TextWhite.copy(alpha = textAlpha),
+                    fontSize = if (compact) 17.sp else 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(if (compact) 4.dp else 10.dp))
+                Text(
+                    body,
+                    color = TextGrey.copy(alpha = textAlpha),
+                    fontSize = if (compact) 12.sp else 13.sp,
+                    textAlign = TextAlign.Center
+                )
             }
         }
     }
