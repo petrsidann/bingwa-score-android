@@ -208,6 +208,23 @@ val FaintDivider: Color get() = Hairline
 /** Solid accent brush — the brand has no gradients any more. */
 fun accentBrush(): Brush = SolidColor(AccentBlue)
 
+// ─── Stage 20 — the My Plan paywall band ────────────────────────────────────
+
+/**
+ * The paywall band is the one gradient the brand allows: three **opaque** blue
+ * stops, no warm hue, no translucency, no glass. White ink clears AA on every
+ * stop, so the band reads the same in both themes.
+ */
+val AuroraDeep: Color = Color(0xFF0B2A6B)
+val AuroraMid: Color = Color(0xFF1D4ED8)
+val AuroraEdge: Color = Color(0xFF2563EB)
+
+/** Solid white — the band ink and the solid chip that sits on the band. */
+val BandWhite: Color = Color(0xFFFFFFFF)
+
+/** The band brush: an aurora sweep across the blue family. */
+fun auroraBrush(): Brush = Brush.linearGradient(listOf(AuroraDeep, AuroraMid, AuroraEdge))
+
 /** Agent level badges — a neutral ladder, never a warm hue. */
 val Bronze: Color get() = Color(0xFF8D8D8D)
 val Silver: Color get() = Color(0xFFB0B0B0)

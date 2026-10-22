@@ -1,9 +1,11 @@
 package com.bingwascore.app.ui.myplan
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,26 +16,36 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Stars
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material.icons.rounded.Bolt
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.ExpandLess
+import androidx.compose.material.icons.rounded.ExpandMore
+import androidx.compose.material.icons.rounded.Payments
+import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material3.Icon
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -45,26 +57,26 @@ import androidx.lifecycle.viewModelScope
 import com.bingwascore.app.data.preferences.UserPreferences
 import com.bingwascore.app.data.repository.TransactionRepository
 import com.bingwascore.app.domain.PlanCatalog
+import com.bingwascore.app.domain.PlanCountdown
+import com.bingwascore.app.domain.PlanFamily
 import com.bingwascore.app.domain.PlanOffer
 import com.bingwascore.app.domain.PlanState
 import com.bingwascore.app.domain.TransactionStatus
 import com.bingwascore.app.ui.components.PrimaryButton
-import com.bingwascore.app.ui.components.SecondaryButton
 import com.bingwascore.app.ui.components.pressScale
-import com.bingwascore.app.ui.home.CreditRow
-import com.bingwascore.app.ui.glass.LocalGlassBackdrop
 import com.bingwascore.app.ui.theme.AccentBlue
-import com.bingwascore.app.ui.theme.IosMaterialFill
+import com.bingwascore.app.ui.theme.BandWhite
 import com.bingwascore.app.ui.theme.BgBlack
+import com.bingwascore.app.ui.theme.Bubble
+import com.bingwascore.app.ui.theme.CtaInk
 import com.bingwascore.app.ui.theme.Hairline
-import com.bingwascore.app.ui.theme.IOS_CARD_RADIUS
 import com.bingwascore.app.ui.theme.Raised
 import com.bingwascore.app.ui.theme.TextDim
 import com.bingwascore.app.ui.theme.TextGrey
 import com.bingwascore.app.ui.theme.TextWhite
 import com.bingwascore.app.ui.theme.TickGreen
+import com.bingwascore.app.ui.theme.auroraBrush
 import com.bingwascore.app.util.Haptics
-import com.bingwascore.app.util.formatCustomerName
 import com.bingwascore.app.util.rememberHaptics
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
@@ -79,23 +91,23 @@ import javax.inject.Inject
 /**
  * Stage 13 — where the simulated M-Pesa STK push stands.
  *
- * Idle (sheet open, button armed) -> Paying (push sent, PIN prompt on the
- * "phone") -> Success (receipt minted, plan written). The sheet stays open
- * through all three so the agent never loses context mid-payment.
+ * Idle -> Paying (push sent, PIN prompt on the "phone") -> Success (receipt
+ * minted, plan written). The paywall page shows each beat in place, so the
+ * agent never loses context mid-payment.
  */
 sealed interface PurchaseState {
     object Idle : PurchaseState
-    object Paying : PurchaseState
-    data class Success(val receipt: String) : PurchaseState
+    data class Paying(val planId: String) : PurchaseState
+    data class Success(val planId: String, val receipt: String) : PurchaseState
 }
 
 /**
  * Stage 13 — the state behind [MyPlanScreen].
  *
- * Hero data (active plan + earned-credit ledger) plus the purchase flow: a
- * plan tap simulates the M-Pesa STK round-trip, mints a receipt and writes
- * the new [PlanState] straight into [UserPreferences], which is what the
- * Home credits bubble and the expiry worker both read.
+ * Hero data (active plan + earned-credit count) plus the purchase flow: a plan
+ * tap simulates the M-Pesa STK round-trip, mints a receipt and writes the new
+ * [PlanState] straight into [UserPreferences], which is what the Home credits
+ * bubble and the expiry worker both read.
  */
 @HiltViewModel
 class MyPlanViewModel @Inject constructor(
@@ -110,43 +122,24 @@ class MyPlanViewModel @Inject constructor(
         .map { list -> list.count { it.status == TransactionStatus.SUCCESSFUL.value } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
-    val creditRows: StateFlow<List<CreditRow>> = transactionRepository.liveTransactions
-        .map { list ->
-            list.filter { it.status == TransactionStatus.SUCCESSFUL.value }
-                .take(12)
-                .map { tx ->
-                    CreditRow(
-                        title = formatCustomerName(tx.customerName).ifBlank { tx.phoneNumber },
-                        subtitle = "${tx.offerName} · ${tx.phoneNumber}",
-                        amount = tx.commission
-                    )
-                }
-        }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
-
     private val _purchase = MutableStateFlow<PurchaseState>(PurchaseState.Idle)
     val purchaseState: StateFlow<PurchaseState> = _purchase
 
     /**
-     * Stage 13 — the purchase: hold the sheet in Paying across a simulated
+     * Stage 13 — the purchase: hold the page in Paying across a simulated
      * STK push, then mint the receipt and activate the plan in one beat.
      */
     fun purchase(planId: String) {
         val offer = PlanCatalog.byId(planId) ?: return
         if (_purchase.value is PurchaseState.Paying) return
         viewModelScope.launch {
-            _purchase.value = PurchaseState.Paying
+            _purchase.value = PurchaseState.Paying(planId)
             delay(PAY_MILLIS)
             val now = System.currentTimeMillis()
             val receipt = PlanCatalog.receiptFor(planId, now)
             userPreferences.setPlanState(offer.toPlanState(now))
-            _purchase.value = PurchaseState.Success(receipt)
+            _purchase.value = PurchaseState.Success(planId, receipt)
         }
-    }
-
-    /** Closing the sheet resets the flow so the next tap starts clean. */
-    fun resetPurchase() {
-        _purchase.value = PurchaseState.Idle
     }
 
     companion object {
@@ -154,22 +147,24 @@ class MyPlanViewModel @Inject constructor(
         const val PAY_MILLIS = 1_200L
     }
 }
-
 /**
- * Stage 19.7 — the PURE My Plan surface: the hero card, the plan matrix and the
- * earned-credit ledger.
+ * Stage 20 — the state behind the My Plan paywall.
+ *
+ * [family] is the segment the agent is looking at (STEADY or BULK ENGINE) and
+ * [nowMillis] is the clock the countdown reads, so a snapshot renders the same
+ * picture every time.
  */
 data class MyPlanScreenState(
     val plan: PlanState = PlanState(),
     val credits: Int = 0,
-    val creditRows: List<CreditRow> = emptyList(),
-    val purchase: PurchaseState = PurchaseState.Idle
+    val purchase: PurchaseState = PurchaseState.Idle,
+    val family: PlanFamily = PlanFamily.STEADY,
+    val nowMillis: Long = System.currentTimeMillis()
 )
 
-/** Stage 19.7 — every My Plan side effect as a plain callback. */
+/** Stage 20 — every My Plan side effect as a plain callback. */
 data class MyPlanScreenCallbacks(
-    val onPurchase: (offer: PlanOffer) -> Unit = {},
-    val onResetPurchase: () -> Unit = {}
+    val onPurchase: (offer: PlanOffer) -> Unit = {}
 )
 
 /**
@@ -184,239 +179,195 @@ fun MyPlanScreen(viewModel: MyPlanViewModel = hiltViewModel()) {
     // STAGE 19.7 — the wrapper owns the ViewModel; the content below is pure.
     val plan by viewModel.planState.collectAsStateWithLifecycle()
     val credits by viewModel.credits.collectAsStateWithLifecycle()
-    val rows by viewModel.creditRows.collectAsStateWithLifecycle()
     val purchase by viewModel.purchaseState.collectAsStateWithLifecycle()
+    val clock = remember { System.currentTimeMillis() }
 
     MyPlanScreenContent(
         state = MyPlanScreenState(
             plan = plan,
             credits = credits,
-            creditRows = rows,
-            purchase = purchase
+            purchase = purchase,
+            nowMillis = clock
         ),
         callbacks = MyPlanScreenCallbacks(
-            onPurchase = { offer -> viewModel.purchase(offer.planId) },
-            onResetPurchase = { viewModel.resetPurchase() }
+            onPurchase = { offer -> viewModel.purchase(offer.planId) }
         )
     )
 }
 
 /**
- * Stage 19.7 — the pure My Plan body.
+ * Stage 20 — the paywall, in the Meta One grammar.
+ *
+ * Structure, not colours: a solid aurora band on top (blue family, opaque,
+ * never glass), the family pill, a swipeable pager with one plan per page and
+ * a dot indicator. Every page is the same page of grammar: title, truth
+ * subtitle, price, exactly three benefit rows, the benefits expander, the
+ * legal microcopy and the full-width CTA. The ACTIVE plan shows its badge and
+ * a live countdown where the CTA would be.
+ *
+ * No blur, no glass, no iOS material on this screen: the band is a gradient
+ * and everything below it is a flat fill.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MyPlanScreenContent(
     state: MyPlanScreenState = MyPlanScreenState(),
     callbacks: MyPlanScreenCallbacks = MyPlanScreenCallbacks(),
     haptics: Haptics = rememberHaptics()
 ) {
-    var pendingPlan by remember { mutableStateOf<PlanOffer?>(null) }
-    val plan = state.plan
-    val credits = state.credits
-    val rows = state.creditRows
-    val purchase = state.purchase
-    val label = plan.remainingLabel(System.currentTimeMillis()) ?: "$credits"
+    var family by remember(state.family) { mutableStateOf(state.family) }
+    val plans = PlanCatalog.family(family)
+    val activePlanId = state.plan.planId
+    val startPage = plans.indexOfFirst { it.planId == activePlanId }.coerceAtLeast(0)
+    val pagerState = rememberPagerState(initialPage = startPage, pageCount = { plans.size })
+    val now = tickingClock(state.nowMillis)
+
+    // Switching family lands on the active plan's page (or the first one).
+    LaunchedEffect(family) {
+        val target = PlanCatalog.family(family)
+            .indexOfFirst { it.planId == activePlanId }
+            .coerceAtLeast(0)
+        pagerState.scrollToPage(target)
+    }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(BgBlack)
-            .padding(horizontal = 16.dp)
     ) {
-        Spacer(modifier = Modifier.height(20.dp))
-        Text(
-            text = "My Plan",
-            color = TextWhite,
-            fontSize = 28.sp,
-            fontWeight = FontWeight.Bold
+        PlanBand(
+            plan = state.plan,
+            credits = state.credits,
+            nowMillis = now
         )
+
         Spacer(modifier = Modifier.height(12.dp))
 
-        // ── Hero card — M-Y monogram + what is LEFT ─────────────────────────
+        FamilyPill(
+            family = family,
+            onSelect = { picked ->
+                if (picked != family) {
+                    haptics.tick()
+                    family = picked
+                }
+            }
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier.weight(1f),
+            pageSpacing = 12.dp
+        ) { index ->
+            val offer = plans[index]
+            PlanPaywallPage(
+                offer = offer,
+                isActive = state.plan.isActive && state.plan.planId == offer.planId,
+                countdown = PlanCountdown.label(state.plan.expiresAtMillis - now),
+                purchase = state.purchase,
+                onActivate = {
+                    haptics.press()
+                    callbacks.onPurchase(offer)
+                },
+                haptics = haptics
+            )
+        }
+
+        Row(
+            horizontalArrangement = Arrangement.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 10.dp)
+        ) {
+            plans.indices.forEach { index ->
+                val active = index == pagerState.currentPage
+                Box(
+                    modifier = Modifier
+                        .padding(horizontal = 3.dp)
+                        .size(if (active) 8.dp else 6.dp)
+                        .clip(CircleShape)
+                        .background(if (active) AccentBlue else TextDim)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.navigationBarsPadding())
+    }
+}
+
+/**
+ * The live clock behind the countdown.
+ *
+ * It ticks once a second so the badge is honest, but it never ticks inside an
+ * inspection (a snapshot must land on the same picture every run).
+ */
+@Composable
+private fun tickingClock(seedMillis: Long): Long {
+    var tick by remember(seedMillis) { mutableLongStateOf(seedMillis) }
+    val inspection = LocalInspectionMode.current
+    LaunchedEffect(seedMillis, inspection) {
+        if (inspection) return@LaunchedEffect
+        while (true) {
+            delay(1_000L)
+            tick = System.currentTimeMillis()
+        }
+    }
+    return tick
+}
+
+/**
+ * Stage 20 — the aurora band: opaque blue gradient, the M-Y monogram, the
+ * screen title and the one line that says what the agent has.
+ */
+@Composable
+private fun PlanBand(
+    plan: PlanState,
+    credits: Int,
+    nowMillis: Long
+) {
+    val remaining = plan.remainingLabel(nowMillis)
+    val line = when {
+        plan.isActive && plan.unlimited -> "${plan.displayName} · $remaining left"
+        plan.isActive -> "${plan.displayName} · $remaining pulls left"
+        else -> "$credits credits earned · activate a plan to start dialing"
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(116.dp)
+            .background(auroraBrush())
+    ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(IOS_CARD_RADIUS))
-                .background(Raised)
-                .border(1.dp, Hairline, RoundedCornerShape(IOS_CARD_RADIUS))
-                .padding(16.dp)
+                .fillMaxSize()
+                .statusBarsPadding()
+                .padding(horizontal = 20.dp, vertical = 14.dp)
         ) {
-            // Stage 13 — the M-Y monogram tile: the plan's initials, "MY" with no plan.
-            MonogramTile(letters = PlanCatalog.monogramLetters(plan.displayName))
+            MonogramTile(letters = "MY")
             Spacer(modifier = Modifier.width(12.dp))
             Column {
                 Text(
-                    text = plan.displayName.ifBlank { "No active plan" },
-                    color = TextWhite,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold
+                    text = "My Plan",
+                    color = BandWhite,
+                    fontSize = 21.sp,
+                    fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = if (plan.isActive) {
-                        if (plan.unlimited) "Unlimited · $label left" else "$label pulls left"
-                    } else {
-                        "$credits earned · buy a plan to put them to work"
-                    },
-                    color = TextGrey,
+                    text = line,
+                    color = BandWhite.copy(alpha = 0.82f),
                     fontSize = 12.sp
                 )
             }
         }
-
-        Spacer(modifier = Modifier.height(16.dp))
-        LazyColumn(modifier = Modifier.fillMaxSize()) {
-            item {
-                Text(
-                    text = "PLAN MATRIX",
-                    color = TextGrey,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-                Text(
-                    text = "INDIVIDUAL · PULLS BUDGET",
-                    color = TextDim,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-            }
-            items(PlanCatalog.individual, key = { it.planId }) { offer ->
-                PlanMatrixCard(offer) {
-                    haptics.tick()
-                    pendingPlan = offer
-                }
-            }
-            item {
-                Spacer(modifier = Modifier.height(10.dp))
-                Text(
-                    text = "BULK · UNLIMITED DAYS",
-                    color = TextDim,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-            }
-            items(PlanCatalog.bulk, key = { it.planId }) { offer ->
-                PlanMatrixCard(offer) {
-                    haptics.tick()
-                    pendingPlan = offer
-                }
-            }
-            item {
-                Spacer(modifier = Modifier.height(14.dp))
-                Text(
-                    text = "CREDITS EARNED",
-                    color = TextGrey,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-                if (rows.isEmpty()) {
-                    Text(
-                        text = "No credits yet. Your first completed bundle will land here.",
-                        color = TextGrey,
-                        fontSize = 13.sp,
-                        modifier = Modifier.padding(vertical = 18.dp)
-                    )
-                }
-            }
-            items(rows, key = { it.title + it.subtitle }) { row ->
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp)
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = row.title,
-                            color = TextWhite,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            maxLines = 1
-                        )
-                        Text(
-                            text = row.subtitle,
-                            color = TextGrey,
-                            fontSize = 11.sp,
-                            maxLines = 1
-                        )
-                    }
-                    Text(
-                        text = "+1",
-                        color = AccentBlue,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-        }
-    }
-
-    pendingPlan?.let { offer ->
-        PlanConfirmSheet(
-            offer = offer,
-            purchase = purchase,
-            onPay = { callbacks.onPurchase(offer) },
-            onDismiss = {
-                callbacks.onResetPurchase()
-                pendingPlan = null
-            }
-        )
     }
 }
 
 /**
- * Stage 13 — one row of the plan matrix: name, allowance detail, KSh price.
- */
-@Composable
-private fun PlanMatrixCard(offer: PlanOffer, onClick: () -> Unit) {
-    val interactionSource = remember { MutableInteractionSource() }
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp)
-            .pressScale(interactionSource)
-            .clip(RoundedCornerShape(IOS_CARD_RADIUS))
-            .background(Raised)
-            .border(1.dp, Hairline, RoundedCornerShape(IOS_CARD_RADIUS))
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick
-            )
-            .padding(horizontal = 14.dp, vertical = 12.dp)
-    ) {
-        MonogramTile(letters = PlanCatalog.monogramLetters(offer.displayName), size = 34.dp)
-        Spacer(modifier = Modifier.width(12.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = offer.displayName,
-                color = TextWhite,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold
-            )
-            Text(
-                text = offer.detail,
-                color = TextGrey,
-                fontSize = 11.sp
-            )
-        }
-        Text(
-            text = "KSh ${offer.priceKes}",
-            color = AccentBlue,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Bold
-        )
-    }
-}
-
-/**
- * Stage 13 — the M-Y monogram tile: two letters in an accent-washed square.
- * "MY" (from *My* Plan) while no plan is active, the plan's initials after.
+ * Stage 20 — the M-Y monogram tile: a solid white chip with the blue mark.
  */
 @Composable
 private fun MonogramTile(letters: String, size: Dp = 40.dp) {
@@ -426,137 +377,358 @@ private fun MonogramTile(letters: String, size: Dp = 40.dp) {
         modifier = Modifier
             .size(size)
             .clip(shape)
-            .background(AccentBlue.copy(alpha = 0.14f))
-            .border(1.dp, AccentBlue.copy(alpha = 0.45f), shape)
+            .background(BandWhite)
     ) {
         Text(
             text = letters,
             color = AccentBlue,
-            fontSize = (size.value * 0.34f).sp,
+            fontSize = (size.value * 0.32f).sp,
             fontWeight = FontWeight.Bold
         )
     }
 }
 
 /**
- * Stage 13 — the M-Pesa confirm sheet.
- *
- * One tap on a matrix card opens this. It names the plan, the KSh amount the
- * STK push will ask for, and walks the three [PurchaseState] beats: Idle shows
- * the armed Pay button, Paying swaps it for a "Waiting for M-Pesa…" spinner,
- * Success mints the receipt in green and offers Done. The sheet stays open
- * through the whole round-trip so the agent never loses the plan mid-payment.
+ * Stage 20 — the family pill: STEADY on the left, BULK ENGINE on the right.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun PlanConfirmSheet(
-    offer: PlanOffer,
-    purchase: PurchaseState,
-    onPay: () -> Unit,
-    onDismiss: () -> Unit
+private fun FamilyPill(
+    family: PlanFamily,
+    onSelect: (PlanFamily) -> Unit
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val paying = purchase is PurchaseState.Paying
-    val success = purchase as? PurchaseState.Success
-    // Stage 18 — the sheet owns the modal backdrop: screens blur behind it.
-    val glassBackdrop = LocalGlassBackdrop.current
-    DisposableEffect(glassBackdrop) {
-        glassBackdrop?.pushModal()
-        onDispose { glassBackdrop?.popModal() }
-    }
-
-    ModalBottomSheet(
-        onDismissRequest = { if (!paying) onDismiss() },
-        sheetState = sheetState,
-        containerColor = IosMaterialFill,
-        dragHandle = null
+    Row(
+        horizontalArrangement = Arrangement.Center,
+        modifier = Modifier.fillMaxWidth()
     ) {
-        Column(
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp)
-                .padding(top = 20.dp, bottom = 12.dp)
+                .clip(RoundedCornerShape(22.dp))
+                .background(Bubble)
+                .border(1.dp, Hairline, RoundedCornerShape(22.dp))
+                .padding(4.dp)
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Rounded.Stars,
-                    contentDescription = null,
-                    tint = AccentBlue,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = if (success != null) "Plan activated" else "Confirm purchase",
-                    color = TextWhite,
-                    fontSize = 19.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.weight(1f))
-                if (success == null) {
-                    Text(
-                        text = "KSh ${offer.priceKes}",
-                        color = AccentBlue,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.height(6.dp))
-
-            if (success != null) {
-                Text(
-                    text = "${offer.displayName} is live — ${offer.detail}.",
-                    color = TextGrey,
-                    fontSize = 12.sp
-                )
-                Spacer(modifier = Modifier.height(10.dp))
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
+            PlanFamily.entries.forEach { candidate ->
+                val selected = candidate == family
+                val interactionSource = remember { MutableInteractionSource() }
+                Box(
+                    contentAlignment = Alignment.Center,
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(IOS_CARD_RADIUS))
-                        .background(AccentBlue.copy(alpha = 0.12f))
-                        .border(1.dp, AccentBlue.copy(alpha = 0.45f), RoundedCornerShape(IOS_CARD_RADIUS))
-                        .padding(horizontal = 14.dp, vertical = 12.dp)
+                        .pressScale(interactionSource)
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(if (selected) AccentBlue else Color.Transparent)
+                        .clickable(
+                            interactionSource = interactionSource,
+                            indication = null,
+                            onClick = { onSelect(candidate) }
+                        )
+                        .padding(horizontal = 20.dp, vertical = 9.dp)
                 ) {
                     Text(
-                        text = "M-Pesa",
-                        color = AccentBlue,
+                        text = candidate.label,
+                        color = if (selected) CtaInk else TextGrey,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
                     )
-                    Spacer(modifier = Modifier.weight(1f))
-                    Text(
-                        text = success.receipt,
-                        color = TickGreen,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold
-                    )
                 }
-            } else {
+            }
+        }
+    }
+}
+
+/**
+ * Stage 20 — one plan, one page: title, truth subtitle, price, three benefit
+ * rows, the expander, the legal line and the CTA. The ACTIVE plan swaps the
+ * CTA for its badge and the live countdown.
+ */
+@Composable
+private fun PlanPaywallPage(
+    offer: PlanOffer,
+    isActive: Boolean,
+    countdown: String,
+    purchase: PurchaseState,
+    onActivate: () -> Unit,
+    haptics: Haptics
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val paying = purchase is PurchaseState.Paying && purchase.planId == offer.planId
+    val success = purchase as? PurchaseState.Success
+    val justActivated = success != null && success.planId == offer.planId
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = "${offer.displayName} · ${offer.detail}. An M-Pesa prompt will land on your phone to approve KSh ${offer.priceKes}.",
+                    text = offer.displayName,
+                    color = TextWhite,
+                    fontSize = 26.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                if (isActive) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    ActiveBadge()
+                }
+            }
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = offer.truthSubtitle,
+                color = TextGrey,
+                fontSize = 13.sp
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(verticalAlignment = Alignment.Bottom) {
+                Text(
+                    text = "Ksh ${offer.priceKes}",
+                    color = AccentBlue,
+                    fontSize = 26.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "once · via M-Pesa",
+                    color = TextDim,
+                    fontSize = 12.sp,
+                    modifier = Modifier.padding(bottom = 4.dp)
+                )
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+
+            BenefitRow(
+                icon = Icons.Rounded.Bolt,
+                title = offer.allowanceTitle,
+                desc = offer.allowanceDesc
+            )
+            BenefitRow(
+                icon = Icons.Rounded.Schedule,
+                title = offer.windowTitle,
+                desc = offer.windowDesc
+            )
+            BenefitRow(
+                icon = Icons.Rounded.Payments,
+                title = offer.priceTitle,
+                desc = offer.priceDesc
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            BenefitsExpander(
+                expanded = expanded,
+                onToggle = {
+                    haptics.tick()
+                    expanded = !expanded
+                }
+            )
+
+            if (expanded) {
+                FactsBlock(offer)
+            }
+        }
+
+        Column(modifier = Modifier.padding(horizontal = 20.dp)) {
+            Spacer(modifier = Modifier.height(10.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(Hairline)
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+            Text(
+                text = offer.legalLine,
+                color = TextDim,
+                fontSize = 11.sp
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+            when {
+                justActivated -> ActivePanel(countdown = countdown, receipt = success!!.receipt)
+                isActive -> ActivePanel(countdown = countdown, receipt = null)
+                else -> PrimaryButton(
+                    text = offer.ctaLabel,
+                    onClick = onActivate,
+                    loading = paying,
+                    loadingText = "Waiting for M-Pesa…"
+                )
+            }
+            Spacer(modifier = Modifier.height(6.dp))
+        }
+    }
+}
+
+/** Stage 20 — the ACTIVE badge: a solid blue pill. */
+@Composable
+private fun ActiveBadge() {
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier
+            .clip(RoundedCornerShape(10.dp))
+            .background(AccentBlue)
+            .padding(horizontal = 8.dp, vertical = 3.dp)
+    ) {
+        Text(
+            text = "ACTIVE",
+            color = BandWhite,
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
+
+/** Stage 20 — one benefit row: icon, bold title, grey description. */
+@Composable
+private fun BenefitRow(icon: ImageVector, title: String, desc: String) {
+    Row(
+        verticalAlignment = Alignment.Top,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 5.dp)
+    ) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .size(30.dp)
+                .clip(CircleShape)
+                .background(AccentBlue.copy(alpha = 0.14f))
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = AccentBlue,
+                modifier = Modifier.size(16.dp)
+            )
+        }
+        Spacer(modifier = Modifier.width(10.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                color = TextWhite,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = desc,
+                color = TextGrey,
+                fontSize = 11.sp
+            )
+        }
+    }
+}
+
+/** Stage 20 — the "Explore all benefits" expander. */
+@Composable
+private fun BenefitsExpander(expanded: Boolean, onToggle: () -> Unit) {
+    val interactionSource = remember { MutableInteractionSource() }
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .pressScale(interactionSource)
+            .clip(RoundedCornerShape(10.dp))
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onToggle
+            )
+            .padding(vertical = 6.dp)
+    ) {
+        Icon(
+            imageVector = if (expanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
+            contentDescription = null,
+            tint = AccentBlue,
+            modifier = Modifier.size(18.dp)
+        )
+        Spacer(modifier = Modifier.width(6.dp))
+        Text(
+            text = "Explore all benefits",
+            color = AccentBlue,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.SemiBold
+        )
+    }
+}
+
+/** Stage 20 — the expanded facts: nothing but the plan's own numbers. */
+@Composable
+private fun FactsBlock(offer: PlanOffer) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(Raised)
+            .padding(horizontal = 14.dp, vertical = 12.dp)
+    ) {
+        FactRow("Plan", offer.displayName)
+        FactRow("Allowance", offer.allowanceLabel)
+        FactRow("Window", "${offer.durationLabel} from activation")
+        FactRow("Payment", "Ksh ${offer.priceKes} via M-Pesa")
+    }
+}
+
+@Composable
+private fun FactRow(label: String, value: String) {
+    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp)) {
+        Text(
+            text = label,
+            color = TextGrey,
+            fontSize = 12.sp,
+            modifier = Modifier.width(88.dp)
+        )
+        Text(
+            text = value,
+            color = TextWhite,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold
+        )
+    }
+}
+
+/**
+ * Stage 20 — the active plan: no CTA, the badge and the live countdown. Right
+ * after a purchase it also shows the receipt the STK push returned.
+ */
+@Composable
+private fun ActivePanel(countdown: String, receipt: String?) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(AccentBlue.copy(alpha = 0.12f))
+            .border(1.dp, AccentBlue.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
+            .padding(horizontal = 16.dp, vertical = 13.dp)
+    ) {
+        Icon(
+            imageVector = Icons.Rounded.CheckCircle,
+            contentDescription = null,
+            tint = if (receipt == null) AccentBlue else TickGreen,
+            modifier = Modifier.size(20.dp)
+        )
+        Spacer(modifier = Modifier.width(10.dp))
+        Column {
+            Text(
+                text = if (receipt == null) "Active plan" else "Plan activated",
+                color = TextWhite,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = receipt ?: countdown,
+                color = if (receipt == null) AccentBlue else TickGreen,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+            if (receipt != null) {
+                Text(
+                    text = countdown,
                     color = TextGrey,
                     fontSize = 12.sp
                 )
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            if (success != null) {
-                PrimaryButton(text = "Done", onClick = onDismiss)
-            } else {
-                PrimaryButton(
-                    text = "Pay KSh ${offer.priceKes}",
-                    onClick = onPay,
-                    enabled = !paying,
-                    loading = paying,
-                    loadingText = "Waiting for M-Pesa…"
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                SecondaryButton(text = "Cancel", onClick = onDismiss, enabled = !paying)
-            }
-            Spacer(modifier = Modifier.navigationBarsPadding().height(8.dp))
         }
     }
 }

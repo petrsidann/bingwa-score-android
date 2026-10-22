@@ -155,6 +155,7 @@ class Stage19ScreensPreviewTest {
 
     // ── My Plan ─────────────────────────────────────────────────────────────
 
+    /** STEADY family, on the active plan's page: badge + countdown, no CTA. */
     @Test
     fun myPlanDark() = snapshot(ThemeMode.DARK) {
         MyPlanScreenContent(state = FakeMyPlan.state, haptics = Haptics.Disabled)
@@ -163,6 +164,17 @@ class Stage19ScreensPreviewTest {
     @Test
     fun myPlanLight() = snapshot(ThemeMode.LIGHT) {
         MyPlanScreenContent(state = FakeMyPlan.state, haptics = Haptics.Disabled)
+    }
+
+    /** BULK ENGINE family, on a plan with no CTA-blocked page: the price CTA. */
+    @Test
+    fun myPlanBulkDark() = snapshot(ThemeMode.DARK) {
+        MyPlanScreenContent(state = FakeMyPlan.bulkState, haptics = Haptics.Disabled)
+    }
+
+    @Test
+    fun myPlanBulkLight() = snapshot(ThemeMode.LIGHT) {
+        MyPlanScreenContent(state = FakeMyPlan.bulkState, haptics = Haptics.Disabled)
     }
 
     /** Renders one screen in one theme, with haptics muted. */
@@ -345,18 +357,22 @@ private object FakeProfile {
 
 private object FakeMyPlan {
 
+    /**
+     * A FIXED clock anchor, so the countdown and the plan window render the
+     * same numbers in every recording.
+     */
     val state = MyPlanScreenState(
         plan = PlanState(
             planId = "basic",
-            displayName = "Basic 500",
+            displayName = "Basic",
             pullsLeft = 417,
             unlimited = false,
-            expiresAtMillis = FakeTransactions.ANCHOR + 7 * 24L * 60 * 60 * 1000L
+            expiresAtMillis = FakeTransactions.ANCHOR + 3 * PlanState.DAY_MILLIS + 4 * 3_600_000L
         ),
         credits = 12,
-        creditRows = listOf(
-            com.bingwascore.app.ui.home.CreditRow("Dennis K. Wachira", "Safaricom 1GB · 0712345678", 5.0),
-            com.bingwascore.app.ui.home.CreditRow("Mary Wangari", "Safaricom 500MB · 0712345678", 3.0)
-        )
+        nowMillis = FakeTransactions.ANCHOR
     )
+
+    /** The same agent, looking at the BULK ENGINE family. */
+    val bulkState = state.copy(family = com.bingwascore.app.domain.PlanFamily.BULK_ENGINE)
 }

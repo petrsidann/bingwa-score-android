@@ -63,12 +63,18 @@ class MaterialSmokeTest {
             "app/src/main/java/com/bingwascore/app/ui/home/HomeChrome.kt",
             "app/src/main/java/com/bingwascore/app/ui/autorenewals/AutoRenewalsScreen.kt",
             "app/src/main/java/com/bingwascore/app/ui/customers/CustomersScreen.kt",
-            "app/src/main/java/com/bingwascore/app/ui/myplan/MyPlanScreen.kt",
         ).forEach { path ->
             val src = source(path)
             assertTrue("$path must push the modal backdrop", src.contains("pushModal()"))
             assertTrue("$path must pop on dispose", src.contains("popModal()"))
         }
+        // Stage 20 — the My Plan paywall has no modal at all: the purchase runs
+        // in place, so the screen never touches the glass backdrop.
+        val myPlan = source("app/src/main/java/com/bingwascore/app/ui/myplan/MyPlanScreen.kt")
+        assertTrue(
+            "the paywall must not blur behind a modal",
+            !myPlan.contains("pushModal()") && !myPlan.contains("glassSource(")
+        )
         // Region passes stand down while a modal owns the backdrop: no nesting.
         assertTrue(materials.contains("if (state.modalDepth > 0) return@drawWithContent"))
     }

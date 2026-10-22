@@ -13,13 +13,15 @@ import java.io.File
 /**
  * Stage 13 — My Plan: plan matrix, purchase -> plan state, expiry sweep.
  *
- * - The catalogue is two families at two currencies: four individual pulls
- *   plans (Starter/Basic/Noob/Pro) and four bulk unlimited plans
- *   (Small/Medium/Mega/Ultimate), both ascending by price.
+ * - The catalogue is two families at two currencies: four steady pull packs
+ *   (Starter/Basic/Noob/Pro) and four bulk unlimited plans
+ *   (Small/Medium/Mega/Ultimate), both ascending by price. Stage 20 pins the
+ *   exact price law in `PlanMatrixTest`.
  * - A confirmed purchase mints a receipt and writes a live [PlanState] with the
  *   right allowance; the expiry worker clears it once the window closes.
- * - UI wiring (M-Y monogram, confirm sheet, matrix rendering, expiry schedule)
- *   is pinned by source checks, the house style for Composable contracts here.
+ * - UI wiring (M-Y monogram, the paywall pager, the purchase flow, the expiry
+ *   schedule) is pinned by source checks, the house style for Composable
+ *   contracts here.
  */
 class Stage13MyPlanTest {
 
@@ -44,7 +46,7 @@ class Stage13MyPlanTest {
         val names = PlanCatalog.individual.map { it.displayName }
         assertEquals(listOf("Starter", "Basic", "Noob", "Pro"), names)
         val prices = PlanCatalog.individual.map { it.priceKes }
-        assertEquals(listOf(99, 249, 449, 899), prices)
+        assertEquals(listOf(20, 25, 55, 110), prices)
         assertTrue(
             "individual prices must ascend",
             prices.zipWithNext().all { (a, b) -> a < b }
@@ -56,7 +58,7 @@ class Stage13MyPlanTest {
         val names = PlanCatalog.bulk.map { it.displayName }
         assertEquals(listOf("Small", "Medium", "Mega", "Ultimate"), names)
         val prices = PlanCatalog.bulk.map { it.priceKes }
-        assertEquals(listOf(499, 999, 1_999, 3_499), prices)
+        assertEquals(listOf(60, 140, 600, 1_800), prices)
         assertTrue(
             "bulk prices must ascend",
             prices.zipWithNext().all { (a, b) -> a < b }
@@ -67,8 +69,12 @@ class Stage13MyPlanTest {
     fun `individual plans carry pulls and bulk plans are unlimited`() {
         PlanCatalog.individual.forEach {
             assertFalse("${it.displayName} is not bulk", it.bulk)
-            assertFalse("${it.displayName} is not unlimited", it.unlimited)
-            assertTrue("${it.displayName} sells pulls", it.pulls > 0)
+            if (it.planId == "starter") {
+                assertTrue("starter is the unlimited day pass", it.unlimited)
+            } else {
+                assertFalse("${it.displayName} is not unlimited", it.unlimited)
+                assertTrue("${it.displayName} sells pulls", it.pulls > 0)
+            }
         }
         PlanCatalog.bulk.forEach {
             assertTrue("${it.displayName} is bulk", it.bulk)
@@ -80,9 +86,9 @@ class Stage13MyPlanTest {
     @Test
     fun `detail line reads the right currency per family`() {
         val starter = PlanCatalog.byId("starter")!!
-        assertEquals("100 pulls · 7 days", starter.detail)
+        assertEquals("Unlimited USSD pulls · 1 day", starter.detail)
         val mega = PlanCatalog.byId("mega")!!
-        assertEquals("Unlimited · 14 days", mega.detail)
+        assertEquals("Unlimited USSD pulls · 1 month", mega.detail)
     }
 
     @Test
@@ -100,10 +106,10 @@ class Stage13MyPlanTest {
         val state = PlanCatalog.byId("basic")!!.toPlanState(now)
         assertEquals("basic", state.planId)
         assertEquals("Basic", state.displayName)
-        assertEquals(350, state.pullsLeft)
+        assertEquals(1_000, state.pullsLeft)
         assertFalse(state.unlimited)
         assertTrue(state.isActive)
-        assertEquals(now + 14 * PlanState.DAY_MILLIS, state.expiresAtMillis)
+        assertEquals(now + 7 * PlanState.DAY_MILLIS, state.expiresAtMillis)
     }
 
     @Test
@@ -160,26 +166,26 @@ class Stage13MyPlanTest {
     // ── UI wiring (source guards) ───────────────────────────────────────────
 
     @Test
-    fun `the screen renders both families through the matrix card`() {
+    fun `the screen renders both families through the pager`() {
         assertTrue(
-            "individual family is rendered",
-            myPlanSrc.contains("items(PlanCatalog.individual, key = { it.planId })")
+            "the pager takes its pages from the catalog",
+            myPlanSrc.contains("PlanCatalog.family(family)")
         )
         assertTrue(
-            "bulk family is rendered",
-            myPlanSrc.contains("items(PlanCatalog.bulk, key = { it.planId })")
+            "the pager is swipeable",
+            myPlanSrc.contains("HorizontalPager(")
         )
         assertTrue(
-            "each row taps into the confirm sheet",
-            myPlanSrc.contains("PlanConfirmSheet(")
+            "each page activates a plan",
+            myPlanSrc.contains("callbacks.onPurchase(offer)")
         )
     }
 
     @Test
-    fun `the hero shows the M-Y monogram`() {
+    fun `the band shows the M-Y monogram`() {
         assertTrue(
-            "hero monogram reads the plan initials",
-            myPlanSrc.contains("MonogramTile(letters = PlanCatalog.monogramLetters(plan.displayName))")
+            "the band carries the MY mark",
+            myPlanSrc.contains("MonogramTile(letters = \"MY\")")
         )
         assertTrue(
             "monogram tile falls back to the MY mark when blank",
@@ -188,10 +194,9 @@ class Stage13MyPlanTest {
     }
 
     @Test
-    fun `the confirm sheet walks idle paying and success`() {
-        assertTrue("the sheet is a modal bottom sheet", myPlanSrc.contains("ModalBottomSheet("))
+    fun `the purchase flow walks idle paying and success in place`() {
         assertTrue("paying shows a loading button", myPlanSrc.contains("loadingText = \"Waiting for M-Pesa"))
-        assertTrue("success mints the receipt in the sheet", myPlanSrc.contains("success.receipt"))
+        assertTrue("success mints the receipt on the page", myPlanSrc.contains("success!!.receipt"))
         assertTrue("a tap runs the purchase", myPlanSrc.contains("viewModel.purchase(offer.planId)"))
     }
 

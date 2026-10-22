@@ -1,5 +1,37 @@
 # ULTRA session end — handoff
 
+## STEP 0 resume state (2026-10-22, Stage 20 shipped)
+
+- Shipped+green: Stages 1–19.7 + **Stage 20 (my plan meta-grade)**. U1 USSD engine + E1 balance/dial protected.
+- **Landed on `origin/main`** (branch `stage-20-my-plan-meta-grade`): this commit carries Stage 20 **and** the
+  Stage 19.7 preview suite, which `origin/main` had only half of (the Paparazzi plugin was wired, but the
+  preview test + goldens never reached main — they are here now).
+- **Stage 20 — My Plan paywall in the Meta One grammar** (structure, not colours): `MyPlanScreenContent` is now a
+  flat paywall — an opaque **aurora band** on top (blue family only: `AuroraDeep/Mid/Edge` + `auroraBrush()`),
+  the **STEADY | BULK ENGINE** pill, a swipeable `HorizontalPager` (4 pages per family) and a dot indicator.
+  Every page is the same grammar: large title, truth subtitle (pulls/duration), price line, exactly **three**
+  benefit rows (icon + bold title + grey desc, derived only from plan facts), the **"Explore all benefits"**
+  expander (plan/allowance/window/payment facts), the legal microcopy strip, and the full-width blue CTA
+  **"Activate <Plan> - Ksh <price>"**. The ACTIVE page swaps the CTA for the **ACTIVE badge + live countdown**
+  (`PlanCountdown`; ticks once a second, frozen under inspection so goldens are stable). The **MY monogram**
+  sits in the band. **No blur, no glass, no iOS material on this screen, ever** — the M-Pesa confirm sheet is
+  gone: the purchase runs in place (Idle → Paying → receipt on the page).
+- **PRICE LAW** (pinned by the new `PlanMatrixTest`): STEADY — Starter unlimited/1 day/Ksh 20 · Basic 1,000/Ksh 25 ·
+  Noob 2,500/Ksh 55 · Pro 5,000/Ksh 110. BULK ENGINE — Small unlimited/3 days/Ksh 60 · Medium unlimited/7 days/Ksh 140 ·
+  Mega unlimited/1 month/Ksh 600 · Ultimate unlimited/3 months/Ksh 1,800. A plan page may only quote its own
+  numbers (the test enforces it). `PlanOffer` keeps the old constructor shape (`bulk` = family), so the
+  existing Stage 13 contracts still hold.
+- **Eyes green**: 4 MyPlan goldens (STEADY + BULK ENGINE × both themes) in `Stage19ScreensPreviewTest`;
+  every PNG was viewed and the page was tightened until nothing clips on the small screen.
+  `:app:assembleDebug` + `:app:testDebugUnitTest` (349 tests) green. New: `PlanMatrixTest` (price law),
+  `Stage20MyPlanPaywallTest` (grammar + no-glass guards). `MaterialSmokeTest` no longer expects My Plan to
+  own a modal backdrop (it has no modal any more).
+- **Known drift (pre-existing, not Stage 20)**: the 4 Home goldens re-record differently at another hour of
+  the day — `Greeting` reads `System.currentTimeMillis()`, so "Habari za asubuhi/jioni" flips. The My Plan
+  goldens are clock-anchored and byte-stable.
+- Next group: **U6 snake carousel** -> U7.1 credits+pass -> U7.2 real updates -> U8 QA + 1.8.0 release.
+
+
 ## STEP 0 resume state (2026-10-21, Stage 19.7 shipped)
 
 - Shipped+green: Stages 1–19 + **Stage 19.7 (preview-pure screens + eyes green)**. U1 USSD engine + E1 balance/dial protected.
