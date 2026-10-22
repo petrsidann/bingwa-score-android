@@ -87,7 +87,7 @@ class U4ThemesTest {
         // fall below 3:1 on the dim canvas. Queued stays neutral.
         installDisplayMode(ThemeMode.PORCELAIN_DIM)
         assertEquals(argb(BrandBlue), argb(StatusDone))
-        assertEquals(0xFFC42B1F.toInt(), argb(StatusFailedTint))
+        assertEquals(0xFFC41B1B.toInt(), argb(StatusFailedTint))
         assertEquals(argb(SemanticGrey), argb(StatusQueued))
         installDisplayMode(ThemeMode.DARK)
     }

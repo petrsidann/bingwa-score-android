@@ -56,7 +56,7 @@ val PorcelainDimTertiaryText: Color = Color(0xFF565E69)
 val PorcelainDimAccent: Color = Color(0xFF2F6AE0)
 val PorcelainDimChartBlue: Color = Color(0xFF4F86F2)
 /** The dimmed signal red: the same hue, deepened so it still clears 3:1. */
-val PorcelainDimFailed: Color = Color(0xFFC42B1F)
+val PorcelainDimFailed: Color = Color(0xFFC41B1B)
 val PorcelainDimDisabledFill: Color = Color(0xFFAEB4BE)
 val PorcelainDimDisabledInk: Color = Color(0xFF2A2F37)
 

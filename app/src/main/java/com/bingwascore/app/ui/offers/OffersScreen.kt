@@ -515,7 +515,7 @@ private fun OfferSkeleton() {
         contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 96.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        items(2) { index ->
+        items(2, key = { "skeleton-$it" }) { index ->
             BubbleCard(
                 modifier = Modifier.fillMaxWidth(),
                 enterDelayMillis = index * Motion.STAGGER

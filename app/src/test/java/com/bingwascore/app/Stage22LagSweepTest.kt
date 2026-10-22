@@ -7,9 +7,10 @@ import androidx.compose.runtime.Composition
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.Recomposer
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.snapshots.Snapshot
 import com.bingwascore.app.ui.components.rememberAction
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -50,7 +51,15 @@ class Stage22LagSweepTest {
     /** How many times each row's body ran. */
     private object RowCount {
         val counts = mutableMapOf<String, Int>()
-        fun reset() = counts.clear()
+        val lastFrame = mutableMapOf<String, Int>()
+        val lastLabel = mutableMapOf<String, String>()
+        val lastAction = mutableMapOf<String, () -> Unit>()
+        fun reset() {
+            counts.clear()
+            lastFrame.clear()
+            lastLabel.clear()
+            lastAction.clear()
+        }
         fun of(id: String): Int = counts[id] ?: 0
         fun bump(id: String) {
             counts[id] = (counts[id] ?: 0) + 1
@@ -61,22 +70,30 @@ class Stage22LagSweepTest {
     @Composable
     private fun CountingRow(id: String, label: String, onClick: () -> Unit) {
         RowCount.bump(id)
+        // The row READS its inputs, so Compose cannot treat them as unused.
+        RowCount.lastLabel[id] = label
+        RowCount.lastAction[id] = onClick
     }
 
     /**
-     * One scroll slot.
+     * One list item.
      *
      * [stable] mirrors the app: a production row gets its action from
      * [rememberAction] (one lambda per key, stable identity). The control
      * writes the lambda inline, which is what the app used to do.
+     *
+     * [frame] is read INSIDE the item, so bumping it re-renders the item —
+     * the same thing a LazyColumn does when the feed is refreshed.
      */
     @Composable
     private fun RowSlot(
         id: String,
         label: String,
         stable: Boolean,
+        frame: MutableState<Int>,
         onPick: (String) -> Unit
     ) {
+        RowCount.lastFrame[id] = frame.value
         val action = if (stable) {
             rememberAction(id) { onPick(id) }
         } else {
@@ -85,9 +102,25 @@ class Stage22LagSweepTest {
         CountingRow(id, label, action)
     }
 
-    /** One frame of the scroll: a mutation, then a frame. */
+    /** The list: it re-renders its items whenever the frame moves. */
+    @Composable
+    private fun ScrollParent(
+        labels: Map<String, MutableState<String>>,
+        stable: Boolean,
+        frame: MutableState<Int>,
+        onPick: (String) -> Unit
+    ) {
+        RowSlot("a", labels.getValue("a").value, stable, frame, onPick)
+        RowSlot("b", labels.getValue("b").value, stable, frame, onPick)
+        RowSlot("c", labels.getValue("c").value, stable, frame, onPick)
+    }
+
+    /** One frame of the scroll: a mutation of the feed. */
     private class Frame(
-        val mutate: (unrelated: MutableState<Int>, labels: MutableMap<String, String>) -> Unit
+        val mutate: (
+            frame: MutableState<Int>,
+            labels: Map<String, MutableState<String>>
+        ) -> Unit
     )
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -98,40 +131,36 @@ class Stage22LagSweepTest {
     ) {
         RowCount.reset()
         val clock = BroadcastFrameClock()
-        val recomposer = Recomposer(coroutineContext + clock)
+        // The recomposer's own job hangs off a standalone Job, not the test's,
+        // so runTest never waits on a frame loop that only a device drives.
+        val effectJob = Job()
+        val recomposer = Recomposer(coroutineContext + clock + effectJob)
         val composition = Composition(NoOpApplier(), recomposer)
         val job = launch(clock) { recomposer.runRecomposeAndApplyChanges() }
         try {
-            val unrelated = mutableStateOf(0)
-            val labels = mutableMapOf<String, String>()
-            rows.forEach { labels[it] = "row-$it" }
+            val frame = mutableStateOf(0)
+            val labels = rows.associateWith { mutableStateOf("row-$it") }
+            var picks = 0
 
             composition.setContent {
-                // An unrelated read: the parent recomposes, the rows do not.
-                unrelated.value
-                rows.forEach { id ->
-                    RowSlot(
-                        id = id,
-                        label = labels[id] ?: "row-$id",
-                        stable = stable,
-                        onPick = { }
-                    )
-                }
+                ScrollParent(labels, stable, frame) { picks++ }
             }
-
-            // The initial composition is synchronous; this frame only flushes
-            // anything the runtime queued.
-            clock.sendFrame(0)
             advanceUntilIdle()
 
-            frames.forEach { frame ->
-                frame.mutate(unrelated, labels)
+            frames.forEach { scrollFrame ->
+                scrollFrame.mutate(frame, labels)
+                // On a device the frame callback sends the apply notifications;
+                // off-device nothing does, so the harness does it.
+                Snapshot.sendApplyNotifications()
+                // Let the recomposer wake up and ask for a frame, then give it
+                // one, then let the frame land.
+                advanceUntilIdle()
                 clock.sendFrame(0)
                 advanceUntilIdle()
             }
         } finally {
-            job.cancelAndJoin()
-            composition.dispose()
+            job.cancel()
+            effectJob.cancel()
         }
     }
 
@@ -144,8 +173,8 @@ class Stage22LagSweepTest {
             stable = true,
             rows = listOf("a", "b", "c"),
             frames = listOf(
-                Frame { unrelated, _ -> unrelated.value = unrelated.value + 1 },
-                Frame { unrelated, _ -> unrelated.value = unrelated.value + 1 }
+                Frame { frame, _ -> frame.value = frame.value + 1 },
+                Frame { frame, _ -> frame.value = frame.value + 1 }
             )
         )
         // One composition per row, at the start. The two later frames composed
@@ -162,7 +191,7 @@ class Stage22LagSweepTest {
             stable = false,
             rows = listOf("a", "b", "c"),
             frames = listOf(
-                Frame { unrelated, _ -> unrelated.value = unrelated.value + 1 }
+                Frame { frame, _ -> frame.value = frame.value + 1 }
             )
         )
         // The inline lambda is a new object every frame, so every row
@@ -179,7 +208,10 @@ class Stage22LagSweepTest {
             stable = true,
             rows = listOf("a", "b", "c"),
             frames = listOf(
-                Frame { _, labels -> labels["b"] = "row-b-updated" }
+                Frame { frame, labels ->
+                    frame.value = frame.value + 1
+                    labels.getValue("b").value = "row-b-updated"
+                }
             )
         )
         assertEquals("the changed row must recompose", 2, RowCount.of("b"))

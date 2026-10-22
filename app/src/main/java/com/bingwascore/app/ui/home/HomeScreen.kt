@@ -415,7 +415,7 @@ fun HomeScreenContent(
 
             // R6 — shimmer ONLY where a list is actually loading.
             if (state.statsLoading) {
-                items(4) { HomeRowSkeleton() }
+                items(4, key = { "skeleton-$it" }) { HomeRowSkeleton() }
             } else if (state.transactions.isEmpty()) {
                 item {
                     Row(
