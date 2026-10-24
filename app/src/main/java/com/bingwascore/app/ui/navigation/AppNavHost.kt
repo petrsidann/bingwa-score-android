@@ -317,12 +317,18 @@ fun MainScreen() {
     // recorded by glassSource (chrome sits outside the recorder).
     val glassBackdrop = rememberGlassBackdrop()
 
-    // POLISH P1 — system back leaves the dialer (and a drawer entry) instead of
-    // dropping the agent out of the shell: the dialer is a destination, so it
-    // behaves like one.
-    BackHandler(enabled = showDialer || drawerOpen) {
-        showDialer = false
-        drawerOpen = false
+    // Stage 25 — System back handling across sheets, drawers, secondary routes, and tabs.
+    // Zero dead ends: close active drawer/sheets first, return secondary drawer routes
+    // or referral back to main, or return non-Home main tabs to Home (0).
+    val hasBackAction = drawerOpen || showDialer || showReferral || selectedDrawerIndex != -1 || selectedTab != 0
+    BackHandler(enabled = hasBackAction) {
+        when {
+            drawerOpen -> drawerOpen = false
+            showDialer -> showDialer = false
+            showReferral -> showReferral = false
+            selectedDrawerIndex != -1 -> selectedDrawerIndex = -1
+            selectedTab != 0 -> selectedTab = 0
+        }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -443,11 +449,18 @@ fun MainScreen() {
 
         // Stage 19 — spring side-sheet drawer (primary): hamburger tap opens the
         // drawer as an iosMaterial side-sheet with a spring slide (<300ms).
-        // Edge-pull is demoted to secondary — no longer the primary open gesture.
+        // Stage 25 — Bottom-Nav Morph: vertical rail docked to drawer's right edge.
         SideDrawerSheet(
             isOpen = drawerOpen,
             onClose = { drawerOpen = false },
-            glassBackdrop = glassBackdrop
+            glassBackdrop = glassBackdrop,
+            selectedTab = selectedTab,
+            showDialer = showDialer,
+            onTabSelect = { tab ->
+                selectedTab = tab
+                drawerOpen = false
+                showDialer = (tab == 2)
+            }
         ) {
             DrawerContent(
                 selectedIndex = selectedDrawerIndex,
@@ -586,6 +599,9 @@ fun SideDrawerSheet(
     isOpen: Boolean,
     onClose: () -> Unit,
     glassBackdrop: com.bingwascore.app.ui.glass.GlassBackdropState? = null,
+    selectedTab: Int = 0,
+    showDialer: Boolean = false,
+    onTabSelect: (Int) -> Unit = {},
     content: @Composable () -> Unit
 ) {
     val sheetWidth = 280f
@@ -598,6 +614,8 @@ fun SideDrawerSheet(
         label = "sideDrawerSheet"
     )
 
+    val currentTab = if (showDialer) 2 else selectedTab
+
     Box(modifier = Modifier.fillMaxSize()) {
         if (isOpen) {
             Box(
@@ -608,46 +626,55 @@ fun SideDrawerSheet(
             )
         }
 
-        Box(
+        Row(
             modifier = Modifier
                 .fillMaxHeight()
-                .width(sheetWidth.dp)
                 .offset(x = offset.dp, y = 0.dp)
-                .background(BgBlack)
-                // Stage 18 — drawer is a backdrop region while open; region passes
-                // suspend while a modal owns the backdrop. Edge-pull demoted:
-                // hamburger tap is the primary open gesture.
-                .glassBackdropRegion(
-                        glassBackdrop, "drawer",
-                        RoundedCornerShape(0.dp), enabled = isOpen)
-                .iosMaterial(
-                    shape = RoundedCornerShape(0.dp),
-                    tint = if (DisplayModeState.mode == ThemeMode.DARK) {
-                        Color(0xB80B0E15)
-                    } else {
-                        Color(0xB8E2E4E8)
-                    },
-                    vibrancy = !canMaterialBlur
-                )
         ) {
-            Column(modifier = Modifier.fillMaxWidth().padding(top = 28.dp)) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 24.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        "Bingwa Score",
-                        color = TextWhite,
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .width(sheetWidth.dp)
+                    .background(BgBlack)
+                    .glassBackdropRegion(
+                        glassBackdrop, "drawer",
+                        RoundedCornerShape(0.dp), enabled = isOpen
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    DemoChip()
+                    .iosMaterial(
+                        shape = RoundedCornerShape(0.dp),
+                        tint = if (DisplayModeState.mode == ThemeMode.DARK) {
+                            Color(0xB80B0E15)
+                        } else {
+                            Color(0xB8E2E4E8)
+                        },
+                        vibrancy = !canMaterialBlur
+                    )
+            ) {
+                Column(modifier = Modifier.fillMaxWidth().padding(top = 28.dp)) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 24.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            "Bingwa Score",
+                            color = TextWhite,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        DemoChip()
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                    content()
+                    Spacer(modifier = Modifier.height(24.dp))
                 }
-                Spacer(modifier = Modifier.height(12.dp))
-                content()
-                Spacer(modifier = Modifier.height(24.dp))
             }
+
+            VerticalNavRail(
+                isOpen = isOpen,
+                selected = currentTab,
+                onSelect = onTabSelect
+            )
         }
     }
 }
