@@ -2,6 +2,9 @@ package com.bingwascore.app.ui.home
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
@@ -16,6 +19,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -31,8 +35,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Bolt
+import androidx.compose.material.icons.rounded.Brightness2
 import androidx.compose.material.icons.rounded.Radar
 import androidx.compose.material.icons.rounded.Stars
+import androidx.compose.material.icons.rounded.WbSunny
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
@@ -53,6 +59,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
@@ -60,14 +67,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
+import com.bingwascore.app.domain.ThemeMode
 import com.bingwascore.app.ui.components.SecondaryButton
 import com.bingwascore.app.ui.components.StatusDot
 import com.bingwascore.app.ui.glass.iosMaterial
+import com.bingwascore.app.ui.glass.LocalGlassBackdrop
 import com.bingwascore.app.ui.theme.AccentBlue
+import com.bingwascore.app.ui.theme.BgBlack
 import com.bingwascore.app.ui.theme.FailRed
 import com.bingwascore.app.ui.theme.Hairline
-import com.bingwascore.app.ui.glass.LocalGlassBackdrop
 import com.bingwascore.app.ui.theme.IosMaterialFill
 import com.bingwascore.app.ui.theme.Motion
 import com.bingwascore.app.ui.theme.Raised
@@ -167,12 +177,64 @@ fun CreditsBubble(label: String, onClick: () -> Unit, modifier: Modifier = Modif
 private fun BubbleRaised(): Color = Raised
 
 /**
- * The Home top bar: greeting on the left, credits bubble on the right.
+ * Stage 24 — sun/moon pill toggle on the Home top bar.
  *
- * The greeting is the only sentence on the screen set in a serif, which is
- * exactly why it reads as a greeting and not as another label; the credits
- * bubble is the only piece of chrome on Home that is not text, which is exactly
- * why it reads as something you can tap.
+ * Sits immediately LEFT of the credits bubble. Sun shows while Porcelain Dim
+ * (light) is active, moon while Obsidian (dark) is active. A spring thumb
+ * slides across the pill; the choice persists via UserPreferences.themeMode.
+ * The surface cross-fades over 200ms when the theme flips.
+ */
+@Composable
+fun ThemeToggle(
+    isDark: Boolean,
+    onToggle: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val haptics = rememberHaptics()
+    val density = LocalDensity.current.density
+    val shape = RoundedCornerShape(50)
+    val pillWidth = 56.dp
+    val thumbSize = 28.dp
+    val thumbX by animateFloatAsState(
+        targetValue = if (isDark) 20f else 8f,
+        animationSpec = spring(dampingRatio = Motion.DAMPING, stiffness = Spring.StiffnessHigh)
+    )
+    Box(
+        modifier = modifier
+            .size(pillWidth)
+            .clip(shape)
+            .background(if (isDark) TextDim.copy(alpha = 0.35f) else AccentBlue.copy(alpha = 0.14f))
+            .border(1.dp, if (isDark) Hairline else AccentBlue.copy(alpha = 0.45f), shape)
+            .clickable(enabled = true, onClick = { haptics.tick(); onToggle() })
+    ) {
+        Box(
+            modifier = Modifier
+                .size(thumbSize)
+                .clip(CircleShape)
+                .background(Color.White)
+                .graphicsLayer {
+                    translationX = thumbX * density
+                    translationY = 4f * density
+                }
+        )
+        Icon(
+            imageVector = if (isDark) Icons.Rounded.WbSunny else Icons.Rounded.Brightness2,
+            contentDescription = if (isDark) "Switch to light" else "Switch to dark",
+            tint = TextWhite,
+            modifier = Modifier
+                .size(16.dp)
+                .align(Alignment.Center)
+                .graphicsLayer {
+                    translationX = thumbX * density
+                    translationY = 4f * density
+                }
+        )
+    }
+}
+
+/**
+ * Stage 24 — Home top bar: greeting on the left, theme toggle in the middle,
+ * credits bubble on the right.
  */
 @Composable
 fun HomeTopBar(
@@ -180,6 +242,8 @@ fun HomeTopBar(
     language: Greetings.Language,
     creditsLabel: String,
     onCreditsClick: () -> Unit,
+    isDark: Boolean = false,
+    onThemeToggle: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -189,7 +253,9 @@ fun HomeTopBar(
         verticalAlignment = Alignment.CenterVertically
     ) {
         GreetingLine(bucket = bucket, language = language, modifier = Modifier.weight(1f))
-        Spacer(modifier = Modifier.width(12.dp))
+        Spacer(modifier = Modifier.width(8.dp))
+        ThemeToggle(isDark = isDark, onToggle = onThemeToggle)
+        Spacer(modifier = Modifier.width(8.dp))
         CreditsBubble(label = creditsLabel, onClick = onCreditsClick)
     }
 }

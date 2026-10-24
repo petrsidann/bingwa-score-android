@@ -25,26 +25,25 @@ enum class TransactionStatus(val value: String) {
 }
 
 /**
- * Stage 10 — iOS design system: two themes. Stage 22 adds the third.
+ * Stage 24 â€” iOS design system: exactly two themes.
  *
- * - [DARK]           "Obsidian"      — dark, #0B0E15 family.
- * - [LIGHT]          "Porcelain"     — light, iMessage-grade (#E2E4E8 bg, #F7F8FA cards).
- * - [PORCELAIN_DIM]  "Porcelain Dim" — the LIGHTS DIMMED: a dim porcelain canvas
- *   with soft blue accents. It is NOT a dark theme — the surfaces stay light
- *   enough to read as porcelain, and it never takes over as Obsidian black.
+ * - [DARK]           "Obsidian"      â€” dark, #0B0E15 family.
+ * - [PORCELAIN_DIM]  "Porcelain Dim" â€” the LIGHTS DIMMED: a dim porcelain canvas
+ *   (#C9CED6) with soft blue accents. It is NOT a dark theme â€” the surfaces stay
+ *   light enough to read as porcelain, and it never takes over as Obsidian black.
+ *   [PORCELAIN_DIM] is the default.
  *
  * Silica + Grayscale are deleted. [fromValue] maps every retired stored value
- * (GRAYSCALE, SILICA, BLUE_LIGHT_FILTER) to Obsidian so no install resets oddly.
+ * (GRAYSCALE, SILICA, BLUE_LIGHT_FILTER) to Porcelain Dim so no install resets oddly.
  */
 enum class ThemeMode(val value: String, val label: String) {
     DARK("DARK", "Obsidian"),
-    LIGHT("LIGHT", "Porcelain"),
     PORCELAIN_DIM("PORCELAIN_DIM", "Porcelain Dim");
 
     companion object {
-        /** Everything unknown — incl. retired modes — reads as Obsidian. */
+        /** Everything unknown â€” incl. retired modes â€” reads as Porcelain Dim. */
         fun fromValue(value: String?): ThemeMode =
-            entries.firstOrNull { it.value == value } ?: DARK
+            entries.firstOrNull { it.value == value } ?: PORCELAIN_DIM
     }
 }
 
