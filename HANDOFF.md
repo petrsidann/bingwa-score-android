@@ -2,7 +2,12 @@
 
 ## STEP 0 resume state (2026-10-22, Stage 22 shipped)
 
-- Shipped+green: Stages 1–21 + **Stage 22 (porcelain dim + lag sweep + check-for-updates + 1.9.1)**. U1 USSD engine + E1 balance/dial protected.
+- Shipped+green: Stages 1–22 + **Stage 23 (remote wiring + ussd session chain)**. U1 USSD engine + E1 balance/dial protected.
+- **Stage 23 — REMOTE WIRING + USSD SESSION CHAIN**:
+  - **Network**: Ktor client singleton reading `BASE_URL` from `BuildConfig` (default `http://10.0.2.2:8080`), TLS-ready, 12s timeouts, `Authorization: Bearer <token>` injector backed by `TokenStore` (`EncryptedSharedPreferences`).
+  - **Auth**: Sign-up/sign-in handling via `/api/auth/*` routes, token persistence, and offline fallback with `"Offline - local mode"` banner.
+  - **USSD Session Chain**: Replaced single-shot dial with multi-hop chain parser (`UssdSessionChain.parse`) splitting codes into root dial + ordered segments. Auto-submits next segment upon response until chain completes/errors. Session logs record every hop (`sent`/`received`/`next`). 12s timeout per hop with 1 retry. Thread-safe `abort()` support. Pure Kotlin intents/accessibility retained.
+  - **Tests**: `Stage23WiringUssdTest` added; 402 unit tests green.
 - **Stage 22 — PORCELAIN DIM + LAG SWEEP + CHECK-FOR-UPDATES + 1.9.1**:
   - **ThemeMode.PORCELAIN_DIM** ("Porcelain Dim"): a dim porcelain canvas (#C9CED6) with lifted cards (#DBDFE5), near-black ink, and a SOFT brand-blue accent (#2F6AE0) — dimmed lights, never Obsidian-black. Status tints deepened for the dim canvas (Done = brand blue #2563EB, Failed = deep red #C41B1B, Queued neutral #6B7280); CTA paints white ink on the blue chip. Contrast-pinned by Stage22PorcelainDimTest (AA on every dim surface); theme switcher entry added.
   - **Lag sweep**: stable keys on every lazy list (Home/Offers/Transactions), remembered per-row actions via new `ui/components/ScrollPerf.kt rememberAction()`, hoisted + bucketed clock in Home rows (`CLOCK_BUCKET_MILLIS`), remembered derived lists (selected offers, selected statuses). `Stage22LagSweepTest` pins composition-count invariants (stable actions skip, inline actions recompose every row, only the changed row recomposes) + source invariants.
