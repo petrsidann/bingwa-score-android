@@ -68,4 +68,6 @@ object AuthConstants {
     const val PATH_EMAIL_OTP = "/api/auth/email-otp"
     const val PATH_VERIFY_OTP = "/api/auth/verify-otp"
     const val PATH_REFRESH = "/api/auth/refresh"
+
+    const val OFFLINE_BANNER = "Offline - local mode"
 }

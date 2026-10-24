@@ -22,7 +22,7 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        buildConfigField("String", "API_BASE_URL", "\"https://api.bingwascore.com/\"")
+        buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8080\"")
         buildConfigField("String", "APP_VERSION", "\"1.9.1\"")
 
         vectorDrawables { useSupportLibrary = true }
