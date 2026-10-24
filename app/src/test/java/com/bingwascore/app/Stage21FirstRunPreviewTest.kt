@@ -38,19 +38,19 @@ class Stage21FirstRunPreviewTest {
     fun onboardingPage1Dark() = snapshot(ThemeMode.DARK) { onboarding(0) }
 
     @Test
-    fun onboardingPage1Light() = snapshot(ThemeMode.LIGHT) { onboarding(0) }
-
-    @Test
     fun onboardingPage2Dark() = snapshot(ThemeMode.DARK) { onboarding(1) }
-
-    @Test
-    fun onboardingPage2Light() = snapshot(ThemeMode.LIGHT) { onboarding(1) }
 
     @Test
     fun onboardingPage3Dark() = snapshot(ThemeMode.DARK) { onboarding(2) }
 
     @Test
-    fun onboardingPage3Light() = snapshot(ThemeMode.LIGHT) { onboarding(2) }
+    fun onboardingPage1PorcelainDim() = snapshot(ThemeMode.PORCELAIN_DIM) { onboarding(0) }
+
+    @Test
+    fun onboardingPage2PorcelainDim() = snapshot(ThemeMode.PORCELAIN_DIM) { onboarding(1) }
+
+    @Test
+    fun onboardingPage3PorcelainDim() = snapshot(ThemeMode.PORCELAIN_DIM) { onboarding(2) }
 
     // ── Splash — both themes ─────────────────────────────────────────────────
 
@@ -58,7 +58,7 @@ class Stage21FirstRunPreviewTest {
     fun splashDark() = snapshot(ThemeMode.DARK) { splash() }
 
     @Test
-    fun splashLight() = snapshot(ThemeMode.LIGHT) { splash() }
+    fun splashPorcelainDim() = snapshot(ThemeMode.PORCELAIN_DIM) { splash() }
 
     @androidx.compose.runtime.Composable
     private fun onboarding(page: Int) {
@@ -107,19 +107,10 @@ class Stage21FirstRunLandscapePreviewTest {
     fun onboardingPage1Dark() = snapshot(ThemeMode.DARK) { onboarding(0) }
 
     @Test
-    fun onboardingPage1Light() = snapshot(ThemeMode.LIGHT) { onboarding(0) }
-
-    @Test
     fun onboardingPage3Dark() = snapshot(ThemeMode.DARK) { onboarding(2) }
 
     @Test
-    fun onboardingPage3Light() = snapshot(ThemeMode.LIGHT) { onboarding(2) }
-
-    @Test
     fun splashDark() = snapshot(ThemeMode.DARK) { splash() }
-
-    @Test
-    fun splashLight() = snapshot(ThemeMode.LIGHT) { splash() }
 
     @androidx.compose.runtime.Composable
     private fun onboarding(page: Int) {

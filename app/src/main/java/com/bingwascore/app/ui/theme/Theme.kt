@@ -17,7 +17,7 @@ import com.bingwascore.app.domain.ThemeMode
  */
 @Composable
 fun BingwaScoreTheme(
-    themeMode: ThemeMode = ThemeMode.DARK,
+    themeMode: ThemeMode = ThemeMode.PORCELAIN_DIM,
     content: @Composable () -> Unit
 ) {
     // Stage 21 — the palette is installed BEFORE the content composes.
@@ -32,20 +32,6 @@ fun BingwaScoreTheme(
 
     val scheme = remember(themeMode) {
         when (themeMode) {
-            ThemeMode.LIGHT -> lightColorScheme(
-                primary = IosBlue,
-                secondary = IosBlue,
-                tertiary = TickGreen,
-                background = PorcelainBg,
-                surface = PorcelainCard,
-                onPrimary = Color.White,
-                error = FailRed,
-                outline = PorcelainSeparator,
-                onBackground = PorcelainText,
-                onSurface = PorcelainText
-            )
-            // Stage 22 — PORCELAIN DIM: the lights dimmed. A light scheme on a
-            // dim porcelain canvas with the SOFT blue accent — never Obsidian.
             ThemeMode.PORCELAIN_DIM -> lightColorScheme(
                 primary = PorcelainDimAccent,
                 secondary = PorcelainDimAccent,

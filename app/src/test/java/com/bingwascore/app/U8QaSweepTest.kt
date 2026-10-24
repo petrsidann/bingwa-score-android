@@ -28,9 +28,8 @@ import org.junit.Test
  * every surface at once. Pure JVM — no Compose runtime needed.
  */
 class U8QaSweepTest {
-    private val modes = listOf(ThemeMode.DARK, ThemeMode.LIGHT, ThemeMode.PORCELAIN_DIM)
+    private val modes = listOf(ThemeMode.DARK, ThemeMode.PORCELAIN_DIM)
     private fun canvasFor(mode: ThemeMode): Color = when (mode) {
-        ThemeMode.LIGHT -> Color(0xFFF2F2F7)
         ThemeMode.PORCELAIN_DIM -> Color(0xFFC9CED6)
         else -> Color(0xFF0B0E15)
     }
@@ -155,13 +154,11 @@ class U8QaSweepTest {
     // ── Three themes; Obsidian is the default, Porcelain Dim is the third ────
     @Test
     fun threeThemesExistAndDefaultIsObsidian() {
-        assertEquals(3, ThemeMode.entries.size)
-        assertEquals(ThemeMode.DARK, ThemeMode.fromValue("???"))
+        assertEquals(2, ThemeMode.entries.size)
+        assertEquals(ThemeMode.PORCELAIN_DIM, ThemeMode.fromValue("???"))
         installDisplayMode(ThemeMode.DARK)
         val white = Color(0xFFFFFFFF).toArgb()
         assertTrue("obsidian canvas must stay dark", luminance(Color(0xFF0B0E15)) < 0.03)
-        installDisplayMode(ThemeMode.LIGHT)
-        assertTrue("porcelain canvas must stay light", luminance(Color(0xFFF2F2F7)) > 0.8)
         // Stage 22 — Porcelain Dim is a LIGHT canvas: dimmed, never black.
         installDisplayMode(ThemeMode.PORCELAIN_DIM)
         val dim = luminance(Color(0xFFC9CED6))
