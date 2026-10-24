@@ -43,11 +43,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -61,7 +64,9 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bingwascore.app.data.local.Transaction
+import com.bingwascore.app.data.preferences.UserPreferences
 import com.bingwascore.app.domain.EngineState
+import com.bingwascore.app.domain.ThemeMode
 import com.bingwascore.app.domain.TransactionStatus
 import com.bingwascore.app.ui.components.BubbleCard
 import com.bingwascore.app.ui.components.DarkSnackbarHost
@@ -70,6 +75,9 @@ import com.bingwascore.app.ui.theme.AccentBlue
 import com.bingwascore.app.ui.theme.BgBlack
 import com.bingwascore.app.ui.theme.Hairline
 import com.bingwascore.app.ui.theme.StatusColors
+import com.bingwascore.app.ui.theme.StatusDoneGradient
+import com.bingwascore.app.ui.theme.StatusFailedGradient
+import com.bingwascore.app.ui.theme.StatusQueuedGradient
 import com.bingwascore.app.ui.theme.TextDim
 import com.bingwascore.app.ui.theme.TextGrey
 import com.bingwascore.app.ui.theme.TextWhite
@@ -77,6 +85,7 @@ import com.bingwascore.app.ui.theme.statusWash
 import com.bingwascore.app.util.Haptics
 import com.bingwascore.app.util.formatCustomerName
 import com.bingwascore.app.util.rememberHaptics
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -121,7 +130,8 @@ data class HomeScreenState(
     val engineState: EngineState = EngineState.RUNNING,
     val transactions: List<Transaction> = emptyList(),
     val permissionsMissing: Boolean = false,
-    val valuesVisible: Boolean = false
+    val valuesVisible: Boolean = false,
+    val themeMode: ThemeMode = ThemeMode.PORCELAIN_DIM
 )
 
 /**
@@ -139,7 +149,8 @@ data class HomeScreenCallbacks(
     val onToggleValues: () -> Unit = {},
     val onOpenDiagnostics: () -> Unit = {},
     val onOpenAutopilotSheet: () -> Unit = {},
-    val onAutopilotPause: () -> Unit = {}
+    val onAutopilotPause: () -> Unit = {},
+    val onThemeToggle: () -> Unit = {}
 )
 
 /**
@@ -155,7 +166,8 @@ fun HomeScreen(
     onOpenTransactions: (statusFilter: String?) -> Unit = {},
     onOpenMyPlan: () -> Unit = {},
     onOpenDiplomatics: () -> Unit = {},
-    viewModel: HomeViewModel = hiltViewModel()
+    viewModel: HomeViewModel = hiltViewModel(),
+    prefs: UserPreferences = hiltViewModel()
 ) {
     // STAGE 19.7 — the wrapper owns every platform binding: the ViewModel, the
     // Activity context, the lifecycle and the permission launcher. The content
@@ -163,6 +175,7 @@ fun HomeScreen(
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val haptics = rememberHaptics()
+    val scope = rememberCoroutineScope()
 
     val successful by viewModel.successfulCount.collectAsStateWithLifecycle()
     val failed by viewModel.failedCount.collectAsStateWithLifecycle()
@@ -179,6 +192,7 @@ fun HomeScreen(
     // POLISH P2 — greeting, credits and the two Home sheets.
     val greeting by viewModel.greeting.collectAsStateWithLifecycle()
     val creditsLabel by viewModel.creditsLabel.collectAsStateWithLifecycle()
+    val themeMode by prefs.themeMode.collectAsStateWithLifecycle(ThemeMode.PORCELAIN_DIM)
     var showAutopilot by remember { mutableStateOf(false) }
     var showDiagnostics by remember { mutableStateOf(false) }
 
@@ -244,7 +258,8 @@ fun HomeScreen(
         engineState = engineState,
         transactions = transactions,
         permissionsMissing = permissionsMissing,
-        valuesVisible = valuesVisible
+        valuesVisible = valuesVisible,
+        themeMode = themeMode
     )
 
     val callbacks = HomeScreenCallbacks(
@@ -260,7 +275,11 @@ fun HomeScreen(
         onToggleValues = { valuesVisible = !valuesVisible },
         onOpenDiagnostics = { showDiagnostics = true },
         onOpenAutopilotSheet = { showAutopilot = true },
-        onAutopilotPause = { viewModel.pauseEngine() }
+        onAutopilotPause = { viewModel.pauseEngine() },
+        onThemeToggle = {
+            val next = if (themeMode == ThemeMode.DARK) ThemeMode.PORCELAIN_DIM else ThemeMode.DARK
+            scope.launch { prefs.setThemeMode(next) }
+        }
     )
 
     HomeScreenContent(state = state, callbacks = callbacks, snackbarHostState = snackbarHostState)
@@ -341,7 +360,9 @@ fun HomeScreenContent(
                     bucket = state.greetingBucket,
                     language = state.greetingLanguage,
                     creditsLabel = state.creditsLabel,
-                    onCreditsClick = onOpenMyPlan
+                    onCreditsClick = onOpenMyPlan,
+                    isDark = state.themeMode == ThemeMode.DARK,
+                    onThemeToggle = callbacks.onThemeToggle
                 )
             }
 
@@ -482,6 +503,7 @@ private fun CountersRow(
     onOpenTransactions: (String?) -> Unit
 ) {
     val haptics = rememberHaptics()
+    val scope = rememberCoroutineScope()
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -520,10 +542,16 @@ private fun CounterTile(
     onClick: () -> Unit
 ) {
     val shape = RoundedCornerShape(16.dp)
+    val brush: Brush = when (label) {
+        "Done" -> StatusDoneGradient
+        "Failed" -> StatusFailedGradient
+        "Queued" -> StatusQueuedGradient
+        else -> SolidColor(statusWash(accent))
+    }
     Box(
         modifier = modifier
             .clip(shape)
-            .background(statusWash(accent))
+            .background(brush)
             .border(1.dp, accent.copy(alpha = 0.22f), shape)
             .clickable(onClick = onClick)
             .padding(horizontal = 10.dp, vertical = 10.dp)

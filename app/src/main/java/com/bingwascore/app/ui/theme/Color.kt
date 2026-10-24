@@ -10,19 +10,17 @@ import androidx.compose.ui.unit.dp
 import com.bingwascore.app.domain.ThemeMode
 
 /**
- * Stage 10 — iOS design system colour tokens: Obsidian (dark) + Porcelain (light).
+ * Stage 24 â€” iOS design system colour tokens: Obsidian (dark) + Porcelain Dim (default).
  *
  * One rule: every UI colour comes from a token below, never from a literal.
  * Tokens are *mode aware* — they read [DisplayModeState], which the theme writes
  * on every recomposition, so switching mode repaints the whole app instantly.
  *
- * Porcelain (iMessage-grade): bg #F2F2F7, cards #FFFFFF,
- * separators rgba(60,60,67,0.29) inset 0.33dp, text #000 / #3C3C43,
- * accents brand blue #2563EB family (+ iOS #007AFF allowed).
  * Obsidian (dark): keeps the #0B0E15 family.
+ * Porcelain Dim (#C9CED6 canvas): dimmed lights, soft blue accent #2F6AE0.
  */
 internal object DisplayModeState {
-    var mode: ThemeMode by mutableStateOf(ThemeMode.DARK)
+    var mode: ThemeMode by mutableStateOf(ThemeMode.PORCELAIN_DIM)
 }
 
 /** Written by the theme after a successful composition; read by every token. */
@@ -33,7 +31,7 @@ internal fun installDisplayMode(value: ThemeMode) {
 /** The display mode currently painted by the app. */
 val currentDisplayMode: ThemeMode get() = DisplayModeState.mode
 
-/** True in Porcelain — and in Porcelain Dim, which is a LIGHT canvas too. */
+/** True in Porcelain Dim â€” the only light canvas left. */
 val isPorcelain: Boolean get() = DisplayModeState.mode != ThemeMode.DARK
 
 /**
@@ -60,64 +58,48 @@ val PorcelainDimFailed: Color = Color(0xFFC41B1B)
 val PorcelainDimDisabledFill: Color = Color(0xFFAEB4BE)
 val PorcelainDimDisabledInk: Color = Color(0xFF2A2F37)
 
-/** Stage 10 — porcelain light tokens (iMessage-grade). Stage 21 — Dim rebalance: ~15% darker, glare-free. */
-val PorcelainBg: Color = Color(0xFFE2E4E8)
-val PorcelainCard: Color = Color(0xFFF7F8FA)
-val PorcelainSurface: Color = Color(0xFFEFF0F3)
-val PorcelainSeparator: Color = Color(0x4A3C3C43)
-val PorcelainText: Color = Color(0xFF16181D)
-val PorcelainSecondaryText: Color = Color(0xFF5A6169)
-val IosBlue: Color = Color(0xFF007AFF)
 /** Brand blue family. */
 val BrandBlue: Color = Color(0xFF2563EB)
 
 // ─── Surfaces ─────────────────────────────────────────────────────────────────
 val BgBlack: Color get() = when (DisplayModeState.mode) {
-    ThemeMode.LIGHT -> PorcelainBg
     ThemeMode.PORCELAIN_DIM -> PorcelainDimBg
     else -> Color(0xFF0B0E15)
 }
 
 val Bubble: Color get() = when (DisplayModeState.mode) {
-    ThemeMode.LIGHT -> PorcelainCard
     ThemeMode.PORCELAIN_DIM -> PorcelainDimCard
     else -> Color(0xFF131824)
 }
 
 val Raised: Color get() = when (DisplayModeState.mode) {
-    ThemeMode.LIGHT -> Color(0xFFE5E5EA)
     ThemeMode.PORCELAIN_DIM -> PorcelainDimRaised
     else -> Color(0xFF1B2233)
 }
 
 val Hairline: Color get() = when (DisplayModeState.mode) {
-    ThemeMode.LIGHT -> PorcelainSeparator
     ThemeMode.PORCELAIN_DIM -> PorcelainDimSeparator
     else -> Color(0xFF232C42)
 }
 
 /** Selected-row wash behind multi-selected transactions. */
 val SelectTint: Color get() = when (DisplayModeState.mode) {
-    ThemeMode.LIGHT -> Color(0x1A007AFF)
     ThemeMode.PORCELAIN_DIM -> Color(0x1A2F6AE0)
     else -> Color(0xFF10233F)
 }
 
 // ─── Type ─────────────────────────────────────────────────────────────────────
 val TextWhite: Color get() = when (DisplayModeState.mode) {
-    ThemeMode.LIGHT -> PorcelainText
     ThemeMode.PORCELAIN_DIM -> PorcelainDimText
     else -> Color(0xFFFFFFFF)
 }
 
 val TextGrey: Color get() = when (DisplayModeState.mode) {
-    ThemeMode.LIGHT -> Color(0xFF4B5563)
     ThemeMode.PORCELAIN_DIM -> PorcelainDimSecondaryText
     else -> Color(0xFF9E9E9E)
 }
 
 val TextDim: Color get() = when (DisplayModeState.mode) {
-    ThemeMode.LIGHT -> Color(0xFF6D6D72)
     ThemeMode.PORCELAIN_DIM -> PorcelainDimTertiaryText
     else -> Color(0xFF6B6B6B)
 }
@@ -150,15 +132,13 @@ val StatusFailedTint: Color get() = when (DisplayModeState.mode) {
 /** Queued stays **neutral** and identical across themes. */
 val StatusQueued: Color = SemanticGrey
 
-/** Stage 10 — chrome accent: brand blue family; iOS blue in Porcelain. */
+/** Stage 10 — chrome accent: brand blue family; iOS blue in Porcelain Dim. */
 val AccentBlue: Color get() = when (DisplayModeState.mode) {
-    ThemeMode.LIGHT -> IosBlue
     ThemeMode.PORCELAIN_DIM -> PorcelainDimAccent
     else -> BrandBlue
 }
 
 val ChartBlue: Color get() = when (DisplayModeState.mode) {
-    ThemeMode.LIGHT -> IosBlue
     ThemeMode.PORCELAIN_DIM -> PorcelainDimChartBlue
     else -> Color(0xFF5482FF)
 }
@@ -171,6 +151,22 @@ val FailRed: Color get() = when (DisplayModeState.mode) {
 
 /** Pending / scheduled rows carry no signal either way, so they stay grey. */
 val PendGrey: Color get() = SemanticGrey
+
+/**
+ * Stage 24 — vibrancy gradients for the Done/Failed/Queued counter tiles.
+ *
+ * Done   = blue gradient,  Failed = rose gradient, Queued = slate gradient.
+ * Tinted surfaces replace the flat wash so nothing reads as dull grey.
+ */
+val StatusDoneGradient: Brush = Brush.linearGradient(
+    colors = listOf(StatusDone.copy(alpha = 0.18f), StatusDone.copy(alpha = 0.06f))
+)
+val StatusFailedGradient: Brush = Brush.linearGradient(
+    colors = listOf(StatusFailedTint.copy(alpha = 0.18f), StatusFailedTint.copy(alpha = 0.06f))
+)
+val StatusQueuedGradient: Brush = Brush.linearGradient(
+    colors = listOf(StatusQueued.copy(alpha = 0.14f), StatusQueued.copy(alpha = 0.04f))
+)
 
 /**
  * Stage 10 — secondary text floor: 60% ink clears AA on every surface
@@ -194,7 +190,6 @@ val TickGreen: Color get() = Color(0xFF00C853)
 
 /** Translucent material fill for nav bars + page sheets (Stage 21 — porcelain dim). */
 val IosMaterialFill: Color get() = when (DisplayModeState.mode) {
-    ThemeMode.LIGHT -> Color(0xB8E2E4E8)
     ThemeMode.PORCELAIN_DIM -> Color(0xB8C9CED6)
     else -> Color(0xB80B0E15)
 }
@@ -215,7 +210,6 @@ val IOS_CARD_RADIUS: androidx.compose.ui.unit.Dp = 12.dp
  * hairline on the dark canvas.
  */
 val IosSeparator: Color get() = when (DisplayModeState.mode) {
-    ThemeMode.LIGHT -> PorcelainSeparator
     ThemeMode.PORCELAIN_DIM -> PorcelainDimSeparator
     else -> Hairline
 }
@@ -225,13 +219,11 @@ val IosSeparator: Color get() = when (DisplayModeState.mode) {
  * on a light fill; Obsidian keeps light ink on a raised fill.
  */
 val DisabledFill: Color get() = when (DisplayModeState.mode) {
-    ThemeMode.LIGHT -> Color(0xFFD1D1D6)
     ThemeMode.PORCELAIN_DIM -> PorcelainDimDisabledFill
     else -> Color(0xFF232323)
 }
 
 val DisabledInk: Color get() = when (DisplayModeState.mode) {
-    ThemeMode.LIGHT -> Color(0xFF3A3A3C)
     ThemeMode.PORCELAIN_DIM -> PorcelainDimDisabledInk
     else -> Color(0xFF9E9E9E)
 }
@@ -241,19 +233,13 @@ val DisabledInk: Color get() = when (DisplayModeState.mode) {
 val CtaFill: Color get() = AccentBlue
 
 /** Ink drawn on [CtaFill]. */
-val CtaInk: Color get() = when (DisplayModeState.mode) {
-    // Porcelain paints its blue chip with dark ink (the iOS way).
-    ThemeMode.LIGHT -> PorcelainText
-    // Obsidian and Porcelain Dim paint the blue chip with white ink.
-    else -> Color(0xFFFFFFFF)
-}
+val CtaInk: Color get() = Color(0xFFFFFFFF)
 
 /** The hairline that separates a solid chip from the background. */
 val CtaBorder: Color = Color.Transparent
 
 /** Stage 10 — secondary outline: hairline dark, grey light. */
 val SecondaryOutline: Color get() = when (DisplayModeState.mode) {
-    ThemeMode.LIGHT -> Color(0xFF8E8E93)
     ThemeMode.PORCELAIN_DIM -> Color(0xFF7C828C)
     else -> Hairline
 }

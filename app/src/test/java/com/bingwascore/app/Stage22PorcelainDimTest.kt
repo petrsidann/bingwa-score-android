@@ -61,7 +61,7 @@ class Stage22PorcelainDimTest {
 
     @Test
     fun `porcelain dim is a real third theme`() {
-        assertEquals(3, ThemeMode.entries.size)
+        assertEquals(2, ThemeMode.entries.size)
         assertEquals("Porcelain Dim", ThemeMode.PORCELAIN_DIM.label)
         assertEquals(ThemeMode.PORCELAIN_DIM, ThemeMode.fromValue("PORCELAIN_DIM"))
     }
