@@ -5,8 +5,11 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,11 +18,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Text
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -51,6 +59,7 @@ import com.bingwascore.app.ui.theme.isPorcelain
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.util.Random
 
 object SplashBrand {
     /** Stage 21 — the wordmark is ONE constant for the whole app. */
@@ -114,57 +123,44 @@ fun SplashScreenContent(
     settled: Boolean = false
 ) {
     if (settled) {
-        // The frame the choreography lands on: the monogram fully drawn, the
-        // wordmark fully in, the tagline breathing at rest.
         val trim = remember { Animatable(1f) }
         val glow = remember { Animatable(0f) }
-        val clock = remember { Animatable(1f) }
+        val bloom = remember { Animatable(1f) }
+        val sweep = remember { Animatable(1f) }
         val taglineBreath = remember { Animatable(0.72f) }
         val exitShrink = remember { Animatable(0f) }
         SplashStage(
             trim = trim,
             glow = glow,
-            clock = clock,
+            bloom = bloom,
+            sweep = sweep,
             taglineAlpha = 1f,
             taglineBreath = taglineBreath,
-            exitShrink = exitShrink
+            exitShrink = exitShrink,
+            skipReady = true
         )
         return
     }
 
-    // The draw-on is a real animation the Canvas samples every frame.
     val trim = remember { Animatable(0f) }
-
-    // One glow, one breath.
     val glow = remember { Animatable(0f) }
-
-    // The letters and the tagline ride one clock, so the stagger is exact.
-    val clock = remember { Animatable(0f) }
-
+    val bloom = remember { Animatable(0f) }
+    val sweep = remember { Animatable(0f) }
     var taglineTarget by remember { mutableFloatStateOf(0f) }
     val taglineAlpha by animateFloatAsState(
         targetValue = taglineTarget,
         animationSpec = tween(Motion.SPLASH_FADE),
         label = "splashTaglineAlpha"
     )
-
     val currentTarget by rememberUpdatedState(target)
     val currentOnFinish by rememberUpdatedState(onFinish)
-
-    // Stage 11 — exit beat: the monogram shrinks into the login logo position
-    // (shared-element crossfade) over 200ms before the route fires.
     val exitShrink = remember { Animatable(0f) }
-
-    // Stage 11 — tagline breath: one gentle inhale/exhale after it lands
-    // (single cycle, never a loop).
     val taglineBreath = remember { Animatable(0f) }
+    var skipReady by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         trim.animateTo(1f, tween(Motion.SPLASH_DRAW, easing = LinearEasing))
-
-        // The glow and the wordmark overlap on purpose: the light is still
-        // breathing when the first letter arrives, which is what makes the
-        // moment feel composed rather than queued.
         coroutineScope {
             launch {
                 delay((Motion.SPLASH_GLOW_START - Motion.SPLASH_DRAW).toLong().coerceAtLeast(0))
@@ -178,71 +174,82 @@ fun SplashScreenContent(
                 )
             }
             launch {
-                delay((Motion.SPLASH_WORDMARK_START - Motion.SPLASH_DRAW).toLong().coerceAtLeast(0))
-                clock.animateTo(
-                    targetValue = 1f,
-                    animationSpec = tween(Motion.SPLASH_TAGLINE_START - Motion.SPLASH_WORDMARK_START)
-                )
+                delay(Motion.SPLASH_DRAW.toLong())
+                bloom.animateTo(1f, tween(400))
+            }
+            launch {
+                delay(Motion.SPLASH_WORDMARK_START.toLong())
+                sweep.animateTo(1f, tween(400))
+            }
+            launch {
+                delay(Motion.SPLASH_TAGLINE_START.toLong())
+                taglineTarget = 1f
+                taglineBreath.animateTo(1f, tween(180))
+                taglineBreath.animateTo(0.72f, tween(360))
             }
         }
-        taglineTarget = 1f
-        // Stage 11 — the tagline breathes once as it settles: inhale over 180ms,
-        // ease back to 0.72 — a single cycle that reads as life, not a spinner.
         launch {
-            taglineBreath.animateTo(1f, tween(180))
-            taglineBreath.animateTo(0.72f, tween(360))
+            delay(1000)
+            skipReady = true
         }
-
-        delay((Motion.SPLASH_TOTAL - Motion.SPLASH_TAGLINE_START).toLong())
+        delay(Motion.SPLASH_TOTAL.toLong())
         var resolved = currentTarget
         while (resolved == null) {
             delay(30)
             resolved = currentTarget
         }
-        // Stage 11 — shrink into the login logo position (shared-element
-        // crossfade, 200ms) so the hand-off never cuts.
         exitShrink.animateTo(1f, tween(200))
         currentOnFinish(resolved)
     }
 
-    SplashStage(
-        trim = trim,
-        glow = glow,
-        clock = clock,
-        taglineAlpha = taglineAlpha,
-        taglineBreath = taglineBreath,
-        exitShrink = exitShrink
-    )
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .clickable(enabled = skipReady, onClick = {
+                scope.launch {
+                    exitShrink.animateTo(1f, tween(200))
+                    delay(200)
+                    currentOnFinish(currentTarget ?: "")
+                }
+            })
+    ) {
+        SplashStage(
+            trim = trim,
+            glow = glow,
+            bloom = bloom,
+            sweep = sweep,
+            taglineAlpha = taglineAlpha,
+            taglineBreath = taglineBreath,
+            exitShrink = exitShrink,
+            skipReady = skipReady
+        )
+    }
 }
 
+
 /**
- * Stage 19.7 — the splash stage itself: the monogram, the wordmark and the
- * tagline, drawn from plain values so both the live choreography and a
- * snapshot render the same thing.
+ * Stage 24 — the splash stage: monogram stroke-draw with glowing tip + spark
+ * particles, completion bloom ring, mask-sweep wordmark, tagline fade-up,
+ * shared-element hand-off.
  */
 @Composable
 private fun SplashStage(
     trim: Animatable<Float, androidx.compose.animation.core.AnimationVector1D>,
     glow: Animatable<Float, androidx.compose.animation.core.AnimationVector1D>,
-    clock: Animatable<Float, androidx.compose.animation.core.AnimationVector1D>,
+    bloom: Animatable<Float, androidx.compose.animation.core.AnimationVector1D>,
+    sweep: Animatable<Float, androidx.compose.animation.core.AnimationVector1D>,
     taglineAlpha: Float,
     taglineBreath: Animatable<Float, androidx.compose.animation.core.AnimationVector1D>,
-    exitShrink: Animatable<Float, androidx.compose.animation.core.AnimationVector1D>
+    exitShrink: Animatable<Float, androidx.compose.animation.core.AnimationVector1D>,
+    skipReady: Boolean
 ) {
-    // Stage 21 — the ink is decided once, per theme: white on obsidian, dark
-    // on dim porcelain. The layout is identical, so the two splash screens
-    // never jump between themes.
     val ink = splashInk(dark = !isPorcelain)
+    val density = LocalDensity.current.density
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(BgBlack)
     ) {
-        // Stage 21 — the halo: ONE soft blue radial glow behind the monogram,
-        // in BOTH themes, at rest and during the ignition pulse. On dim
-        // porcelain it reads as light on paper; on obsidian it reads as light
-        // in the dark. The light splash therefore carries the same
-        // choreography as the dark one — no layout jump, no missing beat.
         Canvas(
             modifier = Modifier
                 .align(Alignment.Center)
@@ -260,14 +267,41 @@ private fun SplashStage(
                 ),
                 radius = size.minDimension / 2f
             )
-            // The shockwave: one expanding hairline, alive only while the
-            // glow pulses (so the resting frame stays clean).
             if (pulse > 0.01f) {
                 drawCircle(
                     color = AccentBlue.copy(alpha = 0.35f * pulse),
                     radius = size.minDimension * (0.22f + 0.16f * pulse),
                     center = center,
                     style = Stroke(width = 2f)
+                )
+            }
+            // Stage 24 — spark particles: bright dots that flash along the
+            // stroke while the monogram draws.
+            val spark = trim.value
+            if (spark > 0.01f) {
+                val measure = PathMeasure().apply { setPath(Monogram.path, false) }
+                val len = measure.length
+                val rnd = Random(42)
+                for (i in 0 until 6) {
+                    val f = ((i * 0.13f + spark * 0.05f) % 1f).coerceIn(0f, 1f)
+                    val pos = measure.getPosition(len * f)
+                    val zoom = size.minDimension / 108f
+                    val alpha = (1f - (spark * 0.8f).coerceIn(0f, 1f)) * 0.9f
+                    drawCircle(
+                        color = Color.White.copy(alpha = alpha),
+                        radius = 3f * zoom,
+                        center = Offset(pos.x * zoom, pos.y * zoom)
+                    )
+                }
+            }
+            // Stage 24 — completion bloom ring: expands once the stroke is done.
+            val b = bloom.value
+            if (b > 0.01f) {
+                drawCircle(
+                    color = AccentBlue.copy(alpha = 0.25f * b),
+                    radius = size.minDimension * (0.5f + 0.9f * b),
+                    center = center,
+                    style = Stroke(width = 3f)
                 )
             }
         }
@@ -280,8 +314,6 @@ private fun SplashStage(
                 modifier = Modifier
                     .size(132.dp)
                     .graphicsLayer {
-                        // Stage 11 — shared-element exit: shrink toward the login
-                        // logo position while fading the stage out.
                         val t = exitShrink.value
                         scaleX = 1f - 0.55f * t
                         scaleY = 1f - 0.55f * t
@@ -290,13 +322,12 @@ private fun SplashStage(
                     }
             ) {
                 drawMonogram(trim.value, glow.value, ink)
-                // Stage 11 — glowing traveling tip rides the stroke head.
                 drawTravelingTip(trim.value)
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            StaggeredWordmark(text = BrandWordmark.TEXT, clock = clock.value, ink = ink)
+            MaskSweepWordmark(text = BrandWordmark.TEXT, sweep = sweep.value, ink = ink)
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -305,15 +336,58 @@ private fun SplashStage(
                 color = TextGrey,
                 fontSize = BingwaType.Footnote,
                 fontWeight = FontWeight.Normal,
-                // Stage 11 — tagline breathes: alpha rides the tagline clock
-                // with a soft inhale once it lands (no loop).
-                modifier = Modifier.alpha(taglineAlpha * (0.92f + 0.08f * taglineBreath.value))
+                modifier = Modifier
+                    .alpha(taglineAlpha * (0.92f + 0.08f * taglineBreath.value))
+                    .graphicsLayer { translationY = (1f - taglineAlpha) * 10f * density }
             )
         }
     }
 }
 
-/** The wordmark, as its own constant: one source for the stagger width. */
+/** Stage 24 — wordmark revealed by a left-to-right mask sweep (not typewriter). */
+@Composable
+private fun MaskSweepWordmark(text: String, sweep: Float, ink: Color) {
+    val density = LocalDensity.current.density
+    Box(
+        modifier = Modifier
+            .size(260.dp, 40.dp)
+            .clip(RoundedCornerShape(4.dp))
+            .background(BgBlack)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer {
+                    scaleX = 0.92f + 0.08f * sweep
+                    scaleY = 0.92f + 0.08f * sweep
+                    translationY = (1f - sweep) * 8f * density
+                    alpha = sweep
+                }
+        ) {
+            text.forEachIndexed { index, char ->
+                Text(
+                    text = char.toString(),
+                    color = ink,
+                    fontSize = BingwaType.Title,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+    }
+    // Mask sweep: an opaque rect that wipes across revealing the wordmark.
+    Box(
+        modifier = Modifier
+            .size(260.dp, 40.dp)
+            .clip(RoundedCornerShape(4.dp))
+            .background(Color.White)
+            .graphicsLayer {
+                scaleX = 1f - sweep
+                translationX = (1f - sweep) * 260f * density
+                alpha = 1f - sweep
+            }
+    )
+}
+
 internal val SPLASH_WORDMARK: String = BrandWordmark.TEXT
 
 /**

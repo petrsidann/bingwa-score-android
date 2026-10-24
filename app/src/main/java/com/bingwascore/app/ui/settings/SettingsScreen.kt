@@ -496,7 +496,6 @@ private fun ThemePreviewCard(
                 Text(
                     text = when (mode) {
                         ThemeMode.DARK -> "Dark canvas, brand blue"
-                        ThemeMode.LIGHT -> "iMessage-grade light, iOS blue"
                         ThemeMode.PORCELAIN_DIM -> "Dimmed lights, soft blue accents"
                     },
                     color = TextWhite.copy(alpha = 0.55f),
@@ -533,17 +532,14 @@ private fun ThemePreviewCard(
 private fun ThemePreviewStrip(mode: ThemeMode, selected: Boolean) {
     val shape = RoundedCornerShape(12.dp)
     val canvas = when (mode) {
-        ThemeMode.LIGHT -> Color(0xFFF2F2F7)
         ThemeMode.PORCELAIN_DIM -> Color(0xFFC9CED6)
         else -> Color(0xFF0B0E15)
     }
     val surface = when (mode) {
-        ThemeMode.LIGHT -> Color(0xFFFFFFFF)
         ThemeMode.PORCELAIN_DIM -> Color(0xFFDBDFE5)
         else -> Color(0xFF131824)
     }
     val chrome = when (mode) {
-        ThemeMode.LIGHT -> Color(0xFF007AFF)
         ThemeMode.PORCELAIN_DIM -> Color(0xFF2F6AE0)
         else -> Color(0xFF2563EB)
     }

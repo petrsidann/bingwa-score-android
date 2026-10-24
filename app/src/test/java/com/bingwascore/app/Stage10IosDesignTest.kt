@@ -1,27 +1,19 @@
 package com.bingwascore.app
 
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
-import com.bingwascore.app.domain.ThemeMode
 import com.bingwascore.app.ui.theme.AccentBlue
 import com.bingwascore.app.ui.theme.BrandBlue
 import com.bingwascore.app.ui.theme.IOS_CARD_RADIUS
-import com.bingwascore.app.ui.theme.IosBlue
 import com.bingwascore.app.ui.theme.Motion
-import com.bingwascore.app.ui.theme.PorcelainBg
-import com.bingwascore.app.ui.theme.PorcelainCard
-import com.bingwascore.app.ui.theme.PorcelainSeparator
-import com.bingwascore.app.ui.theme.PorcelainText
-import com.bingwascore.app.ui.theme.installDisplayMode
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
 
 /**
- * Stage 10 — iOS design system:
+ * Stage 24 — iOS design system: Obsidian + Porcelain Dim (default).
+ *
  * - Zero Silica/Grayscale references in app sources.
- * - Porcelain exact hex; both themes compile (tokens resolve per mode).
  * - iOS language numbers: 12dp cards, 34sp titles, 17sp body, capsule CTA,
  *   28dp floating pill, springs 0.35/0.86, press 0.98.
  */
@@ -51,22 +43,6 @@ class Stage10IosDesignTest {
             }.filterNot { it.startsWith("Models.kt") }
             .toList()
         assertTrue("legacy theme refs remain: $hits", hits.isEmpty())
-    }
-
-    @Test
-    fun porcelainHexAndBothThemesResolve() {
-        // Stage 21 — Porcelain Dim: ~15% darker, glare-free, still AA.
-        assertEquals(0xFFE2E4E8.toInt(), PorcelainBg.toArgb())
-        assertEquals(0xFFF7F8FA.toInt(), PorcelainCard.toArgb())
-        assertEquals(0xFF16181D.toInt(), PorcelainText.toArgb())
-        assertEquals(0x4A3C3C43.toInt(), PorcelainSeparator.toArgb())
-        assertEquals(0xFF007AFF.toInt(), IosBlue.toArgb())
-        assertEquals(0xFF2563EB.toInt(), BrandBlue.toArgb())
-        installDisplayMode(ThemeMode.LIGHT)
-        assertEquals(PorcelainBg.toArgb(), com.bingwascore.app.ui.theme.BgBlack.toArgb())
-        assertEquals(IosBlue.toArgb(), AccentBlue.toArgb())
-        installDisplayMode(ThemeMode.DARK)
-        assertEquals(BrandBlue.toArgb(), AccentBlue.toArgb())
     }
 
     @Test

@@ -50,24 +50,7 @@ class Stage19ScreensPreviewTest {
     }
 
     @Test
-    fun homeLight() = snapshot(ThemeMode.LIGHT) {
-        HomeScreenContent(state = FakeHome.state, haptics = Haptics.Disabled)
-    }
-
-    @Test
     fun homeEmptyDark() = snapshot(ThemeMode.DARK) {
-        HomeScreenContent(
-            state = FakeHome.state.copy(
-                transactions = emptyList(),
-                creditsLabel = "0",
-                engineState = EngineState.STOPPED
-            ),
-            haptics = Haptics.Disabled
-        )
-    }
-
-    @Test
-    fun homeEmptyLight() = snapshot(ThemeMode.LIGHT) {
         HomeScreenContent(
             state = FakeHome.state.copy(
                 transactions = emptyList(),
@@ -85,20 +68,10 @@ class Stage19ScreensPreviewTest {
         OffersScreenContent(state = FakeOffers.state, haptics = Haptics.Disabled)
     }
 
-    @Test
-    fun offersLight() = snapshot(ThemeMode.LIGHT) {
-        OffersScreenContent(state = FakeOffers.state, haptics = Haptics.Disabled)
-    }
-
     // ── Dialer ──────────────────────────────────────────────────────────────
 
     @Test
     fun dialerDark() = snapshot(ThemeMode.DARK) {
-        DialerScreenContent(state = FakeDialer.state)
-    }
-
-    @Test
-    fun dialerLight() = snapshot(ThemeMode.LIGHT) {
         DialerScreenContent(state = FakeDialer.state)
     }
 
@@ -109,20 +82,10 @@ class Stage19ScreensPreviewTest {
         TransactionsScreenContent(state = FakeTransactions.state)
     }
 
-    @Test
-    fun transactionsLight() = snapshot(ThemeMode.LIGHT) {
-        TransactionsScreenContent(state = FakeTransactions.state)
-    }
-
     // ── Profile ─────────────────────────────────────────────────────────────
 
     @Test
     fun profileDark() = snapshot(ThemeMode.DARK) {
-        ProfileScreenContent(state = FakeProfile.state)
-    }
-
-    @Test
-    fun profileLight() = snapshot(ThemeMode.LIGHT) {
         ProfileScreenContent(state = FakeProfile.state)
     }
 
@@ -159,19 +122,9 @@ class Stage19ScreensPreviewTest {
         MyPlanScreenContent(state = FakeMyPlan.state, haptics = Haptics.Disabled)
     }
 
-    @Test
-    fun myPlanLight() = snapshot(ThemeMode.LIGHT) {
-        MyPlanScreenContent(state = FakeMyPlan.state, haptics = Haptics.Disabled)
-    }
-
     /** BULK ENGINE family, on a plan with no CTA-blocked page: the price CTA. */
     @Test
     fun myPlanBulkDark() = snapshot(ThemeMode.DARK) {
-        MyPlanScreenContent(state = FakeMyPlan.bulkState, haptics = Haptics.Disabled)
-    }
-
-    @Test
-    fun myPlanBulkLight() = snapshot(ThemeMode.LIGHT) {
         MyPlanScreenContent(state = FakeMyPlan.bulkState, haptics = Haptics.Disabled)
     }
 
