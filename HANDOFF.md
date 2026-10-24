@@ -1,5 +1,17 @@
 # ULTRA session end — handoff
 
+## STEP 0 resume state (2026-10-24, Stage 24 shipped)
+
+- Shipped+green: Stages 1–23 + **Stage 24 (first-impression overhaul)**. U1 USSD engine + E1 balance/dial protected.
+- **Stage 24 — FIRST-IMPRESSION OVERHAUL**:
+  - **Themes**: deleted ThemeMode.PORCELAIN (LIGHT); exactly two themes remain — OBSIDIAN (DARK) + PORCELAIN_DIM (default PORCELAIN_DIM). Migrated all references, removed porcelain goldens, updated tests (ThemeModeTest entries==2, U4ThemesTest, U8QaSweepTest, Stage10IosDesignTest, Stage22PorcelainDimTest).
+  - **Home toggle**: sun/moon pill toggle (spring thumb) on Home top bar immediately LEFT of the credits/"days" chip; persists via UserPreferences.themeMode; 200ms surface cross-fade. Dark=moon, Dim=sun.
+  - **Splash cinematics** (both themes): monogram stroke-draw with glowing tip + spark particles -> completion bloom ring -> wordmark mask-sweep reveal (not typewriter) -> tagline fade-up -> shared-element handoff (monogram shrinks to toolbar, one clean dissolve); <=1.9s total (Motion.SPLASH_TOTAL=1900); skippable after 1s. Obsidian = dark canvas + blue glow; Dim = dim porcelain + dark-ink monogram + soft blue halo.
+  - **Dim vibrancy**: Done/Failed/Queued counter tiles get tinted gradient surfaces (blue/rose/slate) + soft elevation shadows; commission chart gradient fill; no flat dull grey.
+  - **Eyes**: goldens for splash (dark + dim porcelain), home (dark + dim porcelain), onboarding pages (dim porcelain); recorded via loop.ps1; agent eyes copied to docs/gate/ (39 PNGs).
+- `:app:assembleDebug` + `:app:testDebugUnitTest` + `:app:recordPaparazziDebug` green.
+- Next group: **U6 snake carousel** -> U7.1 credits+pass -> U7.2 real updates -> U8 QA + 1.8.0 release.
+
 ## STEP 0 resume state (2026-10-22, Stage 22 shipped)
 
 - Shipped+green: Stages 1–21 + **Stage 22 (porcelain dim + lag sweep + check-for-updates + 1.9.1)**. U1 USSD engine + E1 balance/dial protected.
