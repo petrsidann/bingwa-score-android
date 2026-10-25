@@ -46,6 +46,9 @@ class UserPreferences @Inject constructor(
         val ENGINE_STATE = stringPreferencesKey("engine_state")
         val SETUP_COMPLETE = booleanPreferencesKey("setup_complete")
         val PHONE = stringPreferencesKey("user_phone")
+        val ACCOUNT_TYPE = stringPreferencesKey("account_type")
+        val USER_EMAIL = stringPreferencesKey("user_email")
+        val USER_PIN = stringPreferencesKey("user_pin")
         // Parity F — last dialled customer number, prefilled into the silent batch.
         val LAST_DIAL_PHONE = stringPreferencesKey("last_dial_phone")
         val REFERRAL_CODE = stringPreferencesKey("referral_code")
@@ -127,6 +130,9 @@ class UserPreferences @Inject constructor(
         context.dataStore.data.map { it[Keys.SETUP_COMPLETE] ?: false }
 
     val phone: Flow<String> = context.dataStore.data.map { it[Keys.PHONE] ?: "" }
+    val accountType: Flow<String> = context.dataStore.data.map { it[Keys.ACCOUNT_TYPE] ?: "Individual" }
+    val email: Flow<String> = context.dataStore.data.map { it[Keys.USER_EMAIL] ?: "" }
+    val pin: Flow<String> = context.dataStore.data.map { it[Keys.USER_PIN] ?: "" }
 
     /** Parity F — phone of the most recent dial, prefilled in the batch dial sheet. */
     val lastDialPhone: Flow<String> =
@@ -263,6 +269,12 @@ class UserPreferences @Inject constructor(
     suspend fun setSetupComplete(value: Boolean) = edit { it[Keys.SETUP_COMPLETE] = value }
 
     suspend fun setPhone(value: String) = edit { it[Keys.PHONE] = value }
+
+    suspend fun setAccountType(value: String) = edit { it[Keys.ACCOUNT_TYPE] = value }
+
+    suspend fun setEmail(value: String) = edit { it[Keys.USER_EMAIL] = value }
+
+    suspend fun setPin(value: String) = edit { it[Keys.USER_PIN] = value }
 
     /** Parity F — remember the last dialled customer for the silent batch dial. */
     suspend fun setLastDialPhone(value: String) = edit { it[Keys.LAST_DIAL_PHONE] = value }

@@ -31,8 +31,12 @@ import javax.inject.Inject
 data class ProfileEditState(
     val isEditing: Boolean = false,
     val isSaving: Boolean = false,
+    val isReauthenticating: Boolean = false,
+    val accountType: String = "Individual",
     val name: String = "",
     val phone: String = "",
+    val email: String = "",
+    val pinToConfirm: String = "",
     val errorMessage: String? = null,
     val savedMessage: String? = null
 )
@@ -49,7 +53,13 @@ class ProfileViewModel @Inject constructor(
     val userName: StateFlow<String> = userPreferences.userName
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), "Bingwa User")
 
+    val accountType: StateFlow<String> = userPreferences.accountType
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), "Individual")
+
     val phone: StateFlow<String> = userPreferences.phone
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), "")
+
+    val email: StateFlow<String> = userPreferences.email
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), "")
 
     val engineEnabled: StateFlow<Boolean> = userPreferences.engineEnabled
@@ -86,8 +96,10 @@ class ProfileViewModel @Inject constructor(
         viewModelScope.launch {
             _editState.value = ProfileEditState(
                 isEditing = true,
+                accountType = userPreferences.accountType.first(),
                 name = userPreferences.userName.first(),
-                phone = userPreferences.phone.first()
+                phone = userPreferences.phone.first(),
+                email = userPreferences.email.first()
             )
         }
     }
@@ -98,6 +110,10 @@ class ProfileViewModel @Inject constructor(
     }
 
     /** Updates one field and clears any stale error so the agent can retry. */
+    fun updateAccountType(value: String) {
+        _editState.value = _editState.value.copy(accountType = value, errorMessage = null)
+    }
+
     fun updateName(value: String) {
         _editState.value = _editState.value.copy(name = value, errorMessage = null)
     }
@@ -106,33 +122,62 @@ class ProfileViewModel @Inject constructor(
         _editState.value = _editState.value.copy(phone = value, errorMessage = null)
     }
 
-    /**
-     * Validates and persists the profile.
-     *
-     * Rejects a blank name and a malformed phone BEFORE writing, so the stored
-     * profile can never be left in a half-edited, unusable state.
-     */
-    fun saveProfile() {
+    fun updateEmail(value: String) {
+        _editState.value = _editState.value.copy(email = value, errorMessage = null)
+    }
+
+    fun updatePinToConfirm(value: String) {
+        _editState.value = _editState.value.copy(pinToConfirm = value.filter { it.isDigit() }, errorMessage = null)
+    }
+
+    fun promptReauth() {
         val current = _editState.value
         val name = current.name.trim()
-        val phoneDigits = current.phone.filter { it.isDigit() }
+        val cleanPhone = com.bingwascore.app.util.formatPhoneToTenDigits(current.phone)
 
         if (name.isEmpty()) {
             _editState.value = current.copy(errorMessage = "Name cannot be empty")
             return
         }
-        if (phoneDigits.length !in 9..12) {
+        if (!com.bingwascore.app.util.isTenDigitPhone(cleanPhone)) {
             _editState.value = current.copy(
-                errorMessage = "Enter a valid phone number — 10 digits, e.g. 0712345678"
+                errorMessage = "Enter a valid Kenyan phone number (e.g. 0712345678)"
             )
             return
         }
+        if (!current.email.contains("@") || !current.email.contains(".")) {
+            _editState.value = current.copy(errorMessage = "Enter a valid email address")
+            return
+        }
 
-        _editState.value = current.copy(isSaving = true, errorMessage = null)
+        _editState.value = current.copy(isReauthenticating = true, errorMessage = null)
+    }
+
+    fun cancelReauth() {
+        _editState.value = _editState.value.copy(isReauthenticating = false, pinToConfirm = "", errorMessage = null)
+    }
+
+    fun saveProfile() {
+        val current = _editState.value
+        val name = current.name.trim()
+        val cleanPhone = com.bingwascore.app.util.formatPhoneToTenDigits(current.phone)
+
         viewModelScope.launch {
+            val storedPin = userPreferences.pin.first()
+            if (storedPin.isNotEmpty() && current.pinToConfirm != storedPin) {
+                _editState.value = current.copy(
+                    isSaving = false,
+                    errorMessage = "That PIN doesn't match - try again"
+                )
+                return@launch
+            }
+
+            _editState.value = current.copy(isSaving = true, errorMessage = null)
             try {
+                userPreferences.setAccountType(current.accountType)
                 userPreferences.setUserName(name)
-                userPreferences.setPhone(phoneDigits)
+                userPreferences.setPhone(cleanPhone)
+                userPreferences.setEmail(current.email.trim())
                 _editState.value = ProfileEditState(savedMessage = "Profile updated")
             } catch (t: Throwable) {
                 _editState.value = current.copy(

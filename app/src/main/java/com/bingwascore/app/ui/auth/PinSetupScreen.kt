@@ -3,6 +3,7 @@ package com.bingwascore.app.ui.auth
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,11 +11,23 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import com.bingwascore.app.ui.theme.TickGreen
+import com.bingwascore.app.util.rememberHaptics
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -66,55 +79,126 @@ fun PinSetupScreen(
             .background(BgBlack)
     ) {
 
+        val haptics = rememberHaptics()
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .statusBarsPadding()
                 .padding(horizontal = 20.dp)
+                .navigationBarsPadding()
+                .imePadding()
         ) {
             Spacer(modifier = Modifier.height(24.dp))
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    "Set up your PIN",
+                    "Create Account",
                     color = TextWhite,
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.weight(1f)
                 )
-                Text(
-                    "Back",
-                    color = TextWhite.copy(alpha = 0.6f),
-                    fontSize = 13.sp,
+                Box(
                     modifier = Modifier
+                        .size(48.dp)
                         .clip(RoundedCornerShape(10.dp))
-                        .clickable { onBack() }
-                        .padding(horizontal = 10.dp, vertical = 6.dp)
-                )
+                        .clickable { onBack() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        "Back",
+                        color = TextWhite.copy(alpha = 0.6f),
+                        fontSize = 14.sp
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(6.dp))
             Text(
-                "Create an agent account. Your PIN unlocks purchases on this phone.",
+                "Sign up as an agent. Your PIN unlocks transactions on this device.",
                 color = TextWhite.copy(alpha = 0.5f),
                 fontSize = 13.sp
             )
 
             Spacer(modifier = Modifier.height(20.dp))
+
             BubbleCard(modifier = Modifier.fillMaxWidth()) {
+                // Account Type Toggle
+                Text("Account Type", color = TextFaint, fontSize = 11.sp)
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(Bubble)
+                        .border(1.dp, Hairline, RoundedCornerShape(14.dp))
+                        .padding(4.dp)
+                ) {
+                    listOf("Individual", "Business").forEach { type ->
+                        val selected = state.accountType.equals(type, ignoreCase = true)
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(44.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(if (selected) AccentBlue else androidx.compose.ui.graphics.Color.Transparent)
+                                .clickable {
+                                    haptics.tick()
+                                    viewModel.updateAccountType(type)
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                type,
+                                color = if (selected) com.bingwascore.app.ui.theme.BgBlack else TextWhite,
+                                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                                fontSize = 14.sp
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
                 PinField(
-                    label = "Phone number",
-                    value = state.phone,
-                    onValueChange = viewModel::updatePhone,
-                    placeholder = "0712345678"
+                    label = if (state.accountType == "Business") "Business Name" else "Full Name",
+                    value = state.name,
+                    onValueChange = viewModel::updateName,
+                    placeholder = if (state.accountType == "Business") "e.g. Bingwa Telecoms" else "e.g. Jane Doe",
+                    keyboardType = KeyboardType.Text
                 )
 
                 Spacer(modifier = Modifier.height(14.dp))
 
                 PinField(
-                    label = "PIN",
+                    label = "Phone Number (Kenyan)",
+                    value = state.phone,
+                    onValueChange = viewModel::updatePhone,
+                    placeholder = "0712345678",
+                    keyboardType = KeyboardType.Phone
+                )
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                PinField(
+                    label = "Email Address",
+                    value = state.email,
+                    onValueChange = viewModel::updateEmail,
+                    placeholder = "agent@example.com",
+                    keyboardType = KeyboardType.Email
+                )
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                PinField(
+                    label = "PIN (4+ digits)",
                     value = state.pin,
                     onValueChange = viewModel::updatePin,
-                    placeholder = "At least 4 digits"
+                    placeholder = "At least 4 digits",
+                    isPassword = true,
+                    keyboardType = KeyboardType.NumberPassword
                 )
 
                 Spacer(modifier = Modifier.height(14.dp))
@@ -123,21 +207,51 @@ fun PinSetupScreen(
                     label = "Confirm PIN",
                     value = state.confirmPin,
                     onValueChange = viewModel::updateConfirmPin,
-                    placeholder = "Repeat your PIN"
+                    placeholder = "Repeat your PIN",
+                    isPassword = true,
+                    keyboardType = KeyboardType.NumberPassword
                 )
 
                 state.errorMessage?.let { message ->
                     Spacer(modifier = Modifier.height(12.dp))
-                    Text(message, color = FailRed, fontSize = 12.sp)
+                    Text(message, color = FailRed, fontSize = 12.sp, fontWeight = FontWeight.Medium)
                 }
 
-                Spacer(modifier = Modifier.height(18.dp))
-                PrimaryButton(
-                    text = if (state.isLoading) "Creating…" else "Create account",
-                    enabled = state.isSubmittable && !state.isLoading,
-                    onClick = viewModel::submit
-                )
+                Spacer(modifier = Modifier.height(20.dp))
+
+                if (state.isSuccess) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.CheckCircle,
+                            contentDescription = "Success",
+                            tint = TickGreen,
+                            modifier = Modifier.size(28.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Account Created!", color = TickGreen, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    }
+                    LaunchedEffect(Unit) {
+                        haptics.tick()
+                    }
+                } else {
+                    PrimaryButton(
+                        text = "Create Account",
+                        loading = state.isLoading,
+                        loadingText = "Creating Account…",
+                        enabled = state.isSubmittable && !state.isLoading,
+                        onClick = {
+                            haptics.press()
+                            viewModel.submit()
+                        },
+                        modifier = Modifier.fillMaxWidth().height(48.dp)
+                    )
+                }
             }
+            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }
@@ -148,7 +262,9 @@ private fun PinField(
     label: String,
     value: String,
     onValueChange: (String) -> Unit,
-    placeholder: String
+    placeholder: String,
+    isPassword: Boolean = false,
+    keyboardType: KeyboardType = KeyboardType.Text
 ) {
     Column {
         Text(label, color = TextFaint, fontSize = 11.sp)
@@ -165,8 +281,9 @@ private fun PinField(
                 value = value,
                 onValueChange = onValueChange,
                 singleLine = true,
-                textStyle = TextStyle(color = TextWhite, fontSize = 16.sp, letterSpacing = 1.sp),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                textStyle = TextStyle(color = TextWhite, fontSize = 16.sp),
+                keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+                visualTransformation = if (isPassword) androidx.compose.ui.text.input.PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
                 cursorBrush = SolidColor(AccentBlue),
                 modifier = Modifier.fillMaxWidth()
             )
