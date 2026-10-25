@@ -66,7 +66,9 @@ import com.bingwascore.app.util.screenEnter
  */
 data class ProfileScreenState(
     val userName: String = "Bingwa User",
+    val accountType: String = "Individual",
     val phone: String = "",
+    val email: String = "",
     val levelName: String = "Bronze",
     val score: Int = 0,
     val engineEnabled: Boolean = true,
@@ -74,14 +76,18 @@ data class ProfileScreenState(
     val editState: ProfileEditState = ProfileEditState()
 )
 
-/** Stage 19.7 — every Profile side effect as a plain callback. */
 data class ProfileScreenCallbacks(
     val onMyStore: () -> Unit = {},
     val onReferEarn: () -> Unit = {},
     val onSettings: () -> Unit = {},
     val onAbout: () -> Unit = {},
+    val onUpdateAccountType: (String) -> Unit = {},
     val onUpdateName: (String) -> Unit = {},
     val onUpdatePhone: (String) -> Unit = {},
+    val onUpdateEmail: (String) -> Unit = {},
+    val onUpdatePinToConfirm: (String) -> Unit = {},
+    val onPromptReauth: () -> Unit = {},
+    val onCancelReauth: () -> Unit = {},
     val onSave: () -> Unit = {},
     val onCancelEditing: () -> Unit = {},
     val onStartEditing: () -> Unit = {},
@@ -98,7 +104,9 @@ fun ProfileScreen(
 ) {
     // STAGE 19.7 — the wrapper owns the ViewModel; the content below is pure.
     val userName by viewModel.userName.collectAsStateWithLifecycle()
+    val accountType by viewModel.accountType.collectAsStateWithLifecycle()
     val phone by viewModel.phone.collectAsStateWithLifecycle()
+    val email by viewModel.email.collectAsStateWithLifecycle()
     val levelName by viewModel.levelName.collectAsStateWithLifecycle()
     val score by viewModel.score.collectAsStateWithLifecycle()
     val engineEnabled by viewModel.engineEnabled.collectAsStateWithLifecycle()
@@ -107,7 +115,9 @@ fun ProfileScreen(
 
     val state = ProfileScreenState(
         userName = userName,
+        accountType = accountType,
         phone = phone,
+        email = email,
         levelName = levelName,
         score = score,
         engineEnabled = engineEnabled,
@@ -120,8 +130,13 @@ fun ProfileScreen(
         onReferEarn = onReferEarn,
         onSettings = onSettings,
         onAbout = onAbout,
+        onUpdateAccountType = viewModel::updateAccountType,
         onUpdateName = viewModel::updateName,
         onUpdatePhone = viewModel::updatePhone,
+        onUpdateEmail = viewModel::updateEmail,
+        onUpdatePinToConfirm = viewModel::updatePinToConfirm,
+        onPromptReauth = viewModel::promptReauth,
+        onCancelReauth = viewModel::cancelReauth,
         onSave = viewModel::saveProfile,
         onCancelEditing = viewModel::cancelEditing,
         onStartEditing = viewModel::startEditing,
@@ -171,14 +186,40 @@ fun ProfileScreenContent(
                 Spacer(modifier = Modifier.width(14.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     if (state.editState.isEditing) {
-                        ProfileField("Name", state.editState.name, callbacks.onUpdateName)
+                        ProfileField("Account Type", state.editState.accountType, callbacks.onUpdateAccountType)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        ProfileField("Name / Business", state.editState.name, callbacks.onUpdateName)
                         Spacer(modifier = Modifier.height(8.dp))
                         ProfileField("Phone", state.editState.phone, callbacks.onUpdatePhone)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        ProfileField("Email", state.editState.email, callbacks.onUpdateEmail)
                     } else {
-                        Text(state.userName, color = TextWhite, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(state.userName, color = TextWhite, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(Bubble)
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Text(
+                                    state.accountType,
+                                    color = AccentBlue,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             state.phone.ifEmpty { "No phone set" },
-                            color = TextWhite.copy(alpha = 0.5f),
+                            color = TextWhite.copy(alpha = 0.6f),
+                            fontSize = 12.sp
+                        )
+                        Text(
+                            state.email.ifEmpty { "No email set" },
+                            color = TextWhite.copy(alpha = 0.6f),
                             fontSize = 12.sp
                         )
                     }
@@ -192,33 +233,66 @@ fun ProfileScreenContent(
                 Text("Score: ${state.score} pts", color = TextWhite.copy(alpha = 0.7f), fontSize = 13.sp)
             }
 
-            // Inline validation + save state, exactly like the offer settings form.
+            // Inline validation + save state
             state.editState.errorMessage?.let {
                 Spacer(modifier = Modifier.height(10.dp))
-                Text(it, color = FailRed, fontSize = 12.sp)
+                Text(it, color = FailRed, fontSize = 12.sp, fontWeight = FontWeight.Medium)
             }
             state.editState.savedMessage?.let {
                 Spacer(modifier = Modifier.height(10.dp))
-                Text(it, color = TickGreen, fontSize = 12.sp)
+                Text(it, color = TickGreen, fontSize = 12.sp, fontWeight = FontWeight.Medium)
             }
 
             Spacer(modifier = Modifier.height(12.dp))
+
             if (state.editState.isEditing) {
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    PrimaryButton(
-                        text = if (state.editState.isSaving) "Saving…" else "Save",
-                        enabled = !state.editState.isSaving,
-                        onClick = callbacks.onSave,
-                        modifier = Modifier.weight(1f)
-                    )
-                    PrimaryButton(
-                        text = "Cancel",
-                        onClick = callbacks.onCancelEditing,
-                        modifier = Modifier.weight(1f)
-                    )
+                if (state.editState.isReauthenticating) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Bubble)
+                            .padding(12.dp)
+                    ) {
+                        Text("Re-authenticate to save changes", color = TextWhite, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        ProfileField(
+                            label = "Enter your PIN",
+                            value = state.editState.pinToConfirm,
+                            onValueChange = callbacks.onUpdatePinToConfirm,
+                            isPassword = true
+                        )
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            PrimaryButton(
+                                text = if (state.editState.isSaving) "Verifying…" else "Confirm & Save",
+                                enabled = state.editState.pinToConfirm.length >= 4 && !state.editState.isSaving,
+                                onClick = callbacks.onSave,
+                                modifier = Modifier.weight(1f).height(44.dp)
+                            )
+                            PrimaryButton(
+                                text = "Cancel",
+                                onClick = callbacks.onCancelReauth,
+                                modifier = Modifier.weight(1f).height(44.dp)
+                            )
+                        }
+                    }
+                } else {
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        PrimaryButton(
+                            text = "Save Changes",
+                            onClick = callbacks.onPromptReauth,
+                            modifier = Modifier.weight(1f).height(44.dp)
+                        )
+                        PrimaryButton(
+                            text = "Cancel",
+                            onClick = callbacks.onCancelEditing,
+                            modifier = Modifier.weight(1f).height(44.dp)
+                        )
+                    }
                 }
             } else {
-                PrimaryButton(text = "Edit Profile", onClick = callbacks.onStartEditing)
+                PrimaryButton(text = "Edit Profile", onClick = callbacks.onStartEditing, modifier = Modifier.height(44.dp))
             }
         }
         Spacer(modifier = Modifier.height(16.dp))
@@ -257,7 +331,12 @@ fun ProfileScreenContent(
 }
 
 @Composable
-private fun ProfileField(label: String, value: String, onValueChange: (String) -> Unit) {
+private fun ProfileField(
+    label: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    isPassword: Boolean = false
+) {
     Column {
         Text(label, color = TextFaint, fontSize = 10.sp)
         Spacer(modifier = Modifier.height(4.dp))
@@ -266,6 +345,7 @@ private fun ProfileField(label: String, value: String, onValueChange: (String) -
             onValueChange = onValueChange,
             singleLine = true,
             textStyle = TextStyle(color = TextWhite, fontSize = 14.sp),
+            visualTransformation = if (isPassword) androidx.compose.ui.text.input.PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
             cursorBrush = SolidColor(AccentBlue),
             modifier = Modifier
                 .fillMaxWidth()

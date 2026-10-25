@@ -31,8 +31,20 @@ class PinSetupViewModel @Inject constructor(
     private val _completed = MutableStateFlow(false)
     val completed: StateFlow<Boolean> = _completed.asStateFlow()
 
+    fun updateAccountType(value: String) {
+        _state.value = _state.value.copy(accountType = value, errorMessage = null)
+    }
+
+    fun updateName(value: String) {
+        _state.value = _state.value.copy(name = value, errorMessage = null)
+    }
+
     fun updatePhone(value: String) {
-        _state.value = _state.value.copy(phone = value.filter { it.isDigit() }, errorMessage = null)
+        _state.value = _state.value.copy(phone = value, errorMessage = null)
+    }
+
+    fun updateEmail(value: String) {
+        _state.value = _state.value.copy(email = value, errorMessage = null)
     }
 
     fun updatePin(value: String) {
@@ -46,42 +58,57 @@ class PinSetupViewModel @Inject constructor(
     /** Validates locally first, then asks the repository to create the account. */
     fun submit() {
         val current = _state.value
-        if (current.phone.length < AuthConstants.MIN_PHONE_DIGITS) {
-            _state.value = current.copy(errorMessage = "Enter a valid phone number")
+        val cleanPhone = com.bingwascore.app.util.formatPhoneToTenDigits(current.phone)
+
+        if (current.name.isBlank()) {
+            _state.value = current.copy(
+                errorMessage = if (current.accountType == "Business") "Business name is required" else "Name is required"
+            )
             return
         }
+
+        if (!com.bingwascore.app.util.isTenDigitPhone(cleanPhone)) {
+            _state.value = current.copy(errorMessage = "Enter a valid Kenyan phone number (e.g. 0712345678)")
+            return
+        }
+
+        if (!current.email.contains("@") || !current.email.contains(".")) {
+            _state.value = current.copy(errorMessage = "Enter a valid email address")
+            return
+        }
+
         if (current.pin.length < AuthConstants.MIN_PIN_LENGTH) {
             _state.value = current.copy(
                 errorMessage = "Your PIN must be at least ${AuthConstants.MIN_PIN_LENGTH} digits"
             )
             return
         }
+
         if (current.pin != current.confirmPin) {
-            _state.value = current.copy(errorMessage = "The two PINs don't match")
+            _state.value = current.copy(errorMessage = "That PIN doesn't match - try again")
             return
         }
 
         _state.value = current.copy(isLoading = true, errorMessage = null)
         viewModelScope.launch {
-            when (val result = authRepository.signUp(current.phone, current.pin)) {
-                is RemoteResult.Success -> {
-                    // The stub persists the phone; keep the local name too.
-                    userPreferences.setLoggedIn(true)
-                    _state.value = _state.value.copy(isLoading = false)
+            when (val result = authRepository.signUp(
+                accountType = current.accountType,
+                name = current.name,
+                phone = cleanPhone,
+                email = current.email,
+                pin = current.pin
+            )) {
+                is RemoteResult.Success, is RemoteResult.Offline -> {
+                    _state.value = _state.value.copy(isLoading = false, isSuccess = true)
+                    kotlinx.coroutines.delay(800)
                     _completed.value = true
                 }
-
-                is RemoteResult.Offline -> {
-                    userPreferences.setLoggedIn(true)
-                    _state.value = _state.value.copy(isLoading = false)
-                    _completed.value = true
-                }
-
-                is RemoteResult.Failure ->
+                is RemoteResult.Failure -> {
                     _state.value = _state.value.copy(
                         isLoading = false,
                         errorMessage = result.message
                     )
+                }
             }
         }
     }
@@ -89,15 +116,20 @@ class PinSetupViewModel @Inject constructor(
 
 /** UI state for [PinSetupScreen]. */
 data class PinSetupState(
+    val accountType: String = "Individual",
+    val name: String = "",
     val phone: String = "",
+    val email: String = "",
     val pin: String = "",
     val confirmPin: String = "",
     val isLoading: Boolean = false,
+    val isSuccess: Boolean = false,
     val errorMessage: String? = null
 ) {
-    /** Both PINs are filled, long enough, and identical. */
     val isSubmittable: Boolean
-        get() = phone.length >= AuthConstants.MIN_PHONE_DIGITS &&
+        get() = name.isNotBlank() &&
+            phone.isNotBlank() &&
+            email.isNotBlank() &&
             pin.length >= AuthConstants.MIN_PIN_LENGTH &&
-            pin == confirmPin
+            confirmPin.length >= AuthConstants.MIN_PIN_LENGTH
 }

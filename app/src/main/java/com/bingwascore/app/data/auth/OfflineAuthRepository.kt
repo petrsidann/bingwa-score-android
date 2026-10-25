@@ -38,15 +38,24 @@ class OfflineAuthRepository @Inject constructor(
 ) : AuthRepository {
 
     override suspend fun signIn(phone: String, pin: String): RemoteResult<AuthSession> {
-        val cleanPhone = phone.filter { it.isDigit() }
-        if (cleanPhone.length < MIN_PHONE_DIGITS) {
-            return RemoteResult.Failure(400, "Enter a valid phone number")
+        val cleanPhone = com.bingwascore.app.util.formatPhoneToTenDigits(phone)
+        if (!com.bingwascore.app.util.isTenDigitPhone(cleanPhone)) {
+            return RemoteResult.Failure(400, "Enter a valid Kenyan phone number (e.g. 0712345678)")
         }
         if (pin.length < MIN_PIN_LENGTH) {
             return RemoteResult.Failure(400, "Your PIN must be at least $MIN_PIN_LENGTH digits")
         }
 
-        // Local sign-in: this is the shipped PART A behaviour and never changes.
+        val storedPin = userPreferences.pin.first()
+        val storedPhone = userPreferences.phone.first()
+        if (storedPin.isNotEmpty() && pin != storedPin) {
+            return RemoteResult.Failure(401, "That PIN doesn't match - try again")
+        }
+        if (storedPhone.isNotEmpty() && cleanPhone != storedPhone && storedPin.isNotEmpty()) {
+            return RemoteResult.Failure(401, "Phone number or PIN is incorrect")
+        }
+
+        // Local sign-in
         userPreferences.setPhone(cleanPhone)
         userPreferences.setLoggedIn(true)
         val session = localSession(cleanPhone)
@@ -73,14 +82,33 @@ class OfflineAuthRepository @Inject constructor(
         }
     }
 
-    override suspend fun signUp(phone: String, pin: String): RemoteResult<AuthSession> {
-        val cleanPhone = phone.filter { it.isDigit() }
-        if (cleanPhone.length < MIN_PHONE_DIGITS) {
-            return RemoteResult.Failure(400, "Enter a valid phone number")
+    override suspend fun signUp(
+        accountType: String,
+        name: String,
+        phone: String,
+        email: String,
+        pin: String
+    ): RemoteResult<AuthSession> {
+        val cleanPhone = com.bingwascore.app.util.formatPhoneToTenDigits(phone)
+        if (!com.bingwascore.app.util.isTenDigitPhone(cleanPhone)) {
+            return RemoteResult.Failure(400, "Enter a valid Kenyan phone number (e.g. 0712345678)")
+        }
+        if (name.isBlank()) {
+            return RemoteResult.Failure(400, if (accountType.equals("Business", ignoreCase = true)) "Business name is required" else "Name is required")
+        }
+        if (!email.contains("@") || !email.contains(".")) {
+            return RemoteResult.Failure(400, "Enter a valid email address")
         }
         if (pin.length < MIN_PIN_LENGTH) {
             return RemoteResult.Failure(400, "Your PIN must be at least $MIN_PIN_LENGTH digits")
         }
+
+        userPreferences.setAccountType(accountType)
+        userPreferences.setUserName(name.trim())
+        userPreferences.setPhone(cleanPhone)
+        userPreferences.setEmail(email.trim())
+        userPreferences.setPin(pin)
+        userPreferences.setLoggedIn(true)
 
         val session = localSession(cleanPhone)
         return offlineFallback.guard(
@@ -92,7 +120,10 @@ class OfflineAuthRepository @Inject constructor(
                 remoteHttp.postRaw(
                     path = PATH_SIGN_UP,
                     body = JSONObject().apply {
+                        put("accountType", accountType)
+                        put("name", name.trim())
                         put("phone", cleanPhone)
+                        put("email", email.trim())
                         put("pin", pin)
                     }.toString()
                 ),

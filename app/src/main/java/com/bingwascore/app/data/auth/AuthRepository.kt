@@ -13,8 +13,14 @@ interface AuthRepository {
     /** Phone + PIN sign-in — the flow that already works locally today. */
     suspend fun signIn(phone: String, pin: String): RemoteResult<AuthSession>
 
-    /** Registers a new agent by phone + PIN. */
-    suspend fun signUp(phone: String, pin: String): RemoteResult<AuthSession>
+    /** Registers a new agent with full identity. */
+    suspend fun signUp(
+        accountType: String,
+        name: String,
+        phone: String,
+        email: String,
+        pin: String
+    ): RemoteResult<AuthSession>
 
     /** Requests a one-time code for [email]; the UI starts a 120s timer. */
     suspend fun requestEmailOtp(email: String): RemoteResult<OtpChallenge>

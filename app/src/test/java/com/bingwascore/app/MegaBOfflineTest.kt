@@ -110,7 +110,7 @@ class MegaBOfflineTest {
 
     @Test
     fun `pin setup accepts a complete matching form`() {
-        val state = PinSetupState(phone = "0712345678", pin = "1234", confirmPin = "1234")
+        val state = PinSetupState(name = "Agent", phone = "0712345678", email = "agent@bingwa.co.ke", pin = "1234", confirmPin = "1234")
         assertTrue(state.isSubmittable)
     }
 

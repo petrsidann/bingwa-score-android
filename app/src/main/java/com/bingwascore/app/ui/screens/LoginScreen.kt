@@ -2,12 +2,18 @@ package com.bingwascore.app.ui.screens
 
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,13 +28,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Backspace
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.rounded.Fingerprint
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -41,6 +50,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
@@ -52,26 +63,176 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.fragment.app.FragmentActivity
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewModelScope
+import com.bingwascore.app.data.auth.AuthRepository
+import com.bingwascore.app.data.preferences.UserPreferences
+import com.bingwascore.app.data.remote.RemoteResult
 import com.bingwascore.app.ui.components.BubbleCard
 import com.bingwascore.app.ui.components.PrimaryButton
-import com.bingwascore.app.ui.theme.Hairline
-import com.bingwascore.app.ui.theme.Bubble
+import com.bingwascore.app.ui.components.pressScale
 import com.bingwascore.app.ui.theme.AccentBlue
 import com.bingwascore.app.ui.theme.BgBlack
+import com.bingwascore.app.ui.theme.Bubble
+import com.bingwascore.app.ui.theme.Hairline
 import com.bingwascore.app.ui.theme.TextFaint
 import com.bingwascore.app.ui.theme.TextWhite
-import com.bingwascore.app.ui.components.pressScale
+import com.bingwascore.app.ui.theme.TickGreen
+import com.bingwascore.app.util.rememberHaptics
 import com.bingwascore.app.util.screenEnter
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import java.util.concurrent.Executor
+import javax.inject.Inject
+
+data class LoginUiState(
+    val phone: String = "",
+    val pin: String = "",
+    val isLoading: Boolean = false,
+    val errorMessage: String? = null,
+    val failedAttempts: Int = 0,
+    val cooldownSeconds: Int = 0,
+    val isSuccess: Boolean = false
+)
+
+@HiltViewModel
+class LoginViewModel @Inject constructor(
+    private val authRepository: AuthRepository,
+    private val userPreferences: UserPreferences
+) : ViewModel() {
+
+    private val _state = MutableStateFlow(LoginUiState())
+    val state: StateFlow<LoginUiState> = _state.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            userPreferences.phone.collect { saved ->
+                if (saved.isNotEmpty() && _state.value.phone.isEmpty()) {
+                    _state.value = _state.value.copy(phone = saved)
+                }
+            }
+        }
+    }
+
+    fun updatePhone(value: String) {
+        val clean = value.filter { it.isDigit() }
+        _state.value = _state.value.copy(
+            phone = clean,
+            errorMessage = null
+        )
+    }
+
+    fun updatePin(value: String) {
+        val clean = value.filter { it.isDigit() }
+        _state.value = _state.value.copy(
+            pin = clean,
+            errorMessage = null
+        )
+    }
+
+    fun appendPinDigit(digit: Char) {
+        val current = _state.value
+        if (current.cooldownSeconds > 0 || current.isLoading || current.isSuccess) return
+        if (current.pin.length < MAX_PIN_LENGTH) {
+            _state.value = current.copy(
+                pin = current.pin + digit,
+                errorMessage = null
+            )
+        }
+    }
+
+    fun backspacePin() {
+        val current = _state.value
+        if (current.cooldownSeconds > 0 || current.isLoading || current.isSuccess) return
+        if (current.pin.isNotEmpty()) {
+            _state.value = current.copy(
+                pin = current.pin.dropLast(1),
+                errorMessage = null
+            )
+        }
+    }
+
+    fun signIn(onSuccess: () -> Unit) {
+        val current = _state.value
+        if (current.cooldownSeconds > 0 || current.isLoading || current.isSuccess) return
+
+        if (current.phone.length < 9) {
+            _state.value = current.copy(errorMessage = "Enter a valid phone number")
+            return
+        }
+        if (current.pin.length < 4) {
+            _state.value = current.copy(errorMessage = "PIN must be at least 4 digits")
+            return
+        }
+
+        _state.value = current.copy(isLoading = true, errorMessage = null)
+
+        viewModelScope.launch {
+            when (val result = authRepository.signIn(current.phone, current.pin)) {
+                is RemoteResult.Success, is RemoteResult.Offline -> {
+                    userPreferences.setLoggedIn(true)
+                    _state.value = _state.value.copy(
+                        isLoading = false,
+                        isSuccess = true,
+                        failedAttempts = 0
+                    )
+                    delay(800)
+                    onSuccess()
+                }
+                is RemoteResult.Failure -> {
+                    val newFailed = _state.value.failedAttempts + 1
+                    if (newFailed >= 3) {
+                        _state.value = _state.value.copy(
+                            isLoading = false,
+                            errorMessage = result.message.ifBlank { "Incorrect phone number or PIN" },
+                            failedAttempts = newFailed,
+                            cooldownSeconds = 30
+                        )
+                        startCooldown()
+                    } else {
+                        _state.value = _state.value.copy(
+                            isLoading = false,
+                            errorMessage = result.message.ifBlank { "Incorrect phone number or PIN" },
+                            failedAttempts = newFailed
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    private fun startCooldown() {
+        viewModelScope.launch {
+            while (_state.value.cooldownSeconds > 0) {
+                delay(1000)
+                _state.value = _state.value.copy(
+                    cooldownSeconds = _state.value.cooldownSeconds - 1
+                )
+            }
+            // Reset attempts after cooldown ends
+            _state.value = _state.value.copy(failedAttempts = 0)
+        }
+    }
+}
 
 @Composable
 fun LoginScreen(
+    viewModel: LoginViewModel = hiltViewModel(),
     onSignIn: () -> Unit = {},
     onCreateAccount: () -> Unit = {}
 ) {
     val context = LocalContext.current
-    var phone by remember { mutableStateOf("") }
-    var pin by remember { mutableStateOf("") }
+    val haptics = rememberHaptics()
+    val state by viewModel.state.collectAsStateWithLifecycle()
+
+    val phone = state.phone
+    val pin = state.pin
 
     // MEGA A — a numeric keypad with a fingerprint affordance. Biometrics is a
     // shortcut for the *same* sign-in action; if the device has no sensor (or
@@ -96,13 +257,12 @@ fun LoginScreen(
                 executor,
                 object : BiometricPrompt.AuthenticationCallback() {
                     override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
-                        onSignIn()
+                        haptics.tick()
+                        viewModel.signIn(onSignIn)
                     }
 
-                    // A failed/cancelled fingerprint must never block the PIN path —
-                    // the user can still type their PIN and press Sign In.
                     override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
-                        pin = ""
+                        // ignore error
                     }
                 }
             )
@@ -143,12 +303,13 @@ fun LoginScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .verticalScroll(rememberScrollState())
                 .statusBarsPadding()
                 .padding(horizontal = 20.dp)
                 .navigationBarsPadding()
                 .imePadding()
         ) {
-        Spacer(modifier = Modifier.height(48.dp))
+        Spacer(modifier = Modifier.height(32.dp))
 
         Text(
             "Welcome back",
@@ -165,13 +326,62 @@ fun LoginScreen(
             fontSize = 14.sp
         )
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Hard gate inline error card
+        state.errorMessage?.let { msg ->
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(com.bingwascore.app.ui.theme.FailRed.copy(alpha = 0.15f))
+                    .border(1.dp, com.bingwascore.app.ui.theme.FailRed, RoundedCornerShape(12.dp))
+                    .padding(14.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Rounded.ErrorOutline,
+                        contentDescription = "Error",
+                        tint = com.bingwascore.app.ui.theme.FailRed,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        msg,
+                        color = TextWhite,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+
+        // Cooldown notification
+        if (state.cooldownSeconds > 0) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(com.bingwascore.app.ui.theme.PendGrey.copy(alpha = 0.2f))
+                    .border(1.dp, com.bingwascore.app.ui.theme.PendGrey, RoundedCornerShape(12.dp))
+                    .padding(14.dp)
+            ) {
+                Text(
+                    "Too many failed attempts. Try again in ${state.cooldownSeconds}s",
+                    color = TextWhite,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+        }
 
         BubbleCard(modifier = Modifier.fillMaxWidth()) {
             GlassField(
                 value = phone,
-                onValueChange = { phone = it },
-                hint = "Phone",
+                onValueChange = viewModel::updatePhone,
+                hint = "Phone (e.g. 0712345678)",
                 keyboardType = KeyboardType.Phone
             )
 
@@ -179,7 +389,7 @@ fun LoginScreen(
 
             GlassField(
                 value = pin,
-                onValueChange = { if (it.length <= MAX_PIN_LENGTH) pin = it },
+                onValueChange = viewModel::updatePin,
                 hint = "PIN",
                 isPassword = true,
                 keyboardType = KeyboardType.NumberPassword
@@ -217,19 +427,51 @@ fun LoginScreen(
             PinKeypad(
                 pin = pin,
                 onDigit = { digit ->
-                    if (pin.length < MAX_PIN_LENGTH) pin += digit
+                    viewModel.appendPinDigit(digit)
                 },
-                onBackspace = { if (pin.isNotEmpty()) pin = pin.dropLast(1) }
+                onBackspace = {
+                    viewModel.backspacePin()
+                }
             )
         }
 
-        Spacer(modifier = Modifier.weight(1f))
+        Spacer(modifier = Modifier.height(24.dp))
 
-        PrimaryButton(
-            text = "Sign In",
-            onClick = onSignIn,
-            modifier = Modifier.fillMaxWidth()
-        )
+        if (state.isSuccess) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.CheckCircle,
+                    contentDescription = "Success",
+                    tint = TickGreen,
+                    modifier = Modifier.size(32.dp)
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Text(
+                    "Verified!",
+                    color = TickGreen,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            LaunchedEffect(Unit) {
+                haptics.tick()
+            }
+        } else {
+            PrimaryButton(
+                text = if (state.cooldownSeconds > 0) "Cooldown (${state.cooldownSeconds}s)" else "Sign In",
+                onClick = {
+                    viewModel.signIn(onSignIn)
+                },
+                loading = state.isLoading,
+                loadingText = "Verifying…",
+                enabled = state.cooldownSeconds == 0 && !state.isLoading,
+                modifier = Modifier.fillMaxWidth().height(52.dp)
+            )
+        }
 
         Spacer(modifier = Modifier.height(16.dp))
 
