@@ -15,7 +15,7 @@ enum class TransactionStatus(val value: String) {
     UNMATCHED("UNMATCHED"),
     CANCELLED("CANCELLED"),
     PAUSED("PAUSED"),
-    /** Parity F â€” SMS from a sender outside the authorized list: audit only, never replied to. */
+    /** Parity F — SMS from a sender outside the authorized list: audit only, never replied to. */
     IGNORED("IGNORED");
 
     companion object {
@@ -25,11 +25,11 @@ enum class TransactionStatus(val value: String) {
 }
 
 /**
- * Stage 24 â€” iOS design system: exactly two themes.
+ * Stage 24 — iOS design system: exactly two themes.
  *
- * - [DARK]           "Obsidian"      â€” dark, #0B0E15 family.
- * - [PORCELAIN_DIM]  "Porcelain Dim" â€” the LIGHTS DIMMED: a dim porcelain canvas
- *   (#C9CED6) with soft blue accents. It is NOT a dark theme â€” the surfaces stay
+ * - [DARK]           "Obsidian"      — dark, #0B0E15 family.
+ * - [PORCELAIN_DIM]  "Porcelain Dim" — the LIGHTS DIMMED: a dim porcelain canvas
+ *   (#C9CED6) with soft blue accents. It is NOT a dark theme — the surfaces stay
  *   light enough to read as porcelain, and it never takes over as Obsidian black.
  *   [PORCELAIN_DIM] is the default.
  *
@@ -41,7 +41,7 @@ enum class ThemeMode(val value: String, val label: String) {
     PORCELAIN_DIM("PORCELAIN_DIM", "Porcelain Dim");
 
     companion object {
-        /** Everything unknown â€” incl. retired modes â€” reads as Porcelain Dim. */
+        /** Everything unknown — incl. retired modes — reads as Porcelain Dim. */
         fun fromValue(value: String?): ThemeMode =
             entries.firstOrNull { it.value == value } ?: PORCELAIN_DIM
     }
@@ -68,17 +68,17 @@ enum class EngineState(val value: String) {
 }
 
 /**
- * MEGA A â€” cold-start gate. Mirrors their APP_STATE key so the startup decision
+ * MEGA A — cold-start gate. Mirrors their APP_STATE key so the startup decision
  * is a single persisted value rather than a pile of unrelated flags.
  *
- * [STATE_SETUP] means "permissions/engine incomplete" â†’ route to the Setup
+ * [STATE_SETUP] means "permissions/engine incomplete" → route to the Setup
  * Checklist BEFORE Home. [STATE_RUNNING] means everything is satisfied.
  */
 enum class AppState(val value: String) {
     /** Fresh install, nothing granted yet. */
     STATE_SETUP("STATE_SETUP"),
 
-    /** Partially configured â€” at least one checklist row is still ACTION. */
+    /** Partially configured — at least one checklist row is still ACTION. */
     STATE_INCOMPLETE("STATE_INCOMPLETE"),
 
     /** Permissions granted and the engine service is alive. */
@@ -91,7 +91,7 @@ enum class AppState(val value: String) {
 }
 
 /**
- * MEGA A â€” what the engine is doing right now, mirrored onto the persistent
+ * MEGA A — what the engine is doing right now, mirrored onto the persistent
  * notification so the agent can see the app is alive even mid-dial.
  */
 enum class ProcessingActivity(val value: String, val notificationText: String) {
