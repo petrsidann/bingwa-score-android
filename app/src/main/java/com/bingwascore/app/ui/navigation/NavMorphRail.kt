@@ -38,14 +38,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bingwascore.app.ui.components.pressScale
+import com.bingwascore.app.ui.glass.GlassSpec
 import com.bingwascore.app.ui.glass.canMaterialBlur
 import com.bingwascore.app.ui.glass.iosMaterial
 import com.bingwascore.app.ui.theme.AccentBlue
 import com.bingwascore.app.ui.theme.BingwaType
-import com.bingwascore.app.ui.theme.DisplayModeState
 import com.bingwascore.app.ui.theme.Motion
 import com.bingwascore.app.ui.theme.TextGrey
-import com.bingwascore.app.domain.ThemeMode
+import com.bingwascore.app.ui.theme.isPorcelain
 import com.bingwascore.app.util.rememberHaptics
 
 data class NavMorphItem(
@@ -130,7 +130,7 @@ fun VerticalNavRail(
             .shadow(8.dp, RoundedCornerShape(16.dp))
             .iosMaterial(
                 shape = RoundedCornerShape(16.dp),
-                tint = if (DisplayModeState.mode == ThemeMode.DARK) Color(0xD80B0E15) else Color(0xD8E2E4E8),
+                tint = GlassSpec.scrimColor(isPorcelain),
                 vibrancy = !canMaterialBlur
             )
             .padding(vertical = 12.dp),

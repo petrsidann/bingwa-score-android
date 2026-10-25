@@ -75,7 +75,8 @@ import com.bingwascore.app.ui.theme.TextDim
 import com.bingwascore.app.ui.theme.TextGrey
 import com.bingwascore.app.ui.theme.TextWhite
 import com.bingwascore.app.ui.theme.TickGreen
-import com.bingwascore.app.ui.theme.auroraBrush
+import com.bingwascore.app.ui.glass.frostedGlass
+import com.bingwascore.app.ui.glass.GlassSpec
 import com.bingwascore.app.util.Haptics
 import com.bingwascore.app.util.rememberHaptics
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -196,17 +197,10 @@ fun MyPlanScreen(viewModel: MyPlanViewModel = hiltViewModel()) {
 }
 
 /**
- * Stage 20 — the paywall, in the Meta One grammar.
+ * Stage 26 — the paywall with Meta frosted glass per GlassSpec tokens.
  *
- * Structure, not colours: a solid aurora band on top (blue family, opaque,
- * never glass), the family pill, a swipeable pager with one plan per page and
- * a dot indicator. Every page is the same page of grammar: title, truth
- * subtitle, price, exactly three benefit rows, the benefits expander, the
- * legal microcopy and the full-width CTA. The ACTIVE plan shows its badge and
- * a live countdown where the CTA would be.
- *
- * No blur, no glass, no iOS material on this screen: the band is a gradient
- * and everything below it is a flat fill.
+ * Header + plan cards use Meta frosted glass (scrim alpha 0.62 in Obsidian,
+ * 0.55 in Porcelain Dim, 28dp blur, 1dp top highlight, soft shadow).
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -241,7 +235,7 @@ fun MyPlanScreenContent(
             nowMillis = now
         )
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
         FamilyPill(
             family = family,
@@ -337,28 +331,27 @@ private fun PlanBand(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(116.dp)
-            .background(auroraBrush())
+            .statusBarsPadding()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .frostedGlass(RoundedCornerShape(20.dp))
+            .padding(horizontal = 20.dp, vertical = 16.dp)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .padding(horizontal = 20.dp, vertical = 14.dp)
+            modifier = Modifier.fillMaxWidth()
         ) {
             MonogramTile(letters = "MY")
             Spacer(modifier = Modifier.width(12.dp))
             Column {
                 Text(
                     text = "My Plan",
-                    color = BandWhite,
+                    color = TextWhite,
                     fontSize = 21.sp,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
                     text = line,
-                    color = BandWhite.copy(alpha = 0.82f),
+                    color = TextGrey,
                     fontSize = 12.sp
                 )
             }
@@ -403,9 +396,7 @@ private fun FamilyPill(
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
-                .clip(RoundedCornerShape(22.dp))
-                .background(Bubble)
-                .border(1.dp, Hairline, RoundedCornerShape(22.dp))
+                .frostedGlass(RoundedCornerShape(22.dp))
                 .padding(4.dp)
         ) {
             PlanFamily.entries.forEach { candidate ->
@@ -455,12 +446,18 @@ private fun PlanPaywallPage(
     val success = purchase as? PurchaseState.Success
     val justActivated = success != null && success.planId == offer.planId
 
-    Column(modifier = Modifier.fillMaxSize()) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+            .frostedGlass(RoundedCornerShape(24.dp))
+            .padding(16.dp)
+    ) {
         Column(
             modifier = Modifier
                 .weight(1f)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp)
+                .padding(horizontal = 4.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(

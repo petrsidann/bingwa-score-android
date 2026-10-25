@@ -32,11 +32,13 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bingwascore.app.ui.components.BubbleCard
+import com.bingwascore.app.ui.components.EmptyState
 import com.bingwascore.app.ui.theme.PendGrey
 import com.bingwascore.app.ui.theme.BgBlack
-import com.bingwascore.app.ui.theme.PendGrey
 import com.bingwascore.app.ui.theme.TextFaint
+import com.bingwascore.app.ui.theme.TextGrey
 import com.bingwascore.app.ui.theme.TextWhite
+import com.bingwascore.app.ui.theme.BingwaType
 import com.bingwascore.app.util.screenEnter
 
 data class Announcement(
@@ -54,13 +56,26 @@ fun AnnouncementsScreen(viewModel: AnnouncementsViewModel = hiltViewModel()) {
     Column(
         modifier = Modifier.fillMaxSize().screenEnter().background(BgBlack).verticalScroll(rememberScrollState())
     ) {
-        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp)) {
-            Text("Announcements", color = TextWhite, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-            Text("Tips & updates for agents", color = TextWhite.copy(alpha = 0.5f), fontSize = 12.sp)
+        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp)) {
+            Text("Announcements", color = TextWhite, fontSize = BingwaType.Headline, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(4.dp))
+            Text("Tips & updates for agents", color = TextGrey, fontSize = BingwaType.Caption)
         }
-        announcements.forEachIndexed { index, a ->
-            AnnouncementCard(a, enterDelayMillis = minOf(index, 6) * 35,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 12.dp))
+        if (announcements.isEmpty()) {
+            EmptyState(
+                icon = Icons.Rounded.Campaign,
+                title = "No Announcements",
+                message = "Check back later for updates and agent tips",
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
+        } else {
+            announcements.forEachIndexed { index, a ->
+                AnnouncementCard(
+                    a,
+                    enterDelayMillis = minOf(index, 6) * 35,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 12.dp)
+                )
+            }
         }
         Spacer(modifier = Modifier.height(24.dp))
     }

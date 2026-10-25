@@ -2,7 +2,7 @@ package com.bingwascore.app.ui.glass
 
 /** Stage 18 — pure material constants (zero Compose imports: JVM-testable). */
 object MaterialSpec {
-    const val BLUR_DP = 24
+    const val BLUR_DP = 28
     const val MAX_BLUR_DP = 28
     const val VIBRANCY_ALPHA = 0.10f
     const val SATURATION = 1.2f

@@ -16,7 +16,7 @@ class Stage18MaterialTest {
     @Test
     fun `blur radius capped at 28dp`() {
         assertTrue(MaterialSpec.BLUR_DP <= MaterialSpec.MAX_BLUR_DP)
-        assertEquals(24, MaterialSpec.BLUR_DP)
+        assertEquals(28, MaterialSpec.BLUR_DP)
     }
 
     @Test

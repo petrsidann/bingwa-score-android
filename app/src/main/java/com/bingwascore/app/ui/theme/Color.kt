@@ -8,6 +8,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.unit.dp
 import com.bingwascore.app.domain.ThemeMode
+import com.bingwascore.app.ui.glass.GlassSpec
 
 /**
  * Stage 24 â€” iOS design system colour tokens: Obsidian (dark) + Porcelain Dim (default).
@@ -188,11 +189,8 @@ val TickGreen: Color get() = Color(0xFF00C853)
 
 // ─── Stage 10 — iOS materials (blur ONLY here: nav bars + sheets) ────────────
 
-/** Translucent material fill for nav bars + page sheets (Stage 21 — porcelain dim). */
-val IosMaterialFill: Color get() = when (DisplayModeState.mode) {
-    ThemeMode.PORCELAIN_DIM -> Color(0xB8C9CED6)
-    else -> Color(0xB80B0E15)
-}
+/** Translucent material fill for nav bars + page sheets (Stage 26 — GlassSpec). */
+val IosMaterialFill: Color get() = GlassSpec.scrimColor(isPorcelain)
 
 /** iOS hairline border for the floating tab pill. */
 fun iosPillBorderBrush(): Brush = Brush.linearGradient(
@@ -220,7 +218,7 @@ val IosSeparator: Color get() = when (DisplayModeState.mode) {
  */
 val DisabledFill: Color get() = when (DisplayModeState.mode) {
     ThemeMode.PORCELAIN_DIM -> PorcelainDimDisabledFill
-    else -> Color(0xFF232323)
+    else -> Color(0xFF1B2233)
 }
 
 val DisabledInk: Color get() = when (DisplayModeState.mode) {

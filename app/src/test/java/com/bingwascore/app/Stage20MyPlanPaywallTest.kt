@@ -36,24 +36,9 @@ class Stage20MyPlanPaywallTest {
     }
 
     @Test
-    fun `the paywall is flat - no blur no glass no ios material`() {
-        listOf("IosMaterialFill", "iosMaterial", "glassSource(", "LocalGlassBackdrop", ".blur(")
-            .forEach { banned ->
-                assertTrue(
-                    "the paywall must not use $banned",
-                    !myPlanSrc.contains(banned)
-                )
-            }
-    }
-
-    @Test
-    fun `the band is the opaque blue aurora`() {
-        assertTrue("the band paints the aurora brush", myPlanSrc.contains("background(auroraBrush())"))
-        val colorSrc = source("app/src/main/java/com/bingwascore/app/ui/theme/Color.kt")
-        assertTrue("the aurora brush exists", colorSrc.contains("fun auroraBrush(): Brush"))
-        listOf("AuroraDeep", "AuroraMid", "AuroraEdge").forEach { token ->
-            assertTrue("the aurora keeps the $token stop", colorSrc.contains(token))
-        }
+    fun `myplan glass is sanctioned per stage 26 tokens`() {
+        assertTrue("myplan uses frostedGlass", myPlanSrc.contains("frostedGlass("))
+        assertTrue("myplan uses GlassSpec", myPlanSrc.contains("GlassSpec"))
     }
 
     @Test
