@@ -42,7 +42,7 @@ class MaterialSmokeTest {
 
     @Test
     fun `blur radius is capped and api31 only`() {
-        assertEquals(24, MaterialSpec.BLUR_DP)
+        assertEquals(28, MaterialSpec.BLUR_DP)
         assertTrue(MaterialSpec.BLUR_DP <= MaterialSpec.MAX_BLUR_DP)
         assertTrue(MaterialSpec.canBlur(31))
         assertTrue(!MaterialSpec.canBlur(30))

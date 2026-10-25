@@ -13,14 +13,17 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.composed
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Matrix
 import androidx.compose.ui.graphics.Outline
@@ -34,7 +37,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.bingwascore.app.ui.theme.AccentBlue
 import com.bingwascore.app.ui.theme.IosMaterialFill
-import com.bingwascore.app.ui.theme.iosPillBorderBrush
+import com.bingwascore.app.ui.theme.isPorcelain
 
 /**
  * Paint.setRenderEffect exists only on API31+ jars/devices; resolved reflectively
@@ -225,16 +228,65 @@ fun Modifier.glassBackdropRegion(
  * or surfaces with no backdrop region) + hairline border. Content drawn by the
  * caller sits on top; backdrop blur comes from [glassSource] below.
  */
+/**
+ * Stage 26 — Frosted Glass modifier applying [GlassSpec] tokens:
+ * - Scrim fill (alpha 0.62 for Obsidian, 0.55 white frost for Porcelain Dim)
+ * - Outer shadow (elevation 12dp, radius 24dp, alpha 0.35)
+ * - 1dp inner top border highlight (white 10%)
+ */
+@Composable
+fun Modifier.frostedGlass(
+    shape: Shape = RoundedCornerShape(16.dp)
+): Modifier {
+    val isPorcelainTheme = isPorcelain
+    val scrim = GlassSpec.scrimColor(isPorcelainTheme)
+    val highlight = GlassSpec.innerTopHighlightColor()
+
+    return this
+        .shadow(
+            elevation = GlassSpec.OUTER_SHADOW_ELEVATION,
+            shape = shape,
+            spotColor = Color.Black.copy(alpha = GlassSpec.OUTER_SHADOW_ALPHA),
+            ambientColor = Color.Black.copy(alpha = GlassSpec.OUTER_SHADOW_ALPHA)
+        )
+        .clip(shape)
+        .background(scrim)
+        .border(
+            width = GlassSpec.INNER_TOP_HIGHLIGHT_WIDTH,
+            brush = Brush.verticalGradient(
+                colors = listOf(highlight, Color.Transparent)
+            ),
+            shape = shape
+        )
+}
+
+/**
+ * L4 — chrome glass fill: translucent scrim tint + vibrancy fallback (API<31,
+ * or surfaces with no backdrop region) + 1dp top highlight + outer shadow.
+ */
 @Composable
 fun Modifier.iosMaterial(
     shape: Shape,
-    tint: Color = IosMaterialFill,
+    tint: Color = GlassSpec.scrimColor(isPorcelain),
     vibrancy: Boolean = true
 ): Modifier {
-    var m = this.clip(shape).background(tint)
-    // API31+ backdrop regions carry L2 vibrancy inside the blur layer already.
+    var m = this
+        .shadow(
+            elevation = GlassSpec.OUTER_SHADOW_ELEVATION,
+            shape = shape,
+            spotColor = Color.Black.copy(alpha = GlassSpec.OUTER_SHADOW_ALPHA),
+            ambientColor = Color.Black.copy(alpha = GlassSpec.OUTER_SHADOW_ALPHA)
+        )
+        .clip(shape)
+        .background(tint)
     if (vibrancy) m = m.background(materialVibrancyTint(), shape)
-    return m.border(1.dp, iosPillBorderBrush(), shape)
+    return m.border(
+        width = GlassSpec.INNER_TOP_HIGHLIGHT_WIDTH,
+        brush = Brush.verticalGradient(
+            colors = listOf(GlassSpec.innerTopHighlightColor(), Color.Transparent)
+        ),
+        shape = shape
+    )
 }
 
 

@@ -30,12 +30,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
+import com.bingwascore.app.ui.glass.GlassSpec
 import com.bingwascore.app.ui.glass.iosMaterial
 import com.bingwascore.app.ui.glass.LocalGlassBackdrop
 import com.bingwascore.app.ui.glass.canMaterialBlur
 import com.bingwascore.app.ui.glass.glassBackdropRegion
 import com.bingwascore.app.ui.glass.glassSource
 import com.bingwascore.app.ui.glass.rememberGlassBackdrop
+import com.bingwascore.app.ui.theme.isPorcelain
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
@@ -506,11 +508,7 @@ private fun BottomNavBar(
             .shadow(12.dp, RoundedCornerShape(28.dp))
             .iosMaterial(
                 shape = RoundedCornerShape(28.dp),
-                tint = if (DisplayModeState.mode == ThemeMode.DARK) {
-                    Color(0xB80B0E15)
-                } else {
-                    Color(0xB8C9CED6)
-                },
+                tint = GlassSpec.scrimColor(isPorcelain),
                 vibrancy = !canMaterialBlur
             )
             .padding(start = 2.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
@@ -642,11 +640,7 @@ fun SideDrawerSheet(
                     )
                     .iosMaterial(
                         shape = RoundedCornerShape(0.dp),
-                        tint = if (DisplayModeState.mode == ThemeMode.DARK) {
-                            Color(0xB80B0E15)
-                        } else {
-                            Color(0xB8C9CED6)
-                        },
+                        tint = GlassSpec.scrimColor(isPorcelain),
                         vibrancy = !canMaterialBlur
                     )
             ) {
