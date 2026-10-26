@@ -17,7 +17,7 @@ from `local.properties` so secrets never enter git.
 
 | Variable | Purpose | Where it lands |
 |---|---|---|
-| `BASE_URL` | REST root for offers/features/auth/messages | `buildConfigField("String", "API_BASE_URL", …)` → `RemoteConfig.baseUrl` |
+| `BASE_URL` | REST root for offers/features/auth/messages | `buildConfigField("String", "BASE_URL", …)` → `RemoteConfig.baseUrl` |
 | `FCM_PROJECT_ID` | Firebase Cloud Messaging project | `google-services.json` → `FcmService` |
 | `SUPABASE_URL` | (Alternative to FCM) auth + row storage | backend only; app talks to `BASE_URL` |
 | `SUPABASE_KEY` | Supabase anon/service key | backend only |
@@ -32,7 +32,7 @@ the app still runs fully offline.
 // app/build.gradle.kts
 val baseUrl = (project.findProperty("BASE_URL") as String?)
     ?: "\"https://api.bingwascore.com/\""
-buildConfigField("String", "API_BASE_URL", baseUrl)
+buildConfigField("String", "BASE_URL", baseUrl)
 ```
 
 ---

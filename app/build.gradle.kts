@@ -22,7 +22,8 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8080\"")
+        val relayBaseUrl: String = (project.findProperty("relayBaseUrl") as String?) ?: "http://10.0.2.2:8080"
+        buildConfigField("String", "BASE_URL", "\"$relayBaseUrl\"")
         buildConfigField("String", "APP_VERSION", "\"1.9.1\"")
 
         vectorDrawables { useSupportLibrary = true }

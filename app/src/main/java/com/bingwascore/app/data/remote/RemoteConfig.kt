@@ -34,7 +34,7 @@ class RemoteConfig @Inject constructor(
      * literal BuildConfig placeholder — an un-provisioned build must look
      * exactly like an offline build.
      */
-    val baseUrl: String = BuildConfig.API_BASE_URL.trim().trimEnd('/')
+    val baseUrl: String = BuildConfig.BASE_URL.trim().trimEnd('/')
         .takeIf { it.isNotBlank() && !it.contains("example.com", ignoreCase = true) }
         ?: ""
 
