@@ -70,4 +70,38 @@ interface ApiService {
         request: FcmMessageRequest,
         token: String? = null
     ): RemoteResult<Boolean>
+
+    /** Initiates plan subscription payment (M-Pesa STK push). */
+    suspend fun subscribe(
+        request: SubscribeRequest,
+        token: String? = null
+    ): RemoteResult<SubscribeResponse>
+
+    /** Polls status of a subscription payment transaction. */
+    suspend fun getPaymentStatus(
+        paymentId: String,
+        token: String? = null
+    ): RemoteResult<PaymentStatusResponse>
 }
+
+/** Request payload for POST /api/subscribe */
+data class SubscribeRequest(
+    val planId: String = "",
+    val phone: String = ""
+)
+
+/** Response payload for POST /api/subscribe */
+data class SubscribeResponse(
+    val paymentId: String = "",
+    val status: String = "PENDING",
+    val message: String? = null
+)
+
+/** Response payload for GET /api/payments/status/{id} */
+data class PaymentStatusResponse(
+    val id: String = "",
+    val status: String = "PENDING",
+    val receipt: String? = null,
+    val planId: String? = null,
+    val message: String? = null
+)

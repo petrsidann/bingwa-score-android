@@ -195,7 +195,7 @@ class Stage13MyPlanTest {
 
     @Test
     fun `the purchase flow walks idle paying and success in place`() {
-        assertTrue("paying shows a loading button", myPlanSrc.contains("loadingText = \"Waiting for M-Pesa"))
+        assertTrue("pending shows mpesa prompt message", myPlanSrc.contains("Check your phone for the M-Pesa prompt"))
         assertTrue("success mints the receipt on the page", myPlanSrc.contains("success!!.receipt"))
         assertTrue("a tap runs the purchase", myPlanSrc.contains("viewModel.purchase(offer.planId)"))
     }

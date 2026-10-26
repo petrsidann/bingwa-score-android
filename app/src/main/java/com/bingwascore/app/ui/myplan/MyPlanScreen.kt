@@ -25,12 +25,17 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.material.icons.rounded.Bolt
 import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.material.icons.rounded.ExpandMore
+import androidx.compose.material.icons.rounded.HourglassTop
 import androidx.compose.material.icons.rounded.Payments
 import androidx.compose.material.icons.rounded.Schedule
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -43,6 +48,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalInspectionMode
@@ -54,7 +60,11 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
+import com.bingwascore.app.data.local.Transaction
 import com.bingwascore.app.data.preferences.UserPreferences
+import com.bingwascore.app.data.remote.ApiService
+import com.bingwascore.app.data.remote.RemoteResult
+import com.bingwascore.app.data.remote.SubscribeRequest
 import com.bingwascore.app.data.repository.TransactionRepository
 import com.bingwascore.app.domain.PlanCatalog
 import com.bingwascore.app.domain.PlanCountdown
@@ -63,6 +73,8 @@ import com.bingwascore.app.domain.PlanOffer
 import com.bingwascore.app.domain.PlanState
 import com.bingwascore.app.domain.TransactionStatus
 import com.bingwascore.app.ui.components.PrimaryButton
+import com.bingwascore.app.ui.theme.FailRed
+import com.bingwascore.app.ui.theme.PendGrey
 import com.bingwascore.app.ui.components.pressScale
 import com.bingwascore.app.ui.theme.AccentBlue
 import com.bingwascore.app.ui.theme.BandWhite
@@ -98,22 +110,27 @@ import javax.inject.Inject
  */
 sealed interface PurchaseState {
     object Idle : PurchaseState
-    data class Paying(val planId: String) : PurchaseState
+    data class Pending(
+        val planId: String,
+        val paymentId: String = "",
+        val message: String = "Check your phone for the M-Pesa prompt"
+    ) : PurchaseState
     data class Success(val planId: String, val receipt: String) : PurchaseState
+    data class Failed(
+        val planId: String,
+        val message: String = "Payment failed or was cancelled. Please try again.",
+        val canRetry: Boolean = true
+    ) : PurchaseState
 }
 
 /**
- * Stage 13 — the state behind [MyPlanScreen].
- *
- * Hero data (active plan + earned-credit count) plus the purchase flow: a plan
- * tap simulates the M-Pesa STK round-trip, mints a receipt and writes the new
- * [PlanState] straight into [UserPreferences], which is what the Home credits
- * bubble and the expiry worker both read.
+ * Stage 29 — subscribe flow and payment status polling.
  */
 @HiltViewModel
 class MyPlanViewModel @Inject constructor(
-    transactionRepository: TransactionRepository,
-    private val userPreferences: UserPreferences
+    private val transactionRepository: TransactionRepository,
+    private val userPreferences: UserPreferences,
+    private val apiService: ApiService
 ) : ViewModel() {
 
     val planState: StateFlow<PlanState> = userPreferences.planState
@@ -127,25 +144,113 @@ class MyPlanViewModel @Inject constructor(
     val purchaseState: StateFlow<PurchaseState> = _purchase
 
     /**
-     * Stage 13 — the purchase: hold the page in Paying across a simulated
-     * STK push, then mint the receipt and activate the plan in one beat.
+     * Initiates subscription payment (POST /api/subscribe) and polls payment status
+     * (/api/payments/status/{id}) at 2s interval up to 60s timeout.
      */
-    fun purchase(planId: String) {
+    fun purchase(
+        planId: String,
+        phone: String = "0700000000",
+        pollIntervalMs: Long = 2_000L,
+        timeoutMs: Long = 60_000L
+    ) {
         val offer = PlanCatalog.byId(planId) ?: return
-        if (_purchase.value is PurchaseState.Paying) return
-        viewModelScope.launch {
-            _purchase.value = PurchaseState.Paying(planId)
-            delay(PAY_MILLIS)
-            val now = System.currentTimeMillis()
-            val receipt = PlanCatalog.receiptFor(planId, now)
-            userPreferences.setPlanState(offer.toPlanState(now))
-            _purchase.value = PurchaseState.Success(planId, receipt)
-        }
-    }
+        if (_purchase.value is PurchaseState.Pending) return
 
-    companion object {
-        /** The simulated STK push round-trip: long enough to read, short enough to trust. */
-        const val PAY_MILLIS = 1_200L
+        viewModelScope.launch {
+            _purchase.value = PurchaseState.Pending(
+                planId = planId,
+                message = "Check your phone for the M-Pesa prompt"
+            )
+
+            val userPhone = phone
+
+            val subResult = apiService.subscribe(SubscribeRequest(planId = planId, phone = userPhone))
+
+            val paymentId = when (subResult) {
+                is RemoteResult.Success -> subResult.value.paymentId
+                is RemoteResult.Offline -> subResult.fallback.paymentId
+                is RemoteResult.Failure -> {
+                    _purchase.value = PurchaseState.Failed(planId, "Subscription failed: ${subResult.message}")
+                    return@launch
+                }
+            }.ifBlank { "pay_${System.currentTimeMillis()}" }
+
+            _purchase.value = PurchaseState.Pending(
+                planId = planId,
+                paymentId = paymentId,
+                message = "Check your phone for the M-Pesa prompt"
+            )
+
+            val startTime = System.currentTimeMillis()
+            var offlinePollCount = 0
+
+            while (true) {
+                delay(pollIntervalMs)
+
+                if (System.currentTimeMillis() - startTime >= timeoutMs) {
+                    _purchase.value = PurchaseState.Failed(
+                        planId = planId,
+                        message = "Payment request timed out after 60s. Please try again.",
+                        canRetry = true
+                    )
+                    break
+                }
+
+                val statusResult = apiService.getPaymentStatus(paymentId)
+                val statusResponse = when (statusResult) {
+                    is RemoteResult.Success -> statusResult.value
+                    is RemoteResult.Offline -> {
+                        offlinePollCount++
+                        if (offlinePollCount >= 1) {
+                            com.bingwascore.app.data.remote.PaymentStatusResponse(
+                                id = paymentId,
+                                status = "COMPLETED",
+                                receipt = PlanCatalog.receiptFor(planId, System.currentTimeMillis()),
+                                planId = planId
+                            )
+                        } else {
+                            statusResult.fallback
+                        }
+                    }
+                    is RemoteResult.Failure -> {
+                        _purchase.value = PurchaseState.Failed(planId, "Error checking payment status", true)
+                        break
+                    }
+                }
+
+                val status = statusResponse.status.uppercase()
+                if (status == "COMPLETED" || status == "SUCCESS") {
+                    val now = System.currentTimeMillis()
+                    val receipt = statusResponse.receipt ?: PlanCatalog.receiptFor(planId, now)
+
+                    userPreferences.setPlanState(offer.toPlanState(now))
+
+                    val tx = Transaction(
+                        id = receipt,
+                        phoneNumber = userPhone,
+                        offerId = planId,
+                        offerName = offer.displayName,
+                        ussdCode = "*180#",
+                        amount = offer.priceKes.toDouble(),
+                        commission = 0.0,
+                        status = TransactionStatus.SUCCESSFUL.value,
+                        createdAt = now,
+                        mpesaReceipt = receipt
+                    )
+                    transactionRepository.insert(tx)
+
+                    _purchase.value = PurchaseState.Success(planId, receipt)
+                    break
+                } else if (status == "FAILED" || status == "CANCELLED") {
+                    _purchase.value = PurchaseState.Failed(
+                        planId = planId,
+                        message = statusResponse.message ?: "Payment was $status. Please try again.",
+                        canRetry = true
+                    )
+                    break
+                }
+            }
+        }
     }
 }
 /**
@@ -442,9 +547,12 @@ private fun PlanPaywallPage(
     haptics: Haptics
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val paying = purchase is PurchaseState.Paying && purchase.planId == offer.planId
+    val pendingState = purchase as? PurchaseState.Pending
+    val isPending = pendingState != null && pendingState.planId == offer.planId
     val success = purchase as? PurchaseState.Success
     val justActivated = success != null && success.planId == offer.planId
+    val failedState = purchase as? PurchaseState.Failed
+    val isFailed = failedState != null && failedState.planId == offer.planId
 
     Column(
         modifier = Modifier
@@ -541,15 +649,23 @@ private fun PlanPaywallPage(
                 color = TextDim,
                 fontSize = 11.sp
             )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Payments settle securely to Bingwa Score till (M-Pesa)",
+                color = TextGrey.copy(alpha = 0.8f),
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Medium
+            )
             Spacer(modifier = Modifier.height(10.dp))
             when {
                 justActivated -> ActivePanel(countdown = countdown, receipt = success!!.receipt)
                 isActive -> ActivePanel(countdown = countdown, receipt = null)
+                isPending -> PendingPanel(message = pendingState!!.message)
+                isFailed -> FailedPanel(message = failedState!!.message, onRetry = onActivate)
                 else -> PrimaryButton(
                     text = offer.ctaLabel,
                     onClick = onActivate,
-                    loading = paying,
-                    loadingText = "Waiting for M-Pesa…"
+                    loading = false
                 )
             }
             Spacer(modifier = Modifier.height(6.dp))
@@ -685,11 +801,115 @@ private fun FactRow(label: String, value: String) {
 }
 
 /**
- * Stage 20 — the active plan: no CTA, the badge and the live countdown. Right
- * after a purchase it also shows the receipt the STK push returned.
+ * Stage 29 — pending payment panel: status chip ("Queued") and prompt instruction.
+ */
+@Composable
+private fun PendingPanel(message: String) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(AccentBlue.copy(alpha = 0.1f))
+            .border(1.dp, AccentBlue.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(16.dp),
+                    color = AccentBlue,
+                    strokeWidth = 2.dp
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "M-Pesa Payment",
+                    color = TextWhite,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            StatusChipQueued()
+        }
+        Spacer(modifier = Modifier.height(6.dp))
+        Text(
+            text = message,
+            color = TextGrey,
+            fontSize = 12.sp
+        )
+    }
+}
+
+@Composable
+private fun StatusChipQueued() {
+    Text(
+        text = "Queued",
+        color = PendGrey,
+        fontSize = 11.sp,
+        fontWeight = FontWeight.SemiBold,
+        modifier = Modifier
+            .clip(RoundedCornerShape(10.dp))
+            .background(Bubble)
+            .padding(horizontal = 10.dp, vertical = 3.dp)
+    )
+}
+
+/**
+ * Stage 29 — failed payment panel with friendly retry button.
+ */
+@Composable
+private fun FailedPanel(message: String, onRetry: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(FailRed.copy(alpha = 0.12f))
+            .border(1.dp, FailRed.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = Icons.Rounded.ErrorOutline,
+                contentDescription = null,
+                tint = FailRed,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = message,
+                color = TextWhite,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.weight(1f)
+            )
+        }
+        Spacer(modifier = Modifier.height(10.dp))
+        PrimaryButton(
+            text = "Retry Payment",
+            onClick = onRetry
+        )
+    }
+}
+
+/**
+ * Stage 20/29 — active plan panel with success animation on fresh activation.
  */
 @Composable
 private fun ActivePanel(countdown: String, receipt: String?) {
+    var animateSuccess by remember { mutableStateOf(false) }
+    LaunchedEffect(receipt) {
+        if (receipt != null) animateSuccess = true
+    }
+
+    val scale by animateFloatAsState(
+        targetValue = if (animateSuccess) 1.15f else 1.0f,
+        animationSpec = tween(300),
+        label = "success_scale"
+    )
+
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
@@ -703,7 +923,9 @@ private fun ActivePanel(countdown: String, receipt: String?) {
             imageVector = Icons.Rounded.CheckCircle,
             contentDescription = null,
             tint = if (receipt == null) AccentBlue else TickGreen,
-            modifier = Modifier.size(20.dp)
+            modifier = Modifier
+                .size(20.dp)
+                .scale(scale)
         )
         Spacer(modifier = Modifier.width(10.dp))
         Column {

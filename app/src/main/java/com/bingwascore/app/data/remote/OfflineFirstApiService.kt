@@ -127,6 +127,48 @@ class OfflineFirstApiService @Inject constructor(
         }
     }
 
+    override suspend fun subscribe(
+        request: SubscribeRequest,
+        token: String?
+    ): RemoteResult<SubscribeResponse> {
+        val localFallback = SubscribeResponse(
+            paymentId = "pay_${System.currentTimeMillis()}",
+            status = "PENDING",
+            message = "Check your phone for the M-Pesa prompt"
+        )
+        return fallback.guard(
+            flag = remoteConfig.offerSyncEnabled,
+            operation = "subscribe",
+            fallback = localFallback
+        ) {
+            val payload = JSONObject().apply {
+                put("planId", request.planId)
+                put("phone", request.phone)
+            }
+            val body = http.postRaw(PATH_SUBSCRIBE, payload.toString(), token) ?: return@guard localFallback
+            parseSubscribeResponse(body) ?: localFallback
+        }
+    }
+
+    override suspend fun getPaymentStatus(
+        paymentId: String,
+        token: String?
+    ): RemoteResult<PaymentStatusResponse> {
+        val localFallback = PaymentStatusResponse(
+            id = paymentId,
+            status = "PENDING",
+            message = "Check your phone for the M-Pesa prompt"
+        )
+        return fallback.guard(
+            flag = remoteConfig.offerSyncEnabled,
+            operation = "getPaymentStatus",
+            fallback = localFallback
+        ) {
+            val body = http.getRaw("$PATH_PAYMENT_STATUS/$paymentId", token) ?: return@guard localFallback
+            parsePaymentStatusResponse(body) ?: localFallback
+        }
+    }
+
     // ---- Guarded JSON parsing --------------------------------------------
 
     private fun parseOfferList(body: String): List<VerifiedOfferDto> = runCatching {
@@ -143,6 +185,26 @@ class OfflineFirstApiService @Inject constructor(
             )
         }
     }.getOrDefault(emptyList())
+
+    private fun parseSubscribeResponse(body: String): SubscribeResponse? = runCatching {
+        val obj = JSONObject(body)
+        SubscribeResponse(
+            paymentId = obj.optString("paymentId"),
+            status = obj.optString("status", "PENDING"),
+            message = obj.optString("message", null)
+        )
+    }.getOrNull()
+
+    private fun parsePaymentStatusResponse(body: String): PaymentStatusResponse? = runCatching {
+        val obj = JSONObject(body)
+        PaymentStatusResponse(
+            id = obj.optString("id"),
+            status = obj.optString("status", "PENDING"),
+            receipt = obj.optString("receipt", null),
+            planId = obj.optString("planId", null),
+            message = obj.optString("message", null)
+        )
+    }.getOrNull()
 
     private fun parseFeatureList(body: String): List<FeatureDto> = runCatching {
         val array = JSONArray(body)
@@ -198,5 +260,7 @@ class OfflineFirstApiService @Inject constructor(
         const val PATH_VERIFIED_OFFERS = "/api/offers/verified"
         const val PATH_FEATURES = "/api/features"
         const val PATH_SEND_MESSAGE = "/api/messages/send"
+        const val PATH_SUBSCRIBE = "/api/subscribe"
+        const val PATH_PAYMENT_STATUS = "/api/payments/status"
     }
 }
