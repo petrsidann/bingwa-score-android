@@ -143,6 +143,12 @@ these after installing:
 ./gradlew assembleDebug
 ```
 
+To configure a custom relay backend URL at build time, pass `-PrelayBaseUrl`:
+
+```bash
+./gradlew assembleDebug -PrelayBaseUrl=https://your.url
+```
+
 The debug APK lands at `app/build/outputs/apk/debug/app-debug.apk`.
 
 ### Build a signed release APK
