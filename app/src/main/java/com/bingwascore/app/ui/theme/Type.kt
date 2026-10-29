@@ -7,59 +7,56 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
 
 /**
- * PREMIUM LOCK — the strict iOS type scale.
+ * PREMIUM LOCK — the design-system type scale.
  *
- * Every size in the app must come from here: **no inline `fontSize = 13.sp`
- * literals**. The ramp is the iOS one (Display 34sp down to Caption 12sp) so
- * spacing between steps reads natively on Android too.
- *
- * Weight pairs with size on purpose: the ramp tightens from Bold at the top
- * to Regular at the bottom, which is what makes a hierarchy feel designed
- * rather than merely scaled.
+ * Every size in the app must come from here: **no inline `fontSize` literals**.
+ * The ramp (docs/DESIGN.md): 12 / 14 / 16 / 20 / 24 / 32 / 48 sp, weighted
+ * 400 / 500 / 600 / 700 so a step in size is always a step in weight too —
+ * that is what makes a hierarchy feel designed rather than merely scaled.
  */
 object BingwaType {
 
-    // ── The ramp (iOS) ────────────────────────────────────────────────────────
-    /** Large Title — hero numbers, splash wordmark. */
-    val Display: TextUnit = 34.sp
+    // ── The ramp (docs/DESIGN.md) ────────────────────────────────────────────
+    /** Display — splash wordmark, 48sp Bold. */
+    val Display: TextUnit = 48.sp
 
-    /** Title 1 — screen heroes. */
-    val Title: TextUnit = 28.sp
+    /** Title 1 — screen heroes, 32sp Bold. */
+    val Title: TextUnit = 32.sp
 
-    /** Title 2 — screen headers ("Offers", "Profile"). */
-    val Headline: TextUnit = 22.sp
+    /** Title 2 — screen headers ("Offers", "Profile"), 24sp Bold. */
+    val Headline: TextUnit = 24.sp
 
-    /** Title 3 — section headers, card titles. */
+    /** Title 3 — section headers, card titles, 20sp Bold. */
     val Subhead: TextUnit = 20.sp
 
-    /** Body — long-form copy. */
-    val Body: TextUnit = 17.sp
+    /** Body — long-form copy, 16sp Regular. */
+    val Body: TextUnit = 16.sp
 
-    /** Callout — default reading size, dialog body. */
+    /** Callout — default reading size, dialog body, 16sp Regular. */
     val Callout: TextUnit = 16.sp
 
-    /** Subheadline — list row titles, buttons. */
-    val Label: TextUnit = 15.sp
+    /** Label — list row titles, buttons, 14sp SemiBold. */
+    val Label: TextUnit = 14.sp
 
-    /** Footnote — secondary copy under a row title. */
-    val Footnote: TextUnit = 13.sp
+    /** Footnote — secondary copy under a row title, 14sp Regular. */
+    val Footnote: TextUnit = 14.sp
 
-    /** Caption 1 — metadata, timestamps, subtitles under headers. */
+    /** Caption 1 — metadata, timestamps, subtitles under headers, 12sp Regular. */
     val Caption: TextUnit = 12.sp
 
-    /** Caption 2 — the floor: nav labels, weekday initials. */
-    val Micro: TextUnit = 11.sp
+    /** Caption 2 — the floor: nav labels, weekday initials, 12sp Regular. */
+    val Micro: TextUnit = 12.sp
 
     // ── Ready-made styles ─────────────────────────────────────────────────────
 
     /** Large hero numerals (stat tiles, balance). */
-    val displayStyle = TextStyle(fontSize = Display, fontWeight = FontWeight.Bold, lineHeight = 40.sp)
+    val displayStyle = TextStyle(fontSize = Display, fontWeight = FontWeight.Bold, lineHeight = 56.sp)
 
     /** Screen hero. */
-    val titleStyle = TextStyle(fontSize = Title, fontWeight = FontWeight.Bold, lineHeight = 34.sp)
+    val titleStyle = TextStyle(fontSize = Title, fontWeight = FontWeight.Bold, lineHeight = 38.sp)
 
     /** Screen header. */
-    val headlineStyle = TextStyle(fontSize = Headline, fontWeight = FontWeight.Bold, lineHeight = 28.sp)
+    val headlineStyle = TextStyle(fontSize = Headline, fontWeight = FontWeight.Bold, lineHeight = 30.sp)
 
     /** Section / card header. */
     val subheadStyle = TextStyle(fontSize = Subhead, fontWeight = FontWeight.Bold, lineHeight = 25.sp)

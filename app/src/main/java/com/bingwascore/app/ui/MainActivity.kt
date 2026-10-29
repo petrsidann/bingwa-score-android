@@ -35,7 +35,7 @@ class MainActivity : FragmentActivity() {
         )
         setContent {
             val themeMode: ThemeMode by userPreferences.themeMode
-                .collectAsStateWithLifecycle(initialValue = ThemeMode.DARK)
+                .collectAsStateWithLifecycle(initialValue = ThemeMode.PORCELAIN_DIM)
             BingwaScoreTheme(themeMode = themeMode) {
                 AppNavHost(remoteHttpClient)
                 // SHOWCASE S1 — first ever launch offers the demo reel.

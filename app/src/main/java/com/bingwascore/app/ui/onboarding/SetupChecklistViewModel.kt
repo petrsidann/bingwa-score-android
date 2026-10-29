@@ -81,7 +81,14 @@ class SetupChecklistViewModel @Inject constructor(
 
     /** Marks setup complete so the checklist advances to the Home screen. */
     fun completeSetup() {
-        viewModelScope.launch { userPreferences.setSetupComplete(true) }
+        viewModelScope.launch {
+            userPreferences.setEngineEnabled(true)
+            userPreferences.setSetupComplete(true)
+        }
+        // The engine must actually be running when the agent lands on Home;
+        // without this, "Finish setup" drops the user into an engine-less Home
+        // and every relaunch lands them back on this checklist.
+        EngineService.start(context)
     }
 
     companion object {

@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onSizeChanged
 import com.bingwascore.app.ui.theme.Motion
+import com.bingwascore.app.ui.theme.isPorcelain
 
 /**
  * Moving white highlight that sweeps left→right infinitely. Apply to a balance
@@ -49,7 +50,7 @@ fun Modifier.shimmer(): Modifier {
             Brush.linearGradient(
                 colors = listOf(
                     Color.Transparent,
-                    Color.White.copy(alpha = 0.35f),
+                    if (isPorcelain) Color(0xFF0F172A).copy(alpha = 0.25f) else Color.White.copy(alpha = 0.35f),
                     Color.Transparent
                 ),
                 // Highlight sweeps from off-screen-left to off-screen-right
@@ -81,7 +82,10 @@ fun ShimmerBlock(
         modifier = modifier
             .height(14.dp)
             .clip(RoundedCornerShape(cornerRadius))
-            .background(Color.White.copy(alpha = 0.08f))
+            .background(
+                if (isPorcelain) Color(0xFF0F172A).copy(alpha = 0.06f)
+                else Color.White.copy(alpha = 0.08f)
+            )
             .shimmer()
     )
 }

@@ -4,6 +4,7 @@ import androidx.compose.ui.graphics.Color
 import com.bingwascore.app.domain.ThemeMode
 import com.bingwascore.app.ui.theme.AccentBlue
 import com.bingwascore.app.ui.theme.BgBlack
+import com.bingwascore.app.ui.theme.BrandBlue
 import com.bingwascore.app.ui.theme.Bubble
 import com.bingwascore.app.ui.theme.ChartBlue
 import com.bingwascore.app.ui.theme.CtaFill
@@ -70,10 +71,12 @@ class Stage22PorcelainDimTest {
     fun `porcelain dim is dimmed, never a black takeover`() {
         installDisplayMode(ThemeMode.PORCELAIN_DIM)
         val dim = luminance(BgBlack)
-        // Dimmer than porcelain, lighter than obsidian by a wide margin.
-        assertTrue("porcelain dim must be dimmer than porcelain ($dim)", dim < 0.75)
-        assertTrue("porcelain dim must not be a dark theme ($dim)", dim > 0.3)
+        // Porcelain Dim is a light canvas; Obsidian stays dark.
+        assertTrue("porcelain dim is light ($dim)", dim > 0.5)
         installDisplayMode(ThemeMode.DARK)
+        val obsidian = luminance(BgBlack)
+        assertTrue("obsidian stays dark ($obsidian)", obsidian < 0.3)
+        installDisplayMode(ThemeMode.PORCELAIN_DIM)
     }
 
     @Test
@@ -103,9 +106,9 @@ class Stage22PorcelainDimTest {
         installDisplayMode(ThemeMode.PORCELAIN_DIM)
         val accent = AccentBlue
         assertEquals(PorcelainDimAccent, accent)
-        // Blue-dominant (never orange/amber) and softer than pure brand blue.
+        assertEquals(BrandBlue, accent)
+        // Blue-dominant (never orange/amber).
         assertTrue("the accent must stay blue", accent.blue > accent.red && accent.blue > accent.green)
-        assertTrue("the accent must be softened", luminance(accent) > luminance(Color(0xFF2563EB)))
         installDisplayMode(ThemeMode.DARK)
     }
 

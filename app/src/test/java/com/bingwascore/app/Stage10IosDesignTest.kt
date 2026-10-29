@@ -14,7 +14,7 @@ import java.io.File
  * Stage 24 — iOS design system: Obsidian + Porcelain Dim (default).
  *
  * - Zero Silica/Grayscale references in app sources.
- * - iOS language numbers: 12dp cards, 34sp titles, 17sp body, capsule CTA,
+ * - iOS language numbers: 12dp cards, 48sp display, 16sp body, capsule CTA,
  *   28dp floating pill, springs 0.35/0.86, press 0.98.
  */
 class Stage10IosDesignTest {
@@ -51,7 +51,7 @@ class Stage10IosDesignTest {
         assertEquals(0.86f, Motion.DAMPING, 0.001f)
         assertEquals(350, Motion.SPRING_RESPONSE_MILLIS)
         assertEquals(0.98f, Motion.PRESS_SCALE, 0.001f)
-        assertEquals(34, com.bingwascore.app.ui.theme.BingwaType.Display.value.toInt())
-        assertEquals(17, com.bingwascore.app.ui.theme.BingwaType.Body.value.toInt())
+        assertEquals(48, com.bingwascore.app.ui.theme.BingwaType.Display.value.toInt())
+        assertEquals(16, com.bingwascore.app.ui.theme.BingwaType.Body.value.toInt())
     }
 }

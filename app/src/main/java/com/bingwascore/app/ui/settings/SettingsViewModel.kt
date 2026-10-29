@@ -51,7 +51,7 @@ class SettingsViewModel @Inject constructor(
     private val updateChecker: UpdateChecker
 ) : ViewModel() {
     val themeMode: StateFlow<ThemeMode> = userPreferences.themeMode
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ThemeMode.DARK)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ThemeMode.PORCELAIN_DIM)
 
     val processingMode: StateFlow<AppProcessingMode> = userPreferences.processingMode
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AppProcessingMode.EXPRESS)
