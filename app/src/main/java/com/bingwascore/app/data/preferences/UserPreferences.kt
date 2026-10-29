@@ -10,6 +10,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.bingwascore.app.BuildConfig
 import com.bingwascore.app.domain.AppProcessingMode
 import com.bingwascore.app.domain.AppState
 import com.bingwascore.app.domain.ProcessingActivity
@@ -55,6 +56,9 @@ class UserPreferences @Inject constructor(
         val REFERRAL_COUNT = stringPreferencesKey("referral_count")
         val ONBOARDING_DONE = booleanPreferencesKey("onboarding_done")
         val ANNOUNCEMENTS_SEEDED = booleanPreferencesKey("announcements_seeded")
+        // ── Stage 33 — runtime server URL ──
+        /** Backend base URL override persisted in DataStore; blank = build-time default. */
+        val SERVER_URL = stringPreferencesKey("server_url")
         // ── MEGA A — startup gate + aliveness ──
         /** Mirrors their APP_STATE key: STATE_RUNNING / STATE_STOPPED / STATE_SETUP. */
         val APP_STATE = stringPreferencesKey("app_state")
@@ -147,6 +151,11 @@ class UserPreferences @Inject constructor(
 
     val announcementsSeeded: Flow<Boolean> =
         context.dataStore.data.map { it[Keys.ANNOUNCEMENTS_SEEDED] ?: false }
+
+    /** Stage 33 — server URL override persisted in DataStore; blank = build-time default. */
+    val serverUrl: Flow<String> = context.dataStore.data.map { it[Keys.SERVER_URL] ?: "" }
+
+    suspend fun setServerUrl(value: String) = edit { it[Keys.SERVER_URL] = value }
 
     /**
      * POLISH P2 — how many cold starts this install has seen. Combined with the
@@ -290,6 +299,8 @@ class UserPreferences @Inject constructor(
     companion object {
         const val SIM_1 = "SIM 1"
         const val SIM_2 = "SIM 2"
+        /** Build-time default backend root; the runtime override lives in DataStore. */
+        val DEFAULT_SERVER_URL: String = BuildConfig.BASE_URL
     }
 
     private suspend fun edit(block: (androidx.datastore.preferences.core.MutablePreferences) -> Unit) {
