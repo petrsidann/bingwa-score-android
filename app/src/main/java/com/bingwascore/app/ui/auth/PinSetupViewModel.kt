@@ -77,14 +77,14 @@ class PinSetupViewModel @Inject constructor(
             return
         }
 
-        if (current.pin.length < AuthConstants.MIN_PIN_LENGTH) {
+        if (current.pin.length != AuthConstants.MIN_PIN_LENGTH) {
             _state.value = current.copy(
-                errorMessage = "Your PIN must be at least ${AuthConstants.MIN_PIN_LENGTH} digits"
+                errorMessage = "Your PIN must be exactly ${AuthConstants.MIN_PIN_LENGTH} digits"
             )
             return
         }
 
-        if (current.pin != current.confirmPin) {
+        if (current.confirmPin.length != AuthConstants.MIN_PIN_LENGTH || current.pin != current.confirmPin) {
             _state.value = current.copy(errorMessage = "That PIN doesn't match - try again")
             return
         }
@@ -130,6 +130,7 @@ data class PinSetupState(
         get() = name.isNotBlank() &&
             phone.isNotBlank() &&
             email.isNotBlank() &&
-            pin.length >= AuthConstants.MIN_PIN_LENGTH &&
-            confirmPin.length >= AuthConstants.MIN_PIN_LENGTH
+            pin.length == AuthConstants.MIN_PIN_LENGTH &&
+            confirmPin.length == AuthConstants.MIN_PIN_LENGTH &&
+            pin == confirmPin
 }

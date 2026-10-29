@@ -42,8 +42,8 @@ class OfflineAuthRepository @Inject constructor(
         if (!com.bingwascore.app.util.isTenDigitPhone(cleanPhone)) {
             return RemoteResult.Failure(400, "Enter a valid Kenyan phone number (e.g. 0712345678)")
         }
-        if (pin.length < MIN_PIN_LENGTH) {
-            return RemoteResult.Failure(400, "Your PIN must be at least $MIN_PIN_LENGTH digits")
+        if (pin.length != MIN_PIN_LENGTH) {
+            return RemoteResult.Failure(400, "Your PIN must be exactly $MIN_PIN_LENGTH digits")
         }
 
         val storedPin = userPreferences.pin.first()
@@ -99,8 +99,8 @@ class OfflineAuthRepository @Inject constructor(
         if (!email.contains("@") || !email.contains(".")) {
             return RemoteResult.Failure(400, "Enter a valid email address")
         }
-        if (pin.length < MIN_PIN_LENGTH) {
-            return RemoteResult.Failure(400, "Your PIN must be at least $MIN_PIN_LENGTH digits")
+        if (pin.length != MIN_PIN_LENGTH) {
+            return RemoteResult.Failure(400, "Your PIN must be exactly $MIN_PIN_LENGTH digits")
         }
 
         userPreferences.setAccountType(accountType)

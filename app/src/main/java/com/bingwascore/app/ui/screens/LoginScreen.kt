@@ -166,8 +166,8 @@ class LoginViewModel @Inject constructor(
             _state.value = current.copy(errorMessage = "Enter a valid phone number")
             return
         }
-        if (current.pin.length < 4) {
-            _state.value = current.copy(errorMessage = "PIN must be at least 4 digits")
+        if (current.pin.length != 4) {
+            _state.value = current.copy(errorMessage = "PIN must be exactly 4 digits")
             return
         }
 
@@ -527,8 +527,8 @@ private fun GlassField(
     }
 }
 
-/** PINs are capped at 6 digits so the keypad and field can never disagree. */
-private const val MAX_PIN_LENGTH = 6
+/** PINs are exactly 4 digits so the keypad and field can never disagree. */
+private const val MAX_PIN_LENGTH = 4
 
 /**
  * MEGA A — the login keypad: a 3x4 glass grid with a filled PIN readout, so a

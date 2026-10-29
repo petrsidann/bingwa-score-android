@@ -3,6 +3,8 @@ package com.bingwascore.app.ui.settings
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import android.widget.Toast
+import android.content.ClipboardManager
+import android.content.Context
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
@@ -16,6 +18,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -81,6 +84,7 @@ import com.bingwascore.app.ui.theme.BgBlack
 import com.bingwascore.app.ui.theme.TextFaint
 import com.bingwascore.app.ui.theme.TextWhite
 import com.bingwascore.app.util.BackupManager
+import com.bingwascore.app.util.CrashHandler
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -106,7 +110,10 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
     val updateState by viewModel.updateState.collectAsStateWithLifecycle()
     val updateUrl by viewModel.updateUrl.collectAsStateWithLifecycle()
     var updateDialogOpen by remember { mutableStateOf(false) }
-    // MEGA A — inbound routing switches.
+    // Crash report (Stage 31): the last uncaught-exception stack, capturable on-phone.
+    var crashDialogOpen by remember { mutableStateOf(false) }
+    var crashReportText by remember { mutableStateOf<String?>(null) }
+    val context = LocalContext.current    // MEGA A — inbound routing switches.
     val processMpesaMessages by viewModel.processMpesaMessages.collectAsStateWithLifecycle()
     val processSitelinkMessages by viewModel.processSitelinkMessages.collectAsStateWithLifecycle()
     // Stage 14 — Customers autosave master switch.
@@ -248,6 +255,15 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
                 }
             )
             SettingsRow(
+                icon = Icons.Rounded.Description,
+                title = "Last crash report",
+                subtitle = "Copy the most recent uncaught-exception stack to share",
+                onClick = {
+                    crashReportText = CrashHandler.readLatestCrashReport(context)
+                    crashDialogOpen = true
+                }
+            )
+            SettingsRow(
                 icon = Icons.Rounded.Info,
                 title = "About",
                 subtitle = "Version and app information",
@@ -279,8 +295,9 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
         }
     }
 
-    // Stage 22 — the check ran; the answer arrives in a dialog.
+    // Stage 22 + 31 — the check ran; the answer arrives in a dialog.
     val done = updateState as? UpdateCheckState.Done
+    val isCannotCheck = updateState is UpdateCheckState.CannotCheck
     if (updateDialogOpen && done != null) {
         UpdateResultDialog(
             state = done,
@@ -291,6 +308,103 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
             onDismiss = { updateDialogOpen = false }
         )
     }
+    if (updateDialogOpen && isCannotCheck) {
+        CannotCheckDialog(
+            onDismiss = { updateDialogOpen = false },
+            onRetry = { viewModel.checkForUpdates() }
+        )
+    }
+    // Stage 31 — the last crash report, capturable on-phone without adb.
+    if (crashDialogOpen) {
+        CrashReportDialog(
+            report = crashReportText,
+            onDismiss = { crashDialogOpen = false; crashReportText = null }
+        )
+    }
+}
+
+@Composable
+private fun CannotCheckDialog(
+    onDismiss: () -> Unit,
+    onRetry: () -> Unit
+) {
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = Bubble,
+        title = {
+            Text(
+                "Can't check right now",
+                color = TextWhite,
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Text(
+                "Bingwa Score can't reach the release server at the moment. " +
+                    "Check your connection and try again.",
+                color = TextGrey,
+                fontSize = 13.sp
+            )
+        },
+        confirmButton = {
+            androidx.compose.material3.TextButton(onClick = { onRetry(); onDismiss() }) {
+                Text("Retry", color = AccentBlue, fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            androidx.compose.material3.TextButton(onClick = onDismiss) {
+                Text("Later", color = TextGrey)
+            }
+        }
+    )
+}
+
+@Composable
+private fun CrashReportDialog(
+    report: String?,
+    onDismiss: () -> Unit
+) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = Bubble,
+        title = {
+            Text(
+                "Last crash report",
+                color = TextWhite,
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            val body = report ?: "No crash report on file yet."
+            Text(
+                body,
+                color = TextGrey,
+                fontSize = 12.sp,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp)
+                    .verticalScroll(rememberScrollState())
+            )
+        },
+        confirmButton = {
+            androidx.compose.material3.TextButton(onClick = {
+                report?.let { text ->
+                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                    clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Bingwa crash report", text))
+                }
+                onDismiss()
+            }) {
+                Text("Copy", color = AccentBlue, fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            androidx.compose.material3.TextButton(onClick = onDismiss) {
+                Text("Later", color = TextGrey)
+            }
+        }
+    )
 }
 
 @Composable

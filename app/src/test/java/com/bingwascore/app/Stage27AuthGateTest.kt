@@ -72,7 +72,7 @@ class Stage27AuthGateTest {
         assertTrue(pinVmState.isSubmittable)
 
         val mismatchedState = pinVmState.copy(confirmPin = "9999")
-        // Both are filled and length >= 4
-        assertTrue(mismatchedState.isSubmittable)
+        // Same length (4) but they don't match -> not submittable (confirm is enforced)
+        assertFalse(mismatchedState.isSubmittable)
     }
 }

@@ -30,15 +30,18 @@ sealed interface UpdateCheckState {
 
     /** [latestVersion] is the version the manifest offers, when there is one. */
     data class Done(val upToDate: Boolean, val latestVersion: String? = null) : UpdateCheckState
+
+    /** The server could not be reached (404 / offline). Show "Can't check right now" + Retry. */
+    data object CannotCheck : UpdateCheckState
 }
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val userPreferences: UserPreferences,
-    private val pipeline: TransactionPipeline
+    private val pipeline: TransactionPipeline,
+    private val updateChecker: UpdateChecker
 ) : ViewModel() {
-
     val themeMode: StateFlow<ThemeMode> = userPreferences.themeMode
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ThemeMode.DARK)
 
@@ -157,7 +160,7 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch { userPreferences.setSimSelection(value) }
     }
 
-    /** Stage 22 — reads the release manifest (`/updates/latest.json`) and compares it to this build. */
+    /** Stage 22 + 31 — reads `{BASE_URL}/updates/latest.json` and surfaces the answer. */
     fun checkForUpdates() {
         if (_updateState.value is UpdateCheckState.Checking) return
         viewModelScope.launch {
@@ -165,7 +168,7 @@ class SettingsViewModel @Inject constructor(
             _updateUrl.value = null
             updateChangelog = ""
             try {
-                when (val state = UpdateChecker.check(context)) {
+                when (val state = updateChecker.check()) {
                     is UpdateState.UpToDate ->
                         _updateState.value = UpdateCheckState.Done(upToDate = true)
                     is UpdateState.UpdateAvailable -> {
@@ -176,15 +179,12 @@ class SettingsViewModel @Inject constructor(
                             latestVersion = state.latestVersion
                         )
                     }
-                    // Stage 21 — offline is graceful: report "latest", never an error wall.
-                    is UpdateState.Offline ->
-                        _updateState.value = UpdateCheckState.Done(upToDate = true)
-                    is UpdateState.Error ->
-                        _updateState.value = UpdateCheckState.Done(upToDate = true)
+                    is UpdateState.CannotCheck ->
+                        _updateState.value = UpdateCheckState.CannotCheck
                 }
             } catch (t: Throwable) {
                 Timber.e(t, "UpdateChecker failed")
-                _updateState.value = UpdateCheckState.Done(upToDate = true)
+                _updateState.value = UpdateCheckState.CannotCheck
             }
         }
     }

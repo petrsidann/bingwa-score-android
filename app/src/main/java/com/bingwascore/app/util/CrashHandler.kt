@@ -1,5 +1,6 @@
 package com.bingwascore.app.util
 
+import android.content.ClipboardManager
 import android.content.Context
 import java.io.File
 import java.io.PrintWriter
@@ -16,7 +17,7 @@ import java.util.Locale
  */
 class CrashHandler(
     private val context: Context,
-    private val defaultHandler: Thread.UncaughtExceptionHandler?
+    private val defaultHandler: Thread.UncaughtExceptionHandler? = null
 ) : Thread.UncaughtExceptionHandler {
 
     override fun uncaughtException(thread: Thread, throwable: Throwable) {
@@ -47,6 +48,20 @@ class CrashHandler(
         }
     }
 
+    /** Returns the contents of the most recent crash report, or null when none exists. */
+    fun latestCrashReport(): String? {
+        return try {
+            val dir = context.getExternalFilesDir("crashes") ?: return null
+            if (!dir.exists()) return null
+            dir.listFiles()
+                ?.filter { it.name.startsWith("crash_") && it.name.endsWith(".txt") }
+                ?.maxByOrNull { it.lastModified() }
+                ?.readText()
+        } catch (_: Throwable) {
+            null
+        }
+    }
+
     companion object {
         private val TIMESTAMP_FORMAT = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.US)
 
@@ -61,5 +76,9 @@ class CrashHandler(
                 // Initialization is best-effort only.
             }
         }
+
+        /** Top-level entry point so settings can read the last report without constructing the handler. */
+        fun readLatestCrashReport(context: Context): String? =
+            CrashHandler(context).latestCrashReport()
     }
 }

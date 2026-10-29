@@ -156,6 +156,7 @@ dependencies {
 
     testImplementation("junit:junit:4.13.2")
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation("org.robolectric:robolectric:4.11.1")
     // Stage 19.7 — Paparazzi snapshot tests (JVM/Robolectric) for pure screen Content.
     testImplementation("app.cash.paparazzi:paparazzi:1.3.5")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")

@@ -1,11 +1,12 @@
 package com.bingwascore.app.updates
 
-import android.content.Context
 import com.bingwascore.app.BuildConfig
+import com.bingwascore.app.data.remote.RemoteConfig
+import com.bingwascore.app.data.remote.RemoteHttpClient
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import org.json.JSONObject
-import java.io.IOException
+import javax.inject.Inject
+import javax.inject.Singleton
 
 /** Result of the version check. */
 sealed interface UpdateState {
@@ -19,11 +20,8 @@ sealed interface UpdateState {
         val changelog: String = ""
     ) : UpdateState
 
-    /** Offline or unparsable: callers show the graceful "latest" state. */
-    data object Offline : UpdateState
-
-    /** The network/parse step failed — callers surface a generic message. */
-    data object Error : UpdateState
+    /** The server is unreachable (404 / offline). Callers show "Can't check right now" + Retry. */
+    data object CannotCheck : UpdateState
 }
 
 /** Stage 21 — semver compare: "1.9.1" > "1.9.0", prefixes tolerated. */
@@ -40,14 +38,7 @@ fun isNewer(installed: String, latest: String): Boolean {
     return false
 }
 
-/**
- * Stage 22 — the release manifest: the shape of `/updates/latest.json`.
- *
- * The file is ONE document the app reads to decide whether a newer build
- * exists. Today it ships inside the APK as a local mock; the moment a server
- * hosts it, the same document is fetched from [UpdateChecker.REMOTE_URL] and
- * nothing else changes.
- */
+/** The release manifest: the shape of `/updates/latest.json`. */
 data class UpdateManifest(
     val versionName: String,
     val versionCode: Int,
@@ -55,20 +46,13 @@ data class UpdateManifest(
     val changelog: String,
     val mandatory: Boolean
 ) {
-    /** True when this manifest is newer than [installed]. */
     fun isNewerThan(installed: String): Boolean = isNewer(installed, versionName)
 }
 
-/**
- * Stage 22 — parses `/updates/latest.json`.
- *
- * A manifest without a version is unusable and returns null (the caller shows
- * the graceful "could not check" state); everything else is optional.
- */
 fun parseUpdateManifest(json: String): UpdateManifest? {
     if (json.isBlank()) return null
     return try {
-        val obj = JSONObject(json)
+        val obj = org.json.JSONObject(json)
         val version = obj.optString("versionName", "").removePrefix("v").trim()
         if (version.isEmpty()) return null
         UpdateManifest(
@@ -84,44 +68,43 @@ fun parseUpdateManifest(json: String): UpdateManifest? {
 }
 
 /**
- * Stage 22 — the in-app version check.
+ * Stage 22 + 31 — the in-app version check.
  *
- * Reads the release manifest (`/updates/latest.json`) and compares it to the
- * installed [BuildConfig.VERSION_NAME]. Today the manifest is bundled in the
- * APK as a local mock, so the check works offline; the day the file is hosted
- * remotely, [REMOTE_URL] is fetched instead and this class is unchanged.
+ * Hits `{BASE_URL}/updates/latest.json`. When no backend is configured, or the
+ * fetch returns 404 / offline / unparsable, the result is [UpdateState.CannotCheck]
+ * and the UI shows "Can't check right now" with a Retry button.
  */
-class UpdateChecker {
+@Singleton
+class UpdateChecker @Inject constructor(
+    private val http: RemoteHttpClient,
+    private val remoteConfig: RemoteConfig
+) {
 
     companion object {
-        /** The bundled mock of the release manifest. */
+        /** The bundled mock of the release manifest (shipped offline fallback). */
         const val ASSET_PATH = "updates/latest.json"
+    }
 
-        /** Where the manifest will live once a server hosts it. */
-        const val REMOTE_URL = "https://bingwascore.com/updates/latest.json"
-
-        /**
-         * Runs the check on the IO dispatcher and never throws: any failure
-         * becomes [UpdateState.Error] or [UpdateState.Offline].
-         */
-        suspend fun check(context: Context): UpdateState = withContext(Dispatchers.IO) {
-            try {
-                val json = context.assets.open(ASSET_PATH).bufferedReader().use { it.readText() }
-                val manifest = parseUpdateManifest(json) ?: return@withContext UpdateState.Error
-                if (!manifest.isNewerThan(BuildConfig.VERSION_NAME)) {
-                    UpdateState.UpToDate
-                } else {
-                    UpdateState.UpdateAvailable(
-                        latestVersion = manifest.versionName,
-                        downloadUrl = manifest.downloadUrl,
-                        changelog = manifest.changelog
-                    )
-                }
-            } catch (e: IOException) {
-                UpdateState.Offline
-            } catch (_: Throwable) {
-                UpdateState.Error
+    /**
+     * Runs the check on the IO dispatcher and never throws: any failure becomes
+     * [UpdateState.CannotCheck].
+     */
+    suspend fun check(): UpdateState = withContext(Dispatchers.IO) {
+        if (remoteConfig.baseUrl.isBlank()) return@withContext UpdateState.CannotCheck
+        try {
+            val json = http.getRaw("/updates/latest.json") ?: return@withContext UpdateState.CannotCheck
+            val manifest = parseUpdateManifest(json) ?: return@withContext UpdateState.CannotCheck
+            if (!manifest.isNewerThan(BuildConfig.VERSION_NAME)) {
+                UpdateState.UpToDate
+            } else {
+                UpdateState.UpdateAvailable(
+                    latestVersion = manifest.versionName,
+                    downloadUrl = manifest.downloadUrl,
+                    changelog = manifest.changelog
+                )
             }
+        } catch (_: Throwable) {
+            UpdateState.CannotCheck
         }
     }
 }

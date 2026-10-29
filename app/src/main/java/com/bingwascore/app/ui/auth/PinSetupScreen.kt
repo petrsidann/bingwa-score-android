@@ -193,10 +193,10 @@ fun PinSetupScreen(
                 Spacer(modifier = Modifier.height(14.dp))
 
                 PinField(
-                    label = "PIN (4+ digits)",
+                    label = "PIN (4 digits)",
                     value = state.pin,
                     onValueChange = viewModel::updatePin,
-                    placeholder = "At least 4 digits",
+                    placeholder = "4 digits",
                     isPassword = true,
                     keyboardType = KeyboardType.NumberPassword
                 )
@@ -207,7 +207,7 @@ fun PinSetupScreen(
                     label = "Confirm PIN",
                     value = state.confirmPin,
                     onValueChange = viewModel::updateConfirmPin,
-                    placeholder = "Repeat your PIN",
+                    placeholder = "4 digits",
                     isPassword = true,
                     keyboardType = KeyboardType.NumberPassword
                 )
