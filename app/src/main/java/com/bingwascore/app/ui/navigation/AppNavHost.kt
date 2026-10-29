@@ -67,6 +67,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
@@ -94,8 +96,10 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import com.bingwascore.app.BuildConfig
 import com.bingwascore.app.ui.autorenewals.AutoRenewalsScreen
 import com.bingwascore.app.ui.autoreplies.AutoRepliesScreen
+import com.bingwascore.app.ui.components.DarkSnackbarHost
 import com.bingwascore.app.ui.components.ScreenTransition
 import com.bingwascore.app.ui.components.pressScale
 import com.bingwascore.app.ui.customers.CustomersScreen
@@ -113,6 +117,7 @@ import com.bingwascore.app.ui.onboarding.SetupChecklistScreen
 import com.bingwascore.app.ui.settings.SettingsScreen
 import com.bingwascore.app.ui.transactions.TransactionFilter
 import com.bingwascore.app.ui.transactions.TransactionsScreen
+import com.bingwascore.app.data.remote.RemoteHttpClient
 import com.bingwascore.app.score.ScoreScreen
 import com.bingwascore.app.util.rememberHaptics
 import androidx.compose.material.icons.rounded.Groups
@@ -141,6 +146,7 @@ import com.bingwascore.app.ui.theme.DisplayModeState
 import com.bingwascore.app.domain.ThemeMode
 import com.bingwascore.app.ui.theme.Raised
 import com.bingwascore.app.ui.theme.TextWhite
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
@@ -157,7 +163,7 @@ object Routes {
 }
 
 @Composable
-fun AppNavHost() {
+fun AppNavHost(remoteHttpClient: RemoteHttpClient) {
     val navController = rememberNavController()
     val splashViewModel: SplashViewModel = hiltViewModel()
     // Stage 11 — open Room (first snapshot) during the splash cinematic so the
@@ -255,7 +261,7 @@ fun AppNavHost() {
             )
         }
         composable(Routes.MAIN) {
-            MainScreen()
+            MainScreen(remoteHttpClient)
         }
     }
 }
@@ -306,7 +312,7 @@ internal val drawerEntries = listOf(
  * the secondary destinations.
  */
 @Composable
-fun MainScreen() {
+fun MainScreen(remoteHttpClient: RemoteHttpClient) {
     var selectedTab by remember { mutableStateOf(0) }
     var selectedDrawerIndex by remember { mutableStateOf(-1) }
     var drawerOpen by remember { mutableStateOf(false) }
@@ -315,6 +321,17 @@ fun MainScreen() {
     // R2: Home counters hand a status filter over to the Transactions tab.
     var transactionFilter by remember { mutableStateOf(TransactionFilter.ALL) }
     val scope = rememberCoroutineScope()
+    // Stage 33 — surface a "reconnected" snackbar whenever the network client
+    // is rebuilt after a server URL change.
+    val snackbarHostState = remember { SnackbarHostState() }
+    val reconnectCount by remoteHttpClient.reconnectCount.collectAsState(initial = 0)
+    LaunchedEffect(reconnectCount) {
+        if (reconnectCount == 0) return@LaunchedEffect
+        snackbarHostState.showSnackbar(
+            message = "Reconnected to server",
+            duration = SnackbarDuration.Short
+        )
+    }
     // Stage 18 — one backdrop registry for the shell: pill blur over the screens
     // recorded by glassSource (chrome sits outside the recorder).
     val glassBackdrop = rememberGlassBackdrop()
@@ -341,6 +358,7 @@ fun MainScreen() {
                 contentWindowInsets = WindowInsets.safeDrawing.only(
                     WindowInsetsSides.Top + WindowInsetsSides.Horizontal
                 ),
+                snackbarHost = { DarkSnackbarHost(hostState = snackbarHostState) },
                 bottomBar = {
                     // U1 — single-active truth: the highlight is derived ONLY from
                     // the current route. Dialer open -> Dial (2). Drawer open ->
