@@ -35,7 +35,7 @@ class Stage11LaunchCinematicTest {
     fun `splash draws a glowing traveling tip on the stroke head`() {
         assertTrue(
             "SplashScreen must draw the traveling tip helper",
-            splashSrc.contains("drawTravelingTip(trim.value)")
+            splashSrc.contains("drawTravelingTip(trim.value, ink)")
         )
         assertTrue(
             "the tip helper must sample Monogram.path positions",

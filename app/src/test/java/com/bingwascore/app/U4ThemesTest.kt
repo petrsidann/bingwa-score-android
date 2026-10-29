@@ -50,13 +50,13 @@ class U4ThemesTest {
         val darkFailed = StatusFailedTint
         val darkQueued = StatusQueued
         assertEquals(argb(SemanticBlue), argb(darkDone))
-        assertEquals(0xFFFC1E1E.toInt(), argb(darkFailed))
+        assertEquals(0xFFEF4444.toInt(), argb(darkFailed))
         assertEquals(argb(SemanticGrey), argb(darkQueued))
         // Stage 22 — Porcelain Dim DEEPENS the tints, because the shared ones
         // fall below 3:1 on the dim canvas. Queued stays neutral.
         installDisplayMode(ThemeMode.PORCELAIN_DIM)
         assertEquals(argb(BrandBlue), argb(StatusDone))
-        assertEquals(0xFFC41B1B.toInt(), argb(StatusFailedTint))
+        assertEquals(0xFFDC2626.toInt(), argb(StatusFailedTint))
         assertEquals(argb(SemanticGrey), argb(StatusQueued))
         installDisplayMode(ThemeMode.DARK)
     }
@@ -103,11 +103,9 @@ class U4ThemesTest {
 
     @Test
     fun disabledPairClearsAaInBothThemes() {
-        listOf(
-            ThemeMode.DARK to Color(0xFF0B0E15),
-            ThemeMode.PORCELAIN_DIM to Color(0xFFC9CED6)
-        ).forEach { (mode, canvas) ->
+        listOf(ThemeMode.DARK, ThemeMode.PORCELAIN_DIM).forEach { mode ->
             installDisplayMode(mode)
+            val canvas = BgBlack
             val fill = over(DisabledFill, canvas)
             val ink = over(DisabledInk, fill)
             val ratio = contrast(ink, fill)

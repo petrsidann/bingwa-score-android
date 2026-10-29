@@ -31,6 +31,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -50,11 +51,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -499,6 +504,16 @@ private fun GlassField(
     keyboardType: KeyboardType = KeyboardType.Text
 ) {
     val shape = RoundedCornerShape(16.dp)
+    val controller = LocalSoftwareKeyboardController.current
+    val focusRequester = remember { FocusRequester() }
+
+    // Phone and PIN fields are driven by the custom glass keypad, so the
+    // system keyboard must never rise when they gain focus.
+    LaunchedEffect(controller, focusRequester) {
+        focusRequester.requestFocus()
+        controller?.hide()
+    }
+
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -511,11 +526,14 @@ private fun GlassField(
             value = value,
             onValueChange = onValueChange,
             singleLine = true,
-            textStyle = TextStyle(color = Color.White, fontSize = 16.sp),
+            textStyle = TextStyle(color = TextWhite, fontSize = 16.sp),
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
             visualTransformation = if (isPassword) PasswordVisualTransformation() else VisualTransformation.None,
             cursorBrush = SolidColor(AccentBlue),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .focusable()
+                .focusRequester(focusRequester)
         )
         if (value.isEmpty()) {
             Text(
@@ -657,7 +675,7 @@ private fun LoginHeroOrbs() {
         )
         drawCircle(
             brush = Brush.radialGradient(
-                colors = listOf(Color(0xFF8C6BFF).copy(alpha = 0.16f), Color.Transparent)
+                colors = listOf(AccentBlue.copy(alpha = 0.16f), Color.Transparent)
             ),
             radius = size.width * 0.95f,
             center = Offset(size.width * 0.95f, size.height * 0.92f)

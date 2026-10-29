@@ -75,10 +75,20 @@ class Stage19ScreensPreviewTest {
         DialerScreenContent(state = FakeDialer.state)
     }
 
+    @Test
+    fun dialerPorcelainDim() = snapshot(ThemeMode.PORCELAIN_DIM) {
+        DialerScreenContent(state = FakeDialer.state)
+    }
+
     // ── Transactions ────────────────────────────────────────────────────────
 
     @Test
     fun transactionsDark() = snapshot(ThemeMode.DARK) {
+        TransactionsScreenContent(state = FakeTransactions.state)
+    }
+
+    @Test
+    fun transactionsPorcelainDim() = snapshot(ThemeMode.PORCELAIN_DIM) {
         TransactionsScreenContent(state = FakeTransactions.state)
     }
 
@@ -122,9 +132,19 @@ class Stage19ScreensPreviewTest {
         MyPlanScreenContent(state = FakeMyPlan.state, haptics = Haptics.Disabled)
     }
 
+    @Test
+    fun myPlanPorcelainDim() = snapshot(ThemeMode.PORCELAIN_DIM) {
+        MyPlanScreenContent(state = FakeMyPlan.state, haptics = Haptics.Disabled)
+    }
+
     /** BULK ENGINE family, on a plan with no CTA-blocked page: the price CTA. */
     @Test
     fun myPlanBulkDark() = snapshot(ThemeMode.DARK) {
+        MyPlanScreenContent(state = FakeMyPlan.bulkState, haptics = Haptics.Disabled)
+    }
+
+    @Test
+    fun myPlanBulkPorcelainDim() = snapshot(ThemeMode.PORCELAIN_DIM) {
         MyPlanScreenContent(state = FakeMyPlan.bulkState, haptics = Haptics.Disabled)
     }
 

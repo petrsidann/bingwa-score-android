@@ -288,7 +288,7 @@ private fun SplashStage(
                     val zoom = size.minDimension / 108f
                     val alpha = (1f - (spark * 0.8f).coerceIn(0f, 1f)) * 0.9f
                     drawCircle(
-                        color = Color.White.copy(alpha = alpha),
+                        color = ink.copy(alpha = alpha),
                         radius = 3f * zoom,
                         center = Offset(pos.x * zoom, pos.y * zoom)
                     )
@@ -322,7 +322,7 @@ private fun SplashStage(
                     }
             ) {
                 drawMonogram(trim.value, glow.value, ink)
-                drawTravelingTip(trim.value)
+                drawTravelingTip(trim.value, ink)
             }
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -374,12 +374,14 @@ private fun MaskSweepWordmark(text: String, sweep: Float, ink: Color) {
             }
         }
     }
-    // Mask sweep: an opaque rect that wipes across revealing the wordmark.
+    // Mask sweep: a canvas-coloured curtain that wipes left-to-right across the
+    // wordmark, revealing it. Painted in the canvas colour so it reads as a
+    // mask sweep on Obsidian and Porcelain Dim alike — never a white rectangle.
     Box(
         modifier = Modifier
             .size(260.dp, 40.dp)
             .clip(RoundedCornerShape(4.dp))
-            .background(Color.White)
+            .background(BgBlack)
             .graphicsLayer {
                 scaleX = 1f - sweep
                 translationX = (1f - sweep) * 260f * density
@@ -443,17 +445,16 @@ private fun StaggeredWordmark(text: String, clock: Float, ink: Color = TextWhite
 /**
  * Stage 11 — glowing traveling tip: a hot dot riding the stroke head while
  * the PathMeasure draws. Position is sampled from the same [Monogram.path].
+ * [ink] is theme-aware: dark ink on porcelain, white on obsidian.
  */
-private fun DrawScope.drawTravelingTip(fraction: Float) {
+private fun DrawScope.drawTravelingTip(fraction: Float, ink: Color) {
     if (fraction <= 0.01f || fraction >= 1f) return
     val measure = PathMeasure().apply { setPath(Monogram.path, false) }
     val pos = measure.getPosition(measure.length * fraction.coerceIn(0f, 1f))
     val zoom = size.minDimension / 108f
     drawCircle(
         brush = Brush.radialGradient(
-            // Stage 21 — a white core inside a brand-blue halo: the tip reads
-            // on obsidian AND on dim porcelain.
-            colors = listOf(Color.White, AccentBlue.copy(alpha = 0.9f), Color.Transparent),
+            colors = listOf(ink, AccentBlue.copy(alpha = 0.9f), Color.Transparent),
             center = Offset(pos.x * zoom, pos.y * zoom),
             radius = 14f * zoom
         ),

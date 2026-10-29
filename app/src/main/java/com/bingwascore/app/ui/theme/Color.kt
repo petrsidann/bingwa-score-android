@@ -11,14 +11,21 @@ import com.bingwascore.app.domain.ThemeMode
 import com.bingwascore.app.ui.glass.GlassSpec
 
 /**
- * Stage 24 â€” iOS design system colour tokens: Obsidian (dark) + Porcelain Dim (default).
+ * Stage 34 — production design system: Obsidian (dark) + Porcelain Dim (default light).
+ *
+ * Surface values mirror docs/DESIGN.md exactly:
+ *   Obsidian:      bg #0F172A, card #1E293B, elevated #334155, border #475569
+ *   Porcelain Dim: bg #F1F5F9, card #FFFFFF, elevated #F8FAFC, border #CBD5E1
+ *
+ * Semantic colours: Primary #2563EB, Success #10B981, Error #EF4444, Warning #F59E0B.
  *
  * One rule: every UI colour comes from a token below, never from a literal.
- * Tokens are *mode aware* — they read [DisplayModeState], which the theme writes
- * on every recomposition, so switching mode repaints the whole app instantly.
+ * Tokens are mode-aware — they read [DisplayModeState], which the theme writes
+ * on every composition, so switching mode repaints the whole app instantly.
  *
- * Obsidian (dark): keeps the #0B0E15 family.
- * Porcelain Dim (#C9CED6 canvas): dimmed lights, soft blue accent #2F6AE0.
+ * Obsidian (dark): near-black canvas family, white/light ink.
+ * Porcelain Dim (#F1F5F9 canvas): dimmed lights, near-black ink #0F172A,
+ * secondary #475569, brand kept at #2563EB so light never reads dull.
  */
 internal object DisplayModeState {
     var mode: ThemeMode by mutableStateOf(ThemeMode.PORCELAIN_DIM)
@@ -32,91 +39,49 @@ internal fun installDisplayMode(value: ThemeMode) {
 /** The display mode currently painted by the app. */
 val currentDisplayMode: ThemeMode get() = DisplayModeState.mode
 
-/** True in Porcelain Dim â€” the only light canvas left. */
+/** True in Porcelain Dim — the light canvas. */
 val isPorcelain: Boolean get() = DisplayModeState.mode != ThemeMode.DARK
 
-/**
- * Stage 22 — PORCELAIN DIM: the lights dimmed, not the sun turned off.
- *
- * A dim porcelain canvas (a cool grey, never Obsidian black), cards lifted a
- * step above it, near-black ink, and the brand blue kept but SOFTENED so a
- * dimmed screen never shouts. Every pair below is contrast-pinned against the
- * dim canvas by `Stage22PorcelainDimTest`.
- */
-val PorcelainDimBg: Color = Color(0xFFC9CED6)
-val PorcelainDimCard: Color = Color(0xFFDBDFE5)
-val PorcelainDimSurface: Color = Color(0xFFD3D8DF)
-val PorcelainDimRaised: Color = Color(0xFFBFC4CD)
+// ─── Obsidian (dark) surfaces ─────────────────────────────────────────────────
+
+val ObsidianBg: Color = Color(0xFF0F172A)
+val ObsidianCard: Color = Color(0xFF1E293B)
+val ObsidianElevated: Color = Color(0xFF334155)
+val ObsidianBorder: Color = Color(0xFF475569)
+
+// ─── Porcelain Dim (light) surfaces ───────────────────────────────────────────
+
+val PorcelainDimBg: Color = Color(0xFFF1F5F9)
+val PorcelainDimCard: Color = Color(0xFFFFFFFF)
+val PorcelainDimElevated: Color = Color(0xFFF8FAFC)
+val PorcelainDimBorder: Color = Color(0xFFCBD5E1)
+val PorcelainDimSurface: Color = Color(0xFFF1F5F9)
+val PorcelainDimRaised: Color = Color(0xFFF1F5F9)
 val PorcelainDimSeparator: Color = Color(0x593C3C43)
-val PorcelainDimText: Color = Color(0xFF111419)
-val PorcelainDimSecondaryText: Color = Color(0xFF3E4650)
-val PorcelainDimTertiaryText: Color = Color(0xFF565E69)
-/** The soft blue accent: the brand family, one step down. */
-val PorcelainDimAccent: Color = Color(0xFF2F6AE0)
-val PorcelainDimChartBlue: Color = Color(0xFF4F86F2)
-/** The dimmed signal red: the same hue, deepened so it still clears 3:1. */
-val PorcelainDimFailed: Color = Color(0xFFC41B1B)
-val PorcelainDimDisabledFill: Color = Color(0xFFAEB4BE)
-val PorcelainDimDisabledInk: Color = Color(0xFF2A2F37)
+val PorcelainDimText: Color = Color(0xFF0F172A)
+val PorcelainDimSecondaryText: Color = Color(0xFF475569)
+val PorcelainDimTertiaryText: Color = Color(0xFF64748B)
+/** The brand stays at full strength on the dim canvas so light never reads dull. */
+val PorcelainDimAccent: Color = Color(0xFF2563EB)
+val PorcelainDimChartBlue: Color = Color(0xFF2563EB)
+/** Deepened signal red so a failed status still clears 3:1 on the dim canvas. */
+val PorcelainDimFailed: Color = Color(0xFFDC2626)
+val PorcelainDimDisabledInk: Color = Color(0xFF0F172A)
 
-/** Brand blue family. */
+// ─── Semantic colours (shared by both themes) ─────────────────────────────────
+
+/** Brand primary: #2563EB everywhere. */
 val BrandBlue: Color = Color(0xFF2563EB)
+/** Success #10B981 — done states, ticks, confirm CTAs. */
+val Success: Color = Color(0xFF10B981)
+/** Error #EF4444 — failures, destructive actions, validation errors. */
+val Error: Color = Color(0xFFEF4444)
+/** Warning #F59E0B — cautions and attention states. */
+val Warning: Color = Color(0xFFF59E0B)
 
-// ─── Surfaces ─────────────────────────────────────────────────────────────────
-val BgBlack: Color get() = when (DisplayModeState.mode) {
-    ThemeMode.PORCELAIN_DIM -> PorcelainDimBg
-    else -> Color(0xFF0B0E15)
-}
-
-val Bubble: Color get() = when (DisplayModeState.mode) {
-    ThemeMode.PORCELAIN_DIM -> PorcelainDimCard
-    else -> Color(0xFF131824)
-}
-
-val Raised: Color get() = when (DisplayModeState.mode) {
-    ThemeMode.PORCELAIN_DIM -> PorcelainDimRaised
-    else -> Color(0xFF1B2233)
-}
-
-val Hairline: Color get() = when (DisplayModeState.mode) {
-    ThemeMode.PORCELAIN_DIM -> PorcelainDimSeparator
-    else -> Color(0xFF232C42)
-}
-
-/** Selected-row wash behind multi-selected transactions. */
-val SelectTint: Color get() = when (DisplayModeState.mode) {
-    ThemeMode.PORCELAIN_DIM -> Color(0x1A2F6AE0)
-    else -> Color(0xFF10233F)
-}
-
-// ─── Type ─────────────────────────────────────────────────────────────────────
-val TextWhite: Color get() = when (DisplayModeState.mode) {
-    ThemeMode.PORCELAIN_DIM -> PorcelainDimText
-    else -> Color(0xFFFFFFFF)
-}
-
-val TextGrey: Color get() = when (DisplayModeState.mode) {
-    ThemeMode.PORCELAIN_DIM -> PorcelainDimSecondaryText
-    else -> Color(0xFF9E9E9E)
-}
-
-val TextDim: Color get() = when (DisplayModeState.mode) {
-    ThemeMode.PORCELAIN_DIM -> PorcelainDimTertiaryText
-    else -> Color(0xFF6B6B6B)
-}
-
-// ─── Accents + statuses ───────────────────────────────────────────────────────
-
-/**
- * Stage 10 — the semantic status palette: identical in Obsidian and Porcelain.
- *
- * Stage 22 — Porcelain Dim DEEPENS them. The dim canvas is darker than
- * porcelain, and the shared tints drop below 3:1 on it; the dim theme uses the
- * brand blue and a deepened signal red so a status still reads at a glance.
- */
-val SemanticBlue: Color = Color(0xFF3E6BFF)
-val SemanticRed: Color = Color(0xFFFC1E1E)
-/** Mid-grey clears 3:1 on BOTH canvases (Obsidian #0B0E15 and Porcelain Dim #C9CED6). */
+val SemanticBlue: Color = BrandBlue
+val SemanticRed: Color = Error
+/** Mid-grey clears 3:1 on BOTH canvases (Obsidian #0F172A and Porcelain #F1F5F9). */
 val SemanticGrey: Color = Color(0xFF6B7280)
 
 /** Stage 10 — Done/Failed/Queued are the semantic trio in every theme. */
@@ -133,7 +98,7 @@ val StatusFailedTint: Color get() = when (DisplayModeState.mode) {
 /** Queued stays **neutral** and identical across themes. */
 val StatusQueued: Color = SemanticGrey
 
-/** Stage 10 — chrome accent: brand blue family; iOS blue in Porcelain Dim. */
+/** Chrome accent: brand blue family, identical in both themes. */
 val AccentBlue: Color get() = when (DisplayModeState.mode) {
     ThemeMode.PORCELAIN_DIM -> PorcelainDimAccent
     else -> BrandBlue
@@ -141,17 +106,62 @@ val AccentBlue: Color get() = when (DisplayModeState.mode) {
 
 val ChartBlue: Color get() = when (DisplayModeState.mode) {
     ThemeMode.PORCELAIN_DIM -> PorcelainDimChartBlue
-    else -> Color(0xFF5482FF)
+    else -> BrandBlue
 }
 
-/** The error ink. Stage 22 — the dim canvas gets the deepened signal red. */
+/** The error ink: Error #EF4444 on obsidian, deepened red on the dim canvas. */
 val FailRed: Color get() = when (DisplayModeState.mode) {
     ThemeMode.PORCELAIN_DIM -> PorcelainDimFailed
-    else -> SemanticRed
+    else -> Error
 }
 
 /** Pending / scheduled rows carry no signal either way, so they stay grey. */
 val PendGrey: Color get() = SemanticGrey
+
+// ─── Surfaces (mode-aware read points) ────────────────────────────────────────
+
+val BgBlack: Color get() = when (DisplayModeState.mode) {
+    ThemeMode.PORCELAIN_DIM -> PorcelainDimBg
+    else -> ObsidianBg
+}
+
+val Bubble: Color get() = when (DisplayModeState.mode) {
+    ThemeMode.PORCELAIN_DIM -> PorcelainDimCard
+    else -> ObsidianCard
+}
+
+val Raised: Color get() = when (DisplayModeState.mode) {
+    ThemeMode.PORCELAIN_DIM -> PorcelainDimElevated
+    else -> ObsidianElevated
+}
+
+val Hairline: Color get() = when (DisplayModeState.mode) {
+    ThemeMode.PORCELAIN_DIM -> PorcelainDimBorder
+    else -> ObsidianBorder
+}
+
+/** Selected-row wash behind multi-selected transactions. */
+val SelectTint: Color get() = when (DisplayModeState.mode) {
+    ThemeMode.PORCELAIN_DIM -> Color(0x1A2563EB)
+    else -> Color(0xFF10233F)
+}
+
+// ─── Type ─────────────────────────────────────────────────────────────────────
+
+val TextWhite: Color get() = when (DisplayModeState.mode) {
+    ThemeMode.PORCELAIN_DIM -> PorcelainDimText
+    else -> Color(0xFFFFFFFF)
+}
+
+val TextGrey: Color get() = when (DisplayModeState.mode) {
+    ThemeMode.PORCELAIN_DIM -> PorcelainDimSecondaryText
+    else -> Color(0xFF94A3B8)
+}
+
+val TextDim: Color get() = when (DisplayModeState.mode) {
+    ThemeMode.PORCELAIN_DIM -> PorcelainDimTertiaryText
+    else -> Color(0xFF94A3B8)
+}
 
 /**
  * Stage 24 — vibrancy gradients for the Done/Failed/Queued counter tiles.
@@ -217,13 +227,13 @@ val IosSeparator: Color get() = when (DisplayModeState.mode) {
  * on a light fill; Obsidian keeps light ink on a raised fill.
  */
 val DisabledFill: Color get() = when (DisplayModeState.mode) {
-    ThemeMode.PORCELAIN_DIM -> PorcelainDimDisabledFill
-    else -> Color(0xFF1B2233)
+    ThemeMode.PORCELAIN_DIM -> PorcelainDimElevated
+    else -> ObsidianElevated
 }
 
 val DisabledInk: Color get() = when (DisplayModeState.mode) {
-    ThemeMode.PORCELAIN_DIM -> PorcelainDimDisabledInk
-    else -> Color(0xFF9E9E9E)
+    ThemeMode.PORCELAIN_DIM -> PorcelainDimText
+    else -> Color(0xFFFFFFFF)
 }
 
 // ─── Call-to-action chrome ────────────────────────────────────────────────────

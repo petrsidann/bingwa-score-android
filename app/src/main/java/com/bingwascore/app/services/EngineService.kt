@@ -46,6 +46,13 @@ class EngineService : Service() {
                 return START_NOT_STICKY
             }
 
+            // Idempotent: a service that is already foregrounded must never be
+            // re-foregrounded, and a cold start must not stack start calls.
+            if (isRunning) {
+                Timber.d("EngineService already running (id=%d)", startId)
+                return START_STICKY
+            }
+
             isRunning = true
             val notification = buildNotification()
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -61,6 +68,7 @@ class EngineService : Service() {
             Timber.d("EngineService foregrounded (id=%d)", startId)
             return START_STICKY
         } catch (t: Throwable) {
+            isRunning = false
             Timber.e(t, "EngineService onStartCommand failed")
             stopSelf()
             return START_NOT_STICKY
@@ -177,6 +185,7 @@ class EngineService : Service() {
         private var appContext: Context? = null
 
         fun start(context: Context) {
+            if (isRunning) return
             try {
                 appContext = context.applicationContext
                 val intent = Intent(context, EngineService::class.java)
