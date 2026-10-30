@@ -1,6 +1,10 @@
 package com.bingwascore.app
 
 import android.app.Application
+import android.os.StrictMode
+import android.util.Log
+import androidx.core.content.ContextCompat
+import com.bingwascore.app.BuildConfig
 import com.bingwascore.app.data.local.AppDatabase
 import com.bingwascore.app.data.local.DatabaseSeeder
 import com.bingwascore.app.data.local.DbNameHolder
@@ -8,15 +12,18 @@ import com.bingwascore.app.data.preferences.UserPreferences
 import com.bingwascore.app.data.showcase.DemoEngine
 import com.bingwascore.app.data.showcase.DemoSeeder
 import com.bingwascore.app.services.EngineService
+import com.bingwascore.app.util.AnrWatchdog
 import com.bingwascore.app.util.CrashHandler
 import com.bingwascore.app.workers.Schedulers
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import java.util.concurrent.Executors
 import javax.inject.Inject
 
 @HiltAndroidApp
@@ -36,18 +43,41 @@ class BingwaScoreApp : Application() {
     override fun onCreate() {
         super.onCreate()
 
-        // SHOWCASE S1 — must be the very first thing: it decides which database
-        // file Room will open, and Room is built by Hilt right after this.
-        DbNameHolder.loadFrom(this)
+        // STRICTMODE — debug builds only: any main-thread disk/network IO dies
+        // here, in our testing, instead of on the owner's phone.
+        if (BuildConfig.DEBUG) {
+            val executor = Executors.newSingleThreadExecutor()
+            StrictMode.setThreadPolicy(
+                StrictMode.ThreadPolicy.Builder()
+                    .detectDiskReads()
+                    .detectDiskWrites()
+                    .detectNetwork()
+                    .penaltyDeath()
+                    .penaltyListener(executor) { violation ->
+                        CrashHandler.record(this@BingwaScoreApp, violation)
+                    }
+                    .build()
+            )
+        }
+
+        // SHOWCASE S1 — read the flag on an IO thread so the main thread never
+        // touches disk; Room is still built lazily afterwards.
+        runBlocking(Dispatchers.IO) { DbNameHolder.loadFrom(this@BingwaScoreApp) }
 
         CrashHandler.init(this)
         if (BuildConfig.DEBUG) Timber.plant(Timber.DebugTree())
 
         Timber.d("Bingwa Score online (showcase=%s, db=%s)", DbNameHolder.showcaseMode, DbNameHolder.dbName)
 
-        Schedulers.scheduleAll(this)
+        // ANR watchdog — permanent main-thread traces without bug reports.
+        AnrWatchdog.start(this)
 
         applicationScope.launch {
+            try {
+                Schedulers.scheduleAll(this@BingwaScoreApp)
+            } catch (t: Throwable) {
+                Timber.e(t, "Failed to schedule workers")
+            }
             try {
                 // SHOWCASE S2 — demo installs get their own populated database and
                 // then a live simulator; real installs are untouched.

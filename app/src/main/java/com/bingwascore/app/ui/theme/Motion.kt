@@ -50,16 +50,16 @@ object Motion {
      */
     const val SPLASH_GLOW_START: Int = 880
     const val SPLASH_GLOW_PULSE: Int = 460
-    const val SPLASH_WORDMARK_START: Int = 1150
+    const val SPLASH_WORDMARK_START: Int = 950
 
     /** Stagger between wordmark letters. */
     const val SPLASH_LETTER_STAGGER: Int = 30
 
     /** Tagline begins once the last letter has landed. */
-    const val SPLASH_TAGLINE_START: Int = 1530
+    const val SPLASH_TAGLINE_START: Int = 1300
 
-    /** Splash: whole choreography before the next screen (ms) — under 2.0s. */
-    const val SPLASH_TOTAL: Int = 1900
+    /** Splash: whole choreography before the next screen (ms) — under 1.5s. */
+    const val SPLASH_TOTAL: Int = 1500
 
     /** Splash: wordmark → tagline step duration. */
     const val SPLASH_STEP: Int = 250

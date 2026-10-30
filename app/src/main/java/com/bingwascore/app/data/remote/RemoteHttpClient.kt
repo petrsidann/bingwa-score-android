@@ -59,7 +59,8 @@ class RemoteHttpClient @Inject constructor(
 
     init {
         currentBaseUrl = BuildConfig.BASE_URL
-        client = buildClient(currentBaseUrl)
+        // Ktor client is built lazily on first use (and on URL change) so that
+        // construction never blocks the main thread at startup.
         scope.launch {
             userPreferences.serverUrl.collect { stored ->
                 val effective = stored.takeIf { it.isNotBlank() } ?: BuildConfig.BASE_URL

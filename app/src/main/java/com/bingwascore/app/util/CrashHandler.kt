@@ -1,7 +1,9 @@
 package com.bingwascore.app.util
 
-import android.content.ClipboardManager
 import android.content.Context
+import android.os.Looper
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.io.PrintWriter
 import java.text.SimpleDateFormat
@@ -49,10 +51,10 @@ class CrashHandler(
     }
 
     /** Returns the contents of the most recent crash report, or null when none exists. */
-    fun latestCrashReport(): String? {
-        return try {
-            val dir = context.getExternalFilesDir("crashes") ?: return null
-            if (!dir.exists()) return null
+    fun latestCrashReport(): String? = runBlocking(Dispatchers.IO) {
+        try {
+            val dir = context.getExternalFilesDir("crashes") ?: return@runBlocking null
+            if (!dir.exists()) return@runBlocking null
             dir.listFiles()
                 ?.filter { it.name.startsWith("crash_") && it.name.endsWith(".txt") }
                 ?.maxByOrNull { it.lastModified() }
@@ -60,6 +62,17 @@ class CrashHandler(
         } catch (_: Throwable) {
             null
         }
+    }
+
+    /** Records a StrictMode violation or ANR trace into the crash-report file. */
+    fun recordViolation(throwable: Throwable?) {
+        if (throwable == null) return
+        writeCrashReport(Thread.currentThread(), throwable)
+    }
+
+    /** Writes an ANR dump (main-thread stack) into the crash-report file. */
+    fun writeAnrReport(throwable: Throwable) {
+        writeCrashReport(Looper.getMainLooper().thread, throwable)
     }
 
     companion object {
@@ -80,5 +93,19 @@ class CrashHandler(
         /** Top-level entry point so settings can read the last report without constructing the handler. */
         fun readLatestCrashReport(context: Context): String? =
             CrashHandler(context).latestCrashReport()
+
+        /** Records a throwable (StrictMode violation, ANR, etc.) on the calling thread. */
+        fun record(context: Context, throwable: Throwable?) =
+            CrashHandler(context.applicationContext).recordViolation(throwable)
+
+        /** Alias used by StrictMode penalty listeners. */
+        fun recordStrictModeViolation(context: Context, violation: Throwable?) =
+            record(context, violation)
+
+        /** Alias used by the ANR watchdog. */
+        fun recordAnr(context: Context, throwable: Throwable?) =
+            CrashHandler(context.applicationContext).writeAnrReport(
+                throwable ?: Throwable("ANR")
+            )
     }
 }
