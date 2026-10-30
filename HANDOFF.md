@@ -1,17 +1,33 @@
 # ULTRA session end — handoff
 
-## STEP 0 resume state (2026-10-29, Stage 34 in progress)
+## STEP 0 resume state (2026-10-30, Stage 37 shipped)
 
-- Branch: stage-34-design-system (from origin/main). `:app:compileDebugKotlin` + `:app:compileDebugUnitTestKotlin` + `:app:assembleDebug` green. Pure-JVM suites green: ThemeModeTest, Stage10IosDesignTest, Stage11LaunchCinematicTest, U4ThemesTest, Stage22PorcelainDimTest (~29 tests).
-- **Stage 34 — production design system + crash fix + theme correctness**:
-  - Crash fix: EngineService.start idempotent + onStartCommand idempotent + try/catch + onDestroy guard; ValidateStartupUseCase gates on persisted engineEnabled instead of volatile EngineService.isRunning (fixes relaunch loop back into SetupChecklist); SetupChecklistViewModel.completeSetup() enables + starts the engine. Regression test: Stage34CrashLifecycleTest.
-  - Theme: DEFAULT = Porcelain Dim (MainActivity + SettingsViewModel initialValue PORCELAIN_DIM); Settings Appearance page = sun/moon pill toggle persisting via UserPreferences.themeMode; toggles repaint instantly via installDisplayMode.
-  - Design system: docs/DESIGN.md v2; Color.kt retokenized to spec (Obsidian #0F172A/#1E293B/#334155/#475569; Porcelain Dim #F1F5F9/#FFFFFF/#F8FAFC/#CBD5E1; #2563EB/#10B981/#EF4444/#F59E0B); Type.kt spec ramp 12/14/16/20/24/32/48; TextWhite dark on light.
-  - Text visibility: LoginScreen field Color.White→TextWhite; Splash white mask rect→canvas curtain, white sparks/tip→theme-aware ink; Shimmer theme-aware; orb recolored brand-blue.
-  - Keyboard UX: phone/PIN BasicTextField requests focus + LocalSoftwareKeyboardController.hide(), imeAction None — custom keypad without system overlay.
-  - Goldens: Stage19 + Stage21 snapshots regenerated × both themes (31 PNGs); new Stage34GoldensTest (signIn/signUp × both themes) compiles; **could not render: Robolectric JVM init aborts intermittently (RegisterNatives/SystemProperties, env flakiness) — snapshots pending environment stability**.
-- Blocked: full `:app:testDebugUnitTest` (Robolectric bootstrap aborts ~half of forks); paparazzi record for Stage34GoldensTest pending same env issue.
-- Next: commit + push stage-34-design-system, open one PR.
+- Branch: stage-37-perf (from origin/main), commit pending, pushed to origin/stage-37-perf.
+- `:app:compileDebugKotlin` + `:app:compileDebugUnitTestKotlin` + `:app:assembleDebug` green.
+- Stage 37 — performance-first startup + cheap splash + ANR watchdog:
+  - BingwaScoreApp.onCreate: StrictMode debug thread policy (disk reads/writes/network, penaltyDeath + CrashHandler record); DbNameHolder.loadFrom on Dispatchers.IO via runBlocking; Schedulers/seed/engine start deferred to applicationScope (IO); AnrWatchdog started.
+  - RemoteHttpClient: Ktor client built lazily on first use.
+  - CrashHandler.latestCrashReport runs on Dispatchers.IO; record/writeAnr helpers added.
+  - AnrWatchdog pings main every 1s, dumps main stack to crash file after 3s.
+  - Motion.SPLASH_TOTAL 1500ms (cheap splash within 1.5s).
+- Tests: SplashChoreographyTest, Stage11LaunchCinematicTest, Stage36TraceFixTest green.
+
+## STEP 0 resume state (2026-10-30, Stage 36 shipped)
+
+- Branch: stage-36-trace-fix (from origin/main), commit a7f4345 "Stage 36: trace-driven ANR/crash fix + three surgical fixes", pushed to origin/stage-36-trace-fix (PR not yet opened — `gh` unavailable in this shell; PR URL: https://github.com/petrsidann/bingwa-score-android/pull/new/stage-36-trace-fix).
+- `:app:compileDebugKotlin` + `:app:compileDebugUnitTestKotlin` + `:app:assembleDebug` green.
+- Stage 36 — trace-driven ANR/crash fix + three surgical fixes:
+  - Root cause fixed: ANR at SignIn on first keystroke / process death while typing phone — per-keystroke handlers ran `filter { it.isDigit() }` loops and cleared errors by writing state during composition/event dispatch. Now O(1) pure `updatePhone`/`updatePin` (no regex, no loops), error clear moved to `LaunchedEffect(snapshotFlow)` off the composition thread, fields `readOnly = true`, `windowSoftInputMode="stateAlwaysHidden|adjustNothing"`, every `LocalSoftwareKeyboardController.hide()` deleted.
+  - Splash: grey dot particles + both rectangle curtain boxes deleted; wordmark renders directly on canvas color; monogram stroke + traveling tip + bloom ring + tagline remain; only one `background(BgBlack)` (the surface canvas).
+  - Debug reachability: long-press the "Bingwa Score" wordmark on SignIn opens a Crash Report dialog (AlertDialog) showing `CrashHandler.readLatestCrashReport(context)` — reachable pre-auth, crash files persist forever.
+  - Tests: new Stage36TraceFixTest (12 tests, all green) — keyboard off, readOnly fields, no hide() calls, O(1) validation, snapshotFlow error clear, sign-in <16ms/frame harness, splash curtain/dots absent, wordmark on canvas, monogram/bloom/tagline remain, regression walk sign-in→type→home→relaunch.
+- Regression walk green: Stage31WalkTest, Stage11LaunchCinematicTest, SplashChoreographyTest, Stage21FirstRunTruthTest, U4ThemesTest, ThemeModeTest, Stage22PorcelainDimTest all pass. Stage34GoldensTest (paparazzi) cannot render in this sandbox (documented RegisterNatives/SystemProperties abort) — pre-existing env flakiness, not a regression.
+
+## Rules of engagement (unchanged)
+- Surgical edits only. Read only the first error when red.
+- Max 3 fix cycles per item; if still red, stop and report the blocker.
+- Commit + push each green group; refresh this file at every session end.
+- Terse output; first-error-only loop.
 
 ## STEP 0 resume state (2026-10-24, Stage 25 shipped)
 
