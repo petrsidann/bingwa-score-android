@@ -1,4 +1,4 @@
-# Bingwa Score — Design Constitution (v2)
+# Bingwa Score — Design Constitution (v3)
 
 Anti-slop reference for every stage that touches the UI. When this doc and the
 code disagree, the code wins only after a deliberate update to this doc.
