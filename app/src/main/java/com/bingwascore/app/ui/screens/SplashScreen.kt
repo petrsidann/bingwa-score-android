@@ -25,7 +25,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.draw.clip
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberUpdatedState
@@ -59,7 +58,6 @@ import com.bingwascore.app.ui.theme.isPorcelain
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.util.Random
 
 object SplashBrand {
     /** Stage 21 — the wordmark is ONE constant for the whole app. */
@@ -228,9 +226,9 @@ fun SplashScreenContent(
 
 
 /**
- * Stage 24 — the splash stage: monogram stroke-draw with glowing tip + spark
- * particles, completion bloom ring, mask-sweep wordmark, tagline fade-up,
- * shared-element hand-off.
+ * Stage 24 — the splash stage: monogram stroke-draw with glowing tip,
+ * completion bloom ring, wordmark sweep, tagline fade-up, shared-element
+ * hand-off.
  */
 @Composable
 private fun SplashStage(
@@ -274,25 +272,6 @@ private fun SplashStage(
                     center = center,
                     style = Stroke(width = 2f)
                 )
-            }
-            // Stage 24 — spark particles: bright dots that flash along the
-            // stroke while the monogram draws.
-            val spark = trim.value
-            if (spark > 0.01f) {
-                val measure = PathMeasure().apply { setPath(Monogram.path, false) }
-                val len = measure.length
-                val rnd = Random(42)
-                for (i in 0 until 6) {
-                    val f = ((i * 0.13f + spark * 0.05f) % 1f).coerceIn(0f, 1f)
-                    val pos = measure.getPosition(len * f)
-                    val zoom = size.minDimension / 108f
-                    val alpha = (1f - (spark * 0.8f).coerceIn(0f, 1f)) * 0.9f
-                    drawCircle(
-                        color = ink.copy(alpha = alpha),
-                        radius = 3f * zoom,
-                        center = Offset(pos.x * zoom, pos.y * zoom)
-                    )
-                }
             }
             // Stage 24 — completion bloom ring: expands once the stroke is done.
             val b = bloom.value
@@ -344,50 +323,29 @@ private fun SplashStage(
     }
 }
 
-/** Stage 24 — wordmark revealed by a left-to-right mask sweep (not typewriter). */
+/** Stage 24 — wordmark rendered directly on the canvas colour (no curtain). */
 @Composable
 private fun MaskSweepWordmark(text: String, sweep: Float, ink: Color) {
     val density = LocalDensity.current.density
-    Box(
+    Row(
         modifier = Modifier
             .size(260.dp, 40.dp)
-            .clip(RoundedCornerShape(4.dp))
-            .background(BgBlack)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .graphicsLayer {
-                    scaleX = 0.92f + 0.08f * sweep
-                    scaleY = 0.92f + 0.08f * sweep
-                    translationY = (1f - sweep) * 8f * density
-                    alpha = sweep
-                }
-        ) {
-            text.forEachIndexed { index, char ->
-                Text(
-                    text = char.toString(),
-                    color = ink,
-                    fontSize = BingwaType.Title,
-                    fontWeight = FontWeight.Bold
-                )
+            .graphicsLayer {
+                scaleX = 0.92f + 0.08f * sweep
+                scaleY = 0.92f + 0.08f * sweep
+                translationY = (1f - sweep) * 8f * density
+                alpha = sweep
             }
+    ) {
+        text.forEachIndexed { index, char ->
+            Text(
+                text = char.toString(),
+                color = ink,
+                fontSize = BingwaType.Title,
+                fontWeight = FontWeight.Bold
+            )
         }
     }
-    // Mask sweep: a canvas-coloured curtain that wipes left-to-right across the
-    // wordmark, revealing it. Painted in the canvas colour so it reads as a
-    // mask sweep on Obsidian and Porcelain Dim alike — never a white rectangle.
-    Box(
-        modifier = Modifier
-            .size(260.dp, 40.dp)
-            .clip(RoundedCornerShape(4.dp))
-            .background(BgBlack)
-            .graphicsLayer {
-                scaleX = 1f - sweep
-                translationX = (1f - sweep) * 260f * density
-                alpha = 1f - sweep
-            }
-    )
 }
 
 internal val SPLASH_WORDMARK: String = BrandWordmark.TEXT
