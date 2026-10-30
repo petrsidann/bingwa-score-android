@@ -104,7 +104,7 @@ class ValidateStartupUseCase @Inject constructor(
     }
 
     private fun engineCheck(engineEnabled: Boolean): StartupCheck {
-        val running = engineEnabled && EngineService.isRunning
+        val running = EngineService.isRunning
         return StartupCheck(
             id = "engine",
             title = "Autopilot engine",
@@ -113,8 +113,11 @@ class ValidateStartupUseCase @Inject constructor(
                 running -> "Running — watching for payments"
                 else -> "Starting in the background…"
             },
-            done = running,
-            actionLabel = if (running) null else "Start"
+            // engineEnabled is the persisted source of truth; isRunning is lost
+            // on process death and the service is (re)started by the app, the
+            // watchdog and the Home toggle, so the gate must not hinge on it.
+            done = engineEnabled,
+            actionLabel = if (engineEnabled) null else "Start"
         )
     }
 

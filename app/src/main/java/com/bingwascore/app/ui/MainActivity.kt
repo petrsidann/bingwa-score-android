@@ -8,6 +8,7 @@ import androidx.compose.runtime.getValue
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bingwascore.app.data.preferences.UserPreferences
+import com.bingwascore.app.data.remote.RemoteHttpClient
 import com.bingwascore.app.domain.ThemeMode
 import com.bingwascore.app.ui.navigation.AppNavHost
 import com.bingwascore.app.ui.settings.FirstLaunchShowcaseOffer
@@ -21,6 +22,9 @@ class MainActivity : FragmentActivity() {
     @Inject
     lateinit var userPreferences: UserPreferences
 
+    @Inject
+    lateinit var remoteHttpClient: RemoteHttpClient
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // Edge-to-edge: transparent system bars, content draws behind them and
@@ -31,9 +35,9 @@ class MainActivity : FragmentActivity() {
         )
         setContent {
             val themeMode: ThemeMode by userPreferences.themeMode
-                .collectAsStateWithLifecycle(initialValue = ThemeMode.DARK)
+                .collectAsStateWithLifecycle(initialValue = ThemeMode.PORCELAIN_DIM)
             BingwaScoreTheme(themeMode = themeMode) {
-                AppNavHost()
+                AppNavHost(remoteHttpClient)
                 // SHOWCASE S1 — first ever launch offers the demo reel.
                 FirstLaunchShowcaseOffer(onDecided = {})
             }

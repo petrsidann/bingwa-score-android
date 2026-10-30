@@ -1,5 +1,18 @@
 # ULTRA session end — handoff
 
+## STEP 0 resume state (2026-10-29, Stage 34 in progress)
+
+- Branch: stage-34-design-system (from origin/main). `:app:compileDebugKotlin` + `:app:compileDebugUnitTestKotlin` + `:app:assembleDebug` green. Pure-JVM suites green: ThemeModeTest, Stage10IosDesignTest, Stage11LaunchCinematicTest, U4ThemesTest, Stage22PorcelainDimTest (~29 tests).
+- **Stage 34 — production design system + crash fix + theme correctness**:
+  - Crash fix: EngineService.start idempotent + onStartCommand idempotent + try/catch + onDestroy guard; ValidateStartupUseCase gates on persisted engineEnabled instead of volatile EngineService.isRunning (fixes relaunch loop back into SetupChecklist); SetupChecklistViewModel.completeSetup() enables + starts the engine. Regression test: Stage34CrashLifecycleTest.
+  - Theme: DEFAULT = Porcelain Dim (MainActivity + SettingsViewModel initialValue PORCELAIN_DIM); Settings Appearance page = sun/moon pill toggle persisting via UserPreferences.themeMode; toggles repaint instantly via installDisplayMode.
+  - Design system: docs/DESIGN.md v2; Color.kt retokenized to spec (Obsidian #0F172A/#1E293B/#334155/#475569; Porcelain Dim #F1F5F9/#FFFFFF/#F8FAFC/#CBD5E1; #2563EB/#10B981/#EF4444/#F59E0B); Type.kt spec ramp 12/14/16/20/24/32/48; TextWhite dark on light.
+  - Text visibility: LoginScreen field Color.White→TextWhite; Splash white mask rect→canvas curtain, white sparks/tip→theme-aware ink; Shimmer theme-aware; orb recolored brand-blue.
+  - Keyboard UX: phone/PIN BasicTextField requests focus + LocalSoftwareKeyboardController.hide(), imeAction None — custom keypad without system overlay.
+  - Goldens: Stage19 + Stage21 snapshots regenerated × both themes (31 PNGs); new Stage34GoldensTest (signIn/signUp × both themes) compiles; **could not render: Robolectric JVM init aborts intermittently (RegisterNatives/SystemProperties, env flakiness) — snapshots pending environment stability**.
+- Blocked: full `:app:testDebugUnitTest` (Robolectric bootstrap aborts ~half of forks); paparazzi record for Stage34GoldensTest pending same env issue.
+- Next: commit + push stage-34-design-system, open one PR.
+
 ## STEP 0 resume state (2026-10-24, Stage 25 shipped)
 
 - Shipped+green: Stages 1–24 + **Stage 25 (nav morph + real back navigation)**. U1 USSD engine + E1 balance/dial protected.

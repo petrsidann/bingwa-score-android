@@ -20,9 +20,17 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+
+fun isValidServerUrl(url: String): Boolean {
+    if (url.isBlank()) return false
+    return runCatching { java.net.URL(url) }
+        .map { it.protocol.equals("https", ignoreCase = true) && it.host.isNotBlank() }
+        .getOrElse { false }
+}
 
 sealed interface UpdateCheckState {
     data object Idle : UpdateCheckState
@@ -43,7 +51,7 @@ class SettingsViewModel @Inject constructor(
     private val updateChecker: UpdateChecker
 ) : ViewModel() {
     val themeMode: StateFlow<ThemeMode> = userPreferences.themeMode
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ThemeMode.DARK)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ThemeMode.PORCELAIN_DIM)
 
     val processingMode: StateFlow<AppProcessingMode> = userPreferences.processingMode
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AppProcessingMode.EXPRESS)
@@ -73,6 +81,34 @@ class SettingsViewModel @Inject constructor(
 
     val simSelection: StateFlow<String> = userPreferences.simSelection
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), UserPreferences.SIM_1)
+
+    /** Stage 33 — server URL override persisted in DataStore; blank = build-time default. */
+    val defaultServerUrl: String = BuildConfig.BASE_URL
+
+    val serverUrl: StateFlow<String> = userPreferences.serverUrl
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), "")
+
+    /** The URL the network client actually points at: the stored override, or the default. */
+    val effectiveServerUrl: StateFlow<String> = serverUrl.map { stored ->
+        stored.takeIf { isValidServerUrl(it) } ?: defaultServerUrl
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), defaultServerUrl)
+
+    private val _serverUrlError = MutableStateFlow<String?>(null)
+    val serverUrlError: StateFlow<String?> = _serverUrlError.asStateFlow()
+
+    fun setServerUrl(value: String) {
+        if (!isValidServerUrl(value)) {
+            _serverUrlError.value = "Server URL must use https"
+            return
+        }
+        _serverUrlError.value = null
+        viewModelScope.launch { userPreferences.setServerUrl(value) }
+    }
+
+    fun resetServerUrl() {
+        _serverUrlError.value = null
+        viewModelScope.launch { userPreferences.setServerUrl("") }
+    }
 
     private val _updateState = MutableStateFlow<UpdateCheckState>(UpdateCheckState.Idle)
     val updateState: StateFlow<UpdateCheckState> = _updateState.asStateFlow()

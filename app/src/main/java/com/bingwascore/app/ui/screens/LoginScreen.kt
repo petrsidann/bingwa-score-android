@@ -2,6 +2,7 @@ package com.bingwascore.app.ui.screens
 
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
+import android.content.Context
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -13,6 +14,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -31,6 +33,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -41,19 +44,25 @@ import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.rounded.Fingerprint
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -73,6 +82,7 @@ import com.bingwascore.app.data.remote.RemoteResult
 import com.bingwascore.app.ui.components.BubbleCard
 import com.bingwascore.app.ui.components.PrimaryButton
 import com.bingwascore.app.ui.components.pressScale
+import com.bingwascore.app.ui.brand.BrandWordmark
 import com.bingwascore.app.ui.theme.AccentBlue
 import com.bingwascore.app.ui.theme.BgBlack
 import com.bingwascore.app.ui.theme.Bubble
@@ -80,6 +90,7 @@ import com.bingwascore.app.ui.theme.Hairline
 import com.bingwascore.app.ui.theme.TextFaint
 import com.bingwascore.app.ui.theme.TextWhite
 import com.bingwascore.app.ui.theme.TickGreen
+import com.bingwascore.app.util.CrashHandler
 import com.bingwascore.app.util.rememberHaptics
 import com.bingwascore.app.util.screenEnter
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -87,6 +98,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import java.util.concurrent.Executor
 import javax.inject.Inject
@@ -121,19 +134,13 @@ class LoginViewModel @Inject constructor(
     }
 
     fun updatePhone(value: String) {
-        val clean = value.filter { it.isDigit() }
-        _state.value = _state.value.copy(
-            phone = clean,
-            errorMessage = null
-        )
+        // O(1) pure on state change: the custom keypad writes digits only,
+        // so there is no regex, no filter loop, and no per-keystroke scan.
+        _state.value = _state.value.copy(phone = value)
     }
 
     fun updatePin(value: String) {
-        val clean = value.filter { it.isDigit() }
-        _state.value = _state.value.copy(
-            pin = clean,
-            errorMessage = null
-        )
+        _state.value = _state.value.copy(pin = value)
     }
 
     fun appendPinDigit(digit: Char) {
@@ -141,8 +148,7 @@ class LoginViewModel @Inject constructor(
         if (current.cooldownSeconds > 0 || current.isLoading || current.isSuccess) return
         if (current.pin.length < MAX_PIN_LENGTH) {
             _state.value = current.copy(
-                pin = current.pin + digit,
-                errorMessage = null
+                pin = current.pin + digit
             )
         }
     }
@@ -152,10 +158,13 @@ class LoginViewModel @Inject constructor(
         if (current.cooldownSeconds > 0 || current.isLoading || current.isSuccess) return
         if (current.pin.isNotEmpty()) {
             _state.value = current.copy(
-                pin = current.pin.dropLast(1),
-                errorMessage = null
+                pin = current.pin.dropLast(1)
             )
         }
+    }
+
+    fun clearError() {
+        _state.value = _state.value.copy(errorMessage = null)
     }
 
     fun signIn(onSuccess: () -> Unit) {
@@ -229,10 +238,28 @@ fun LoginScreen(
 ) {
     val context = LocalContext.current
     val haptics = rememberHaptics()
+    var showCrashReport by remember { mutableStateOf(false) }
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     val phone = state.phone
     val pin = state.pin
+
+    // Clear a shown error on the very next keystroke. The write happens inside
+    // LaunchedEffect(snapshotFlow) — never during composition — so typing can
+    // never recompose mid-change and jank the frame.
+    LaunchedEffect(Unit) {
+        var lastPhone = ""
+        var lastPin = ""
+        snapshotFlow { state }
+            .onEach { s ->
+                if (s.errorMessage != null && (s.phone != lastPhone || s.pin != lastPin)) {
+                    viewModel.clearError()
+                }
+                lastPhone = s.phone
+                lastPin = s.pin
+            }
+            .launchIn(this)
+    }
 
     // MEGA A — a numeric keypad with a fingerprint affordance. Biometrics is a
     // shortcut for the *same* sign-in action; if the device has no sensor (or
@@ -324,6 +351,20 @@ fun LoginScreen(
             "Sign in to continue",
             color = TextWhite.copy(alpha = 0.6f),
             fontSize = 14.sp
+        )
+
+        // The brand wordmark on SignIn. Long-press it to open the Crash Report
+        // dialog showing the last CrashHandler stack — reachable pre-auth,
+        // forever, because crash files persist until the user clears them.
+        Text(
+            text = BrandWordmark.TEXT,
+            color = TextWhite,
+            fontSize = 34.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier
+                .align(Alignment.CenterHorizontally)
+                .padding(vertical = 8.dp)
+                .combinedClickable(onLongClick = { showCrashReport = true }, onClick = {})
         )
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -486,7 +527,40 @@ fun LoginScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
         }
+
+        if (showCrashReport) {
+            CrashReportDialog(onDismiss = { showCrashReport = false }, context = context)
+        }
     }
+}
+
+@Composable
+private fun CrashReportDialog(onDismiss: () -> Unit, context: Context) {
+    val report = CrashHandler.readLatestCrashReport(context)
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("OK")
+            }
+        },
+        title = { Text("Crash Report") },
+        text = {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    "Last CrashHandler stack",
+                    color = TextWhite,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = report ?: "No crashes recorded.",
+                    style = TextStyle(fontSize = 12.sp)
+                )
+            }
+        }
+    )
 }
 
 @Composable
@@ -499,6 +573,10 @@ private fun GlassField(
     keyboardType: KeyboardType = KeyboardType.Text
 ) {
     val shape = RoundedCornerShape(16.dp)
+    val focusRequester = remember { FocusRequester() }
+
+    // Phone and PIN fields are driven by the custom glass keypad, so the
+    // system keyboard must never rise when they gain focus.
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -511,11 +589,15 @@ private fun GlassField(
             value = value,
             onValueChange = onValueChange,
             singleLine = true,
-            textStyle = TextStyle(color = Color.White, fontSize = 16.sp),
+            readOnly = true,
+            textStyle = TextStyle(color = TextWhite, fontSize = 16.sp),
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
             visualTransformation = if (isPassword) PasswordVisualTransformation() else VisualTransformation.None,
             cursorBrush = SolidColor(AccentBlue),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .focusable()
+                .focusRequester(focusRequester)
         )
         if (value.isEmpty()) {
             Text(
@@ -657,7 +739,7 @@ private fun LoginHeroOrbs() {
         )
         drawCircle(
             brush = Brush.radialGradient(
-                colors = listOf(Color(0xFF8C6BFF).copy(alpha = 0.16f), Color.Transparent)
+                colors = listOf(AccentBlue.copy(alpha = 0.16f), Color.Transparent)
             ),
             radius = size.width * 0.95f,
             center = Offset(size.width * 0.95f, size.height * 0.92f)

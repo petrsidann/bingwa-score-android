@@ -1,99 +1,136 @@
-# Bingwa Score — Design Constitution
+# Bingwa Score — Design Constitution (v3)
 
 Anti-slop reference for every stage that touches the UI. When this doc and the
 code disagree, the code wins only after a deliberate update to this doc.
 
+Tokens only. No raw literals, no placeholder rectangles, no ambient blobs,
+no clear glass without shadow, no dull greys, no unstyled bands.
+
 ## 1. Themes (exactly two)
 
-- **Obsidian** (`ThemeMode.DARK`): canvas `#0B0E15`, cards `#131824`, near-white ink.
-- **Porcelain Dim** (`ThemeMode.PORCELAIN_DIM`, default): canvas `#C9CED6`, cards `#DBDFE5`, near-black ink, soft blue accent `#2F6AE0`.
-- There is NO light/white mode, NO porcelain, NO grayscale, NO glass-as-surface. Blur lives ONLY in Silica (`ui/glass/`): nav bars + sheets. Never on cards.
+- **Obsidian** (`ThemeMode.DARK`): bg `#0F172A`, card `#1E293B`, elevated
+  `#334155`, borders `#475569`, white/light ink.
+- **Porcelain Dim** (`ThemeMode.PORCELAIN_DIM`, **default**): bg `#F1F5F9`,
+  card `#FFFFFF`, elevated `#F8FAFC`, borders `#CBD5E1`, near-black ink
+  `#0F172A`, secondary `#475569`.
+- There is NO third mode: no Grayscale, no Silica, no light/white mode beyond
+  Porcelain Dim. Blur lives ONLY in `ui/glass/` (nav bars + sheets). Never on
+  cards.
+- `ThemeMode.fromValue` maps every retired stored value to Porcelain Dim.
 
-## 2. Type scale (sp)
+## 2. Colours
+
+| Role | Hex | Use |
+|------|-----|-----|
+| Primary / BrandBlue | `#2563EB` | brand, CTAs, links, active states |
+| Success | `#10B981` | done states, ticks, confirm CTAs |
+| Error | `#EF4444` | failures, destructive actions, validation errors |
+| Warning | `#F59E0B` | cautions, attention states |
+| Obsidian bg/card/elevated/border | `#0F172A` / `#1E293B` / `#334155` / `#475569` | dark surfaces |
+| Porcelain Dim bg/card/elevated/border | `#F1F5F9` / `#FFFFFF` / `#F8FAFC` / `#CBD5E1` | light surfaces |
+| Text primary (dark) | `#0F172A` | all text on Porcelain Dim |
+| Text secondary (dark) | `#475569` | helper text on Porcelain Dim |
+| Text primary (dark theme) | `#FFFFFF` | all text on Obsidian |
+| Status done | `#2563EB` | both themes |
+| Status failed | `#DC2626` (dim) / `#EF4444` (obsidian) | both themes |
+| Status queued | `#6B7280` | neutral, both themes |
+
+Read every colour from `ui/theme/Color.kt`. `TextWhite` / `TextGrey` / `TextDim`
+resolve to dark ink in Porcelain Dim and light ink in Obsidian — zero
+white-on-light anywhere.
+
+**Forbidden:** orange/amber (`U4ThemesTest` guards the palette), raw blobs,
+placeholder rectangles, clear glass without shadow, dull greys, unstyled bands,
+system keyboard over phone/PIN fields (custom keypad only).
+
+## 3. Type scale (sp)
 
 | Role | Size | Weight | Use |
 |------|------|--------|-----|
-| Display | 28 | Bold | Splash wordmark, Login "Welcome back" |
-| H1 | 22 | Bold | Page titles |
-| H2 | 20 | Bold | Section headers |
-| Body | 14 | Regular | Body copy |
-| BodySecondary | 13 | Regular | Subtitles / helper text |
-| Caption | 12 | Regular | Metadata, section labels (uppercase) |
-| Overline | 11 | SemiBold | Section labels, field labels |
-| Micro | 10–11 | Regular | Chips, footnotes |
-| Button | 14–16 | SemiBold | CTA labels |
+| Display | 48 | Bold | Splash wordmark |
+| Title | 32 | Bold | Screen heroes |
+| Headline | 24 | Bold | Screen headers |
+| Subhead | 20 | Bold | Section headers, card titles |
+| Body | 16 | Regular | Body copy |
+| Callout | 16 | Regular | Dialog body, reading size |
+| Label | 14 | SemiBold | Row titles, buttons |
+| Footnote | 14 | Regular | Secondary copy |
+| Caption | 12 | Regular | Metadata, subtitles |
+| Micro | 12 | Regular | Nav labels |
 
 Never random literals: read from `BingwaType` (`ui/theme/Type.kt`).
 
-## 3. 8pt grid
+## 4. 8pt grid
 
 All spacing, padding, gaps, corner radii and icon sizes are multiples of 8dp:
 - Screen padding: 20dp horizontal
-- Card radius: 12dp (iOS grouped card) / 14dp (glass input) / 16dp (field)
-- Spacer steps: 4dp, 6dp, 8dp, 10dp, 12dp, 14dp, 16dp, 20dp, 24dp
-- Icon: 20dp (rows), 22dp (nav/drawer), 26dp (fingerprint), 32dp (status)
-- CTA height: 48dp / 52dp
+- Card radius: 12dp
+- Chip radius: 8dp
+- Button radius: 12dp
+- Spacer steps: 4, 8, 12, 16, 20, 24, 32, 40, 48dp
+- Icon: 20dp rows, 22dp nav, 26dp fingerprint, 32dp status
+- Keypad keys: 64dp, 3×4 grid, 20sp SemiBold digits
+- CTA height: 48–56dp
+- PIN readout: exactly 4 dots, 12dp
 
-## 4. Color roles (per theme, read from `ui/theme/Color.kt`)
+## 5. Motion (`ui/theme/Motion.kt`)
 
-- `BgBlack` — canvas (`isPorcelain ? PorcelainDimBg : #0B0E15`)
-- `Bubble` — card (`isPorcelain ? PorcelainDimCard : #131824`)
-- `TextWhite` / `TextGrey` / `TextDim` / `TextFaint` — ink hierarchy
-- `AccentBlue` — brand (`#2563EB` obsidian / `#2F6AE0` dim)
-- `StatusDone` / `StatusFailedTint` / `StatusQueued` — statuses
-- `FailRed` — error ink (`#C41B1B` dim / `#FC1E1E` obsidian)
-- `CtaFill` / `CtaInk` — brand-blue CTA, white ink
-
-**Forbidden colors:** orange, amber, warm gradients, translucent glass on cards. `U4ThemesTest` guards the palette against orange/amber.
-
-## 5. Motion durations & curves (`ui/theme/Motion.kt`)
-
-- Springs: response 0.35 / damping 0.86 (`Motion.DAMPING = 0.86`)
-- Press scale: `0.98` (`Motion.PRESS_SCALE`)
-- Fade: 320ms; Slide: 360ms
-- Splash total: `<=1900ms` (`Motion.SPLASH_TOTAL`), skippable after 1000ms
-- Nav crossfade: 200ms (`Motion.NAV_CROSSFADE`)
-- Morph: 220ms (`Motion.MORPH_SPRING_MILLIS`)
-- Drawer spring: `StiffnessHigh` + 0.86 damping (<300ms)
+- Spring: response 0.35 / damping 0.86; press scale 0.98
+- Durations: 150ms / 250ms / 400ms (fade, slide, step)
+- Splash total: <= 2000ms (`Motion.SPLASH_TOTAL`), skippable after 1000ms
+- Nav crossfade: 200ms; morph: 220ms; drawer spring < 300ms
 
 Nothing loops forever. Nothing bounces. One breath per surface max.
 
-## 6. Component specs
+## 6. Components
 
 ### Card (`BubbleCard`)
-- `Bubble` fill, 1dp `Hairline` border, 12dp radius, fillMaxWidth.
-- No shadows on flat cards; elevation only via `Raised` surface shift.
+- Surface fill, 12dp radius, fillMaxWidth, 1dp hairline border where specified.
+- Soft shadow: 0 4px 12px rgba(0,0,0,0.08) on elevated surfaces.
 
-### Chip (`StatusChip`)
+### Chip
 - 8dp radius, text 10sp SemiBold, status-tinted fill at 14% alpha.
-- States: DONE (green), ACTION (grey).
+
+### Buttons
+- Primary: brand-blue fill, white ink, 12dp radius, 48–56dp height, press
+  scale 0.98, disabled pair clears AA in both themes.
+- Secondary: transparent fill, hairline border.
 
 ### Keypad
-- 3×4 grid of 64dp round glass keys, 20sp SemiBold digits.
-- PIN readout: exactly 4 dots, 12dp, filled = `AccentBlue`, empty = `Bubble` + hairline.
-- On-screen keypad drives phone + PIN; system keyboard must NOT rise (`LocalSoftwareKeyboardController.hide()` on focus).
+- 3×4 grid of 64dp round keys, 20sp SemiBold digits, PIN readout of exactly
+  4 dots. Drives phone + PIN fields; system keyboard MUST NOT rise
+  (`LocalSoftwareKeyboardController.hide()` on focus). Backspace works.
 
 ### Dialog
-- `Bubble` container, white/near-black ink, 16sp max body, monospace for crash reports.
-- Actions: blue confirm + grey dismiss. "Verified!" renders ONLY after the relay verifies credentials.
+- Card surface, dark/light ink per theme, 16sp max body, monospace for crash
+  reports. Blue confirm + grey dismiss. Frosted glass header + shadow depth
+  where specified (MyPlan header, nav pill).
 
-### CTA
-- Brand-blue fill (`CtaFill`), white ink (`CtaInk`), 48–52dp height, SemiBold.
+## 7. Splash (<= 2s, skippable after 1s)
 
-## 7. FORBIDDEN (lint/test-guarded where possible)
+1. Monogram stroke-draw with brand-blue glowing tip (#2563EB).
+2. Completion bloom ring.
+3. Wordmark mask-sweep reveal (canvas-coloured curtain — never a white rectangle).
+4. Tagline fade.
+5. Clean shared-element handoff to onboarding.
+
+Obsidian: dark canvas + blue glow. Porcelain Dim: dimmed canvas + dark ink monogram + soft blue halo.
+
+## 8. FORBIDDEN (lint/test-guarded where possible)
 
 1. No orange/amber literals anywhere.
-2. No `ThemeMode.PORCELAIN` / light mode.
+2. No `ThemeMode.PORCELAIN` / third light mode.
 3. No blur outside `ui/glass/`.
 4. No PIN other than exactly 4 digits (sign-up enforces 4 + confirm match).
-5. No system keyboard on phone/PIN fields (keypad drives both).
+5. No system keyboard on phone/PIN fields.
 6. No "Verified!" without relay verification.
 7. No local credential verification as a substitute for the relay.
 8. Showcase Mode is the ONLY local-data path, explicitly labelled "Demo data".
 9. No machine paths in `gradle.properties`; no secrets/tokens in repo.
-10. No half-drawn wordmarks: the wordmark is ALWAYS the full string (`BrandWordmark.TEXT`).
+10. No half-drawn wordmarks: the wordmark is ALWAYS `BrandWordmark.TEXT`.
+11. No white rectangles, grey placeholder blobs, or white-on-light text.
 
-## 8. Compliance
+## 9. Compliance
 
 AGENTS.md references this doc. Every future stage must:
 - Add/modify tokens in `ui/theme/` only (no literals).

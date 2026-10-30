@@ -30,6 +30,7 @@ import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Link
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.PrivacyTip
 import androidx.compose.material.icons.rounded.SaveAlt
@@ -68,6 +69,7 @@ import com.bingwascore.app.ui.components.BubbleCard
 import com.bingwascore.app.ui.components.ExplanationDialog
 import com.bingwascore.app.ui.components.PrimaryButton
 import com.bingwascore.app.ui.components.statusSwitchColors
+import com.bingwascore.app.ui.home.ThemeToggle
 import com.bingwascore.app.updates.UpdateDownloader
 import com.bingwascore.app.util.rememberHaptics
 import com.bingwascore.app.util.screenEnter
@@ -91,6 +93,7 @@ import java.io.File
 private enum class SettingsPage(val title: String) {
     APPEARANCE("Appearance"),
     PROCESSING_MODE("Processing Mode"),
+    SERVER("Server"),
     SIM_SELECTION("SIM Selection"),
     SIMULATE_PAYMENT("Test Drive"),
     BACKUP_RESTORE("Backup & Restore"),
@@ -118,6 +121,8 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
     val processSitelinkMessages by viewModel.processSitelinkMessages.collectAsStateWithLifecycle()
     // Stage 14 — Customers autosave master switch.
     val customersAutosave by viewModel.customersAutosave.collectAsStateWithLifecycle()
+    // Stage 33 — effective backend URL (DataStore override of BuildConfig.BASE_URL).
+    val effectiveServerUrl by viewModel.effectiveServerUrl.collectAsStateWithLifecycle()
     if (showAdvancedExplanation) {
         ExplanationDialog(
             title = "Advanced Mode",
@@ -146,6 +151,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
                 when (page) {
                     SettingsPage.APPEARANCE -> AppearancePage(viewModel)
                     SettingsPage.PROCESSING_MODE -> ProcessingModePage(viewModel)
+                    SettingsPage.SERVER -> ServerPage(viewModel)
                     SettingsPage.SIM_SELECTION -> SimSelectionPage(viewModel)
                     SettingsPage.SIMULATE_PAYMENT -> SimulatePaymentPage(viewModel)
                     SettingsPage.BACKUP_RESTORE -> BackupRestorePage(viewModel)
@@ -234,6 +240,14 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
                     DevChip()
                 },
                 onClick = { currentPage = SettingsPage.SIMULATE_PAYMENT }
+            )
+
+            SectionLabel("Server")
+            SettingsRow(
+                icon = Icons.Rounded.Link,
+                title = "Server",
+                subtitle = "Backend base URL — $effectiveServerUrl",
+                onClick = { currentPage = SettingsPage.SERVER }
             )
 
             SectionLabel("General")
@@ -562,165 +576,45 @@ private fun OptionCard(
 }
 
 /**
- * POLISH P5 — Appearance, as three live preview cards.
- *
- * The old page was three rows of title + description, which asked the agent to
- * pick a mood from prose. Each card now carries a **miniature of the product** —
- * canvas, card, status dots, nav pill — painted in that mode's real tokens, and
- * the whole app recomposes the instant one is tapped. Choosing a theme is a
- * visual decision, so the decision gets a picture.
+ * Stage 34 — the theme toggle: one sun/moon pill that switches Porcelain Dim
+ * (light) <-> Obsidian (dark) and persists the choice. Tapping it repaints
+ * the whole app instantly through UserPreferences.themeMode.
  */
 @Composable
 private fun AppearancePage(viewModel: SettingsViewModel) {
     val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
     val haptics = rememberHaptics()
+    val isDark = themeMode == ThemeMode.DARK
 
     PageTitle("Appearance")
-    PageIntro("Pick how Bingwa Score looks on this device. Changes apply instantly.")
-    ThemeMode.entries.forEach { mode ->
-        ThemePreviewCard(
-            mode = mode,
-            selected = themeMode == mode,
-            onClick = {
-                // R6 — a mode switch is a deliberate act, so it ticks.
-                haptics.tick()
-                viewModel.setThemeMode(mode)
-            }
-        )
-    }
-}
+    PageIntro("Obsidian by night, Porcelain Dim by day. The switch persists and repaints the app instantly.")
 
-/** One appearance card: the mode's name, a line of copy, and a live miniature. */
-@Composable
-private fun ThemePreviewCard(
-    mode: ThemeMode,
-    selected: Boolean,
-    onClick: () -> Unit
-) {
-    BubbleCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 10.dp),
-        onClick = onClick
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(mode.label, color = TextWhite, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = when (mode) {
-                        ThemeMode.DARK -> "Dark canvas, brand blue"
-                        ThemeMode.PORCELAIN_DIM -> "Dimmed lights, soft blue accents"
-                    },
-                    color = TextWhite.copy(alpha = 0.55f),
-                    fontSize = 12.sp
-                )
-            }
-            Spacer(modifier = Modifier.width(12.dp))
-            if (selected) {
-                Icon(
-                    imageVector = Icons.Rounded.CheckCircle,
-                    contentDescription = "Selected",
-                    tint = AccentBlue,
-                    modifier = Modifier.size(22.dp)
-                )
-            } else {
-                Box(
-                    modifier = Modifier
-                        .size(22.dp)
-                        .clip(CircleShape)
-                        .background(Bubble)
-                )
-            }
-        }
-        Spacer(modifier = Modifier.height(10.dp))
-        ThemePreviewStrip(mode = mode, selected = selected)
-    }
-}
-
-/**
- * The miniature — painted with the tokens of the mode it *represents*, so the
- * Porcelain preview is light while Obsidian is still active.
- */
-@Composable
-private fun ThemePreviewStrip(mode: ThemeMode, selected: Boolean) {
-    val shape = RoundedCornerShape(12.dp)
-    val canvas = when (mode) {
-        ThemeMode.PORCELAIN_DIM -> Color(0xFFC9CED6)
-        else -> Color(0xFF0B0E15)
-    }
-    val surface = when (mode) {
-        ThemeMode.PORCELAIN_DIM -> Color(0xFFDBDFE5)
-        else -> Color(0xFF131824)
-    }
-    val chrome = when (mode) {
-        ThemeMode.PORCELAIN_DIM -> Color(0xFF2F6AE0)
-        else -> Color(0xFF2563EB)
-    }
-    val done = Color(0xFF3E6BFF)
-    val failed = Color(0xFFFF5252)
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(56.dp)
-            .clip(shape)
-            .background(canvas)
-            .border(1.dp, if (selected) chrome.copy(alpha = 0.6f) else Hairline, shape)
-    ) {
+    BubbleCard(modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 8.dp)
+            modifier = Modifier.fillMaxWidth()
         ) {
-            Box(
-                modifier = Modifier
-                    .size(26.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(surface)
+            Text(
+                text = "Theme",
+                color = TextWhite,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold
             )
-            Spacer(modifier = Modifier.width(6.dp))
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(22.dp)
-                    .clip(RoundedCornerShape(7.dp))
-                    .background(surface)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(horizontal = 6.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(6.dp)
-                            .clip(CircleShape)
-                            .background(done)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Box(
-                        modifier = Modifier
-                            .size(6.dp)
-                            .clip(CircleShape)
-                            .background(failed)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Box(
-                        modifier = Modifier
-                            .height(4.dp)
-                            .width(34.dp)
-                            .clip(RoundedCornerShape(2.dp))
-                            .background(chrome.copy(alpha = 0.55f))
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(
+                text = themeMode.label,
+                color = TextGrey,
+                fontSize = 13.sp
+            )
+            Spacer(modifier = Modifier.weight(1f))
+            ThemeToggle(
+                isDark = isDark,
+                onToggle = {
+                    haptics.tick()
+                    viewModel.setThemeMode(
+                        if (isDark) ThemeMode.PORCELAIN_DIM else ThemeMode.DARK
                     )
                 }
-            }
-            Spacer(modifier = Modifier.width(6.dp))
-            Box(
-                modifier = Modifier
-                    .size(18.dp)
-                    .clip(CircleShape)
-                    .background(if (selected) chrome else surface)
             )
         }
     }
@@ -744,6 +638,83 @@ private fun ProcessingModePage(viewModel: SettingsViewModel) {
         selected = processingMode == AppProcessingMode.ADVANCED,
         onClick = { viewModel.requestAdvancedMode() }
     )
+}
+
+/**
+ * Stage 33 — runtime server URL. The stored DataStore value overrides the
+ * build-time default; invalid (non-https) input is rejected inline.
+ */
+@Composable
+private fun ServerPage(viewModel: SettingsViewModel) {
+    val haptics = rememberHaptics()
+    val serverUrl by viewModel.serverUrl.collectAsStateWithLifecycle()
+    val effectiveUrl by viewModel.effectiveServerUrl.collectAsStateWithLifecycle()
+    val errorState = viewModel.serverUrlError.collectAsStateWithLifecycle()
+    var input by remember(serverUrl) { mutableStateOf(serverUrl) }
+
+    PageTitle("Server")
+    PageIntro(
+        "Backend base URL. Must use https and overrides the build-time default. " +
+            "Changes apply to the next network call."
+    )
+    BubbleCard(modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Bubble)
+                    .border(1.dp, if (errorState.value != null) FailRed else Hairline, RoundedCornerShape(16.dp))
+                    .padding(horizontal = 14.dp, vertical = 13.dp)
+            ) {
+                BasicTextField(
+                    value = input,
+                    onValueChange = { input = it },
+                    singleLine = true,
+                    textStyle = TextStyle(color = TextWhite, fontSize = 14.sp),
+                    cursorBrush = SolidColor(AccentBlue),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                if (input.isEmpty()) {
+                    Text(
+                        "https://api.example.com",
+                        color = TextFaint,
+                        fontSize = 14.sp
+                    )
+                }
+            }
+            if (errorState.value != null) {
+                Text(
+                    errorState.value!!,
+                    color = FailRed,
+                    fontSize = 12.sp,
+                    modifier = Modifier.padding(horizontal = 14.dp).padding(top = 6.dp)
+                )
+            }
+            Spacer(modifier = Modifier.height(10.dp))
+            PrimaryButton(
+                text = "Save",
+                onClick = {
+                    haptics.tick()
+                    viewModel.setServerUrl(input.trim())
+                }
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            androidx.compose.material3.TextButton(onClick = {
+                haptics.tick()
+                input = serverUrl
+                viewModel.resetServerUrl()
+            }) {
+                Text("Reset to default", color = AccentBlue, fontWeight = FontWeight.SemiBold)
+            }
+            Spacer(modifier = Modifier.height(10.dp))
+            Text(
+                "Effective URL: $effectiveUrl",
+                color = TextWhite.copy(alpha = 0.5f),
+                fontSize = 12.sp
+            )
+        }
+    }
 }
 
 @Composable

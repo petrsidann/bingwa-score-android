@@ -25,7 +25,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.draw.clip
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberUpdatedState
@@ -59,7 +58,6 @@ import com.bingwascore.app.ui.theme.isPorcelain
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.util.Random
 
 object SplashBrand {
     /** Stage 21 — the wordmark is ONE constant for the whole app. */
@@ -228,9 +226,9 @@ fun SplashScreenContent(
 
 
 /**
- * Stage 24 — the splash stage: monogram stroke-draw with glowing tip + spark
- * particles, completion bloom ring, mask-sweep wordmark, tagline fade-up,
- * shared-element hand-off.
+ * Stage 24 — the splash stage: monogram stroke-draw with glowing tip,
+ * completion bloom ring, wordmark sweep, tagline fade-up, shared-element
+ * hand-off.
  */
 @Composable
 private fun SplashStage(
@@ -275,25 +273,6 @@ private fun SplashStage(
                     style = Stroke(width = 2f)
                 )
             }
-            // Stage 24 — spark particles: bright dots that flash along the
-            // stroke while the monogram draws.
-            val spark = trim.value
-            if (spark > 0.01f) {
-                val measure = PathMeasure().apply { setPath(Monogram.path, false) }
-                val len = measure.length
-                val rnd = Random(42)
-                for (i in 0 until 6) {
-                    val f = ((i * 0.13f + spark * 0.05f) % 1f).coerceIn(0f, 1f)
-                    val pos = measure.getPosition(len * f)
-                    val zoom = size.minDimension / 108f
-                    val alpha = (1f - (spark * 0.8f).coerceIn(0f, 1f)) * 0.9f
-                    drawCircle(
-                        color = Color.White.copy(alpha = alpha),
-                        radius = 3f * zoom,
-                        center = Offset(pos.x * zoom, pos.y * zoom)
-                    )
-                }
-            }
             // Stage 24 — completion bloom ring: expands once the stroke is done.
             val b = bloom.value
             if (b > 0.01f) {
@@ -322,7 +301,7 @@ private fun SplashStage(
                     }
             ) {
                 drawMonogram(trim.value, glow.value, ink)
-                drawTravelingTip(trim.value)
+                drawTravelingTip(trim.value, ink)
             }
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -344,48 +323,29 @@ private fun SplashStage(
     }
 }
 
-/** Stage 24 — wordmark revealed by a left-to-right mask sweep (not typewriter). */
+/** Stage 24 — wordmark rendered directly on the canvas colour (no curtain). */
 @Composable
 private fun MaskSweepWordmark(text: String, sweep: Float, ink: Color) {
     val density = LocalDensity.current.density
-    Box(
+    Row(
         modifier = Modifier
             .size(260.dp, 40.dp)
-            .clip(RoundedCornerShape(4.dp))
-            .background(BgBlack)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .graphicsLayer {
-                    scaleX = 0.92f + 0.08f * sweep
-                    scaleY = 0.92f + 0.08f * sweep
-                    translationY = (1f - sweep) * 8f * density
-                    alpha = sweep
-                }
-        ) {
-            text.forEachIndexed { index, char ->
-                Text(
-                    text = char.toString(),
-                    color = ink,
-                    fontSize = BingwaType.Title,
-                    fontWeight = FontWeight.Bold
-                )
+            .graphicsLayer {
+                scaleX = 0.92f + 0.08f * sweep
+                scaleY = 0.92f + 0.08f * sweep
+                translationY = (1f - sweep) * 8f * density
+                alpha = sweep
             }
+    ) {
+        text.forEachIndexed { index, char ->
+            Text(
+                text = char.toString(),
+                color = ink,
+                fontSize = BingwaType.Title,
+                fontWeight = FontWeight.Bold
+            )
         }
     }
-    // Mask sweep: an opaque rect that wipes across revealing the wordmark.
-    Box(
-        modifier = Modifier
-            .size(260.dp, 40.dp)
-            .clip(RoundedCornerShape(4.dp))
-            .background(Color.White)
-            .graphicsLayer {
-                scaleX = 1f - sweep
-                translationX = (1f - sweep) * 260f * density
-                alpha = 1f - sweep
-            }
-    )
 }
 
 internal val SPLASH_WORDMARK: String = BrandWordmark.TEXT
@@ -443,17 +403,16 @@ private fun StaggeredWordmark(text: String, clock: Float, ink: Color = TextWhite
 /**
  * Stage 11 — glowing traveling tip: a hot dot riding the stroke head while
  * the PathMeasure draws. Position is sampled from the same [Monogram.path].
+ * [ink] is theme-aware: dark ink on porcelain, white on obsidian.
  */
-private fun DrawScope.drawTravelingTip(fraction: Float) {
+private fun DrawScope.drawTravelingTip(fraction: Float, ink: Color) {
     if (fraction <= 0.01f || fraction >= 1f) return
     val measure = PathMeasure().apply { setPath(Monogram.path, false) }
     val pos = measure.getPosition(measure.length * fraction.coerceIn(0f, 1f))
     val zoom = size.minDimension / 108f
     drawCircle(
         brush = Brush.radialGradient(
-            // Stage 21 — a white core inside a brand-blue halo: the tip reads
-            // on obsidian AND on dim porcelain.
-            colors = listOf(Color.White, AccentBlue.copy(alpha = 0.9f), Color.Transparent),
+            colors = listOf(ink, AccentBlue.copy(alpha = 0.9f), Color.Transparent),
             center = Offset(pos.x * zoom, pos.y * zoom),
             radius = 14f * zoom
         ),
