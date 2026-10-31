@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.bingwascore.app.data.auth.AuthConstants
 import com.bingwascore.app.ui.components.BubbleCard
 import com.bingwascore.app.ui.components.PrimaryButton
 import com.bingwascore.app.ui.theme.AccentBlue
@@ -165,7 +166,11 @@ fun EmailOtpScreen(
                         state.isAwaitingCode -> "Verify code"
                         else -> "Send code"
                     },
-                    enabled = !state.isLoading,
+                    enabled = if (state.isAwaitingCode) {
+                        code.length == AuthConstants.OTP_LENGTH && !state.isLoading
+                    } else {
+                        state.email.isNotBlank() && state.email.contains("@") && state.email.contains(".") && !state.isLoading
+                    },
                     onClick = {
                         if (state.isAwaitingCode) {
                             viewModel.verifyCode(code)

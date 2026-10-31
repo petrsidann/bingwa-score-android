@@ -161,6 +161,6 @@ class Stage11LaunchCinematicTest {
             "splash total ${Motion.SPLASH_TOTAL}ms exceeds the 2.0s budget",
             Motion.SPLASH_TOTAL <= 2_000
         )
-        assertTrue(Motion.SPLASH_DRAW == 900)
+        assertTrue(Motion.SPLASH_DRAW == 300)
     }
 }

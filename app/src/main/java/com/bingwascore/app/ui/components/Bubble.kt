@@ -21,7 +21,10 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchColors
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -141,8 +144,12 @@ fun PrimaryButton(
     val shape = RoundedCornerShape(28.dp)
     // DisabledFill + DisabledInk clear AA in both themes.
     val enabledNow = enabled && !loading
-    val fill = if (enabledNow) CtaFill else DisabledFill
-    val ink = if (enabledNow) CtaInk else DisabledInk
+    val targetFill = if (enabledNow) CtaFill else DisabledFill
+    val targetInk = if (enabledNow) CtaInk else DisabledInk
+    val fill by animateColorAsState(targetValue = targetFill, animationSpec = tween(180), label = "primaryFill")
+    val ink by animateColorAsState(targetValue = targetInk, animationSpec = tween(180), label = "primaryInk")
+    val targetBorder = if (enabledNow) CtaBorder else Hairline
+    val border by animateColorAsState(targetValue = targetBorder, animationSpec = tween(180), label = "primaryBorder")
 
     Box(
         modifier = modifier
@@ -151,7 +158,7 @@ fun PrimaryButton(
             .height(56.dp)
             .clip(shape)
             .background(fill)
-            .border(1.dp, if (enabledNow) CtaBorder else Hairline, shape)
+            .border(1.dp, border, shape)
             .clickable(
                 enabled = enabledNow,
                 interactionSource = interactionSource,
