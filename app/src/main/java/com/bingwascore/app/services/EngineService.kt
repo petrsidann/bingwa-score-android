@@ -10,10 +10,16 @@ import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
+import androidx.annotation.VisibleForTesting
 import androidx.core.app.NotificationCompat
+import androidx.core.app.ServiceCompat
+import androidx.core.content.ContextCompat
 import com.bingwascore.app.R
 import com.bingwascore.app.domain.ProcessingActivity
 import com.bingwascore.app.ui.MainActivity
+import com.bingwascore.app.util.AppForegroundGate
+import com.bingwascore.app.util.CrashHandler
+import com.bingwascore.app.workers.EngineStartWorker
 import timber.log.Timber
 
 /**
@@ -24,6 +30,16 @@ import timber.log.Timber
  * and the WorkManager retry queue keep running reliably. The system notices
  * nothing and the service is never idle-killed while charging (and only rarely
  * on battery, thanks to the Phase 12 battery-optimisation flow).
+ *
+ * STAGE 38 — ORDERING LAW. The owner device produced
+ * `Context.startForegroundService() did not then call Service.startForeground()`
+ * followed by an ANR kill. On this platform the OS gives a service started via
+ * startForegroundService exactly 5 seconds to promote itself, and any code that
+ * runs before `startForeground` spends that budget. Prior to this stage the
+ * cold-start path returned early on an `isRunning` flag set by `onCreate`, so
+ * promotion *never* happened. Hence: `startForeground` is now the first
+ * synchronous statement of [onStartCommand], before every early return, every
+ * validation and every coroutine launch — with no exceptions.
  */
 class EngineService : Service() {
 
@@ -31,48 +47,54 @@ class EngineService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        // Channel creation is cheap and synchronous; the OS requires the channel
+        // to exist before a notification can be posted to it.
         createChannel()
-        isRunning = true
+        // Built once, here — the notification path below must never touch disk,
+        // network, DataStore or the notification manager again.
+        tapIntent = PendingIntent.getActivity(
+            this,
+            0,
+            Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
         Timber.d("EngineService online")
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // =====================================================================
+        // STAGE 38 — FIRST STATEMENT, UNCONDITIONALLY.
+        // Nothing may precede this: no intent inspection, no flag check, no
+        // early return, no coroutine launch. The OS 5-second promotion window
+        // starts now, and anything that runs before this spends it.
+        // =====================================================================
         try {
-            if (intent?.action == ACTION_STOP) {
-                Timber.i("EngineService stopping")
-                isRunning = false
-                stopForeground(STOP_FOREGROUND_REMOVE)
-                stopSelf()
-                return START_NOT_STICKY
-            }
-
-            // Idempotent: a service that is already foregrounded must never be
-            // re-foregrounded, and a cold start must not stack start calls.
-            if (isRunning) {
-                Timber.d("EngineService already running (id=%d)", startId)
-                return START_STICKY
-            }
-
-            isRunning = true
-            val notification = buildNotification()
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                startForeground(
-                    NOTIFICATION_ID,
-                    notification,
-                    ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
-                )
-            } else {
-                @Suppress("DEPRECATION")
-                startForeground(NOTIFICATION_ID, notification)
-            }
-            Timber.d("EngineService foregrounded (id=%d)", startId)
-            return START_STICKY
+            promoteToForeground()
         } catch (t: Throwable) {
+            // We could not honour the foreground contract — give the process
+            // back rather than sitting in the window until the ANR fires.
+            CrashHandler.record(this, t)
             isRunning = false
-            Timber.e(t, "EngineService onStartCommand failed")
+            Timber.e(t, "EngineService could not promote to foreground")
             stopSelf()
             return START_NOT_STICKY
         }
+
+        // =====================================================================
+        // Promotion is done. Ordinary logic may start here.
+        // =====================================================================
+        isRunning = true
+
+        if (intent?.action == ACTION_STOP) {
+            Timber.i("EngineService stopping")
+            isRunning = false
+            ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
+            stopSelf()
+            return START_NOT_STICKY
+        }
+
+        Timber.d("EngineService foregrounded (id=%d)", startId)
+        return START_STICKY
     }
 
     override fun onDestroy() {
@@ -81,13 +103,14 @@ class EngineService : Service() {
         super.onDestroy()
     }
 
+    /**
+     * Posts the ongoing notification. Only cached, in-memory values are read —
+     * a literal title, the [processingActivity] volatile and a PendingIntent
+     * created in [onCreate]. Zero disk, zero network, zero binder round-trips
+     * beyond the notification post itself.
+     */
     private fun buildNotification(): Notification {
-        val tapIntent = PendingIntent.getActivity(
-            this,
-            0,
-            Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-        )
+        testNotificationOverride?.let { return it() }
         // MEGA A — the notification text tracks what the engine is doing right
         // now: "Processing" while a USSD dial is in flight, "Processing
         // transaction" while the reply goes out.
@@ -103,11 +126,30 @@ class EngineService : Service() {
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setShowWhen(false)
+            // Show the notification immediately instead of letting the system
+            // defer it — the same deferral that trips the promotion watchdog.
+            .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
             .build()
     }
 
+    private fun promoteToForeground() {
+        val notification = buildNotification()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(
+                NOTIFICATION_ID,
+                notification,
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            startForeground(NOTIFICATION_ID, notification)
+        }
+    }
+
     private fun createChannel() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val manager = getSystemService(NotificationManager::class.java) ?: return
+        if (manager.getNotificationChannel(CHANNEL_ID) != null) return
         val channel = NotificationChannel(
             CHANNEL_ID,
             "Bingwa Engine",
@@ -119,10 +161,14 @@ class EngineService : Service() {
         manager.createNotificationChannel(channel)
     }
 
+    private lateinit var tapIntent: PendingIntent
+
     companion object {
         const val CHANNEL_ID = "engine"
 
-        private const val ACTION_STOP = "com.bingwascore.app.action.STOP_ENGINE"
+        @VisibleForTesting
+        internal const val ACTION_STOP = "com.bingwascore.app.action.STOP_ENGINE"
+
         private const val NOTIFICATION_ID = 0x4E47_0001 // "NG01"
 
         /** Live running state, read by the Home engine card and onboarding checklist. */
@@ -135,6 +181,17 @@ class EngineService : Service() {
          */
         @Volatile
         var processingActivity: ProcessingActivity = ProcessingActivity.IDLE
+
+        /** Test seam so the failure path can be exercised without a device. */
+        @VisibleForTesting
+        internal var testNotificationOverride: (() -> Notification)? = null
+
+        /**
+         * How a refused/background start is deferred. Swappable in tests so the
+         * caller contract can be asserted without a WorkManager scheduler.
+         */
+        @VisibleForTesting
+        internal var enqueueBackgroundStart: (Context) -> Unit = { EngineStartWorker.enqueue(it) }
 
         /**
          * Switches the engine into a processing state and repaints the ongoing
@@ -184,19 +241,41 @@ class EngineService : Service() {
         @Volatile
         private var appContext: Context? = null
 
+        /**
+         * STAGE 38 — caller gate.
+         *
+         * Android 12+ forbids starting a foreground service from the background.
+         * An app that tries anyway is killed with
+         * ForegroundServiceStartNotAllowedException, so the attempt is refused
+         * here *before* it is made: in the foreground we promote immediately,
+         * otherwise the work is deferred to a one-shot WorkManager job that
+         * promotes the moment an Activity is visible again.
+         */
         fun start(context: Context) {
             if (isRunning) return
+            val app = context.applicationContext
+            appContext = app
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !AppForegroundGate.isForeground) {
+                Timber.d("EngineService start deferred — app is in the background on API 31+")
+                runCatching { enqueueBackgroundStart(app) }
+                    .onFailure { Timber.e(it, "Failed to defer the engine start") }
+                return
+            }
+
             try {
-                appContext = context.applicationContext
-                val intent = Intent(context, EngineService::class.java)
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    context.startForegroundService(intent)
-                } else {
-                    @Suppress("DEPRECATION")
-                    context.startService(intent)
-                }
-            } catch (t: Throwable) {
-                Timber.e(t, "Failed to start EngineService")
+                ContextCompat.startForegroundService(
+                    app,
+                    Intent(app, EngineService::class.java)
+                )
+            } catch (e: IllegalStateException) {
+                // ForegroundServiceStartNotAllowedException (API 31+) extends
+                // IllegalStateException, so this catch is safe to reference on
+                // every API level, including those where the type does not exist.
+                Timber.e(e, "Foreground service start refused — deferring")
+                CrashHandler.record(app, e)
+                runCatching { enqueueBackgroundStart(app) }
+                    .onFailure { Timber.e(it, "Failed to defer the engine start") }
             }
         }
 
