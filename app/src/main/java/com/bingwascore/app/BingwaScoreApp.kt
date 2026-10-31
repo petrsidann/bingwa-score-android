@@ -13,6 +13,7 @@ import com.bingwascore.app.data.showcase.DemoEngine
 import com.bingwascore.app.data.showcase.DemoSeeder
 import com.bingwascore.app.services.EngineService
 import com.bingwascore.app.util.AnrWatchdog
+import com.bingwascore.app.util.AppForegroundGate
 import com.bingwascore.app.util.CrashHandler
 import com.bingwascore.app.workers.Schedulers
 import dagger.hilt.android.HiltAndroidApp
@@ -65,6 +66,9 @@ class BingwaScoreApp : Application() {
         runBlocking(Dispatchers.IO) { DbNameHolder.loadFrom(this@BingwaScoreApp) }
 
         CrashHandler.init(this)
+        // STAGE 38 — background Activity tracking so no caller ever attempts a
+        // foreground-service start that Android 12+ will refuse.
+        AppForegroundGate.install(this)
         if (BuildConfig.DEBUG) Timber.plant(Timber.DebugTree())
 
         Timber.d("Bingwa Score online (showcase=%s, db=%s)", DbNameHolder.showcaseMode, DbNameHolder.dbName)
