@@ -36,7 +36,7 @@ object Motion {
     const val SPLASH_FADE: Int = 300
 
     /** R1 splash: the monogram draws itself on over 900ms via PathMeasure trim. */
-    const val SPLASH_DRAW: Int = 900
+    const val SPLASH_DRAW: Int = 300
 
     /**
      * POLISH P6 — the full choreography, budgeted to stay under two seconds.
@@ -48,18 +48,18 @@ object Motion {
      * Nothing loops, nothing bounces, and the hand-off lands at
      * [SPLASH_TOTAL] with room to spare for a slow first frame.
      */
-    const val SPLASH_GLOW_START: Int = 880
-    const val SPLASH_GLOW_PULSE: Int = 460
-    const val SPLASH_WORDMARK_START: Int = 950
+    const val SPLASH_GLOW_START: Int = 200
+    const val SPLASH_GLOW_PULSE: Int = 200
+    const val SPLASH_WORDMARK_START: Int = 350
 
     /** Stagger between wordmark letters. */
     const val SPLASH_LETTER_STAGGER: Int = 30
 
     /** Tagline begins once the last letter has landed. */
-    const val SPLASH_TAGLINE_START: Int = 1300
+    const val SPLASH_TAGLINE_START: Int = 700
 
     /** Splash: whole choreography before the next screen (ms) — under 1.5s. */
-    const val SPLASH_TOTAL: Int = 1500
+    const val SPLASH_TOTAL: Int = 1200
 
     /** Splash: wordmark → tagline step duration. */
     const val SPLASH_STEP: Int = 250

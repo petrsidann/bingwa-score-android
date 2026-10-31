@@ -128,9 +128,9 @@ data class PinSetupState(
 ) {
     val isSubmittable: Boolean
         get() = name.isNotBlank() &&
-            phone.isNotBlank() &&
-            email.isNotBlank() &&
-            pin.length == AuthConstants.MIN_PIN_LENGTH &&
-            confirmPin.length == AuthConstants.MIN_PIN_LENGTH &&
+            com.bingwascore.app.util.isTenDigitPhone(com.bingwascore.app.util.formatPhoneToTenDigits(phone)) &&
+            email.isNotBlank() && email.contains("@") && email.contains(".") &&
+            pin.length == AuthConstants.MIN_PIN_LENGTH && pin.all { it.isDigit() } &&
+            confirmPin.length == AuthConstants.MIN_PIN_LENGTH && confirmPin.all { it.isDigit() } &&
             pin == confirmPin
 }

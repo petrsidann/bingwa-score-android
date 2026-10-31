@@ -135,7 +135,9 @@ fun SplashScreenContent(
             taglineAlpha = 1f,
             taglineBreath = taglineBreath,
             exitShrink = exitShrink,
-            skipReady = true
+            skipReady = true,
+            ripple = 1f,
+            snapScale = 1f
         )
         return
     }
@@ -154,6 +156,8 @@ fun SplashScreenContent(
     val currentOnFinish by rememberUpdatedState(onFinish)
     val exitShrink = remember { Animatable(0f) }
     val taglineBreath = remember { Animatable(0f) }
+    val ripple = remember { Animatable(0f) }
+    val snapScale = remember { Animatable(0.6f) }
     var skipReady by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
@@ -190,7 +194,16 @@ fun SplashScreenContent(
             delay(1000)
             skipReady = true
         }
-        delay(Motion.SPLASH_TOTAL.toLong())
+        launch {
+            delay(200)
+            snapScale.animateTo(1.08f, spring(dampingRatio = 0.45f, stiffness = 900f))
+            snapScale.animateTo(1f, tween(120))
+        }
+        launch {
+            delay(200)
+            ripple.animateTo(1f, tween(300, easing = FastOutSlowInEasing))
+        }
+        delay((Motion.SPLASH_TOTAL - 200).toLong().coerceAtLeast(0))
         var resolved = currentTarget
         while (resolved == null) {
             delay(30)
@@ -219,7 +232,9 @@ fun SplashScreenContent(
             taglineAlpha = taglineAlpha,
             taglineBreath = taglineBreath,
             exitShrink = exitShrink,
-            skipReady = skipReady
+            skipReady = skipReady,
+            ripple = ripple.value,
+            snapScale = snapScale.value
         )
     }
 }
@@ -239,7 +254,9 @@ private fun SplashStage(
     taglineAlpha: Float,
     taglineBreath: Animatable<Float, androidx.compose.animation.core.AnimationVector1D>,
     exitShrink: Animatable<Float, androidx.compose.animation.core.AnimationVector1D>,
-    skipReady: Boolean
+    skipReady: Boolean,
+    ripple: Float = 0f,
+    snapScale: Float = 1f
 ) {
     val ink = splashInk(dark = !isPorcelain)
     val density = LocalDensity.current.density
@@ -283,6 +300,15 @@ private fun SplashStage(
                     style = Stroke(width = 3f)
                 )
             }
+            // micro-ripple expands on landing (elastic overshoot feel)
+            if (ripple > 0.01f) {
+                drawCircle(
+                    color = AccentBlue.copy(alpha = 0.35f * (1f - ripple)),
+                    radius = size.minDimension * (0.25f + 0.75f * ripple),
+                    center = center,
+                    style = Stroke(width = 2f)
+                )
+            }
         }
 
         Column(
@@ -294,8 +320,8 @@ private fun SplashStage(
                     .size(132.dp)
                     .graphicsLayer {
                         val t = exitShrink.value
-                        scaleX = 1f - 0.55f * t
-                        scaleY = 1f - 0.55f * t
+                        scaleX = snapScale * (1f - 0.55f * t)
+                        scaleY = snapScale * (1f - 0.55f * t)
                         translationY = -46f * t * density
                         alpha = 1f - 0.35f * t
                     }

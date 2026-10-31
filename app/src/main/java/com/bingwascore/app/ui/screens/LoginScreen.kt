@@ -76,6 +76,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
+import com.bingwascore.app.data.auth.AuthConstants
 import com.bingwascore.app.data.auth.AuthRepository
 import com.bingwascore.app.data.preferences.UserPreferences
 import com.bingwascore.app.data.remote.RemoteResult
@@ -112,7 +113,10 @@ data class LoginUiState(
     val failedAttempts: Int = 0,
     val cooldownSeconds: Int = 0,
     val isSuccess: Boolean = false
-)
+) {
+    val isSubmittable: Boolean
+        get() = phone.length >= AuthConstants.MIN_PHONE_DIGITS && pin.length == AuthConstants.MIN_PIN_LENGTH
+}
 
 @HiltViewModel
 class LoginViewModel @Inject constructor(
@@ -496,7 +500,7 @@ fun LoginScreen(
                 },
                 loading = state.isLoading,
                 loadingText = "Verifying…",
-                enabled = state.cooldownSeconds == 0 && !state.isLoading,
+                enabled = state.isSubmittable && state.cooldownSeconds == 0 && !state.isLoading,
                 modifier = Modifier.fillMaxWidth().height(52.dp)
             )
         }
