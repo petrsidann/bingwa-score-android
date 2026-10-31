@@ -342,7 +342,8 @@ fun LoginScreen(
             "Welcome back",
             color = TextWhite,
             fontSize = 28.sp,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.combinedClickable(onLongClick = { showCrashReport = true }, onClick = {})
         )
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -351,20 +352,6 @@ fun LoginScreen(
             "Sign in to continue",
             color = TextWhite.copy(alpha = 0.6f),
             fontSize = 14.sp
-        )
-
-        // The brand wordmark on SignIn. Long-press it to open the Crash Report
-        // dialog showing the last CrashHandler stack — reachable pre-auth,
-        // forever, because crash files persist until the user clears them.
-        Text(
-            text = BrandWordmark.TEXT,
-            color = TextWhite,
-            fontSize = 34.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier
-                .align(Alignment.CenterHorizontally)
-                .padding(vertical = 8.dp)
-                .combinedClickable(onLongClick = { showCrashReport = true }, onClick = {})
         )
 
         Spacer(modifier = Modifier.height(24.dp))
