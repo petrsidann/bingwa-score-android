@@ -542,19 +542,19 @@ private fun BottomNavBar(
                 .clickable { haptics.tick(); onMenu() }
                 .padding(9.dp)
         )
-        NavTab(Icons.Rounded.Home, "Home", selected == 0 && !dialerOpen) {
+        SharedNavTab(item = NAV_ITEMS[0], selected = selected == 0 && !dialerOpen, isRail = false) {
             haptics.tick(); onSelect(0)
         }
-        NavTab(Icons.Rounded.LocalOffer, "Offers", selected == 1 && !dialerOpen) {
+        SharedNavTab(item = NAV_ITEMS[1], selected = selected == 1 && !dialerOpen, isRail = false) {
             haptics.tick(); onSelect(1)
         }
-        NavTab(Icons.Rounded.Call, "Dial", dialerOpen) {
+        SharedNavTab(item = NAV_ITEMS[2], selected = dialerOpen, isRail = false) {
             haptics.press(); onDialer()
         }
-        NavTab(Icons.AutoMirrored.Rounded.ReceiptLong, "Transactions", selected == 3 && !dialerOpen) {
+        SharedNavTab(item = NAV_ITEMS[3], selected = selected == 3 && !dialerOpen, isRail = false) {
             haptics.tick(); onSelect(3)
         }
-        NavTab(Icons.Rounded.Person, "Profile", selected == 4 && !dialerOpen) {
+        SharedNavTab(item = NAV_ITEMS[4], selected = selected == 4 && !dialerOpen, isRail = false) {
             haptics.tick(); onSelect(4)
         }
     }
