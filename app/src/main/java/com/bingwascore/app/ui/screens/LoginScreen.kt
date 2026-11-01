@@ -83,7 +83,6 @@ import com.bingwascore.app.data.remote.RemoteResult
 import com.bingwascore.app.ui.components.BubbleCard
 import com.bingwascore.app.ui.components.PrimaryButton
 import com.bingwascore.app.ui.components.pressScale
-import com.bingwascore.app.ui.brand.BrandWordmark
 import com.bingwascore.app.ui.theme.AccentBlue
 import com.bingwascore.app.ui.theme.BgBlack
 import com.bingwascore.app.ui.theme.Bubble
@@ -91,6 +90,7 @@ import com.bingwascore.app.ui.theme.Hairline
 import com.bingwascore.app.ui.theme.TextFaint
 import com.bingwascore.app.ui.theme.TextWhite
 import com.bingwascore.app.ui.theme.TickGreen
+import com.bingwascore.app.ui.theme.isPorcelain
 import com.bingwascore.app.util.CrashHandler
 import com.bingwascore.app.util.rememberHaptics
 import com.bingwascore.app.util.screenEnter
@@ -104,6 +104,13 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import java.util.concurrent.Executor
 import javax.inject.Inject
+
+enum class LoginField {
+    PHONE,
+    PIN
+}
+
+const val MAX_PHONE_LENGTH = 10
 
 data class LoginUiState(
     val phone: String = "",
@@ -145,6 +152,26 @@ class LoginViewModel @Inject constructor(
 
     fun updatePin(value: String) {
         _state.value = _state.value.copy(pin = value)
+    }
+
+    fun appendPhoneDigit(digit: Char) {
+        val current = _state.value
+        if (current.cooldownSeconds > 0 || current.isLoading || current.isSuccess) return
+        if (current.phone.length < MAX_PHONE_LENGTH) {
+            _state.value = current.copy(
+                phone = current.phone + digit
+            )
+        }
+    }
+
+    fun backspacePhone() {
+        val current = _state.value
+        if (current.cooldownSeconds > 0 || current.isLoading || current.isSuccess) return
+        if (current.phone.isNotEmpty()) {
+            _state.value = current.copy(
+                phone = current.phone.dropLast(1)
+            )
+        }
     }
 
     fun appendPinDigit(digit: Char) {
@@ -248,6 +275,10 @@ fun LoginScreen(
     val phone = state.phone
     val pin = state.pin
 
+    var focusedField by remember { mutableStateOf(LoginField.PHONE) }
+    val phoneFocusRequester = remember { FocusRequester() }
+    val pinFocusRequester = remember { FocusRequester() }
+
     // Clear a shown error on the very next keystroke. The write happens inside
     // LaunchedEffect(snapshotFlow) — never during composition — so typing can
     // never recompose mid-change and jank the frame.
@@ -315,8 +346,21 @@ fun LoginScreen(
     }
 
     LaunchedEffect(Unit) {
+        // Default focus = Phone.
+        runCatching { phoneFocusRequester.requestFocus() }
         // Offer the sensor once on entry when the device supports it.
         if (biometricAvailable) launchBiometric()
+    }
+
+    // Auto-jump to PIN after 10th phone digit
+    LaunchedEffect(Unit) {
+        snapshotFlow { phone.length }
+            .collect { len ->
+                if (len >= 10 && focusedField == LoginField.PHONE) {
+                    focusedField = LoginField.PIN
+                    runCatching { pinFocusRequester.requestFocus() }
+                }
+            }
     }
 
         Box(
@@ -414,6 +458,12 @@ fun LoginScreen(
                 value = phone,
                 onValueChange = viewModel::updatePhone,
                 hint = "Phone (e.g. 0712345678)",
+                isFocused = focusedField == LoginField.PHONE,
+                focusRequester = phoneFocusRequester,
+                onClick = {
+                    focusedField = LoginField.PHONE
+                    phoneFocusRequester.requestFocus()
+                },
                 keyboardType = KeyboardType.Phone
             )
 
@@ -423,6 +473,12 @@ fun LoginScreen(
                 value = pin,
                 onValueChange = viewModel::updatePin,
                 hint = "PIN",
+                isFocused = focusedField == LoginField.PIN,
+                focusRequester = pinFocusRequester,
+                onClick = {
+                    focusedField = LoginField.PIN
+                    pinFocusRequester.requestFocus()
+                },
                 isPassword = true,
                 keyboardType = KeyboardType.NumberPassword
             )
@@ -459,10 +515,16 @@ fun LoginScreen(
             PinKeypad(
                 pin = pin,
                 onDigit = { digit ->
-                    viewModel.appendPinDigit(digit)
+                    when (focusedField) {
+                        LoginField.PHONE -> viewModel.appendPhoneDigit(digit)
+                        LoginField.PIN -> viewModel.appendPinDigit(digit)
+                    }
                 },
                 onBackspace = {
-                    viewModel.backspacePin()
+                    when (focusedField) {
+                        LoginField.PHONE -> viewModel.backspacePhone()
+                        LoginField.PIN -> viewModel.backspacePin()
+                    }
                 }
             )
         }
@@ -560,11 +622,16 @@ private fun GlassField(
     onValueChange: (String) -> Unit,
     hint: String,
     modifier: Modifier = Modifier,
+    isFocused: Boolean = false,
+    focusRequester: FocusRequester = remember { FocusRequester() },
+    onClick: () -> Unit = {},
     isPassword: Boolean = false,
     keyboardType: KeyboardType = KeyboardType.Text
 ) {
     val shape = RoundedCornerShape(16.dp)
-    val focusRequester = remember { FocusRequester() }
+    val focusedBorderColor = if (isPorcelain) Color(0xFF2F6AE0) else Color(0xFF2563EB)
+    val borderWidth = if (isFocused) 2.dp else 1.dp
+    val borderColor = if (isFocused) focusedBorderColor else Hairline
 
     // Phone and PIN fields are driven by the custom glass keypad, so the
     // system keyboard must never rise when they gain focus.
@@ -573,7 +640,8 @@ private fun GlassField(
             .fillMaxWidth()
             .clip(shape)
             .background(Bubble)
-            .border(1.dp, Hairline, shape)
+            .border(borderWidth, borderColor, shape)
+            .clickable { onClick() }
             .padding(horizontal = 16.dp, vertical = 16.dp)
     ) {
         BasicTextField(

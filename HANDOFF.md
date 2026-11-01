@@ -1,15 +1,17 @@
 # HANDOFF — Live Session State
 
-## STEP 0 resume state (Stage 41 shipped)
+## STEP 0 resume state (Stage 42 shipped; next = Stage 43 aurora snap splash)
 
-- **Current state**: Stage 41 shipped (engine foreground crash fix).
-  - Synchronous `startForeground()` at top of `onCreate()` and idempotently in `onStartCommand()` in `EngineService`.
-  - Zero-delay notification (`FOREGROUND_SERVICE_IMMEDIATE`).
-  - Background start caller gate: avoids starting foreground service from background on API 31+, deferring work safely to WorkManager.
-  - Test coverage: `Stage41ForegroundCrashTest`, `Stage38ForegroundOrderingTest` passing.
+- **Current state**: Stage 42 shipped (login focus routing).
+  - Fixed sign-in keypad routing bug where phone field accepted nothing.
+  - Fields maintain readOnly=true and focusable=true, with FocusRequesters and onClick handlers.
+  - Focused field shows 2dp brand-blue border (Obsidian #2563EB, Dim #2F6AE0).
+  - Keypad digits/backspace route to the currently focused field via shared state (`focusedField: MutableState<LoginField>`).
+  - Default focus = Phone; after 10th phone digit, focus auto-jumps to PIN via LaunchedEffect(snapshotFlow(phone.length)).
+  - Soft keyboard remains hidden via windowSoftInputMode="stateAlwaysHidden|adjustNothing".
+  - Test coverage: `Stage42LoginFocusRoutingTest`, `Stage36TraceFixTest`, `Stage27AuthGateTest` passing; assembleDebug green.
 - **Roadmap / Next stages**:
-  - **Stage 42**: Subscribe wiring (server / billing / plan subscription flows).
-  - **Stage 43**: Payments + receipts.
+  - **Stage 43**: Aurora snap splash.
   - **Post-Stage 43**: Feature freeze + v2.0.0 tag.
 
 ## Rules of Engagement
