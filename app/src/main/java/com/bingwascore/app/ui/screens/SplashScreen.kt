@@ -59,6 +59,11 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+import com.bingwascore.app.ui.theme.ObsidianBg
+import com.bingwascore.app.ui.theme.SplashDimBg
+import com.bingwascore.app.ui.theme.SplashDimInk
+import com.bingwascore.app.ui.theme.SplashDimPastelBlue
+
 object SplashBrand {
     /** Stage 21 — the wordmark is ONE constant for the whole app. */
     const val WORDMARK: String = BrandWordmark.TEXT
@@ -66,19 +71,21 @@ object SplashBrand {
 }
 
 /**
- * Stage 21 — the splash ink, per theme, WITHOUT asking the global display
- * mode: white ink on obsidian, dark ink on dim porcelain. The splash draws
- * the same mark in both themes, so the ink is a decision, not a lookup.
+ * Stage 43 — the splash ink, per theme:
+ * white ink on obsidian, #1E293B ink on dim porcelain.
  */
-internal fun splashInk(dark: Boolean): Color = if (dark) Color(0xFFFFFFFF) else Color(0xFF16181D)
+internal fun splashInk(dark: Boolean): Color = if (dark) Color(0xFFFFFFFF) else SplashDimInk
+
+/** Stage 43 — canvas color per theme: #0F172A on Obsidian, #EAF0F6 on Dim. */
+internal fun splashCanvas(dark: Boolean): Color = if (dark) ObsidianBg else SplashDimBg
 
 /**
- * Stage 21 — the resting halo behind the monogram.
- *
- * Blue in both themes; a touch stronger on dim porcelain, where the glow has
- * less of the frame to fight against than it does on obsidian.
+ * Stage 21/43 — the resting halo behind the monogram.
  */
-internal fun splashGlowAlpha(dark: Boolean): Float = if (dark) 0.10f else 0.17f
+internal fun splashGlowAlpha(dark: Boolean): Float = if (dark) 0.35f else 0.45f
+
+/** Stage 43 — radial glow color: #2563EB on Obsidian, pastel-blue on Dim. */
+internal fun splashGlowColor(dark: Boolean): Color = if (dark) Color(0xFF2563EB) else SplashDimPastelBlue
 
 /** Stage 20 — soft blue radial glow behind the monogram, both themes. */
 internal val splashGlow: Brush
@@ -87,129 +94,149 @@ internal val splashGlow: Brush
     )
 
 /**
- * Stage 11 — "Stroke & Ignite" launch cinematic:
+ * Stage 43 — AURORA SNAP SPLASH:
  *
- * 1. **0 → 900ms** — PathMeasure draw with a glowing traveling tip.
- * 2. **on complete** — shockwave ring + specular sweep across the stroke.
- * 3. **wordmark** — the FULL "Bingwa Score" string rises on spring stagger
- *    ([wordmarkAlphas] guarantees no letter is ever dropped; the regression
- *    test asserts the full text).
- * 4. **tagline** — breathes (gentle alpha pulse, never a loop that reads busy).
- * 5. **hand-off** — the monogram shrinks into the login logo position
- *    (shared-element crossfade, 200ms).
+ * 0.0-0.2s: aurora glow fades in (Obsidian: #0F172A canvas + #2563EB radial glow; Dim: #EAF0F6 canvas + pastel-blue glow)
+ * 0.2-0.5s: 'B' monogram snaps in with spring overshoot + micro-ripple ring
+ * 0.5-0.8s: monogram fills (white ink on Obsidian / #1E293B ink on Dim) + tagline "Your bundle business, automated." fades up
+ * 0.8-1.3s: whole screen scales 1.0 -> 1.04 + cross-fades to next screen
  *
- * Budget: hands off inside 2.0s ([Motion.SPLASH_TOTAL]).
+ * Total duration <= 1.3s ([Motion.SPLASH_TOTAL]).
  */
 @Composable
 fun SplashScreen(target: String?, onFinish: (String) -> Unit) {
-    // STAGE 19.7 — thin wrapper: the splash has no ViewModel, so the wrapper
-    // only hands the target and the hand-off to the pure content.
     SplashScreenContent(target = target, onFinish = onFinish)
 }
 
 /**
- * Stage 19.7 — the PURE splash surface.
+ * Stage 43 — Aurora Snap Splash pure surface.
  *
- * [settled] renders the frame the choreography lands on (full monogram, full
- * wordmark, tagline in) without waiting for the animation clock, which is what
- * a snapshot test needs to see.
+ * [settled] renders the frame the choreography lands on.
+ * [progressMs] renders the exact frame at millisecond timestamp (for 0.3s/0.6s/1.0s snapshots).
  */
 @Composable
 fun SplashScreenContent(
     target: String?,
     onFinish: (String) -> Unit,
-    settled: Boolean = false
+    settled: Boolean = false,
+    progressMs: Int? = null
 ) {
-    if (settled) {
-        val trim = remember { Animatable(1f) }
-        val glow = remember { Animatable(0f) }
-        val bloom = remember { Animatable(1f) }
-        val sweep = remember { Animatable(1f) }
-        val taglineBreath = remember { Animatable(0.72f) }
-        val exitShrink = remember { Animatable(0f) }
-        SplashStage(
-            trim = trim,
-            glow = glow,
-            bloom = bloom,
-            sweep = sweep,
-            taglineAlpha = 1f,
-            taglineBreath = taglineBreath,
-            exitShrink = exitShrink,
-            skipReady = true,
-            ripple = 1f,
-            snapScale = 1f
+    val currentTarget by rememberUpdatedState(target)
+    val currentOnFinish by rememberUpdatedState(onFinish)
+    val scope = rememberCoroutineScope()
+
+    if (settled || progressMs != null) {
+        val ms = progressMs ?: 800
+        val isDark = !isPorcelain
+
+        // 0.0 - 0.2s: glow fades in 0 -> 1
+        val glowVal = (ms / 200f).coerceIn(0f, 1f)
+
+        // 0.2 - 0.5s: monogram snaps in with spring overshoot
+        val (snapScaleVal, monogramAlphaVal) = when {
+            ms < 200 -> 0f to 0f
+            ms < 380 -> {
+                val f = (ms - 200) / 180f
+                (0.3f + 0.78f * f) to 1f
+            }
+            ms < 500 -> {
+                val f = (ms - 380) / 120f
+                (1.08f - 0.08f * f) to 1f
+            }
+            else -> 1.0f to 1f
+        }
+
+        // micro-ripple ring expands 0.2s - 0.5s
+        val rippleVal = if (ms < 200) 0f else ((ms - 200) / 300f).coerceIn(0f, 1f)
+
+        // 0.5 - 0.8s: monogram fill & tagline fade up
+        val fillVal = if (ms < 500) 0f else ((ms - 500) / 300f).coerceIn(0f, 1f)
+        val taglineVal = if (ms < 500) 0f else ((ms - 500) / 300f).coerceIn(0f, 1f)
+
+        // 0.8 - 1.3s: whole screen scales 1.0 -> 1.04 and cross-fades out
+        val exitT = if (ms < 800) 0f else ((ms - 800) / 500f).coerceIn(0f, 1f)
+        val screenScaleVal = 1.0f + 0.04f * exitT
+        val screenAlphaVal = 1.0f - exitT
+
+        SplashStageSnap(
+            isDark = isDark,
+            glowAlpha = glowVal,
+            snapScale = snapScaleVal,
+            monogramAlpha = monogramAlphaVal,
+            ripple = rippleVal,
+            fillAlpha = fillVal,
+            taglineAlpha = taglineVal,
+            screenScale = screenScaleVal,
+            screenAlpha = screenAlphaVal,
+            skipReady = true
         )
         return
     }
 
-    val trim = remember { Animatable(0f) }
     val glow = remember { Animatable(0f) }
-    val bloom = remember { Animatable(0f) }
-    val sweep = remember { Animatable(0f) }
-    var taglineTarget by remember { mutableFloatStateOf(0f) }
-    val taglineAlpha by animateFloatAsState(
-        targetValue = taglineTarget,
-        animationSpec = tween(Motion.SPLASH_FADE),
-        label = "splashTaglineAlpha"
-    )
-    val currentTarget by rememberUpdatedState(target)
-    val currentOnFinish by rememberUpdatedState(onFinish)
-    val exitShrink = remember { Animatable(0f) }
-    val taglineBreath = remember { Animatable(0f) }
+    val snapScale = remember { Animatable(0f) }
+    val monogramAlpha = remember { Animatable(0f) }
     val ripple = remember { Animatable(0f) }
-    val snapScale = remember { Animatable(0.6f) }
+    val fillAlpha = remember { Animatable(0f) }
+    val taglineAlpha = remember { Animatable(0f) }
+    val screenScale = remember { Animatable(1.0f) }
+    val screenAlpha = remember { Animatable(1.0f) }
+    val exitShrink = remember { Animatable(0f) }
     var skipReady by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
-        trim.animateTo(1f, tween(Motion.SPLASH_DRAW, easing = LinearEasing))
-        coroutineScope {
+        // 0.0 - 0.2s: aurora glow fades in
+        launch {
+            glow.animateTo(1f, tween(200, easing = LinearEasing))
+        }
+
+        // 0.2 - 0.5s: 'B' monogram snaps in with spring overshoot + micro-ripple ring
+        launch {
+            delay(200)
             launch {
-                delay((Motion.SPLASH_GLOW_START - Motion.SPLASH_DRAW).toLong().coerceAtLeast(0))
-                glow.animateTo(
-                    targetValue = 1f,
-                    animationSpec = tween(Motion.SPLASH_GLOW_PULSE / 2, easing = FastOutSlowInEasing)
-                )
-                glow.animateTo(
-                    targetValue = 0f,
-                    animationSpec = tween(Motion.SPLASH_GLOW_PULSE / 2, easing = LinearOutSlowInEasing)
-                )
+                monogramAlpha.animateTo(1f, tween(100))
             }
             launch {
-                delay(Motion.SPLASH_DRAW.toLong())
-                bloom.animateTo(1f, tween(400))
+                snapScale.snapTo(0.3f)
+                snapScale.animateTo(1.08f, spring(dampingRatio = 0.45f, stiffness = 900f))
+                snapScale.animateTo(1f, tween(120, easing = FastOutSlowInEasing))
             }
             launch {
-                delay(Motion.SPLASH_WORDMARK_START.toLong())
-                sweep.animateTo(1f, tween(400))
-            }
-            launch {
-                delay(Motion.SPLASH_TAGLINE_START.toLong())
-                taglineTarget = 1f
-                taglineBreath.animateTo(1f, tween(180))
-                taglineBreath.animateTo(0.72f, tween(360))
+                ripple.animateTo(1f, tween(300, easing = FastOutSlowInEasing))
             }
         }
+
+        // 0.5 - 0.8s: monogram fills + tagline fades up
         launch {
-            delay(1000)
+            delay(500)
+            launch {
+                fillAlpha.animateTo(1f, tween(300, easing = FastOutSlowInEasing))
+            }
+            launch {
+                taglineAlpha.animateTo(1f, tween(300, easing = FastOutSlowInEasing))
+            }
+        }
+
+        launch {
+            delay(900)
             skipReady = true
         }
+
+        // 0.8 - 1.3s: whole screen scales 1.0 -> 1.04 + cross-fades to next screen
+        delay(800)
         launch {
-            delay(200)
-            snapScale.animateTo(1.08f, spring(dampingRatio = 0.45f, stiffness = 900f))
-            snapScale.animateTo(1f, tween(120))
+            exitShrink.animateTo(1f, tween(200))
         }
         launch {
-            delay(200)
-            ripple.animateTo(1f, tween(300, easing = FastOutSlowInEasing))
+            screenScale.animateTo(1.04f, tween(500, easing = FastOutSlowInEasing))
         }
-        delay((Motion.SPLASH_TOTAL - 200).toLong().coerceAtLeast(0))
+        screenAlpha.animateTo(0f, tween(500, easing = FastOutSlowInEasing))
+
         var resolved = currentTarget
         while (resolved == null) {
-            delay(30)
+            delay(20)
             resolved = currentTarget
         }
-        exitShrink.animateTo(1f, tween(200))
         currentOnFinish(resolved)
     }
 
@@ -218,93 +245,82 @@ fun SplashScreenContent(
             .fillMaxSize()
             .clickable(enabled = skipReady, onClick = {
                 scope.launch {
-                    exitShrink.animateTo(1f, tween(200))
-                    delay(200)
+                    exitShrink.animateTo(1f, tween(150))
+                    screenAlpha.animateTo(0f, tween(150))
                     currentOnFinish(currentTarget ?: "")
                 }
             })
     ) {
-        SplashStage(
-            trim = trim,
-            glow = glow,
-            bloom = bloom,
-            sweep = sweep,
-            taglineAlpha = taglineAlpha,
-            taglineBreath = taglineBreath,
-            exitShrink = exitShrink,
-            skipReady = skipReady,
+        SplashStageSnap(
+            isDark = !isPorcelain,
+            glowAlpha = glow.value,
+            snapScale = snapScale.value,
+            monogramAlpha = monogramAlpha.value,
             ripple = ripple.value,
-            snapScale = snapScale.value
+            fillAlpha = fillAlpha.value,
+            taglineAlpha = taglineAlpha.value,
+            screenScale = screenScale.value,
+            screenAlpha = screenAlpha.value,
+            skipReady = skipReady
         )
     }
 }
 
-
 /**
- * Stage 24 — the splash stage: monogram stroke-draw with glowing tip,
- * completion bloom ring, wordmark sweep, tagline fade-up, shared-element
- * hand-off.
+ * Stage 43 — Aurora Snap Splash layout.
  */
 @Composable
-private fun SplashStage(
-    trim: Animatable<Float, androidx.compose.animation.core.AnimationVector1D>,
-    glow: Animatable<Float, androidx.compose.animation.core.AnimationVector1D>,
-    bloom: Animatable<Float, androidx.compose.animation.core.AnimationVector1D>,
-    sweep: Animatable<Float, androidx.compose.animation.core.AnimationVector1D>,
+private fun SplashStageSnap(
+    isDark: Boolean,
+    glowAlpha: Float,
+    snapScale: Float,
+    monogramAlpha: Float,
+    ripple: Float,
+    fillAlpha: Float,
     taglineAlpha: Float,
-    taglineBreath: Animatable<Float, androidx.compose.animation.core.AnimationVector1D>,
-    exitShrink: Animatable<Float, androidx.compose.animation.core.AnimationVector1D>,
-    skipReady: Boolean,
-    ripple: Float = 0f,
-    snapScale: Float = 1f
+    screenScale: Float,
+    screenAlpha: Float,
+    skipReady: Boolean
 ) {
-    val ink = splashInk(dark = !isPorcelain)
+    val canvasBg = splashCanvas(isDark)
+    val glowColor = splashGlowColor(isDark)
+    val ink = splashInk(dark = isDark)
     val density = LocalDensity.current.density
+
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(BgBlack)
+            .background(canvasBg)
+            .graphicsLayer {
+                scaleX = screenScale
+                scaleY = screenScale
+                alpha = screenAlpha
+            }
     ) {
         Canvas(
             modifier = Modifier
                 .align(Alignment.Center)
-                .size(320.dp)
+                .size(340.dp)
         ) {
-            val pulse = glow.value
+            val maxAlpha = splashGlowAlpha(isDark)
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        AccentBlue.copy(alpha = splashGlowAlpha(dark = !isPorcelain) * (1f + 0.8f * pulse)),
+                        glowColor.copy(alpha = maxAlpha * glowAlpha),
+                        glowColor.copy(alpha = maxAlpha * 0.4f * glowAlpha),
                         Color.Transparent
                     ),
                     center = center,
-                    radius = size.minDimension / 2f
+                    radius = size.minDimension / 1.7f
                 ),
-                radius = size.minDimension / 2f
+                radius = size.minDimension / 1.7f
             )
-            if (pulse > 0.01f) {
+
+            // Micro-ripple ring from snap (0.2s - 0.5s)
+            if (ripple > 0.01f && ripple < 1f) {
                 drawCircle(
-                    color = AccentBlue.copy(alpha = 0.35f * pulse),
-                    radius = size.minDimension * (0.22f + 0.16f * pulse),
-                    center = center,
-                    style = Stroke(width = 2f)
-                )
-            }
-            // Stage 24 — completion bloom ring: expands once the stroke is done.
-            val b = bloom.value
-            if (b > 0.01f) {
-                drawCircle(
-                    color = AccentBlue.copy(alpha = 0.25f * b),
-                    radius = size.minDimension * (0.5f + 0.9f * b),
-                    center = center,
-                    style = Stroke(width = 3f)
-                )
-            }
-            // micro-ripple expands on landing (elastic overshoot feel)
-            if (ripple > 0.01f) {
-                drawCircle(
-                    color = AccentBlue.copy(alpha = 0.35f * (1f - ripple)),
-                    radius = size.minDimension * (0.25f + 0.75f * ripple),
+                    color = glowColor.copy(alpha = 0.45f * (1f - ripple)),
+                    radius = size.minDimension * (0.22f + 0.48f * ripple),
                     center = center,
                     style = Stroke(width = 2f)
                 )
@@ -319,31 +335,48 @@ private fun SplashStage(
                 modifier = Modifier
                     .size(132.dp)
                     .graphicsLayer {
-                        val t = exitShrink.value
-                        scaleX = snapScale * (1f - 0.55f * t)
-                        scaleY = snapScale * (1f - 0.55f * t)
-                        translationY = -46f * t * density
-                        alpha = 1f - 0.35f * t
+                        scaleX = snapScale
+                        scaleY = snapScale
+                        alpha = monogramAlpha
                     }
             ) {
-                drawMonogram(trim.value, glow.value, ink)
-                drawTravelingTip(trim.value, ink)
+                drawSnapMonogram(fillAlpha = fillAlpha, ink = ink)
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
-
-            MaskSweepWordmark(text = BrandWordmark.TEXT, sweep = sweep.value, ink = ink)
-
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(28.dp))
 
             Text(
-                "Your bundle business, automated.",
-                color = TextGrey,
+                text = SplashBrand.TAGLINE,
+                color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
                 fontSize = BingwaType.Footnote,
-                fontWeight = FontWeight.Normal,
+                fontWeight = FontWeight.Medium,
                 modifier = Modifier
-                    .alpha(taglineAlpha * (0.92f + 0.08f * taglineBreath.value))
-                    .graphicsLayer { translationY = (1f - taglineAlpha) * 10f * density }
+                    .alpha(taglineAlpha)
+                    .graphicsLayer { translationY = (1f - taglineAlpha) * 12f * density }
+            )
+        }
+    }
+}
+
+/**
+ * Stage 43 — Draws the 'B' monogram with stroke and smooth fill transition (0.5s - 0.8s).
+ */
+private fun DrawScope.drawSnapMonogram(fillAlpha: Float, ink: Color) {
+    val zoom = size.minDimension / 108f
+    scale(zoom, zoom, pivot = Offset.Zero) {
+        drawPath(
+            path = Monogram.path,
+            color = ink,
+            style = Stroke(
+                width = Monogram.STROKE_WIDTH,
+                cap = StrokeCap.Round,
+                join = StrokeJoin.Round
+            )
+        )
+        if (fillAlpha > 0.01f) {
+            drawPath(
+                path = Monogram.path,
+                color = ink.copy(alpha = fillAlpha)
             )
         }
     }

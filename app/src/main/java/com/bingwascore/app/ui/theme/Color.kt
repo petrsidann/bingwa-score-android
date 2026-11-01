@@ -46,6 +46,9 @@ val isPorcelain: Boolean get() = DisplayModeState.mode != ThemeMode.DARK
 
 val ObsidianBg: Color = Color(0xFF0F172A)
 val ObsidianCard: Color = Color(0xFF1E293B)
+val SplashDimBg: Color = Color(0xFFEAF0F6)
+val SplashDimPastelBlue: Color = Color(0xFF93C5FD)
+val SplashDimInk: Color = Color(0xFF1E293B)
 val ObsidianElevated: Color = Color(0xFF334155)
 val ObsidianBorder: Color = Color(0xFF475569)
 

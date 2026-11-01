@@ -1,18 +1,17 @@
 # HANDOFF — Live Session State
 
-## STEP 0 resume state (Stage 42 shipped; next = Stage 43 aurora snap splash)
+## STEP 0 resume state (Stage 43 shipped; next = FEATURE FREEZE -> full phone walk -> owner tags v2.0.0)
 
-- **Current state**: Stage 42 shipped (login focus routing).
-  - Fixed sign-in keypad routing bug where phone field accepted nothing.
-  - Fields maintain readOnly=true and focusable=true, with FocusRequesters and onClick handlers.
-  - Focused field shows 2dp brand-blue border (Obsidian #2563EB, Dim #2F6AE0).
-  - Keypad digits/backspace route to the currently focused field via shared state (`focusedField: MutableState<LoginField>`).
-  - Default focus = Phone; after 10th phone digit, focus auto-jumps to PIN via LaunchedEffect(snapshotFlow(phone.length)).
-  - Soft keyboard remains hidden via windowSoftInputMode="stateAlwaysHidden|adjustNothing".
-  - Test coverage: `Stage42LoginFocusRoutingTest`, `Stage36TraceFixTest`, `Stage27AuthGateTest` passing; assembleDebug green.
+- **Current state**: Stage 43 shipped (aurora snap splash).
+  - Aurora snap splash duration <= 1.3s (Motion.SPLASH_TOTAL = 1300ms).
+  - 0.0–0.2s: Aurora glow fades in (Obsidian: #0F172A canvas + #2563EB radial glow; Dim: #EAF0F6 canvas + pastel-blue #93C5FD glow).
+  - 0.2–0.5s: 'B' monogram snaps in with spring overshoot + micro-ripple ring.
+  - 0.5–0.8s: Monogram fills (white ink on Obsidian / #1E293B ink on Dim) + tagline "Your bundle business, automated." fades up.
+  - 0.8–1.3s: Whole screen scales 1.0 -> 1.04 + cross-fades to next screen.
+  - Goldens recorded and committed in `docs/gate/` for 0.3s, 0.6s, 1.0s x both themes (Obsidian and Porcelain Dim).
+  - Test coverage: `Stage43SplashDurationTest`, `Stage43SplashSnapshotTest`, `Stage11LaunchCinematicTest`, `Stage36TraceFixTest`, `SplashChoreographyTest`, `Stage21FirstRunTruthTest` all pass; `:app:assembleDebug` + `:app:testDebugUnitTest` green.
 - **Roadmap / Next stages**:
-  - **Stage 43**: Aurora snap splash.
-  - **Post-Stage 43**: Feature freeze + v2.0.0 tag.
+  - **Next**: FEATURE FREEZE -> full phone walk -> owner tags v2.0.0.
 
 ## Rules of Engagement
 

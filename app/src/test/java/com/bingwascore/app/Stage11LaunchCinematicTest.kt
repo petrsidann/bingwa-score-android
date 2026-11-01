@@ -32,26 +32,14 @@ class Stage11LaunchCinematicTest {
     ).readText()
 
     @Test
-    fun `splash draws a glowing traveling tip on the stroke head`() {
+    fun `splash renders the snap monogram and micro-ripple ring`() {
         assertTrue(
-            "SplashScreen must draw the traveling tip helper",
-            splashSrc.contains("drawTravelingTip(trim.value, ink)")
+            "SplashScreen must draw the snap monogram",
+            splashSrc.contains("drawSnapMonogram")
         )
         assertTrue(
-            "the tip helper must sample Monogram.path positions",
-            splashSrc.contains("fun DrawScope.drawTravelingTip")
-        )
-    }
-
-    @Test
-    fun `stroke completes with a shockwave ring and specular sweep`() {
-        assertTrue(
-            "the monogram must emit a shockwave ring at full trim",
+            "the monogram must emit a micro-ripple ring on landing",
             splashSrc.contains("Stroke(width = 2f)")
-        )
-        assertTrue(
-            "the monogram must sweep a specular gradient across the stroke",
-            splashSrc.contains("Brush.linearGradient(")
         )
     }
 
@@ -87,30 +75,26 @@ class Stage11LaunchCinematicTest {
     }
 
     @Test
-    fun `the tagline breathes instead of fading once`() {
+    fun `the tagline fades up smoothly`() {
         assertTrue(
-            "tagline alpha must ride a soft breath",
-            splashSrc.contains("taglineAlpha * (0.92f + 0.08f * taglineBreath.value)")
+            "tagline must fade up",
+            splashSrc.contains(".alpha(taglineAlpha)")
         )
     }
 
     @Test
-    fun `the monogram shrinks into the login logo before hand-off`() {
+    fun `the splash cross-fades and scales before hand-off`() {
         assertTrue(
-            "an exit-shrink animatable must exist",
-            splashSrc.contains("val exitShrink = remember { Animatable(0f) }")
+            "screen scales 1.0 to 1.04 before hand-off",
+            splashSrc.contains("screenScale.animateTo(1.04f")
         )
         assertTrue(
-            "the shrink must complete before onFinish fires",
-            splashSrc.contains("exitShrink.animateTo(1f, tween(200))")
+            "screen cross-fades to 0 before onFinish fires",
+            splashSrc.contains("screenAlpha.animateTo(0f")
         )
-        val shrinkAt = splashSrc.indexOf("exitShrink.animateTo")
+        val fadeAt = splashSrc.indexOf("screenAlpha.animateTo(0f")
         val finishAt = splashSrc.indexOf("currentOnFinish(resolved)")
-        assertTrue("shrink must run before the route fires", shrinkAt in 0 until finishAt)
-        assertTrue(
-            "the monogram canvas must apply the shared-element exit transform",
-            splashSrc.contains("val t = exitShrink.value")
-        )
+        assertTrue("fade must run before the route fires", fadeAt in 0 until finishAt)
     }
 
     @Test
@@ -161,6 +145,5 @@ class Stage11LaunchCinematicTest {
             "splash total ${Motion.SPLASH_TOTAL}ms exceeds the 2.0s budget",
             Motion.SPLASH_TOTAL <= 2_000
         )
-        assertTrue(Motion.SPLASH_DRAW == 300)
     }
 }
