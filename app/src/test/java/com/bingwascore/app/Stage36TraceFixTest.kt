@@ -132,7 +132,7 @@ class Stage36TraceFixTest {
     @Test
     fun `long-press on the SignIn wordmark opens the Crash Report dialog`() {
         val login = source("app/src/main/java/com/bingwascore/app/ui/screens/LoginScreen.kt")
-        assertTrue("the wordmark is rendered on SignIn", login.contains("BrandWordmark.TEXT"))
+        assertTrue("the welcome header is rendered on SignIn", login.contains("Welcome back"))
         assertTrue("long-press opens the dialog", login.contains("onLongClick = { showCrashReport = true }"))
         assertTrue("the dialog shows the last CrashHandler stack",
             login.contains("CrashHandler.readLatestCrashReport"))
