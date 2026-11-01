@@ -47,9 +47,33 @@ class EngineService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        // Channel creation is cheap and synchronous; the OS requires the channel
-        // to exist before a notification can be posted to it.
+        // =====================================================================
+        // STAGE 41 — ZERO WORK BEFORE PROMOTION.
+        // Channel creation is synchronous and required before notification post.
+        // startForeground(ID, minimalNotification()) is called IMMEDIATELY.
+        // No DataStore, no coroutines, no DI build.
+        // =====================================================================
         createChannel()
+        try {
+            val minimal = minimalNotification()
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                startForeground(
+                    NOTIFICATION_ID,
+                    minimal,
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
+                )
+            } else {
+                @Suppress("DEPRECATION")
+                startForeground(NOTIFICATION_ID, minimal)
+            }
+        } catch (t: Throwable) {
+            CrashHandler.record(this, t)
+            isRunning = false
+            Timber.e(t, "EngineService could not promote to foreground in onCreate")
+            stopSelf()
+            return
+        }
+
         // Built once, here — the notification path below must never touch disk,
         // network, DataStore or the notification manager again.
         tapIntent = PendingIntent.getActivity(
@@ -63,10 +87,10 @@ class EngineService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         // =====================================================================
-        // STAGE 38 — FIRST STATEMENT, UNCONDITIONALLY.
-        // Nothing may precede this: no intent inspection, no flag check, no
-        // early return, no coroutine launch. The OS 5-second promotion window
-        // starts now, and anything that runs before this spends it.
+        // STAGE 41 / STAGE 38 — IDEMPOTENT startForeground RE-CALL IN TRY/CATCH
+        // BEFORE ANY LOGIC.
+        // No intent inspection, no flag check, no early return, no coroutine
+        // launch precedes it.
         // =====================================================================
         try {
             promoteToForeground()
@@ -104,6 +128,24 @@ class EngineService : Service() {
     }
 
     /**
+     * Minimal notification used for synchronous promotion in [onCreate].
+     * Uses static strings + cached icon only. Zero disk, zero network, zero DI.
+     */
+    private fun minimalNotification(): Notification {
+        testNotificationOverride?.let { return it() }
+        return NotificationCompat.Builder(this, CHANNEL_ID)
+            .setContentTitle("Bingwa Engine")
+            .setContentText("Engine running in background")
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setOngoing(true)
+            .setCategory(NotificationCompat.CATEGORY_SERVICE)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setShowWhen(false)
+            .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
+            .build()
+    }
+
+    /**
      * Posts the ongoing notification. Only cached, in-memory values are read —
      * a literal title, the [processingActivity] volatile and a PendingIntent
      * created in [onCreate]. Zero disk, zero network, zero binder round-trips
@@ -115,21 +157,23 @@ class EngineService : Service() {
         // now: "Processing" while a USSD dial is in flight, "Processing
         // transaction" while the reply goes out.
         val activity = processingActivity
-        return NotificationCompat.Builder(this, CHANNEL_ID)
+        val builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(
                 if (activity == ProcessingActivity.IDLE) "Bingwa Engine running" else "Processing"
             )
             .setContentText(activity.notificationText)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setOngoing(true)
-            .setContentIntent(tapIntent)
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setShowWhen(false)
             // Show the notification immediately instead of letting the system
             // defer it — the same deferral that trips the promotion watchdog.
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
-            .build()
+        if (::tapIntent.isInitialized) {
+            builder.setContentIntent(tapIntent)
+        }
+        return builder.build()
     }
 
     private fun promoteToForeground() {
