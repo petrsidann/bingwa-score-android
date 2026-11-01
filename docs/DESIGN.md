@@ -106,15 +106,14 @@ Nothing loops forever. Nothing bounces. One breath per surface max.
   reports. Blue confirm + grey dismiss. Frosted glass header + shadow depth
   where specified (MyPlan header, nav pill).
 
-## 7. Splash (<= 2s, skippable after 1s)
+## 7. Splash (<= 1.3s, skippable after 900ms) — Stage 43 Aurora Snap
 
-1. Monogram stroke-draw with brand-blue glowing tip (#2563EB).
-2. Completion bloom ring.
-3. Wordmark mask-sweep reveal (canvas-coloured curtain — never a white rectangle).
-4. Tagline fade.
-5. Clean shared-element handoff to onboarding.
+1. **0.0–0.2s**: Aurora glow fades in (Obsidian: `#0F172A` canvas + `#2563EB` radial glow; Dim: `#EAF0F6` canvas + pastel-blue `#93C5FD` glow).
+2. **0.2–0.5s**: 'B' monogram snaps in with spring overshoot + micro-ripple ring.
+3. **0.5–0.8s**: Monogram fills (white ink on Obsidian / `#1E293B` ink on Dim) + tagline "Your bundle business, automated." fades up.
+4. **0.8–1.3s**: Whole screen scales 1.0 -> 1.04 + cross-fades to next screen.
 
-Obsidian: dark canvas + blue glow. Porcelain Dim: dimmed canvas + dark ink monogram + soft blue halo.
+Obsidian: #0F172A canvas + #2563EB glow. Porcelain Dim: #EAF0F6 canvas + pastel-blue glow + #1E293B ink.
 
 ## 8. FORBIDDEN (lint/test-guarded where possible)
 

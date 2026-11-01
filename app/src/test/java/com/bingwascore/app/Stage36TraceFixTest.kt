@@ -151,7 +151,7 @@ class Stage36TraceFixTest {
     @Test
     fun `splash band region diffs empty against the canvas in both themes`() {
         val splash = source("app/src/main/java/com/bingwascore/app/ui/screens/SplashScreen.kt")
-        val curtains = Regex("""\.background\(BgBlack\)""").findAll(splash).count()
+        val curtains = Regex("""\.background\(canvasBg\)""").findAll(splash).count()
         assertEquals("only the surface canvas background remains; no band curtain", 1, curtains)
         assertFalse("no rounded-rectangle curtain", splash.contains("RoundedCornerShape"))
     }
@@ -172,9 +172,7 @@ class Stage36TraceFixTest {
     @Test
     fun `splash keeps monogram stroke bloom and tagline`() {
         val splash = source("app/src/main/java/com/bingwascore/app/ui/screens/SplashScreen.kt")
-        assertTrue("monogram stroke draws", splash.contains("drawMonogram(trim.value, glow.value, ink)"))
-        assertTrue("traveling tip rides the stroke head", splash.contains("drawTravelingTip(trim.value, ink)"))
-        assertTrue("completion bloom ring", splash.contains("bloom.animateTo(1f, tween(400))"))
+        assertTrue("monogram snaps and fills", splash.contains("drawSnapMonogram"))
         assertTrue("tagline remains", splash.contains("Your bundle business, automated."))
     }
 
