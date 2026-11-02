@@ -85,6 +85,7 @@ import com.bingwascore.app.ui.theme.TextDim
 import com.bingwascore.app.ui.theme.TextGrey
 import com.bingwascore.app.ui.theme.TextWhite
 import com.bingwascore.app.ui.theme.TickGreen
+import com.bingwascore.app.ui.theme.isPorcelain
 import com.bingwascore.app.util.rememberHaptics
 import kotlinx.coroutines.launch
 
@@ -186,7 +187,6 @@ private fun BubbleRaised(): Color = Raised
  */
 @Composable
 fun ThemeToggle(
-    isDark: Boolean,
     onToggle: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -196,15 +196,15 @@ fun ThemeToggle(
     val pillWidth = 56.dp
     val thumbSize = 28.dp
     val thumbX by animateFloatAsState(
-        targetValue = if (isDark) 20f else 8f,
+        targetValue = if (isPorcelain) 8f else 20f,
         animationSpec = spring(dampingRatio = Motion.DAMPING, stiffness = Spring.StiffnessHigh)
     )
     Box(
         modifier = modifier
             .size(pillWidth)
             .clip(shape)
-            .background(if (isDark) TextDim.copy(alpha = 0.35f) else AccentBlue.copy(alpha = 0.14f))
-            .border(1.dp, if (isDark) Hairline else AccentBlue.copy(alpha = 0.45f), shape)
+            .background(if (isPorcelain) AccentBlue.copy(alpha = 0.14f) else TextWhite.copy(alpha = 0.10f))
+            .border(1.dp, if (isPorcelain) AccentBlue.copy(alpha = 0.45f) else Hairline, shape)
             .clickable(enabled = true, onClick = { haptics.tick(); onToggle() })
     ) {
         Box(
@@ -218,8 +218,8 @@ fun ThemeToggle(
                 }
         )
         Icon(
-            imageVector = if (isDark) Icons.Rounded.WbSunny else Icons.Rounded.Brightness2,
-            contentDescription = if (isDark) "Switch to light" else "Switch to dark",
+            imageVector = if (isPorcelain) Icons.Rounded.Brightness2 else Icons.Rounded.WbSunny,
+            contentDescription = if (isPorcelain) "Switch to dark" else "Switch to light",
             tint = TextWhite,
             modifier = Modifier
                 .size(16.dp)
@@ -242,7 +242,6 @@ fun HomeTopBar(
     language: Greetings.Language,
     creditsLabel: String,
     onCreditsClick: () -> Unit,
-    isDark: Boolean = false,
     onThemeToggle: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
@@ -254,7 +253,7 @@ fun HomeTopBar(
     ) {
         GreetingLine(bucket = bucket, language = language, modifier = Modifier.weight(1f))
         Spacer(modifier = Modifier.width(8.dp))
-        ThemeToggle(isDark = isDark, onToggle = onThemeToggle)
+        ThemeToggle(onToggle = onThemeToggle)
         Spacer(modifier = Modifier.width(8.dp))
         CreditsBubble(label = creditsLabel, onClick = onCreditsClick)
     }

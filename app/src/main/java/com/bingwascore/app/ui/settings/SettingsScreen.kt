@@ -68,13 +68,16 @@ import com.bingwascore.app.domain.ThemeMode
 import com.bingwascore.app.ui.components.BubbleCard
 import com.bingwascore.app.ui.components.ExplanationDialog
 import com.bingwascore.app.ui.components.PrimaryButton
+import com.bingwascore.app.ui.components.SecondaryButton
 import com.bingwascore.app.ui.components.statusSwitchColors
 import com.bingwascore.app.ui.home.ThemeToggle
 import com.bingwascore.app.updates.UpdateDownloader
 import com.bingwascore.app.util.rememberHaptics
 import com.bingwascore.app.util.screenEnter
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
 import com.bingwascore.app.ui.theme.Hairline
 import com.bingwascore.app.ui.theme.Bubble
 import com.bingwascore.app.ui.theme.AccentBlue
@@ -85,6 +88,8 @@ import com.bingwascore.app.ui.theme.FailRed
 import com.bingwascore.app.ui.theme.BgBlack
 import com.bingwascore.app.ui.theme.TextFaint
 import com.bingwascore.app.ui.theme.TextWhite
+import com.bingwascore.app.ui.theme.BingwaType
+import com.bingwascore.app.ui.glass.frostedGlass
 import com.bingwascore.app.util.BackupManager
 import com.bingwascore.app.util.CrashHandler
 import kotlinx.coroutines.launch
@@ -313,7 +318,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
     val done = updateState as? UpdateCheckState.Done
     val isCannotCheck = updateState is UpdateCheckState.CannotCheck
     if (updateDialogOpen && done != null) {
-        UpdateResultDialog(
+        UpdateResultSheet(
             state = done,
             currentVersion = viewModel.appVersion,
             latestVersion = done.latestVersion,
@@ -607,15 +612,12 @@ private fun AppearancePage(viewModel: SettingsViewModel) {
                 fontSize = 13.sp
             )
             Spacer(modifier = Modifier.weight(1f))
-            ThemeToggle(
-                isDark = isDark,
-                onToggle = {
-                    haptics.tick()
-                    viewModel.setThemeMode(
-                        if (isDark) ThemeMode.PORCELAIN_DIM else ThemeMode.DARK
-                    )
-                }
-            )
+            ThemeToggle(onToggle = {
+                haptics.tick()
+                viewModel.setThemeMode(
+                    if (isDark) ThemeMode.PORCELAIN_DIM else ThemeMode.DARK
+                )
+            })
         }
     }
 }
@@ -929,8 +931,13 @@ private fun BackupRestorePage(viewModel: SettingsViewModel) {
  * (`/updates/latest.json`); the answer lands here. One dialog, two truths:
  * you are on the latest build, or a newer one is waiting.
  */
+/**
+ * Stage 45 — the update answer lands on a frosted sheet (BitChord): GlassSpec
+ * scrim + shadow over the settings page behind, identical in both themes. No
+ * flat bubble dialogs on the update path.
+ */
 @Composable
-private fun UpdateResultDialog(
+private fun UpdateResultSheet(
     state: UpdateCheckState.Done,
     currentVersion: String,
     latestVersion: String?,
@@ -939,19 +946,31 @@ private fun UpdateResultDialog(
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
-    androidx.compose.material3.AlertDialog(
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    // The answer lands the moment the check finishes: expand on entry.
+    LaunchedEffect(Unit) { sheetState.expand() }
+
+    ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = Bubble,
-        title = {
+        sheetState = sheetState,
+        containerColor = Color.Transparent,
+        dragHandle = null
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 24.dp)
+                .frostedGlass(shape = RoundedCornerShape(20.dp))
+        ) {
             Text(
-                if (state.upToDate) "You're up to date" else "Update available",
+                text = if (state.upToDate) "You're up to date" else "Update available",
                 color = TextWhite,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                fontSize = BingwaType.Subhead
             )
-        },
-        text = {
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
-                if (state.upToDate) {
+                text = if (state.upToDate) {
                     "Bingwa Score $currentVersion is the latest release."
                 } else {
                     buildString {
@@ -967,46 +986,38 @@ private fun UpdateResultDialog(
                     }
                 },
                 color = TextGrey,
-                fontSize = 13.sp
+                fontSize = BingwaType.Body
             )
-        },
-        confirmButton = {
-            androidx.compose.material3.TextButton(
-                onClick = {
-                    val url = downloadUrl
-                    if (!state.upToDate && url != null) {
-                        UpdateDownloader.enqueue(context, url)
-                        try {
-                            context.startActivity(
-                                android.content.Intent(
-                                    android.content.Intent.ACTION_VIEW,
-                                    android.net.Uri.parse(url)
-                                ).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-                            )
-                        } catch (_: Throwable) {
-                            Toast.makeText(context, "Could not open browser", Toast.LENGTH_SHORT).show()
+            Spacer(modifier = Modifier.height(20.dp))
+            if (state.upToDate) {
+                PrimaryButton(text = "Close", onClick = onDismiss)
+            } else {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    PrimaryButton(
+                        text = "Download",
+                        onClick = {
+                            if (downloadUrl != null) {
+                                UpdateDownloader.enqueue(context, downloadUrl)
+                                try {
+                                    context.startActivity(
+                                        android.content.Intent(
+                                            android.content.Intent.ACTION_VIEW,
+                                            android.net.Uri.parse(downloadUrl)
+                                        ).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    )
+                                } catch (_: Throwable) {
+                                    Toast.makeText(context, "Could not open browser", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                            onDismiss()
                         }
-                    }
-                    onDismiss()
-                }
-            ) {
-                Text(
-                    if (state.upToDate) "Close" else "Download",
-                    color = AccentBlue,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        },
-        dismissButton = if (state.upToDate) {
-            null
-        } else {
-            {
-                androidx.compose.material3.TextButton(onClick = onDismiss) {
-                    Text("Later", color = TextGrey)
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    SecondaryButton(text = "Later", onClick = onDismiss)
                 }
             }
         }
-    )
+    }
 }
 
 @Composable
