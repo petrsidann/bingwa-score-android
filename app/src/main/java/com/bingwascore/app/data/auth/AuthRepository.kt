@@ -66,6 +66,10 @@ object AuthConstants {
     const val MIN_PIN_LENGTH = 4
     const val OTP_LENGTH = 6
 
+    /** STAGE 44 — ONE account type. No Individual/Business toggle; the payload
+     *  always sends this constant. */
+    const val ACCOUNT_TYPE_AGENT = "AGENT"
+
     /** How long a locally-minted session stays nominally valid. */
     const val LOCAL_SESSION_MILLIS = 24L * 60 * 60 * 1000
 

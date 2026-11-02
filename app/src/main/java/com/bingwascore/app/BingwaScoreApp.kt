@@ -11,10 +11,10 @@ import com.bingwascore.app.data.local.DbNameHolder
 import com.bingwascore.app.data.preferences.UserPreferences
 import com.bingwascore.app.data.showcase.DemoEngine
 import com.bingwascore.app.data.showcase.DemoSeeder
-import com.bingwascore.app.services.EngineService
 import com.bingwascore.app.util.AnrWatchdog
 import com.bingwascore.app.util.AppForegroundGate
 import com.bingwascore.app.util.CrashHandler
+import com.bingwascore.app.workers.EngineStartWorker
 import com.bingwascore.app.workers.Schedulers
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
@@ -95,15 +95,18 @@ class BingwaScoreApp : Application() {
             } catch (t: Throwable) {
                 Timber.e(t, "Seeding failed")
             }
-            // Foreground keep-alive: bring the engine back up when the user has
-            // engine_enabled on so SMS parsing + the retry queue run reliably.
+            // STAGE 44 — COLD-PATH LAW. Application.onCreate is a relaunch
+            // auto-start: it must NEVER trigger a foreground-service start
+            // itself. The engine revives only via a WorkManager one-shot
+            // running in this already-alive process, which promotes the moment
+            // an Activity is visible (or the Start Earning foreground path).
             try {
                 if (userPreferences.engineEnabled.first()) {
-                    EngineService.start(this@BingwaScoreApp)
-                    Timber.i("Engine foreground service started")
+                    EngineStartWorker.enqueue(this@BingwaScoreApp)
+                    Timber.i("Engine revival deferred to EngineStartWorker one-shot")
                 }
             } catch (t: Throwable) {
-                Timber.e(t, "Engine start on app-create failed")
+                Timber.e(t, "Engine revival enqueue on app-create failed")
             }
         }
     }

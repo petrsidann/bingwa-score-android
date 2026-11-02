@@ -4,7 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import com.bingwascore.app.data.preferences.UserPreferences
-import com.bingwascore.app.services.EngineService
+import com.bingwascore.app.workers.EngineStartWorker
 import com.bingwascore.app.workers.Schedulers
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
@@ -41,10 +41,14 @@ class BootReceiver : BroadcastReceiver() {
             receiverScope.launch {
                 try {
                     if (userPreferences.engineEnabled.first()) {
-                        EngineService.start(context.applicationContext)
+                        // STAGE 44 — COLD-PATH LAW. A boot receiver must NEVER
+                        // trigger a foreground-service start itself: the engine
+                        // revives via a WorkManager one-shot that promotes once
+                        // an Activity is visible in an already-alive process.
+                        EngineStartWorker.enqueue(context.applicationContext)
                     }
                 } catch (t: Throwable) {
-                    Timber.e(t, "Engine start on boot failed")
+                    Timber.e(t, "Engine revival enqueue on boot failed")
                 } finally {
                     pendingResult.finish()
                 }

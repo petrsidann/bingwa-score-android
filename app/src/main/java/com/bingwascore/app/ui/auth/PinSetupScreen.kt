@@ -23,6 +23,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Backspace
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -31,6 +32,9 @@ import com.bingwascore.app.util.rememberHaptics
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -125,48 +129,13 @@ fun PinSetupScreen(
             Spacer(modifier = Modifier.height(20.dp))
 
             BubbleCard(modifier = Modifier.fillMaxWidth()) {
-                // Account Type Toggle
-                Text("Account Type", color = TextFaint, fontSize = 11.sp)
-                Spacer(modifier = Modifier.height(6.dp))
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(Bubble)
-                        .border(1.dp, Hairline, RoundedCornerShape(14.dp))
-                        .padding(4.dp)
-                ) {
-                    listOf("Individual", "Business").forEach { type ->
-                        val selected = state.accountType.equals(type, ignoreCase = true)
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(44.dp)
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(if (selected) AccentBlue else androidx.compose.ui.graphics.Color.Transparent)
-                                .clickable {
-                                    haptics.tick()
-                                    viewModel.updateAccountType(type)
-                                },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                type,
-                                color = if (selected) com.bingwascore.app.ui.theme.BgBlack else TextWhite,
-                                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                                fontSize = 14.sp
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(14.dp))
-
+                // STAGE 44 — ONE account type (AGENT). No Individual/Business
+                // toggle; one name field covers both cases.
                 PinField(
-                    label = if (state.accountType == "Business") "Business Name" else "Full Name",
+                    label = "Your name or business name",
                     value = state.name,
                     onValueChange = viewModel::updateName,
-                    placeholder = if (state.accountType == "Business") "e.g. Bingwa Telecoms" else "e.g. Jane Doe",
+                    placeholder = "e.g. Jane Doe or Bingwa Telecoms",
                     keyboardType = KeyboardType.Text
                 )
 
@@ -179,6 +148,10 @@ fun PinSetupScreen(
                     placeholder = "0712345678",
                     keyboardType = KeyboardType.Phone
                 )
+                state.phoneError?.let { message ->
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(message, color = FailRed, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                }
 
                 Spacer(modifier = Modifier.height(14.dp))
 
@@ -189,27 +162,62 @@ fun PinSetupScreen(
                     placeholder = "agent@example.com",
                     keyboardType = KeyboardType.Email
                 )
+                state.emailError?.let { message ->
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(message, color = FailRed, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                }
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                PinField(
+                // STAGE 44 — keypad-only PINs. PIN and Confirm PIN are 4-dot
+                // readouts driven by the SAME custom keypad as login; the
+                // system keyboard never appears for them.
+                var focusedPinField by remember { mutableStateOf(SignUpPinField.PIN) }
+
+                PinDotField(
                     label = "PIN (4 digits)",
                     value = state.pin,
-                    onValueChange = viewModel::updatePin,
-                    placeholder = "4 digits",
-                    isPassword = true,
-                    keyboardType = KeyboardType.NumberPassword
+                    isFocused = focusedPinField == SignUpPinField.PIN,
+                    onClick = { focusedPinField = SignUpPinField.PIN }
                 )
+                state.pinError?.let { message ->
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(message, color = FailRed, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                }
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                PinField(
+                PinDotField(
                     label = "Confirm PIN",
                     value = state.confirmPin,
-                    onValueChange = viewModel::updateConfirmPin,
-                    placeholder = "4 digits",
-                    isPassword = true,
-                    keyboardType = KeyboardType.NumberPassword
+                    isFocused = focusedPinField == SignUpPinField.CONFIRM,
+                    onClick = { focusedPinField = SignUpPinField.CONFIRM }
+                )
+                state.confirmPinError?.let { message ->
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(message, color = FailRed, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                }
+                if (state.pinsMismatch) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text("PINs don't match", color = FailRed, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                SignUpKeypad(
+                    onDigit = { digit ->
+                        haptics.tick()
+                        when (focusedPinField) {
+                            SignUpPinField.PIN -> viewModel.appendPinDigit(digit)
+                            SignUpPinField.CONFIRM -> viewModel.appendConfirmPinDigit(digit)
+                        }
+                    },
+                    onBackspace = {
+                        when (focusedPinField) {
+                            SignUpPinField.PIN -> viewModel.backspacePin()
+                            SignUpPinField.CONFIRM -> viewModel.backspaceConfirmPin()
+                        }
+                    }
                 )
 
                 state.errorMessage?.let { message ->
@@ -249,10 +257,137 @@ fun PinSetupScreen(
                         },
                         modifier = Modifier.fillMaxWidth().height(48.dp)
                     )
+                    // STAGE 44 — a disabled button always says WHY.
+                    if (!state.isSubmittable) {
+                        state.submitDisabledReason?.let { reason ->
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                reason,
+                                color = TextFaint,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                modifier = Modifier.fillMaxWidth(),
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
+                        }
+                    }
                 }
             }
             Spacer(modifier = Modifier.height(24.dp))
         }
+    }
+}
+
+/** STAGE 44 — which PIN readout the keypad is writing to. */
+private enum class SignUpPinField { PIN, CONFIRM }
+
+/**
+ * STAGE 44 — a 4-dot PIN readout, keypad-driven only. Tapping focuses it
+ * (2dp brand-blue border); the system keyboard never appears.
+ */
+@Composable
+private fun PinDotField(
+    label: String,
+    value: String,
+    isFocused: Boolean,
+    onClick: () -> Unit
+) {
+    val shape = RoundedCornerShape(14.dp)
+    val focusedBorderColor = if (com.bingwascore.app.ui.theme.isPorcelain)
+        androidx.compose.ui.graphics.Color(0xFF2F6AE0)
+    else
+        androidx.compose.ui.graphics.Color(0xFF2563EB)
+    Column {
+        Text(label, color = TextFaint, fontSize = 11.sp)
+        Spacer(modifier = Modifier.height(6.dp))
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(shape)
+                .background(Bubble)
+                .border(if (isFocused) 2.dp else 1.dp, if (isFocused) focusedBorderColor else Hairline, shape)
+                .clickable { onClick() }
+                .padding(horizontal = 14.dp, vertical = 14.dp)
+        ) {
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                repeat(4) { index ->
+                    val filled = index < value.length
+                    Box(
+                        modifier = Modifier
+                            .size(12.dp)
+                            .clip(androidx.compose.foundation.shape.CircleShape)
+                            .background(if (filled) AccentBlue else Bubble)
+                            .border(1.dp, Hairline, androidx.compose.foundation.shape.CircleShape)
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** STAGE 44 — the SAME custom keypad contract as login: 3x4 grid + backspace. */
+@Composable
+private fun SignUpKeypad(
+    onDigit: (Char) -> Unit,
+    onBackspace: () -> Unit
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        val rows = listOf(
+            listOf("1", "2", "3"),
+            listOf("4", "5", "6"),
+            listOf("7", "8", "9")
+        )
+        rows.forEach { row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                row.forEach { digit ->
+                    SignUpKeypadKey(label = digit) { onDigit(digit.first()) }
+                }
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            Spacer(modifier = Modifier.size(64.dp))
+            SignUpKeypadKey(label = "0") { onDigit('0') }
+            Box(
+                modifier = Modifier
+                    .size(64.dp)
+                    .clip(androidx.compose.foundation.shape.CircleShape)
+                    .background(Bubble)
+                    .border(1.dp, Hairline, androidx.compose.foundation.shape.CircleShape)
+                    .clickable { onBackspace() },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Backspace,
+                    contentDescription = "Delete",
+                    tint = TextWhite.copy(alpha = 0.7f),
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SignUpKeypadKey(label: String, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .size(64.dp)
+            .clip(androidx.compose.foundation.shape.CircleShape)
+            .background(Bubble)
+            .border(1.dp, Hairline, androidx.compose.foundation.shape.CircleShape)
+            .clickable { onClick() },
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            label,
+            color = TextWhite,
+            fontSize = 20.sp,
+            fontWeight = FontWeight.SemiBold
+        )
     }
 }
 

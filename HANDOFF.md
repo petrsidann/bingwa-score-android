@@ -1,5 +1,15 @@
 # HANDOFF — Live Session State
 
+## STEP 0 resume state (Stage 44 shipped; next = Stage 45 design pass)
+
+- **Current state**: Stage 44 shipped (stability + input truth).
+  - **COLD-PATH LAW**: Application.onCreate, BootReceiver and WatchdogWorker no longer start the engine directly; they enqueue the EngineStartWorker one-shot, which retries until an Activity is visible (`Result.retry`, not silent success). `EngineService` promotion order unchanged (Stage 38/41).
+  - **Login**: PIN cap 4 (5th press = inline "PIN is 4 digits"), phone cap 10 (11th = inline "Phone number is 10 digits"); focus routing + auto-jump kept; no system keyboard.
+  - **Signup**: Individual/Business toggle DELETED — one account type AGENT (`AuthConstants.ACCOUNT_TYPE_AGENT`); single "Your name or business name" field; PIN + Confirm PIN keypad-only (4-dot readouts, cap 4, inline mismatch); inline email reason; Create Account disabled with visible reason.
+  - **Splash**: retimed to the 1600ms device-law floor (`SPLASH_TOTAL = 1600`); hand-off only after choreography; Dim tagline ink #475569.
+  - **Tests**: `Stage44ColdPathBanTest`, `Stage44InputTruthTest`, `Stage44SplashGoldensTest` (0.4/0.9/1.5s × both themes); `Stage43SplashDurationTest` updated to the 1600ms floor / 2.0s budget contract.
+- **Next**: Stage 45 design pass — goldens × both themes × viewed; archive older HANDOFF blocks to docs/archive/.
+
 ## STEP 0 resume state (Stage 43 shipped; next = FEATURE FREEZE -> full phone walk -> owner tags v2.0.0)
 
 - **Current state**: Stage 43 shipped (aurora snap splash).
