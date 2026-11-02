@@ -74,6 +74,7 @@ import com.bingwascore.app.ui.components.StatusDot
 import com.bingwascore.app.ui.theme.AccentBlue
 import com.bingwascore.app.ui.theme.BgBlack
 import com.bingwascore.app.ui.theme.Hairline
+import com.bingwascore.app.ui.theme.BingwaType
 import com.bingwascore.app.ui.theme.StatusColors
 import com.bingwascore.app.ui.theme.StatusDoneGradient
 import com.bingwascore.app.ui.theme.StatusFailedGradient
@@ -361,7 +362,6 @@ fun HomeScreenContent(
                     language = state.greetingLanguage,
                     creditsLabel = state.creditsLabel,
                     onCreditsClick = onOpenMyPlan,
-                    isDark = state.themeMode == ThemeMode.DARK,
                     onThemeToggle = callbacks.onThemeToggle
                 )
             }
@@ -563,13 +563,13 @@ private fun CounterTile(
                 Text(
                     "$value",
                     color = TextWhite,
-                    fontSize = 21.sp,
+                    fontSize = BingwaType.Subhead,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1
                 )
             }
             Spacer(modifier = Modifier.height(1.dp))
-            Text(label, color = TextGrey, fontSize = 11.sp, maxLines = 1)
+            Text(label, color = TextGrey, fontSize = BingwaType.Caption, maxLines = 1)
         }
     }
 }
@@ -642,7 +642,7 @@ private fun MoneyRow(
                     MoneyLine(label = "Current balance", value = "Unavailable")
                     Text(
                         "run Diagnostics",
-                        color = AccentBlue, fontSize = 11.sp, fontWeight = FontWeight.SemiBold,
+                        color = AccentBlue, fontSize = BingwaType.Caption, fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.clickable(onClick = onOpenDiagnostics)
                     )
                 } else {
@@ -686,7 +686,7 @@ private fun MoneyLine(label: String, value: String, modifier: Modifier = Modifie
         Text(
             label,
             color = TextGrey,
-            fontSize = 12.sp,
+            fontSize = BingwaType.Caption,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f)
@@ -695,7 +695,7 @@ private fun MoneyLine(label: String, value: String, modifier: Modifier = Modifie
         Text(
             value,
             color = TextWhite,
-            fontSize = 15.sp,
+            fontSize = BingwaType.Body,
             fontWeight = FontWeight.Bold,
             maxLines = 1
         )

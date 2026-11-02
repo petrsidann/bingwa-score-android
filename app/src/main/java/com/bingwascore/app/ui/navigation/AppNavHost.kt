@@ -518,9 +518,12 @@ private fun BottomNavBar(
             .fillMaxWidth()
             // U1 — sheet open = pill dimmed; the one lit tab still reads.
             .graphicsLayer { alpha = if (dialerOpen) 0.55f else 1f }
-            .padding(horizontal = 12.dp)
+            // Stage 45 — Apple Music floating tab bar: side insets on the canvas
+            // plus a gap beneath the pill so it floats above the bottom edge
+            // instead of sitting pinned to it.
+            .padding(horizontal = 20.dp)
             .navigationBarsPadding()
-            .padding(bottom = 12.dp)
+            .padding(bottom = 20.dp)
             // Stage 18 — backdrop region matches the pill's visual bounds.
             .glassBackdropRegion(glassBackdrop, "pill", RoundedCornerShape(28.dp))
             .shadow(12.dp, RoundedCornerShape(28.dp))
