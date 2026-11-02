@@ -31,8 +31,11 @@ class EngineStartWorker(
         try {
             if (EngineService.isRunning) return@withContext Result.success()
             if (!AppForegroundGate.isForeground) {
-                Timber.d("Engine start still deferred — no visible Activity yet")
-                return@withContext Result.success()
+                // STAGE 44 — keep the one-shot alive until an Activity is
+                // visible; returning success here would silently drop the
+                // revival the watchdog / boot receiver / relaunch asked for.
+                Timber.d("Engine start deferred — no visible Activity yet, retrying")
+                return@withContext Result.retry()
             }
             // An Activity is visible, so a foreground-service start is legal.
             EngineService.start(applicationContext)

@@ -58,8 +58,13 @@ object Motion {
     /** Tagline begins once the last letter has landed. */
     const val SPLASH_TAGLINE_START: Int = 700
 
-    /** Splash: whole choreography before the next screen (ms) — <= 1.3s (Stage 43). */
-    const val SPLASH_TOTAL: Int = 1300
+    /**
+     * Splash: whole choreography before the next screen (ms).
+     * STAGE 44 — minimum visible 1600ms (device law: no flash-blank); the
+     * hand-off fires only after the choreography completes, so this constant
+     * is both the floor and the total.
+     */
+    const val SPLASH_TOTAL: Int = 1600
 
     /** Splash: wordmark → tagline step duration. */
     const val SPLASH_STEP: Int = 250

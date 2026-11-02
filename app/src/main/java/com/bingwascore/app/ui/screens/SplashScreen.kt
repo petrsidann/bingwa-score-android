@@ -94,14 +94,15 @@ internal val splashGlow: Brush
     )
 
 /**
- * Stage 43 — AURORA SNAP SPLASH:
+ * Stage 44 — AURORA SNAP SPLASH (retimed to the 1600ms device-law floor):
  *
- * 0.0-0.2s: aurora glow fades in (Obsidian: #0F172A canvas + #2563EB radial glow; Dim: #EAF0F6 canvas + pastel-blue glow)
- * 0.2-0.5s: 'B' monogram snaps in with spring overshoot + micro-ripple ring
- * 0.5-0.8s: monogram fills (white ink on Obsidian / #1E293B ink on Dim) + tagline "Your bundle business, automated." fades up
- * 0.8-1.3s: whole screen scales 1.0 -> 1.04 + cross-fades to next screen
+ * 0.0-0.25s: aurora glow fades in (Obsidian: #0F172A canvas + #2563EB radial glow; Dim: #EAF0F6 canvas + pastel-blue glow)
+ * 0.25-0.6s: 'B' monogram snaps in with spring overshoot + micro-ripple ring
+ * 0.6-1.0s: monogram fills (white ink on Obsidian / #1E293B ink on Dim) + tagline "Your bundle business, automated." fades up
+ * 1.0-1.6s: whole screen scales 1.0 -> 1.04 + cross-fades to next screen
  *
- * Total duration <= 1.3s ([Motion.SPLASH_TOTAL]).
+ * Minimum visible = total = 1600ms ([Motion.SPLASH_TOTAL]); the hand-off runs
+ * only after the choreography completes, so the splash can never flash-blank.
  */
 @Composable
 fun SplashScreen(target: String?, onFinish: (String) -> Unit) {
@@ -126,35 +127,35 @@ fun SplashScreenContent(
     val scope = rememberCoroutineScope()
 
     if (settled || progressMs != null) {
-        val ms = progressMs ?: 800
+        val ms = progressMs ?: 1000
         val isDark = !isPorcelain
 
-        // 0.0 - 0.2s: glow fades in 0 -> 1
-        val glowVal = (ms / 200f).coerceIn(0f, 1f)
+        // 0.0 - 0.25s: glow fades in 0 -> 1
+        val glowVal = (ms / 250f).coerceIn(0f, 1f)
 
-        // 0.2 - 0.5s: monogram snaps in with spring overshoot
+        // 0.25 - 0.6s: monogram snaps in with spring overshoot
         val (snapScaleVal, monogramAlphaVal) = when {
-            ms < 200 -> 0f to 0f
-            ms < 380 -> {
-                val f = (ms - 200) / 180f
+            ms < 250 -> 0f to 0f
+            ms < 430 -> {
+                val f = (ms - 250) / 180f
                 (0.3f + 0.78f * f) to 1f
             }
-            ms < 500 -> {
-                val f = (ms - 380) / 120f
+            ms < 600 -> {
+                val f = (ms - 430) / 170f
                 (1.08f - 0.08f * f) to 1f
             }
             else -> 1.0f to 1f
         }
 
-        // micro-ripple ring expands 0.2s - 0.5s
-        val rippleVal = if (ms < 200) 0f else ((ms - 200) / 300f).coerceIn(0f, 1f)
+        // micro-ripple ring expands 0.25s - 0.6s
+        val rippleVal = if (ms < 250) 0f else ((ms - 250) / 350f).coerceIn(0f, 1f)
 
-        // 0.5 - 0.8s: monogram fill & tagline fade up
-        val fillVal = if (ms < 500) 0f else ((ms - 500) / 300f).coerceIn(0f, 1f)
-        val taglineVal = if (ms < 500) 0f else ((ms - 500) / 300f).coerceIn(0f, 1f)
+        // 0.6 - 1.0s: monogram fill & tagline fade up
+        val fillVal = if (ms < 600) 0f else ((ms - 600) / 400f).coerceIn(0f, 1f)
+        val taglineVal = if (ms < 600) 0f else ((ms - 600) / 400f).coerceIn(0f, 1f)
 
-        // 0.8 - 1.3s: whole screen scales 1.0 -> 1.04 and cross-fades out
-        val exitT = if (ms < 800) 0f else ((ms - 800) / 500f).coerceIn(0f, 1f)
+        // 1.0 - 1.6s: whole screen scales 1.0 -> 1.04 and cross-fades out
+        val exitT = if (ms < 1000) 0f else ((ms - 1000) / 600f).coerceIn(0f, 1f)
         val screenScaleVal = 1.0f + 0.04f * exitT
         val screenAlphaVal = 1.0f - exitT
 
@@ -185,52 +186,53 @@ fun SplashScreenContent(
     var skipReady by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        // 0.0 - 0.2s: aurora glow fades in
+        // 0.0 - 0.25s: aurora glow fades in
         launch {
-            glow.animateTo(1f, tween(200, easing = LinearEasing))
+            glow.animateTo(1f, tween(250, easing = LinearEasing))
         }
 
-        // 0.2 - 0.5s: 'B' monogram snaps in with spring overshoot + micro-ripple ring
+        // 0.25 - 0.6s: 'B' monogram snaps in with spring overshoot + micro-ripple ring
         launch {
-            delay(200)
+            delay(250)
             launch {
                 monogramAlpha.animateTo(1f, tween(100))
             }
             launch {
                 snapScale.snapTo(0.3f)
                 snapScale.animateTo(1.08f, spring(dampingRatio = 0.45f, stiffness = 900f))
-                snapScale.animateTo(1f, tween(120, easing = FastOutSlowInEasing))
+                snapScale.animateTo(1f, tween(170, easing = FastOutSlowInEasing))
             }
             launch {
-                ripple.animateTo(1f, tween(300, easing = FastOutSlowInEasing))
+                ripple.animateTo(1f, tween(350, easing = FastOutSlowInEasing))
             }
         }
 
-        // 0.5 - 0.8s: monogram fills + tagline fades up
+        // 0.6 - 1.0s: monogram fills + tagline fades up
         launch {
-            delay(500)
+            delay(600)
             launch {
-                fillAlpha.animateTo(1f, tween(300, easing = FastOutSlowInEasing))
+                fillAlpha.animateTo(1f, tween(400, easing = FastOutSlowInEasing))
             }
             launch {
-                taglineAlpha.animateTo(1f, tween(300, easing = FastOutSlowInEasing))
+                taglineAlpha.animateTo(1f, tween(400, easing = FastOutSlowInEasing))
             }
         }
 
         launch {
-            delay(900)
+            delay(1100)
             skipReady = true
         }
 
-        // 0.8 - 1.3s: whole screen scales 1.0 -> 1.04 + cross-fades to next screen
-        delay(800)
+        // 1.0 - 1.6s: whole screen scales 1.0 -> 1.04 + cross-fades to next screen
+        // STAGE 44 — hand-off happens ONLY after this completes (1600ms floor).
+        delay(1000)
         launch {
-            exitShrink.animateTo(1f, tween(200))
+            exitShrink.animateTo(1f, tween(250))
         }
         launch {
-            screenScale.animateTo(1.04f, tween(500, easing = FastOutSlowInEasing))
+            screenScale.animateTo(1.04f, tween(600, easing = FastOutSlowInEasing))
         }
-        screenAlpha.animateTo(0f, tween(500, easing = FastOutSlowInEasing))
+        screenAlpha.animateTo(0f, tween(600, easing = FastOutSlowInEasing))
 
         var resolved = currentTarget
         while (resolved == null) {
@@ -347,7 +349,8 @@ private fun SplashStageSnap(
 
             Text(
                 text = SplashBrand.TAGLINE,
-                color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+                // STAGE 44 — Dim tagline ink #475569 (slate-600); Obsidian slate-400.
+                color = if (isDark) Color(0xFF94A3B8) else Color(0xFF475569),
                 fontSize = BingwaType.Footnote,
                 fontWeight = FontWeight.Medium,
                 modifier = Modifier

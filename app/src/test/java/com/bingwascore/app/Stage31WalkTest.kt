@@ -69,8 +69,9 @@ class Stage31WalkTest {
         setup.updateName("John Doe")
         setup.updatePhone("0712345678")
         setup.updateEmail("john@example.com")
-        setup.updatePin("1234")
-        setup.updateConfirmPin("1234")
+        // STAGE 44 — PINs are keypad-driven now.
+        "1234".forEach { setup.appendPinDigit(it) }
+        "1234".forEach { setup.appendConfirmPinDigit(it) }
         assertTrue("sign-up form is submittable", setup.state.value.isSubmittable)
         setup.submit()
         assertTrue("sign-up was accepted", setup.state.value.isLoading || setup.state.value.isSuccess)

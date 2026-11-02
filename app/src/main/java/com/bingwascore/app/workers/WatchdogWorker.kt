@@ -8,6 +8,7 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.bingwascore.app.services.EngineService
 import com.bingwascore.app.data.preferences.UserPreferences
+import com.bingwascore.app.workers.EngineStartWorker
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
@@ -42,8 +43,12 @@ class WatchdogWorker(
             val engineWanted = prefs.engineEnabled.first()
 
             if (engineWanted && !EngineService.isRunning) {
-                EngineService.start(applicationContext)
-                Timber.i("Watchdog: EngineService was down — restarted")
+                // STAGE 44 — COLD-PATH LAW. The watchdog runs in the background,
+                // so it must NEVER trigger a foreground-service start itself: it
+                // enqueues the one-shot, which promotes once an Activity is
+                // visible in an already-alive process.
+                EngineStartWorker.enqueue(applicationContext)
+                Timber.i("Watchdog: EngineService was down — revival enqueued")
             } else {
                 Timber.d("Watchdog: EngineService running=%s", EngineService.isRunning)
             }

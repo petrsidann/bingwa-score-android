@@ -161,6 +161,10 @@ class LoginViewModel @Inject constructor(
             _state.value = current.copy(
                 phone = current.phone + digit
             )
+        } else {
+            // STAGE 44 — INPUT TRUTH: an 11th press is an inline error, never a
+            // silent no-op and never an append.
+            _state.value = current.copy(errorMessage = "Phone number is 10 digits")
         }
     }
 
@@ -181,6 +185,10 @@ class LoginViewModel @Inject constructor(
             _state.value = current.copy(
                 pin = current.pin + digit
             )
+        } else {
+            // STAGE 44 — INPUT TRUTH: a 5th press is an inline error, never a
+            // silent no-op and never an append.
+            _state.value = current.copy(errorMessage = "PIN is 4 digits")
         }
     }
 
