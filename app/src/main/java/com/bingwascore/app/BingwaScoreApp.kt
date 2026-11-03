@@ -66,6 +66,13 @@ class BingwaScoreApp : Application() {
         runBlocking(Dispatchers.IO) { DbNameHolder.loadFrom(this@BingwaScoreApp) }
 
         CrashHandler.init(this)
+        // STAGE 45 — initialize crash circuit breaker state
+        // If there have been 2+ consecutive crashes, the engine must stay OFF
+        // on startup regardless of the engine_enabled preference.
+        if (CrashHandler.getConsecutiveCrashes() >= 2) {
+            Timber.d("Engine paused on startup — 2+ consecutive crashes detected")
+            userPreferences.setEngineEnabled(false)
+        }
         // STAGE 38 — background Activity tracking so no caller ever attempts a
         // foreground-service start that Android 12+ will refuse.
         AppForegroundGate.install(this)

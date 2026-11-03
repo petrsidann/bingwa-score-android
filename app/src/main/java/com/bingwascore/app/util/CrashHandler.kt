@@ -1,6 +1,7 @@
 package com.bingwascore.app.util
 
 import android.content.Context
+import android.content.SharedPreferences
 import android.os.Looper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
@@ -10,20 +11,33 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-/**
- * Global crash handler. Writes the stack trace plus a timestamp to
+/** Global crash handler. Writes the stack trace plus a timestamp to
  * getExternalFilesDir("crashes")/crash_<timestamp>.txt so the agent can pull the
  * file for debugging, then hands off to the previously-installed default handler
  * (which terminates the process). Every step is wrapped so the handler itself can
  * never crash the app a second time.
+ *
+ * STAGE 45 — crash circuit breaker: tracks consecutive crashes and pauses
+ * the engine after 2 consecutive crashes to prevent a death loop.
  */
 class CrashHandler(
     private val context: Context,
     private val defaultHandler: Thread.UncaughtExceptionHandler? = null
 ) : Thread.UncaughtExceptionHandler {
 
+    private val prefs: SharedPreferences
+        = context.getSharedPreferences("crash_circuit", Context.MODE_PRIVATE)
+
+    private val CONSECUTIVE_CRASHES_KEY = "consecutive_crashes"
+
+    // Current consecutive crash count (in-memory, persisted via prefs)
+    @Volatile
+    private var consecutiveCrashes: Int = prefs.getInt(CONSECUTIVE_CRASHES_KEY, 0)
+
     override fun uncaughtException(thread: Thread, throwable: Throwable) {
         writeCrashReport(thread, throwable)
+        // Increment consecutive crash counter on every uncaught exception
+        incrementConsecutiveCrashes()
         // Hand off to the system (or previous) handler so the process dies normally.
         defaultHandler?.uncaughtException(thread, throwable)
     }
@@ -68,11 +82,28 @@ class CrashHandler(
     fun recordViolation(throwable: Throwable?) {
         if (throwable == null) return
         writeCrashReport(Thread.currentThread(), throwable)
+        incrementConsecutiveCrashes()
     }
 
     /** Writes an ANR dump (main-thread stack) into the crash-report file. */
     fun writeAnrReport(throwable: Throwable) {
         writeCrashReport(Looper.getMainLooper().thread, throwable)
+        incrementConsecutiveCrashes()
+    }
+
+    /** Increments the consecutive crash counter and persists it. */
+    private fun incrementConsecutiveCrashes() {
+        consecutiveCrashes = (consecutiveCrashes + 1).coerceAtLeast(0)
+        prefs.edit().putInt(CONSECUTIVE_CRASHES_KEY, consecutiveCrashes).apply()
+    }
+
+    /** Returns the current consecutive crash count. */
+    fun getConsecutiveCrashes(): Int = consecutiveCrashes
+
+    /** Resets the consecutive crash counter to zero. Must be called on successful Home resume. */
+    fun resetConsecutiveCrashes() {
+        consecutiveCrashes = 0
+        prefs.edit().putInt(CONSECUTIVE_CRASHES_KEY, 0).apply()
     }
 
     companion object {
@@ -107,5 +138,5 @@ class CrashHandler(
             CrashHandler(context.applicationContext).writeAnrReport(
                 throwable ?: Throwable("ANR")
             )
-    }
+        }
 }

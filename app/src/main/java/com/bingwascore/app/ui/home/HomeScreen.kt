@@ -71,6 +71,7 @@ import com.bingwascore.app.domain.TransactionStatus
 import com.bingwascore.app.ui.components.BubbleCard
 import com.bingwascore.app.ui.components.DarkSnackbarHost
 import com.bingwascore.app.ui.components.StatusDot
+import com.bingwascore.app.util.CrashHandler
 import com.bingwascore.app.ui.theme.AccentBlue
 import com.bingwascore.app.ui.theme.BgBlack
 import com.bingwascore.app.ui.theme.Hairline
@@ -188,7 +189,17 @@ fun HomeScreen(
     val balanceError by viewModel.balanceError.collectAsStateWithLifecycle()
     val statsLoading by viewModel.statsLoading.collectAsStateWithLifecycle()
     val engineState by viewModel.engineState.collectAsStateWithLifecycle()
+    val consecutiveCrashes by CrashHandler.getConsecutiveCrashes().also { crashCount ->
+        // STAGE 45 — crash circuit banner: show amber banner when 2+ crashes
+        if (crashCount >= 2) {
+            // The banner will be shown below via a remember { ... } state
+        }
+    }
     val transactions by viewModel.allTransactions.collectAsStateWithLifecycle()
+
+    val onCrashBannerTap = { // STAGE 45 — from foreground, safely start engine
+        viewModel.startEngine()
+    }
 
     // POLISH P2 — greeting, credits and the two Home sheets.
     val greeting by viewModel.greeting.collectAsStateWithLifecycle()
@@ -280,7 +291,8 @@ fun HomeScreen(
         onThemeToggle = {
             val next = if (themeMode == ThemeMode.DARK) ThemeMode.PORCELAIN_DIM else ThemeMode.DARK
             scope.launch { prefs.setThemeMode(next) }
-        }
+        },
+        onCrashBannerTap = { viewModel.startEngine() }
     )
 
     HomeScreenContent(state = state, callbacks = callbacks, snackbarHostState = snackbarHostState)
@@ -328,7 +340,8 @@ fun HomeScreenContent(
     state: HomeScreenState,
     callbacks: HomeScreenCallbacks = HomeScreenCallbacks(),
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
-    haptics: Haptics = rememberHaptics()
+    haptics: Haptics = rememberHaptics(),
+    onCrashBannerTap: () -> Unit = {}
 ) {
     // The credits bubble is the door to My Plan: one tap, one destination.
     val onOpenMyPlan = callbacks.onOpenMyPlan
@@ -339,6 +352,13 @@ fun HomeScreenContent(
     // The rows used to read the wall clock each, so a 200-row feed did 200
     // clock reads (and 200 date formats) on every recomposition.
     val now = (System.currentTimeMillis() / CLOCK_BUCKET_MILLIS) * CLOCK_BUCKET_MILLIS
+
+    // STAGE 45 — crash circuit banner
+    val showCrashBanner = CrashHandler.getConsecutiveCrashes() >= 2
+    var tapToEnable by remember { mutableStateOf(false) }
+    if (showCrashBanner && !tapToEnable) {
+        // Battery optimisation check already asked; just show the banner
+    }
 
     // Stage 22 — capture only what the rows need.
     //
@@ -356,6 +376,39 @@ fun HomeScreenContent(
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
+            item {
+                // STAGE 45 — crash circuit banner
+                if (showCrashBanner) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp)
+                            .background(
+                                Color(0xFFFFC107), // Amber background
+                                shape = RoundedCornerShape(8.dp)
+                            )
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                            Text(
+                                text = "Engine paused after crashes - tap to enable",
+                                color = Color(0xFF1A1A1A), // Dark text on amber
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            TextButton(
+                                onClick = {
+                                    tapToEnable = true
+                                    onCrashBannerTap()
+                                }
+                            ) {
+                                Text("Enable", color = Color(0xFF1A1A1A), fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+            }
+
             item {
                 HomeTopBar(
                     bucket = state.greetingBucket,

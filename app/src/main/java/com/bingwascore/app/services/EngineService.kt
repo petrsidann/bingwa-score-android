@@ -300,8 +300,14 @@ class EngineService : Service() {
             val app = context.applicationContext
             appContext = app
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !AppForegroundGate.isForeground) {
-                Timber.d("EngineService start deferred — app is in the background on API 31+")
+            // STAGE 45 — foreground-only FGS law.
+            // If the app is not in the foreground, we cannot safely start a
+            // foreground service. Record the violation to CrashHandler and defer
+            // via WorkManager instead of promoting startForegroundService from
+            // a background process. This applies on all API levels.
+            if (!AppForegroundGate.isForeground) {
+                CrashHandler.record(app, IllegalStateException("EngineService start from background blocked"))
+                Timber.d("EngineService start blocked — app is in background, deferring")
                 runCatching { enqueueBackgroundStart(app) }
                     .onFailure { Timber.e(it, "Failed to defer the engine start") }
                 return

@@ -75,7 +75,16 @@ class SetupChecklistViewModel @Inject constructor(
     /** Enables the engine preference and boots the foreground keep-alive service. */
     fun startEngine() {
         viewModelScope.launch { userPreferences.setEngineEnabled(true) }
-        EngineService.start(context)
+        // STAGE 45 — foreground-only FGS law.
+        // Engine must only start from a foreground Activity. If called from
+        // background (e.g. onSetupComplete flowing to Home), defer via
+        // EngineStartWorker so the promotion happens when an Activity is visible.
+        if (!AppForegroundGate.isForeground) {
+            Timber.d("Engine start deferred from background — promoting via WorkManager")
+            EngineStartWorker.enqueue(context)
+        } else {
+            EngineService.start(context)
+        }
         refreshChecks()
     }
 
@@ -88,7 +97,13 @@ class SetupChecklistViewModel @Inject constructor(
         // The engine must actually be running when the agent lands on Home;
         // without this, "Finish setup" drops the user into an engine-less Home
         // and every relaunch lands them back on this checklist.
-        EngineService.start(context)
+        // STAGE 45 — foreground-only FGS law.
+        if (AppForegroundGate.isForeground) {
+            EngineService.start(context)
+        } else {
+            Timber.d("Engine start deferred from completeSetup — promoting via WorkManager")
+            EngineStartWorker.enqueue(context)
+        }
     }
 
     companion object {

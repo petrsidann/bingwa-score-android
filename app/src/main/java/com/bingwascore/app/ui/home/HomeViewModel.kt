@@ -397,6 +397,15 @@ class HomeViewModel @Inject constructor(
     fun toggleEngine() {
         viewModelScope.launch {
             val current = userPreferences.engineEnabled.first()
+            // STAGE 45 — crash circuit breaker: if 2+ consecutive crashes,
+            // engine must stay OFF regardless of preference until user taps enable.
+            if (CrashHandler.getConsecutiveCrashes() >= 2 && !current) {
+                Timber.d("Engine toggle blocked — 2+ consecutive crashes, engine already OFF")
+                return
+            }
+            if (CrashHandler.getConsecutiveCrashes() >= 2 && current) {
+                // User previously enabled engine despite crashes; allow toggle off
+            }
             userPreferences.setEngineEnabled(!current)
             if (!current) {
                 EngineService.start(context.applicationContext)
@@ -432,6 +441,12 @@ class HomeViewModel @Inject constructor(
     /** Start engine from STOPPED — starts service, marks RUNNING and drains the backlog. */
     fun startEngine() {
         viewModelScope.launch {
+            // STAGE 45 — crash circuit breaker: if 2+ consecutive crashes,
+            // engine must stay OFF and show banner in HomeScreen.
+            if (CrashHandler.getConsecutiveCrashes() >= 2) {
+                Timber.d("Engine start blocked — 2+ consecutive crashes, engine OFF")
+                return
+            }
             userPreferences.setEngineState(EngineState.RUNNING)
             EngineService.start(context.applicationContext)
             transactionPipeline.resumeFromPaused()

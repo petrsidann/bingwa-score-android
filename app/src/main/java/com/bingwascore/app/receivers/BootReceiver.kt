@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import com.bingwascore.app.data.preferences.UserPreferences
+import com.bingwascore.app.util.CrashHandler
 import com.bingwascore.app.workers.EngineStartWorker
 import com.bingwascore.app.workers.Schedulers
 import dagger.hilt.android.AndroidEntryPoint
@@ -40,7 +41,12 @@ class BootReceiver : BroadcastReceiver() {
             val pendingResult = goAsync()
             receiverScope.launch {
                 try {
-                    if (userPreferences.engineEnabled.first()) {
+                    // STAGE 45 — crash circuit breaker: on boot, if 2+ consecutive
+                    // crashes, the engine must stay OFF regardless of engine_enabled.
+                    val crashes = CrashHandler.getConsecutiveCrashes()
+                    if (crashes >= 2) {
+                        Timber.d("Boot blocked — 2+ consecutive crashes, engine stays OFF")
+                    } else if (userPreferences.engineEnabled.first()) {
                         // STAGE 44 — COLD-PATH LAW. A boot receiver must NEVER
                         // trigger a foreground-service start itself: the engine
                         // revives via a WorkManager one-shot that promotes once
