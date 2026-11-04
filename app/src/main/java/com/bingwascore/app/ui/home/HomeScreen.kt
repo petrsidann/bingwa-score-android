@@ -35,6 +35,7 @@ import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material3.Icon
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -189,12 +190,7 @@ fun HomeScreen(
     val balanceError by viewModel.balanceError.collectAsStateWithLifecycle()
     val statsLoading by viewModel.statsLoading.collectAsStateWithLifecycle()
     val engineState by viewModel.engineState.collectAsStateWithLifecycle()
-    val consecutiveCrashes by CrashHandler.getConsecutiveCrashes().also { crashCount ->
-        // STAGE 45 — crash circuit banner: show amber banner when 2+ crashes
-        if (crashCount >= 2) {
-            // The banner will be shown below via a remember { ... } state
-        }
-    }
+    val consecutiveCrashes = CrashHandler.getConsecutiveCrashes()
     val transactions by viewModel.allTransactions.collectAsStateWithLifecycle()
 
     val onCrashBannerTap = { // STAGE 45 — from foreground, safely start engine

@@ -10,7 +10,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bingwascore.app.data.preferences.UserPreferences
 import com.bingwascore.app.services.EngineService
+import com.bingwascore.app.util.AppForegroundGate
 import com.bingwascore.app.util.PowerUtils
+import com.bingwascore.app.util.Timber
+import com.bingwascore.app.workers.EngineStartWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow

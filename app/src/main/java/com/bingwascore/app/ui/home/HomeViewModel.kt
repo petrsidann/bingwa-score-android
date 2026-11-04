@@ -34,6 +34,7 @@ import kotlinx.coroutines.launch
 import java.util.Calendar
 import javax.inject.Inject
 import timber.log.Timber
+import com.bingwascore.app.util.CrashHandler
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
@@ -401,7 +402,7 @@ class HomeViewModel @Inject constructor(
             // engine must stay OFF regardless of preference until user taps enable.
             if (CrashHandler.getConsecutiveCrashes() >= 2 && !current) {
                 Timber.d("Engine toggle blocked — 2+ consecutive crashes, engine already OFF")
-                return
+                return@launch
             }
             if (CrashHandler.getConsecutiveCrashes() >= 2 && current) {
                 // User previously enabled engine despite crashes; allow toggle off
@@ -445,7 +446,7 @@ class HomeViewModel @Inject constructor(
             // engine must stay OFF and show banner in HomeScreen.
             if (CrashHandler.getConsecutiveCrashes() >= 2) {
                 Timber.d("Engine start blocked — 2+ consecutive crashes, engine OFF")
-                return
+                return@launch
             }
             userPreferences.setEngineState(EngineState.RUNNING)
             EngineService.start(context.applicationContext)

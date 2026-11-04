@@ -121,6 +121,9 @@ class CrashHandler(
             }
         }
 
+        /** Returns the current consecutive crash count. */
+        fun getConsecutiveCrashes(): Int = consecutiveCrashes
+
         /** Top-level entry point so settings can read the last report without constructing the handler. */
         fun readLatestCrashReport(context: Context): String? =
             CrashHandler(context).latestCrashReport()

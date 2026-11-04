@@ -71,7 +71,9 @@ class BingwaScoreApp : Application() {
         // on startup regardless of the engine_enabled preference.
         if (CrashHandler.getConsecutiveCrashes() >= 2) {
             Timber.d("Engine paused on startup — 2+ consecutive crashes detected")
-            userPreferences.setEngineEnabled(false)
+            applicationScope.launch(Dispatchers.IO) {
+                userPreferences.setEngineEnabled(false)
+            }
         }
         // STAGE 38 — background Activity tracking so no caller ever attempts a
         // foreground-service start that Android 12+ will refuse.
