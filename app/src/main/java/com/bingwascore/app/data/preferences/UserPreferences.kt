@@ -16,8 +16,15 @@ import com.bingwascore.app.domain.AppState
 import com.bingwascore.app.domain.ProcessingActivity
 import com.bingwascore.app.domain.ThemeMode
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -30,6 +37,7 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
 class UserPreferences @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private object Keys {
         val IS_LOGGED_IN = booleanPreferencesKey("is_logged_in")
         val USER_NAME = stringPreferencesKey("user_name")
@@ -153,7 +161,9 @@ class UserPreferences @Inject constructor(
         context.dataStore.data.map { it[Keys.ANNOUNCEMENTS_SEEDED] ?: false }
 
     /** Stage 33 — server URL override persisted in DataStore; blank = build-time default. */
-    val serverUrl: Flow<String> = context.dataStore.data.map { it[Keys.SERVER_URL] ?: "" }
+    val serverUrl: StateFlow<String> =
+        context.dataStore.data.map { it[Keys.SERVER_URL] ?: "" }
+            .stateIn(scope, SharingStarted.Eagerly, "")
 
     suspend fun setServerUrl(value: String) = edit { it[Keys.SERVER_URL] = value }
 
@@ -304,6 +314,6 @@ class UserPreferences @Inject constructor(
     }
 
     private suspend fun edit(block: (androidx.datastore.preferences.core.MutablePreferences) -> Unit) {
-        context.dataStore.edit { block(it) }
+        withContext(Dispatchers.IO) { context.dataStore.edit { block(it) } }
     }
 }

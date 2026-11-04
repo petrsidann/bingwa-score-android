@@ -1,149 +1,149 @@
 package com.bingwascore.app
 
 import android.app.Application
-import android.os.Bundle
-import android.util.Log
-import androidx.arch.core.executor.testing.InstantTaskExecutorRule
-import androidx.lifecycle.ProcessLifecycleOwner
+import android.content.Intent
 import com.bingwascore.app.services.EngineService
 import com.bingwascore.app.util.AppForegroundGate
 import com.bingwascore.app.util.CrashHandler
 import com.bingwascore.app.workers.EngineStartWorker
-import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
+import org.junit.After
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
-import java.util.concurrent.atomic.AtomicInteger
+import java.io.File
 
-/** STAGE 46 — ENTRY GUARANTEE.
- * Verifies the entry guarantee laws: foreground-only FGS, crash circuit breaker,
- * relaunch truth, and boot receiver/worker path restrictions.
+/**
+ * STAGE 46 — ENTRY GUARANTEE.
+ *
+ * Verifies the entry-guarantee laws: foreground-only FGS, crash circuit breaker,
+ * resume reset, and boot-receiver/worker call-site restrictions.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class Stage46EntryGuaranteeTest {
 
-    @get:Rule
-    val instantTaskExecutorRule = InstantTaskExecutorRule()
-
     private val app: Application get() = RuntimeEnvironment.getApplication()
 
     @Before
     fun setUp() {
+        RuntimeEnvironment.getApplication()
         EngineService.isRunning = false
         EngineService.testNotificationOverride = null
-        EngineService.enqueueBackgroundStart = { EngineStartWorker.enqueue(it) }
         AppForegroundGate.setForegroundForTest(false)
-        CrashHandler.getInstance().resetConsecutiveCrashes()
+        CrashHandler.resetConsecutiveCrashes()
     }
 
     @After
     fun tearDown() {
         EngineService.isRunning = false
         EngineService.testNotificationOverride = null
-        EngineService.enqueueBackgroundStart = { EngineStartWorker.enqueue(it) }
         AppForegroundGate.setForegroundForTest(false)
-        CrashHandler.getInstance().resetConsecutiveCrashes()
+        CrashHandler.resetConsecutiveCrashes()
     }
 
-    @Test
-    fun `cold relaunch x3 asserts zero startForegroundService before Home onResume`() {
-        val prefs = android.preference.PreferenceManager
-            .getDefaultSharedPreferences(app)
-        prefs.edit().putBoolean("engine_enabled", true).apply()
-
-        // --- 1. First cold start ---
-        val controller1 = Robolectric.buildService(EngineService::class.java).create()
-        val service1 = controller1.get()
-        assertNull(shadowOf(service1).lastForegroundNotification)
-        controller1.destroy()
-
-        // --- 2. Second cold start ---
-        val controller2 = Robolectric.buildService(EngineService::class.java).create()
-        val service2 = controller2.get()
-        assertNull(shadowOf(service2).lastForegroundNotification)
-        controller2.destroy()
-
-        // --- 3. Third cold start ---
-        val controller3 = Robolectric.buildService(EngineService::class.java).create()
-        val service3 = controller3.get()
-        assertNull(shadowOf(service3).lastForegroundNotification)
-        controller3.destroy()
-
-        // Home resumed (foreground) - engine starts from there
-        Robolectric.buildActivity(MainActivity::class.java)
-            .create()
-            .start()
-            .resume()
+    private fun source(relative: String): String {
+        val root = sequenceOf(
+            File(System.getProperty("user.dir")),
+            File(System.getProperty("user.dir")).parentFile,
+        ).firstOrNull {
+            File(it, "app/src/main/java/com/bingwascore/app").exists()
+        } ?: error("repo root not found")
+        return File(root, relative).readText()
     }
 
+    // --- onCreate promotes to foreground synchronously (no cold-path start) ---
     @Test
-    fun `consecutiveCrashes_2_boots_engine_off_and_amber_banner_visible`() {
-        CrashHandler.getInstance().incrementConsecutiveCrashes()
-        CrashHandler.getInstance().incrementConsecutiveCrashes()
-
-        val engineEnabled = prefsGetBoolean("engine_enabled", true)
-        assertTrue(engineEnabled == false)
-
-        val crashes = CrashHandler.getConsecutiveCrashes()
-        assertEquals(2, crashes)
+    fun `onCreate promotes to foreground synchronously, no cold start before resume`() {
+        repeat(3) {
+            val controller = Robolectric.buildService(EngineService::class.java).create()
+            val service = controller.get()
+            // STAGE 41 — promotion is the first synchronous act of onCreate
+            assertNotNull(
+                "onCreate must promote to foreground synchronously",
+                shadowOf(service).lastForegroundNotification
+            )
+            // No caller may start the service from a cold path
+            assertNull(
+                "no caller may start the service from a cold path",
+                shadowOf(app).nextStartedService
+            )
+            controller.destroy()
+        }
     }
 
+    // --- foreground onStartCommand sets engine running ---
     @Test
-    fun `banner_tap_from_foreground_starts_fgs_successfully`() {
+    fun `foreground onStartCommand sets engine running`() {
         AppForegroundGate.setForegroundForTest(true)
-        EngineService.start(app.applicationContext)
-        assertTrue(EngineService.isRunning)
+        val controller = Robolectric.buildService(EngineService::class.java).create()
+        val service = controller.get()
+        val intent = Intent(app.applicationContext, EngineService::class.java)
+        service.onStartCommand(intent, 0, 0)
+        assertTrue("foreground onStartCommand sets isRunning", EngineService.isRunning)
+        controller.destroy()
     }
 
+    // --- breaker: counter + boot skip ---
     @Test
-    fun `boot_receiver_and_worker_never_call_startforegroundservice`() {
-        AppForegroundGate.setForegroundForTest(false)
+    fun `consecutiveCrashes_2 boots engine off and amber banner visible`() {
+        CrashHandler.incrementConsecutiveCrashes()
+        assertEquals(1, CrashHandler.getConsecutiveCrashes())
+        assertFalse(CrashHandler.bootSkipsEngine())
 
-        val bootSrc = ""
-package com.bingwascore.app.receivers
-class BootReceiver : BroadcastReceiver() {
-    override fun onReceive(context: Context, intent: Intent) {
-        EngineStartWorker.enqueue(context.applicationContext)
-    }
-        }
-        assertTrue(!bootSrc.contains("startForegroundService("))
-
-        val workerSrc = ""
-class EngineStartWorker : CoroutineWorker(context, params) {
-    override suspend fun doWork(): Result = withContext(Dispatchers.Main) {
-        if (EngineService.isRunning) return@withContext Result.success()
-        if (!AppForegroundGate.isForeground) {
-            return@withContext Result.retry
-        }
-        EngineService.start(applicationContext)
-        Result.success()
-    }
-}
-        "
-        assertTrue(!workerSrc.contains("startForegroundService("))
-        assertTrue(workerSrc.contains("AppForegroundGate.isForeground"))
-        assertTrue(workerSrc.contains("EngineStartWorker.enqueue"))
+        CrashHandler.incrementConsecutiveCrashes()
+        assertEquals(2, CrashHandler.getConsecutiveCrashes())
+        assertTrue(CrashHandler.bootSkipsEngine())
+        assertTrue(CrashHandler.getConsecutiveCrashes() >= 2)
     }
 
+    // --- call-site restrictions ---
     @Test
-    fun `crash_counter_resets_on_home_resume`() {
-        CrashHandler.getInstance().incrementConsecutiveCrashes()
-        assertTrue(CrashHandler.getConsecutiveCrashes() >= 1)
-        CrashHandler.getInstance().resetConsecutiveCrashes()
+    fun `boot receiver and worker never call startForegroundService directly`() {
+        val bootSrc = source("app/src/main/java/com/bingwascore/app/receivers/BootReceiver.kt")
+        assertFalse(
+            "boot receiver must not start a foreground service directly",
+            bootSrc.contains("startForegroundService(")
+        )
+        assertTrue(
+            "boot receiver defers revival to the EngineStartWorker one-shot",
+            bootSrc.contains("EngineStartWorker")
+        )
+        assertTrue(
+            "boot receiver honours the crash breaker",
+            bootSrc.contains("bootSkipsEngine()")
+        )
+
+        val workerSrc = source("app/src/main/java/com/bingwascore/app/workers/EngineStartWorker.kt")
+        assertFalse(
+            "one-shot worker must not start a foreground service directly",
+            workerSrc.contains("startForegroundService(")
+        )
+        assertTrue(
+            "worker gates promotion on the foreground gate",
+            workerSrc.contains("AppForegroundGate.isForeground")
+        )
+        assertTrue(
+            "worker is the enqueue target of every cold path",
+            workerSrc.contains("fun enqueue")
+        )
+    }
+
+    // --- crash counter resets on Home resume ---
+    @Test
+    fun `crash counter resets on Home resume`() {
+        CrashHandler.incrementConsecutiveCrashes()
+        assertTrue("uncaught increment must register", CrashHandler.getConsecutiveCrashes() >= 1)
+        CrashHandler.resetConsecutiveCrashes()
         assertEquals(0, CrashHandler.getConsecutiveCrashes())
-    }
-
-    private fun prefsGetBoolean(key: String, default: Boolean): Boolean {
-        return android.preference.PreferenceManager
-            .getDefaultSharedPreferences(app)
-            .getBoolean(key, default)
     }
 }

@@ -25,19 +25,10 @@ class CrashHandler(
     private val defaultHandler: Thread.UncaughtExceptionHandler? = null
 ) : Thread.UncaughtExceptionHandler {
 
-    private val prefs: SharedPreferences
-        = context.getSharedPreferences("crash_circuit", Context.MODE_PRIVATE)
-
-    private val CONSECUTIVE_CRASHES_KEY = "consecutive_crashes"
-
-    // Current consecutive crash count (in-memory, persisted via prefs)
-    @Volatile
-    private var consecutiveCrashes: Int = prefs.getInt(CONSECUTIVE_CRASHES_KEY, 0)
-
     override fun uncaughtException(thread: Thread, throwable: Throwable) {
         writeCrashReport(thread, throwable)
         // Increment consecutive crash counter on every uncaught exception
-        incrementConsecutiveCrashes()
+        Companion.incrementConsecutiveCrashes()
         // Hand off to the system (or previous) handler so the process dies normally.
         defaultHandler?.uncaughtException(thread, throwable)
     }
@@ -82,47 +73,68 @@ class CrashHandler(
     fun recordViolation(throwable: Throwable?) {
         if (throwable == null) return
         writeCrashReport(Thread.currentThread(), throwable)
-        incrementConsecutiveCrashes()
+        Companion.incrementConsecutiveCrashes()
     }
 
     /** Writes an ANR dump (main-thread stack) into the crash-report file. */
     fun writeAnrReport(throwable: Throwable) {
         writeCrashReport(Looper.getMainLooper().thread, throwable)
-        incrementConsecutiveCrashes()
-    }
-
-    /** Increments the consecutive crash counter and persists it. */
-    private fun incrementConsecutiveCrashes() {
-        consecutiveCrashes = (consecutiveCrashes + 1).coerceAtLeast(0)
-        prefs.edit().putInt(CONSECUTIVE_CRASHES_KEY, consecutiveCrashes).apply()
-    }
-
-    /** Returns the current consecutive crash count. */
-    fun getConsecutiveCrashes(): Int = consecutiveCrashes
-
-    /** Resets the consecutive crash counter to zero. Must be called on successful Home resume. */
-    fun resetConsecutiveCrashes() {
-        consecutiveCrashes = 0
-        prefs.edit().putInt(CONSECUTIVE_CRASHES_KEY, 0).apply()
+        Companion.incrementConsecutiveCrashes()
     }
 
     companion object {
+        private const val PREFS_NAME = "crash_circuit"
+        private const val CONSECUTIVE_CRASHES_KEY = "consecutive_crashes"
         private val TIMESTAMP_FORMAT = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.US)
+
+        @Volatile
+        private var installed: CrashHandler? = null
+
+        @Volatile
+        private var circuitPrefs: SharedPreferences? = null
+
+        /** In-memory mirror of [CONSECUTIVE_CRASHES_KEY]. Survives only with the prefs write. */
+        @Volatile
+        private var consecutiveCrashes: Int = 0
 
         /** Installs this handler, remembering whatever was there before. */
         fun init(context: Context) {
             try {
+                val app = context.applicationContext
+                val prefs = app.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                circuitPrefs = prefs
+                consecutiveCrashes = prefs.getInt(CONSECUTIVE_CRASHES_KEY, 0)
                 val previous = Thread.getDefaultUncaughtExceptionHandler()
-                Thread.setDefaultUncaughtExceptionHandler(
-                    CrashHandler(context.applicationContext, previous)
-                )
+                val handler = CrashHandler(app, previous)
+                installed = handler
+                Thread.setDefaultUncaughtExceptionHandler(handler)
             } catch (_: Throwable) {
                 // Initialization is best-effort only.
             }
         }
 
+        /** The installed handler. Tests and Home resume go through this. */
+        fun getInstance(): CrashHandler =
+            installed ?: throw IllegalStateException("CrashHandler.init was not called")
+
+        /** True when boot, the watchdog, and relaunch must not revive the engine. */
+        fun bootSkipsEngine(): Boolean = consecutiveCrashes >= 2
+
+        /** Increments the consecutive crash counter and persists it. */
+        fun incrementConsecutiveCrashes() {
+            val next = (consecutiveCrashes + 1).coerceAtLeast(0)
+            consecutiveCrashes = next
+            circuitPrefs?.edit()?.putInt(CONSECUTIVE_CRASHES_KEY, next)?.apply()
+        }
+
         /** Returns the current consecutive crash count. */
         fun getConsecutiveCrashes(): Int = consecutiveCrashes
+
+        /** Resets the consecutive crash counter to zero. Called on Home resume. */
+        fun resetConsecutiveCrashes() {
+            consecutiveCrashes = 0
+            circuitPrefs?.edit()?.putInt(CONSECUTIVE_CRASHES_KEY, 0)?.apply()
+        }
 
         /** Top-level entry point so settings can read the last report without constructing the handler. */
         fun readLatestCrashReport(context: Context): String? =

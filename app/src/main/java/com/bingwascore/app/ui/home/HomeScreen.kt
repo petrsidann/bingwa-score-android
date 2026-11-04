@@ -153,7 +153,8 @@ data class HomeScreenCallbacks(
     val onOpenDiagnostics: () -> Unit = {},
     val onOpenAutopilotSheet: () -> Unit = {},
     val onAutopilotPause: () -> Unit = {},
-    val onThemeToggle: () -> Unit = {}
+    val onThemeToggle: () -> Unit = {},
+    val onCrashBannerTap: () -> Unit = {}
 )
 
 /**
@@ -190,12 +191,7 @@ fun HomeScreen(
     val balanceError by viewModel.balanceError.collectAsStateWithLifecycle()
     val statsLoading by viewModel.statsLoading.collectAsStateWithLifecycle()
     val engineState by viewModel.engineState.collectAsStateWithLifecycle()
-    val consecutiveCrashes = CrashHandler.getConsecutiveCrashes()
     val transactions by viewModel.allTransactions.collectAsStateWithLifecycle()
-
-    val onCrashBannerTap = { // STAGE 45 — from foreground, safely start engine
-        viewModel.startEngine()
-    }
 
     // POLISH P2 — greeting, credits and the two Home sheets.
     val greeting by viewModel.greeting.collectAsStateWithLifecycle()
@@ -291,7 +287,12 @@ fun HomeScreen(
         onCrashBannerTap = { viewModel.startEngine() }
     )
 
-    HomeScreenContent(state = state, callbacks = callbacks, snackbarHostState = snackbarHostState)
+    HomeScreenContent(
+        state = state,
+        callbacks = callbacks,
+        snackbarHostState = snackbarHostState,
+        onCrashBannerTap = callbacks.onCrashBannerTap
+    )
 
     // The two Home surfaces that need a live platform context stay in the
     // wrapper: the diagnostics dialog reads the device, the sheet drives the
@@ -349,8 +350,9 @@ fun HomeScreenContent(
     // clock reads (and 200 date formats) on every recomposition.
     val now = (System.currentTimeMillis() / CLOCK_BUCKET_MILLIS) * CLOCK_BUCKET_MILLIS
 
-    // STAGE 45 — crash circuit banner
-    val showCrashBanner = CrashHandler.getConsecutiveCrashes() >= 2
+    // STAGE 46 — latch the breaker at first composition. Home resume zeros the
+    // counter immediately after, and the banner must stay up until the agent taps.
+    val showCrashBanner = remember { CrashHandler.getConsecutiveCrashes() >= 2 }
     var tapToEnable by remember { mutableStateOf(false) }
     if (showCrashBanner && !tapToEnable) {
         // Battery optimisation check already asked; just show the banner

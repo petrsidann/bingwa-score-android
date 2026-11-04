@@ -66,15 +66,6 @@ class BingwaScoreApp : Application() {
         runBlocking(Dispatchers.IO) { DbNameHolder.loadFrom(this@BingwaScoreApp) }
 
         CrashHandler.init(this)
-        // STAGE 45 — initialize crash circuit breaker state
-        // If there have been 2+ consecutive crashes, the engine must stay OFF
-        // on startup regardless of the engine_enabled preference.
-        if (CrashHandler.getConsecutiveCrashes() >= 2) {
-            Timber.d("Engine paused on startup — 2+ consecutive crashes detected")
-            applicationScope.launch(Dispatchers.IO) {
-                userPreferences.setEngineEnabled(false)
-            }
-        }
         // STAGE 38 — background Activity tracking so no caller ever attempts a
         // foreground-service start that Android 12+ will refuse.
         AppForegroundGate.install(this)
@@ -110,7 +101,12 @@ class BingwaScoreApp : Application() {
             // running in this already-alive process, which promotes the moment
             // an Activity is visible (or the Start Earning foreground path).
             try {
-                if (userPreferences.engineEnabled.first()) {
+                // STAGE 46 — same coroutine as the preference read, so a 2-crash
+                // boot cannot enqueue the engine before setEngineEnabled(false) lands.
+                if (CrashHandler.bootSkipsEngine()) {
+                    Timber.w("Engine boot skipped — 2+ consecutive crashes")
+                    userPreferences.setEngineEnabled(false)
+                } else if (userPreferences.engineEnabled.first()) {
                     EngineStartWorker.enqueue(this@BingwaScoreApp)
                     Timber.i("Engine revival deferred to EngineStartWorker one-shot")
                 }

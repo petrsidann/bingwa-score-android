@@ -302,7 +302,12 @@ class HomeViewModel @Inject constructor(
      * been selling bundles in another app (or on another screen) and the figure
      * on the money row must be the one that is true *now*.
      */
-    fun onForeground() = refreshBalance(silent = true)
+    fun onForeground() {
+        // STAGE 46 — reaching Home alive clears the crash breaker. The amber
+        // banner is latched for this composition, so it stays until the tap.
+        CrashHandler.resetConsecutiveCrashes()
+        refreshBalance(silent = true)
+    }
 
     /** SHOWCASE S2 — simulated *144#: a short pause, then a random-walk balance. */
     private fun simulatedBalanceRefresh() {
@@ -442,12 +447,10 @@ class HomeViewModel @Inject constructor(
     /** Start engine from STOPPED — starts service, marks RUNNING and drains the backlog. */
     fun startEngine() {
         viewModelScope.launch {
-            // STAGE 45 — crash circuit breaker: if 2+ consecutive crashes,
-            // engine must stay OFF and show banner in HomeScreen.
-            if (CrashHandler.getConsecutiveCrashes() >= 2) {
-                Timber.d("Engine start blocked — 2+ consecutive crashes, engine OFF")
-                return@launch
-            }
+            // STAGE 46 — explicit foreground start (banner tap or autopilot).
+            // EngineService.start itself refuses a background process.
+            CrashHandler.resetConsecutiveCrashes()
+            userPreferences.setEngineEnabled(true)
             userPreferences.setEngineState(EngineState.RUNNING)
             EngineService.start(context.applicationContext)
             transactionPipeline.resumeFromPaused()

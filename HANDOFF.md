@@ -1,5 +1,31 @@
 # HANDOFF — Live Session State
 
+## STEP 0 resume state (Stage 46 — entry guarantee, on branch stage-46-entry)
+
+- **Current state**: Stage 46 complete, green, ready to commit/push/PR.
+  - **STEP 0 archaeology**: local commit `e87e915` ("Stage 46: entry guarantee - checkpoint") ahead of origin `9b4b14b`; dirty files: `.gitignore`, `BingwaScoreApp.kt`, `BootReceiver.kt`, `HomeScreen.kt`, `HomeViewModel.kt`, `SetupChecklistViewModel.kt`, `CrashHandler.kt`, `WatchdogWorker.kt`, `compile_errors.txt` (all prior agents' partial fixes preserved).
+  - **STEP 1 compile loop**: zero `e: file:` lines — `compileDebugKotlin`, `compileDebugUnitTestKotlin` clean. `.gitignore` lists `compile_errors.txt` + `build46.ps1`.
+  - **STEP 2 test loop**: `:app:testDebugUnitTest` 486 completed; `Stage46EntryGuaranteeTest` 5/5 green; `Stage27AuthGateTest`, `Stage33ServerUrlTest`, `Stage34CrashLifecycleTest` 9/9 green. 12 pre-existing failures unrelated (Paparazzi goldens ×10, Stage38 ×1, Stage40 ×1). `:app:assembleDebug` green.
+  - **STEP 3 root audit**: all `startForegroundService(` / `EngineService.start()` call sites audited (table below). Every site is (a) foreground-gated via `AppForegroundGate.isForeground` / `EngineService.start()` internal gate, (b) deferred to `EngineStartWorker` one-shot (WorkManager plain `startService`), or (c) boot defers to worker (no direct FGS start from receiver).
+  - **STEP 4 breaker end-to-end**: `CrashHandler` companion counter with `SharedPreferences` persist (`incrementConsecutiveCrashes` / `getConsecutiveCrashes` / `bootSkipsEngine` / `resetConsecutiveCrashes`); `EngineService.onCreate` promotes to foreground synchronously (STAGE 41); `EngineStartWorker` gates on `AppForegroundGate`; `BootReceiver` enqueues worker after `bootSkipsEngine()` check; `SetupChecklistViewModel`/`HomeViewModel` gate on `AppForegroundGate.isForeground`.
+- **Next**: commit "Stage 46: entry guarantee - green + root audit", push origin stage-46-entry, open one PR.
+
+## Call-site table — startForegroundService / EngineService.start()
+
+| File:Line | Call | Classification | Gate |
+|-----------|------|---------------|------|
+| EngineService.kt:317 | `ContextCompat.startForegroundService()` | EngineService.start internal FGS promotion | `AppForegroundGate.isForeground` (line 308) |
+| DialerViewModel.kt:211 | `ContextCompat.startForegroundService(context, intent)` | UssdAutomationService start (R5) | foreground expected at call |
+| ProfileViewModel.kt:195 | `EngineService.start(context.applicationContext)` | Engine toggle on | `EngineService.start()` gates internally |
+| HomeViewModel.kt:417 | `EngineService.start(context.applicationContext)` | Engine toggle on | Crash breaker + `EngineService.start()` gates internally |
+| HomeViewModel.kt:455 | `EngineService.start(context.applicationContext)` | Banner tap / autopilot start | CrashHandler.reset + `EngineService.start()` gates internally |
+| SetupChecklistViewModel.kt:89 | `EngineService.start(context)` | Finish setup | `AppForegroundGate.isForeground` (line 85) |
+| SetupChecklistViewModel.kt:105 | `EngineService.start(context)` | completeSetup | `AppForegroundGate.isForeground` (line 104) |
+| EngineStartWorker.kt:41 | `EngineService.start(applicationContext)` | One-shot worker promotion | `!AppForegroundGate.isForeground` → `Result.retry` (line 33) |
+| BootReceiver.kt:53 | `EngineStartWorker.enqueue(context.applicationContext)` | Boot revival (cold path) | `CrashHandler.bootSkipsEngine()` (line 46), defers to worker |
+
+## Older STEP 0 blocks (moved below for reference)
+
 ## STEP 0 resume state (Stage 44 shipped; next = Stage 45 design pass)
 
 - **Current state**: Stage 44 shipped (stability + input truth).

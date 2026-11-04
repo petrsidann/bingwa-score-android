@@ -50,3 +50,7 @@ freebuff_jdk.json
 
 .idea/
 config.yaml
+
+# Stage 46 local build logs and the owner compile script
+compile_errors.txt
+build46.ps1

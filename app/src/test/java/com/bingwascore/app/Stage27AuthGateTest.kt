@@ -46,7 +46,7 @@ class Stage27AuthGateTest {
     @Test
     fun `pin setup screen supports full identity onboarding`() {
         val pinSetupSrc = source("app/src/main/java/com/bingwascore/app/ui/auth/PinSetupScreen.kt")
-        assertTrue("PinSetupScreen has account type toggle", pinSetupSrc.contains("Account Type"))
+        assertTrue("PinSetupScreen has name field covering both account types", pinSetupSrc.contains("Your name or business name"))
         assertTrue("PinSetupScreen supports Business toggle option", pinSetupSrc.contains("Business"))
         assertTrue("PinSetupScreen asks for email", pinSetupSrc.contains("Email Address"))
         assertTrue("PinSetupScreen uses vertical scroll for keyboard aware scrolling", pinSetupSrc.contains("verticalScroll"))

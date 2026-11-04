@@ -7,6 +7,7 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.bingwascore.app.services.EngineService
+import com.bingwascore.app.util.CrashHandler
 import com.bingwascore.app.data.preferences.UserPreferences
 import com.bingwascore.app.workers.EngineStartWorker
 import dagger.hilt.EntryPoint
@@ -42,7 +43,7 @@ class WatchdogWorker(
             ).prefs()
             val engineWanted = prefs.engineEnabled.first()
 
-            if (engineWanted && !EngineService.isRunning) {
+            if (engineWanted && !EngineService.isRunning && !CrashHandler.bootSkipsEngine()) {
                 // STAGE 44 — COLD-PATH LAW. The watchdog runs in the background,
                 // so it must NEVER trigger a foreground-service start itself: it
                 // enqueues the one-shot, which promotes once an Activity is

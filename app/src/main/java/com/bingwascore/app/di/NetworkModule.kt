@@ -6,8 +6,6 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
 import javax.inject.Named
 import javax.inject.Singleton
 
@@ -19,7 +17,7 @@ object NetworkModule {
     @Singleton
     @Named("BASE_URL")
     fun provideBaseUrl(userPreferences: UserPreferences): String {
-        return runBlocking { userPreferences.serverUrl.first() }
+        return userPreferences.serverUrl.value
             .takeIf { it.isNotBlank() } ?: BuildConfig.BASE_URL
     }
 }
