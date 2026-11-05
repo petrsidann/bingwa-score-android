@@ -2,6 +2,7 @@ package com.bingwascore.app.ui.theme
 
 import androidx.compose.ui.graphics.Color as ComposeColor
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 
 /**
@@ -100,5 +101,18 @@ object DesignTokens {
     object Glass {
         val BlurRadius: Dp = 24.dp
         const val TintAlpha: Float = 0.7f
+    }
+
+    // ─── Typography (delegates to the BingwaType ramp; no literal sizes) ──────
+
+    object Typography {
+        /** Hero balance / display numerals. */
+        val Display: TextUnit get() = BingwaType.Display
+        /** Section and card titles. */
+        val Subhead: TextUnit get() = BingwaType.Subhead
+        /** Body copy. */
+        val Body: TextUnit get() = BingwaType.Body
+        /** Metadata, labels, captions. */
+        val Caption: TextUnit get() = BingwaType.Caption
     }
 }

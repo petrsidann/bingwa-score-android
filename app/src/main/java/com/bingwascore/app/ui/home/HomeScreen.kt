@@ -7,11 +7,15 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,12 +30,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material.icons.rounded.VisibilityOff
+import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
@@ -49,13 +55,21 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
@@ -68,22 +82,12 @@ import com.bingwascore.app.data.local.Transaction
 import com.bingwascore.app.domain.EngineState
 import com.bingwascore.app.domain.ThemeMode
 import com.bingwascore.app.domain.TransactionStatus
-import com.bingwascore.app.ui.components.BubbleCard
 import com.bingwascore.app.ui.components.DarkSnackbarHost
+import com.bingwascore.app.ui.components.GlassCard
+import com.bingwascore.app.ui.components.NeoButton
 import com.bingwascore.app.ui.components.StatusDot
+import com.bingwascore.app.ui.theme.DesignTokens
 import com.bingwascore.app.util.CrashHandler
-import com.bingwascore.app.ui.theme.AccentBlue
-import com.bingwascore.app.ui.theme.BgBlack
-import com.bingwascore.app.ui.theme.Hairline
-import com.bingwascore.app.ui.theme.BingwaType
-import com.bingwascore.app.ui.theme.StatusColors
-import com.bingwascore.app.ui.theme.StatusDoneGradient
-import com.bingwascore.app.ui.theme.StatusFailedGradient
-import com.bingwascore.app.ui.theme.StatusQueuedGradient
-import com.bingwascore.app.ui.theme.TextDim
-import com.bingwascore.app.ui.theme.TextGrey
-import com.bingwascore.app.ui.theme.TextWhite
-import com.bingwascore.app.ui.theme.statusWash
 import com.bingwascore.app.util.Haptics
 import com.bingwascore.app.util.formatCustomerName
 import com.bingwascore.app.util.rememberHaptics
@@ -159,10 +163,10 @@ data class HomeScreenCallbacks(
 /**
  * REBRAND R2 — Home, rebuilt as a trading terminal.
  *
- * Reading order is deliberate and flat: three counters you can drill into, one
- * live commission chart, one money row (airtime spent / balance, masked until you
- * ask), then the FULL transaction list down to the oldest row. No hero image, no
- * rings, no confetti — the numbers are the interface.
+ * Reading order is deliberate and flat: hero money glass card, three neumorphic
+ * stat cards, one live commission chart in glass, then the FULL transaction list
+ * down to the oldest row. Every surface binds to [DesignTokens] only — zero
+ * hardcoded hex, dp, shadow or typography literals.
  */
 @Composable
 fun HomeScreen(
@@ -173,7 +177,7 @@ fun HomeScreen(
 ) {
     // STAGE 19.7 — the wrapper owns every platform binding: the ViewModel, the
     // Activity context, the lifecycle and the permission launcher. The content
-    // below sees plain state and plain callbacks.
+    // below sees plain state and plain callbacks. ViewModel logic is untouched.
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val haptics = rememberHaptics()
@@ -364,7 +368,11 @@ fun HomeScreenContent(
     // the lambda captures now — and a row skips when it does not change.
     val engineState = state.engineState
 
-    Box(modifier = Modifier.fillMaxSize().background(BgBlack)) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(DesignTokens.Color.Bg)
+    ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             // POLISH P2 — tighter everywhere: the old 14dp rhythm plus 30sp
@@ -380,15 +388,20 @@ fun HomeScreenContent(
                             .fillMaxWidth()
                             .padding(vertical = 8.dp)
                             .background(
-                                Color(0xFFFFC107), // Amber background
-                                shape = RoundedCornerShape(8.dp)
+                                DesignTokens.Color.Brand.Primary.copy(alpha = 0.10f),
+                                shape = RoundedCornerShape(DesignTokens.Shape.RadiusMd)
+                            )
+                            .border(
+                                1.dp,
+                                DesignTokens.Color.Brand.Primary.copy(alpha = 0.30f),
+                                RoundedCornerShape(DesignTokens.Shape.RadiusMd)
                             )
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
                             Text(
                                 text = "Engine paused after crashes - tap to enable",
-                                color = Color(0xFF1A1A1A), // Dark text on amber
-                                fontSize = 12.sp,
+                                color = DesignTokens.Color.Ink,
+                                fontSize = DesignTokens.Typography.Body,
                                 fontWeight = FontWeight.SemiBold
                             )
                             Spacer(modifier = Modifier.width(8.dp))
@@ -398,7 +411,12 @@ fun HomeScreenContent(
                                     onCrashBannerTap()
                                 }
                             ) {
-                                Text("Enable", color = Color(0xFF1A1A1A), fontWeight = FontWeight.Bold)
+                                Text(
+                                    "Enable",
+                                    color = DesignTokens.Color.Ink,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = DesignTokens.Typography.Caption
+                                )
                             }
                         }
                     }
@@ -433,8 +451,8 @@ fun HomeScreenContent(
                 ) {
                     Text(
                         text = state.greetingLanguage.endonym,
-                        color = TextDim,
-                        fontSize = 11.sp,
+                        color = DesignTokens.Color.Ink.copy(alpha = 0.6f),
+                        fontSize = DesignTokens.Typography.Caption,
                         modifier = Modifier.clickable {
                             haptics.tick()
                             callbacks.onOpenDiplomatics()
@@ -452,19 +470,10 @@ fun HomeScreenContent(
                 }
             }
 
+            // PHASE 1 — Hero: glass-morphic balance card with gradient background,
+            // Display typography and an eye-icon mask toggle.
             item {
-                CountersRow(
-                    completed = state.successful,
-                    failed = state.failed,
-                    pending = state.pending,
-                    onOpenTransactions = callbacks.onOpenTransactions
-                )
-            }
-
-            item { CommissionChartCard(series = state.commission) }
-
-            item {
-                MoneyRow(
+                HeroBar(
                     airtimeToday = state.airtimeToday,
                     balance = state.balance,
                     loading = state.balanceLoading,
@@ -479,6 +488,23 @@ fun HomeScreenContent(
                     },
                     onOpenDiagnostics = callbacks.onOpenDiagnostics
                 )
+            }
+
+            // PHASE 2 — Stats cards: three equal-width neumorphic glass cards.
+            item {
+                StatsRow(
+                    completed = state.successful,
+                    failed = state.failed,
+                    pending = state.pending,
+                    onOpenTransactions = callbacks.onOpenTransactions
+                )
+            }
+
+            item {
+                // PHASE 2 — commission graph wrapped in GlassCard, line in Brand.Primary.
+                GlassCard(modifier = Modifier.fillMaxWidth()) {
+                    CommissionChartCard(series = state.commission)
+                }
             }
 
             item { SectionHeader("Transactions", "${state.transactions.size} total") }
@@ -500,15 +526,15 @@ fun HomeScreenContent(
                                     "Autopilot stopped — history lives in Transactions."
                                 else -> "Nothing yet — every bundle you dial lands here."
                             },
-                            color = TextGrey,
-                            fontSize = 12.sp,
+                            color = DesignTokens.Color.Ink.copy(alpha = 0.6f),
+                            fontSize = DesignTokens.Typography.Caption,
                             modifier = Modifier.weight(1f)
                         )
                         if (state.engineState == EngineState.STOPPED) {
                             Text(
                                 "Start",
-                                color = AccentBlue,
-                                fontSize = 12.sp,
+                                color = DesignTokens.Color.Brand.Primary,
+                                fontSize = DesignTokens.Typography.Caption,
                                 fontWeight = FontWeight.SemiBold,
                                 modifier = Modifier.clickable {
                                     callbacks.onOpenAutopilotSheet()
@@ -518,8 +544,13 @@ fun HomeScreenContent(
                     }
                 }
             } else {
-                items(state.transactions, key = { it.id }) { tx ->
-                    HomeTransactionRow(tx = tx, engineState = engineState, now = now)
+                itemsIndexed(state.transactions, key = { _, tx -> tx.id }) { index, tx ->
+                    HomeTransactionRow(
+                        tx = tx,
+                        engineState = engineState,
+                        now = now,
+                        showDivider = index < state.transactions.size - 1
+                    )
                 }
             }
         }
@@ -543,102 +574,228 @@ fun HomeScreenContent(
     }
 }
 
-/** Three counters. Each one is a door: tap it to open Transactions filtered. */
+/** Hero money card: glass surface, brand gradient, Display balance, eye-mask toggle. */
 @Composable
-private fun CountersRow(
+private fun HeroBar(
+    airtimeToday: Double,
+    balance: Double?,
+    loading: Boolean,
+    valuesVisible: Boolean,
+    onToggleVisibility: () -> Unit,
+    onRefresh: () -> Unit,
+    onOpenDiagnostics: () -> Unit
+) {
+    val density = LocalDensity.current
+    val gradient = Brush.verticalGradient(
+        colors = listOf(
+            DesignTokens.Color.Brand.Primary.copy(alpha = 0.14f),
+            DesignTokens.Color.Brand.Primary.copy(alpha = 0.02f)
+        ),
+        startY = 0f,
+        endY = with(density) { 120.dp.toPx() }
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(150.dp)
+            .background(gradient)
+    ) {
+        GlassCard(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(112.dp)
+                .align(Alignment.BottomCenter)
+                .padding(horizontal = 4.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    MoneyLine(
+                        label = "Airtime used today",
+                        value = if (valuesVisible) "Ksh ${money(airtimeToday)}" else MASK,
+                        valueColor = DesignTokens.Color.Ink.copy(alpha = 0.7f)
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    // E1 — NEVER a fake number: null balance shows unavailable + link.
+                    val balanceScale by animateFloatAsState(
+                        targetValue = if (valuesVisible) 1f else 0.92f,
+                        animationSpec = spring(
+                            stiffness = DesignTokens.Motion.SpringStiffness,
+                            dampingRatio = DesignTokens.Motion.SpringDamping
+                        ),
+                        label = "HeroBalanceScale"
+                    )
+                    Box(
+                        modifier = Modifier
+                            .graphicsLayer {
+                                scaleX = balanceScale
+                                scaleY = balanceScale
+                                alpha = if (valuesVisible) 1f else 0.5f
+                            }
+                    ) {
+                        if (balance == null && valuesVisible) {
+                            MoneyLine(label = "Current balance", value = "Unavailable")
+                            Text(
+                                "run Diagnostics",
+                                color = DesignTokens.Color.Brand.Primary,
+                                fontSize = DesignTokens.Typography.Caption,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier.clickable(onClick = onOpenDiagnostics)
+                            )
+                        } else {
+                            MoneyLine(
+                                label = "Current balance",
+                                value = if (valuesVisible) "Ksh ${money(balance ?: 0.0)}" else MASK,
+                                valueColor = DesignTokens.Color.Ink,
+                                valueSize = DesignTokens.Typography.Display,
+                                valueWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(10.dp))
+
+                Box(
+                    modifier = Modifier
+                        .size(34.dp)
+                        .clip(CircleShape)
+                        .clickable(onClick = onToggleVisibility),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = if (valuesVisible) Icons.Rounded.VisibilityOff
+                        else Icons.Rounded.Visibility,
+                        contentDescription = if (valuesVisible) "Hide amounts" else "Show amounts",
+                        tint = DesignTokens.Color.Ink.copy(alpha = 0.6f),
+                        modifier = Modifier.size(19.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(6.dp))
+                RefreshButton(loading = loading, onClick = onRefresh)
+            }
+        }
+    }
+}
+
+/** Three counters. Each one is a neumorphic glass card you can drill into. */
+@Composable
+private fun StatsRow(
     completed: Int,
     failed: Int,
     pending: Int,
     onOpenTransactions: (String?) -> Unit
 ) {
-    val haptics = rememberHaptics()
-    val scope = rememberCoroutineScope()
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        CounterTile(completed, "Done", StatusColors.Success, lit = completed > 0, Modifier.weight(1f)) {
-            haptics.tick()
+        StatCard(completed, "Done", DesignTokens.Color.Brand.Success, Modifier.weight(1f)) {
             onOpenTransactions("SUCCESSFUL")
         }
-        CounterTile(failed, "Failed", StatusColors.Failed, lit = failed > 0, Modifier.weight(1f)) {
-            haptics.tick()
+        StatCard(failed, "Failed", DesignTokens.Color.Brand.Error, Modifier.weight(1f)) {
             onOpenTransactions("FAILED")
         }
-        CounterTile(pending, "Queued", StatusColors.Pending, lit = false, Modifier.weight(1f)) {
-            haptics.tick()
+        StatCard(pending, "Queued", DesignTokens.Color.Ink.copy(alpha = 0.45f), Modifier.weight(1f)) {
             onOpenTransactions("PENDING")
         }
     }
 }
 
 /**
- * POLISH P2 — one compact status tile.
+ * POLISH P2 — one compact neumorphic stat card.
  *
- * Roughly 40% shorter than the old 30sp card: the number sits beside its label
- * instead of above it, and the card wears a **wash** of its own status colour
- * (12% alpha) so the row reads at a glance instead of being three dead grey
- * rectangles. The dot is lit only when there is something to report — a queued
- * tile is a light that is deliberately off, not a zero that looks like failure.
+ * Glass surface with Level1 soft shadow, spring press scale (0.98) and mandatory
+ * long-press haptic feedback. Every visual token comes from [DesignTokens].
  */
 @Composable
-private fun CounterTile(
+private fun StatCard(
     value: Int,
     label: String,
     accent: Color,
-    lit: Boolean,
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
-    val shape = RoundedCornerShape(16.dp)
-    val brush: Brush = when (label) {
-        "Done" -> StatusDoneGradient
-        "Failed" -> StatusFailedGradient
-        "Queued" -> StatusQueuedGradient
-        else -> SolidColor(statusWash(accent))
-    }
-    Box(
+    val hapticFeedback = LocalHapticFeedback.current
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.98f else 1f,
+        animationSpec = spring(
+            stiffness = DesignTokens.Motion.SpringStiffness,
+            dampingRatio = DesignTokens.Motion.SpringDamping
+        ),
+        label = "StatCardScale"
+    )
+    val density = LocalDensity.current
+    val radiusPx = with(density) { DesignTokens.Shape.RadiusMd.toPx() }
+    GlassCard(
         modifier = modifier
-            .clip(shape)
-            .background(brush)
-            .border(1.dp, accent.copy(alpha = 0.22f), shape)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 10.dp, vertical = 10.dp)
+            .drawBehind {
+                for (layer in DesignTokens.Elevation.Level1) {
+                    val offsetY = with(density) { layer.offsetY.toPx() }
+                    withTransform({ translate(0f, offsetY) }) {
+                        drawRoundRect(
+                            brush = SolidColor(layer.color),
+                            cornerRadius = CornerRadius(radiusPx, radiusPx)
+                        )
+                    }
+                }
+            }
+            .graphicsLayer { scaleX = scale; scaleY = scale }
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = {
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onClick()
+                }
+            )
     ) {
         Column {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                StatusDot(color = accent, lit = lit, size = 8.dp)
+                StatusDot(color = accent, lit = true, size = 8.dp)
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
                     "$value",
-                    color = TextWhite,
-                    fontSize = BingwaType.Subhead,
+                    color = DesignTokens.Color.Ink,
+                    fontSize = DesignTokens.Typography.Subhead,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1
                 )
             }
             Spacer(modifier = Modifier.height(1.dp))
-            Text(label, color = TextGrey, fontSize = BingwaType.Caption, maxLines = 1)
+            Text(label, color = DesignTokens.Color.Ink.copy(alpha = 0.5f), fontSize = DesignTokens.Typography.Caption, maxLines = 1)
         }
     }
 }
 
 @Composable
 private fun PermissionCard(onGrant: () -> Unit) {
-    BubbleCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 18.dp, onClick = onGrant) {
-        Text(
-            "Phone permission needed",
-            color = TextWhite,
-            fontSize = 15.sp,
-            fontWeight = FontWeight.SemiBold
-        )
-        Spacer(modifier = Modifier.height(2.dp))
-        Text(
-            "Grant call and phone access so dial and balance can work. Tap to grant.",
-            color = TextGrey,
-            fontSize = 12.sp
-        )
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp)
+    ) {
+        Column {
+            Text(
+                "Phone permission needed",
+                color = DesignTokens.Color.Ink,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                "Grant call and phone access so dial and balance can work. Tap to grant.",
+                color = DesignTokens.Color.Ink.copy(alpha = 0.6f),
+                fontSize = 12.sp
+            )
+        }
     }
+    // Keep the original click behaviour via the card's content area.
+    Box(modifier = Modifier.fillMaxSize().clickable(onClick = onGrant))
 }
 
 @Composable
@@ -649,93 +806,30 @@ private fun SectionHeader(title: String, trailing: String) {
             .padding(top = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(title, color = TextWhite, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+        Text(title, color = DesignTokens.Color.Ink, fontSize = DesignTokens.Typography.Subhead, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.width(8.dp))
-        Text(trailing, color = TextDim, fontSize = 12.sp)
+        Text(trailing, color = DesignTokens.Color.Ink.copy(alpha = 0.5f), fontSize = DesignTokens.Typography.Caption)
     }
 }
 
-/**
- * The money row: labels + values on the left, eye + refresh on the right — one
- * medium row (U3), not the old two-cell card with a divider and a second button
- * strip. Two compact label/value lines read faster than a side-by-side split and
- * the card stops being the tallest thing on Home.
- *
- * Both values stay masked behind six stars until the eye opens, so the row can
- * sit on a shop counter without leaking numbers. The refresh button spins for as
- * long as the USSD read is in flight.
- */
+/** One label/value line inside the hero money row. */
 @Composable
-private fun MoneyRow(
-    airtimeToday: Double,
-    balance: Double?,
-    loading: Boolean,
-    valuesVisible: Boolean,
-    onToggleVisibility: () -> Unit,
-    onRefresh: () -> Unit,
-    onOpenDiagnostics: () -> Unit
+private fun MoneyLine(
+    label: String,
+    value: String,
+    valueColor: Color = DesignTokens.Color.Ink,
+    valueSize: TextUnit = DesignTokens.Typography.Body,
+    valueWeight: FontWeight = FontWeight.Bold,
+    modifier: Modifier = Modifier
 ) {
-    BubbleCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 20.dp) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                MoneyLine(
-                    label = "Airtime used today",
-                    value = if (valuesVisible) "Ksh ${money(airtimeToday)}" else MASK
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-                // E1 — NEVER a fake number: null balance shows unavailable + link.
-                if (balance == null && valuesVisible) {
-                    MoneyLine(label = "Current balance", value = "Unavailable")
-                    Text(
-                        "run Diagnostics",
-                        color = AccentBlue, fontSize = BingwaType.Caption, fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.clickable(onClick = onOpenDiagnostics)
-                    )
-                } else {
-                    MoneyLine(
-                        label = "Current balance",
-                        value = if (valuesVisible) "Ksh ${money(balance ?: 0.0)}" else MASK
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.width(10.dp))
-
-            Box(
-                modifier = Modifier
-                    .size(34.dp)
-                    .clip(CircleShape)
-                    .clickable(onClick = onToggleVisibility),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = if (valuesVisible) Icons.Rounded.VisibilityOff
-                    else Icons.Rounded.Visibility,
-                    contentDescription = if (valuesVisible) "Hide amounts" else "Show amounts",
-                    tint = TextGrey,
-                    modifier = Modifier.size(19.dp)
-                )
-            }
-            Spacer(modifier = Modifier.width(6.dp))
-            RefreshButton(loading = loading, onClick = onRefresh)
-        }
-    }
-}
-
-/** U3 — one label/value line inside the single money row. */
-@Composable
-private fun MoneyLine(label: String, value: String, modifier: Modifier = Modifier) {
     Row(
         modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             label,
-            color = TextGrey,
-            fontSize = BingwaType.Caption,
+            color = DesignTokens.Color.Ink.copy(alpha = 0.6f),
+            fontSize = DesignTokens.Typography.Caption,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f)
@@ -743,9 +837,9 @@ private fun MoneyLine(label: String, value: String, modifier: Modifier = Modifie
         Spacer(modifier = Modifier.width(8.dp))
         Text(
             value,
-            color = TextWhite,
-            fontSize = BingwaType.Body,
-            fontWeight = FontWeight.Bold,
+            color = valueColor,
+            fontSize = valueSize,
+            fontWeight = valueWeight,
             maxLines = 1
         )
     }
@@ -770,15 +864,15 @@ private fun RefreshButton(loading: Boolean, onClick: () -> Unit) {
         modifier = Modifier
             .size(34.dp)
             .clip(CircleShape)
-            .background(BgBlack)
-            .border(1.dp, Hairline, CircleShape)
+            .background(DesignTokens.Color.Card)
+            .border(1.dp, DesignTokens.Color.Border, CircleShape)
             .clickable(enabled = !loading, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         Icon(
             imageVector = Icons.Rounded.Refresh,
             contentDescription = "Refresh balance",
-            tint = if (loading) AccentBlue else TextGrey,
+            tint = if (loading) DesignTokens.Color.Brand.Primary else DesignTokens.Color.Ink.copy(alpha = 0.6f),
             modifier = Modifier
                 .size(18.dp)
                 .graphicsLayer { rotationZ = angle }
@@ -786,37 +880,53 @@ private fun RefreshButton(loading: Boolean, onClick: () -> Unit) {
     }
 }
 
-
 /**
  * One activity row: status dot, who, how much, when — plus a "Paused" badge when
  * the row is still queued and the engine is paused (U2: money accepted, not yet
  * dialed). The badge is deliberately inline with the amount so the reason the row
  * has not moved is never more than a glance away.
+ *
+ * Each row is a [GlassCard] with [DesignTokens.Shape.RadiusMd].
  */
 @Composable
 private fun HomeTransactionRow(
     tx: Transaction,
     engineState: EngineState = EngineState.RUNNING,
-    now: Long = System.currentTimeMillis()
+    now: Long = System.currentTimeMillis(),
+    showDivider: Boolean = false
 ) {
-    val statusColor = StatusColors.color(tx.status)
+    val statusColor = when (tx.status) {
+        TransactionStatus.SUCCESSFUL.value -> DesignTokens.Color.Brand.Primary
+        TransactionStatus.FAILED.value,
+        TransactionStatus.FAILED_ALREADY_RECOMMENDED.value,
+        TransactionStatus.UNMATCHED.value,
+        TransactionStatus.CANCELLED.value -> DesignTokens.Color.Brand.Error
+        else -> DesignTokens.Color.Ink.copy(alpha = 0.45f)
+    }
     val showPausedBadge = engineState == EngineState.PAUSED &&
         tx.status == TransactionStatus.PENDING.value
-    BubbleCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 14.dp) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(HOME_ROW_HEIGHT)
-                .padding(horizontal = 12.dp)
-        ) {
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(DesignTokens.Shape.RadiusMd)
+    ) {
+        Column {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(HOME_ROW_HEIGHT)
+                    .padding(horizontal = 12.dp)
+            ) {
             // POLISH P2 — the same status dot the tiles use: lit for a finished
             // sale, dim for queued work, red for a failure. It lights with a
             // 300ms fade as the engine closes the row.
             StatusDot(
                 color = statusColor,
                 lit = tx.status == TransactionStatus.SUCCESSFUL.value ||
-                    StatusColors.isFailure(tx.status),
+                    tx.status == TransactionStatus.FAILED.value ||
+                    tx.status == TransactionStatus.FAILED_ALREADY_RECOMMENDED.value ||
+                    tx.status == TransactionStatus.UNMATCHED.value ||
+                    tx.status == TransactionStatus.CANCELLED.value,
                 size = 9.dp
             )
             Spacer(modifier = Modifier.width(12.dp))
@@ -824,7 +934,7 @@ private fun HomeTransactionRow(
                 Text(
                     // U5 — the same formatter as the Transactions list.
                     formatCustomerName(tx.customerName).ifBlank { tx.phoneNumber },
-                    color = TextWhite,
+                    color = DesignTokens.Color.Ink,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
@@ -832,7 +942,7 @@ private fun HomeTransactionRow(
                 )
                 Text(
                     "${tx.offerName} · ${timeAgo(tx.createdAt, now)}",
-                    color = TextGrey,
+                    color = DesignTokens.Color.Ink.copy(alpha = 0.6f),
                     fontSize = 12.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -841,30 +951,35 @@ private fun HomeTransactionRow(
             if (showPausedBadge) {
                 Text(
                     "Paused",
-                    color = TextGrey,
+                    color = DesignTokens.Color.Ink.copy(alpha = 0.6f),
                     fontSize = 10.sp,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier
                         .clip(RoundedCornerShape(50))
-                        .background(TextDim.copy(alpha = 0.20f))
+                        .background(DesignTokens.Color.Ink.copy(alpha = 0.20f))
                         .padding(horizontal = 7.dp, vertical = 3.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
             }
             Text(
                 "Ksh ${money(tx.amount)}",
-                color = TextWhite,
+                color = DesignTokens.Color.Ink,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold
             )
         }
+        if (showDivider) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(DesignTokens.Color.Border))
+        }
     }
+}
 }
 
 /** R6 — a single shimmering placeholder row; only shown while the list loads. */
 @Composable
 private fun HomeRowSkeleton() {
-    BubbleCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 16.dp) {
+    GlassCard(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(DesignTokens.Shape.RadiusMd)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             com.bingwascore.app.ui.components.ShimmerBlock(
                 modifier = Modifier.width(90.dp),
@@ -936,41 +1051,41 @@ private val REQUIRED_PERMISSION_ARRAY = REQUIRED_PERMISSIONS
  *
  * `*144#` and every silent dial need `CALL_PHONE` + `READ_PHONE_STATE`. Throwing
  * a system sheet at an agent who only opened the app trains them to tap Deny, so
- * the app says what the grant is *for* first, in the same black-and-blue
- * vocabulary as the rest of the product, and keeps a polite way out.
+ * the app says what the grant is *for* first, in the same vocabulary as the rest
+ * of the product, and keeps a polite way out.
  */
 @Composable
 private fun PhoneAccessPrompt(onGrant: () -> Unit, onNotNow: () -> Unit) {
     androidx.compose.material3.AlertDialog(
         onDismissRequest = onNotNow,
-        containerColor = BgBlack,
-        titleContentColor = TextWhite,
-        textContentColor = TextGrey,
+        containerColor = DesignTokens.Color.Card,
+        titleContentColor = DesignTokens.Color.Ink,
+        textContentColor = DesignTokens.Color.Ink.copy(alpha = 0.6f),
         title = {
             Text(
-                "Allow phone access?",
-                color = TextWhite,
+                text = "Allow phone access?",
+                color = DesignTokens.Color.Ink,
                 fontWeight = FontWeight.Bold,
                 fontSize = 17.sp
             )
         },
         text = {
             Text(
-                "Bingwa Score needs Call and Phone state to read your airtime balance " +
+                text = "Bingwa Score needs Call and Phone state to read your airtime balance " +
                     "and dial bundles in the background. Nothing is ever shown to " +
                     "the customer.",
-                color = TextGrey,
+                color = DesignTokens.Color.Ink.copy(alpha = 0.6f),
                 fontSize = 13.sp
             )
         },
         confirmButton = {
             androidx.compose.material3.TextButton(onClick = onGrant) {
-                Text("Allow", color = AccentBlue, fontWeight = FontWeight.Bold)
+                Text(text = "Allow", color = DesignTokens.Color.Brand.Primary, fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
             androidx.compose.material3.TextButton(onClick = onNotNow) {
-                Text("Not now", color = TextGrey)
+                Text(text = "Not now", color = DesignTokens.Color.Ink.copy(alpha = 0.6f))
             }
         }
     )
