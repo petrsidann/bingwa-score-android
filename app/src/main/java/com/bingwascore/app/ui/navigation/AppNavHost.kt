@@ -100,6 +100,8 @@ import com.bingwascore.app.BuildConfig
 import com.bingwascore.app.ui.autorenewals.AutoRenewalsScreen
 import com.bingwascore.app.ui.autoreplies.AutoRepliesScreen
 import com.bingwascore.app.ui.components.DarkSnackbarHost
+import com.bingwascore.app.ui.components.FloatingGlassTabBar
+import com.bingwascore.app.ui.components.LiquidGlassDrawer
 import com.bingwascore.app.ui.components.ScreenTransition
 import com.bingwascore.app.ui.components.pressScale
 import com.bingwascore.app.ui.customers.CustomersScreen
@@ -133,6 +135,7 @@ import androidx.compose.material.icons.rounded.Redeem
 import androidx.compose.material.icons.rounded.Campaign
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.EmojiEvents
+import com.bingwascore.app.ui.theme.DesignTokens
 import com.bingwascore.app.ui.theme.Hairline
 import com.bingwascore.app.ui.theme.Bubble
 import com.bingwascore.app.ui.theme.PendGrey
@@ -368,7 +371,7 @@ fun MainScreen(remoteHttpClient: RemoteHttpClient) {
                         drawerOpen -> -1
                         else -> selectedTab
                     }
-                    BottomNavBar(
+                    FloatingGlassTabBar(
                         selected = navSelected,
                         dialerOpen = showDialer,
                         onSelect = {
@@ -419,6 +422,7 @@ fun MainScreen(remoteHttpClient: RemoteHttpClient) {
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(innerPadding)
+                            .padding(bottom = DesignTokens.Spacing.Md * 5)
                     ) {
                         ScreenTransition(screenKey = resolved, modifier = Modifier.fillMaxSize()) {
                             when (resolved) {
@@ -467,272 +471,18 @@ fun MainScreen(remoteHttpClient: RemoteHttpClient) {
             }
         }
 
-        // Stage 19 — spring side-sheet drawer (primary): hamburger tap opens the
-        // drawer as an iosMaterial side-sheet with a spring slide (<300ms).
-        // Stage 25 — Bottom-Nav Morph: vertical rail docked to drawer's right edge.
-        SideDrawerSheet(
+        // Stage 50 — liquid glass side drawer: frosted-glass sheet behind a
+        // dimming scrim, opened from the tab bar menu.
+        LiquidGlassDrawer(
             isOpen = drawerOpen,
             onClose = { drawerOpen = false },
-            glassBackdrop = glassBackdrop,
-            selectedTab = selectedTab,
-            showDialer = showDialer,
-            onTabSelect = { tab ->
-                selectedTab = tab
+            selectedIndex = selectedDrawerIndex,
+            onEntryClick = { index ->
+                selectedDrawerIndex = index
                 drawerOpen = false
-                showDialer = (tab == 2)
             }
-        ) {
-            DrawerContent(
-                selectedIndex = selectedDrawerIndex,
-                onEntryClick = { index ->
-                    selectedDrawerIndex = index
-                    drawerOpen = false
-                }
-            )
-        }
-    }
-}
-/**
- * Stage 10 — floating rounded tab pill (club.com style): inset 12dp margins,
- * 28dp corner radius, elevated shadow, 5 tabs, active = AccentBlue.
- *
- * U1 — single-active truth: every tab (including Dial) takes the SAME
- * resolved [selected] id, so two tabs can never light at once. Dial is
- * id 2; a drawer destination resolves to -1 (nothing lit). The pill body is
- * a translucent iOS material (blur ONLY here + sheets).
- */
-@Composable
-private fun BottomNavBar(
-    selected: Int,
-    dialerOpen: Boolean,
-    onSelect: (Int) -> Unit,
-    onDialer: () -> Unit,
-    onMenu: () -> Unit
-) {
-    val haptics = rememberHaptics()
-    // Stage 18 — the pill is a backdrop region: rows scroll BLURRED beneath it.
-    val glassBackdrop = LocalGlassBackdrop.current
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            // U1 — sheet open = pill dimmed; the one lit tab still reads.
-            .graphicsLayer { alpha = if (dialerOpen) 0.55f else 1f }
-            // Stage 45 — Apple Music floating tab bar: side insets on the canvas
-            // plus a gap beneath the pill so it floats above the bottom edge
-            // instead of sitting pinned to it.
-            .padding(horizontal = 20.dp)
-            .navigationBarsPadding()
-            .padding(bottom = 20.dp)
-            // Stage 18 — backdrop region matches the pill's visual bounds.
-            .glassBackdropRegion(glassBackdrop, "pill", RoundedCornerShape(28.dp))
-            .shadow(12.dp, RoundedCornerShape(28.dp))
-            .iosMaterial(
-                shape = RoundedCornerShape(28.dp),
-                tint = GlassSpec.scrimColor(isPorcelain),
-                vibrancy = !canMaterialBlur
-            )
-            .padding(start = 2.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            imageVector = Icons.Rounded.Menu,
-            contentDescription = "Menu",
-            tint = TextGrey,
-            modifier = Modifier
-                .size(40.dp)
-                .clip(CircleShape)
-                .clickable { haptics.tick(); onMenu() }
-                .padding(9.dp)
-        )
-        SharedNavTab(item = NAV_ITEMS[0], selected = selected == 0 && !dialerOpen, isRail = false) {
-            haptics.tick(); onSelect(0)
-        }
-        SharedNavTab(item = NAV_ITEMS[1], selected = selected == 1 && !dialerOpen, isRail = false) {
-            haptics.tick(); onSelect(1)
-        }
-        SharedNavTab(item = NAV_ITEMS[2], selected = dialerOpen, isRail = false) {
-            haptics.press(); onDialer()
-        }
-        SharedNavTab(item = NAV_ITEMS[3], selected = selected == 3 && !dialerOpen, isRail = false) {
-            haptics.tick(); onSelect(3)
-        }
-        SharedNavTab(item = NAV_ITEMS[4], selected = selected == 4 && !dialerOpen, isRail = false) {
-            haptics.tick(); onSelect(4)
-        }
-    }
-}
-
-@Composable
-private fun RowScope.NavTab(
-    icon: ImageVector,
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val tint by animateColorAsState(
-        targetValue = if (selected) AccentBlue else TextGrey,
-        animationSpec = spring(dampingRatio = Motion.DAMPING),
-        label = "navTint"
-    )
-
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-        modifier = Modifier
-            .weight(1f)
-            .pressScale(interactionSource)
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick
-            )
-            .padding(vertical = 6.dp)
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = label,
-            tint = tint,
-            modifier = Modifier.size(22.dp)
-        )
-        Spacer(modifier = Modifier.height(3.dp))
-        Text(
-            label,
-            color = tint,
-            fontSize = BingwaType.Micro,
-            maxLines = 1,
-            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
         )
     }
 }
 
-/**
- * Stage 19 — spring side-sheet drawer (primary): slides in from the left edge
- * with an iosMaterial background when [isOpen] is true; sits off-screen when
- * closed. A dimming backdrop taps to close. Hamburger→drawer <300ms spring.
- * Edge-pull is demoted to secondary — no longer the primary open gesture.
- */
-@Composable
-fun SideDrawerSheet(
-    isOpen: Boolean,
-    onClose: () -> Unit,
-    glassBackdrop: com.bingwascore.app.ui.glass.GlassBackdropState? = null,
-    selectedTab: Int = 0,
-    showDialer: Boolean = false,
-    onTabSelect: (Int) -> Unit = {},
-    content: @Composable () -> Unit
-) {
-    val sheetWidth = 280f
-    val offset by animateFloatAsState(
-        targetValue = if (isOpen) 0f else -sheetWidth,
-        animationSpec = spring(
-            dampingRatio = Motion.DAMPING,
-            stiffness = Spring.StiffnessHigh
-        ),
-        label = "sideDrawerSheet"
-    )
-
-    val currentTab = if (showDialer) 2 else selectedTab
-
-    Box(modifier = Modifier.fillMaxSize()) {
-        if (isOpen) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.35f))
-                    .clickable(onClick = onClose)
-            )
-        }
-
-        Row(
-            modifier = Modifier
-                .fillMaxHeight()
-                .offset(x = offset.dp, y = 0.dp)
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .width(sheetWidth.dp)
-                    .background(BgBlack)
-                    .glassBackdropRegion(
-                        glassBackdrop, "drawer",
-                        RoundedCornerShape(0.dp), enabled = isOpen
-                    )
-                    .iosMaterial(
-                        shape = RoundedCornerShape(0.dp),
-                        tint = GlassSpec.scrimColor(isPorcelain),
-                        vibrancy = !canMaterialBlur
-                    )
-            ) {
-                Column(modifier = Modifier.fillMaxWidth().padding(top = 28.dp)) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 24.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            "Bingwa Score",
-                            color = TextWhite,
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        DemoChip()
-                    }
-                    Spacer(modifier = Modifier.height(12.dp))
-                    content()
-                    Spacer(modifier = Modifier.height(24.dp))
-                }
-            }
-
-            VerticalNavRail(
-                isOpen = isOpen,
-                selected = currentTab,
-                onSelect = onTabSelect
-            )
-        }
-    }
-}
-
-/**
- * Stage 19 — drawer entry list: Customers → Diplomatics, including My Score
- * (analytics + achievements screen) at [MY_SCORE_DRAWER_INDEX].
- */
-@Composable
-fun DrawerContent(
-    selectedIndex: Int,
-    onEntryClick: (Int) -> Unit
-) {
-    drawerEntries.forEachIndexed { index, entry ->
-        val selected = selectedIndex == index
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable {
-                    onEntryClick(index)
-                }
-                .padding(horizontal = 24.dp, vertical = 12.dp)
-        ) {
-            Icon(
-                imageVector = entry.icon,
-                contentDescription = entry.label,
-                tint = if (selected) AccentBlue else TextWhite.copy(alpha = 0.6f),
-                modifier = Modifier.size(22.dp)
-            )
-            Spacer(modifier = Modifier.size(14.dp))
-            Text(
-                entry.label,
-                color = if (selected) TextWhite else TextWhite.copy(alpha = 0.7f),
-                fontSize = 14.sp,
-                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                modifier = Modifier.weight(1f)
-            )
-            // Unread dot for Announcements
-            if (index == ANNOUNCEMENTS_DRAWER_INDEX) {
-                Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(PendGrey))
-            }
-        }
-    }
-}
 

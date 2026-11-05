@@ -103,11 +103,23 @@ object DesignTokens {
         const val TintAlpha: Float = 0.7f
     }
 
+    // ─── Spacing (8pt grid, docs/DESIGN.md) ──────────────────────────────────
+
+    object Spacing {
+        val Xs = 4.dp
+        val Sm = 8.dp
+        val Md = 16.dp
+        val Lg = 24.dp
+        val Xl = 32.dp
+    }
+
     // ─── Typography (delegates to the BingwaType ramp; no literal sizes) ──────
 
     object Typography {
         /** Hero balance / display numerals. */
         val Display: TextUnit get() = BingwaType.Display
+        /** Screen and section headers. */
+        val Headline: TextUnit get() = BingwaType.Headline
         /** Section and card titles. */
         val Subhead: TextUnit get() = BingwaType.Subhead
         /** Body copy. */
