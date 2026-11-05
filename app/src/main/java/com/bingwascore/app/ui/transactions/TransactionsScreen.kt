@@ -2,21 +2,23 @@ package com.bingwascore.app.ui.transactions
 
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.repeatable
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
-import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.foundation.background
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -36,30 +38,35 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.automirrored.rounded.HelpOutline
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ReceiptLong
 import androidx.compose.material.icons.rounded.CheckCircle
-import androidx.compose.material.icons.rounded.DeleteOutline
-import androidx.compose.material.icons.rounded.FileDownload
-import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.HourglassTop
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.rounded.Search
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardType
 import kotlinx.coroutines.delay
-import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.animation.core.Animatable
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.offset
-import androidx.compose.ui.unit.IntOffset
+import com.bingwascore.app.ui.components.BubbleCard
 import com.bingwascore.app.ui.components.DarkSnackbarHost
 import com.bingwascore.app.ui.theme.Raised
 import kotlin.math.roundToInt
@@ -81,11 +88,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -95,27 +102,23 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bingwascore.app.data.local.Transaction
 import com.bingwascore.app.domain.TransactionStatus
-import com.bingwascore.app.ui.components.BubbleCard
 import com.bingwascore.app.ui.components.EmptyState
+import com.bingwascore.app.ui.components.GlassCard
+import com.bingwascore.app.ui.components.GlassPill
 import com.bingwascore.app.ui.components.PrimaryButton
 import com.bingwascore.app.ui.components.SecondaryButton
 import com.bingwascore.app.ui.components.ShimmerBlock
 import com.bingwascore.app.ui.components.pressScale
 import com.bingwascore.app.ui.components.rememberAction
 import com.bingwascore.app.ui.showcase.DemoChip
-import com.bingwascore.app.ui.theme.AccentBlue
+import com.bingwascore.app.ui.theme.BingwaType
+import com.bingwascore.app.ui.theme.DesignTokens
 import com.bingwascore.app.ui.theme.BgBlack
 import com.bingwascore.app.ui.theme.Bubble
-import com.bingwascore.app.ui.theme.FailRed
 import com.bingwascore.app.ui.theme.Hairline
 import com.bingwascore.app.ui.theme.Motion
-import com.bingwascore.app.ui.theme.PendGrey
 import com.bingwascore.app.ui.theme.SelectTint
 import com.bingwascore.app.ui.theme.StatusColors
-import com.bingwascore.app.ui.theme.TextDim
-import com.bingwascore.app.ui.theme.TextGrey
-import com.bingwascore.app.ui.theme.TextWhite
-import com.bingwascore.app.ui.theme.TickGreen
 import com.bingwascore.app.util.formatCustomerName
 import com.bingwascore.app.util.rememberHaptics
 import com.bingwascore.app.util.screenEnter
@@ -126,10 +129,11 @@ import java.util.Locale
 import kotlinx.coroutines.launch
 
 /**
- * Stage 19.7 — the PURE Transactions surface.
+ * Stage 52 — the PURE Transactions surface: Stripe-dashboard ledger.
  *
- * The ledger, the chips, the search morph, the selection bar and the focus
- * sheet all read from here; the ViewModel and the Toast live in the wrapper.
+ * GlassCard rows, glass filter pills, a glass search bar and tactile status
+ * badges. The ViewModel, Hilt wiring and data fetching are untouched — only
+ * UI composition changed.
  */
 data class TransactionsScreenState(
     val transactions: List<Transaction> = emptyList(),
@@ -144,7 +148,7 @@ data class TransactionsScreenState(
     val focusTransaction: Transaction? = null
 )
 
-/** Stage 19.7 — every Transactions side effect as a plain callback. */
+/** Stage 52 — every Transactions side effect as a plain callback. */
 data class TransactionsScreenCallbacks(
     val onQueryChange: (String) -> Unit = {},
     val onOpenSearch: () -> Unit = {},
@@ -328,8 +332,8 @@ fun TransactionsScreen(
 }
 
 /**
- * Stage 19.7 — the pure Transactions body: the morphing header, the chip row,
- * the ledger, the selection bar and the focus sheet.
+ * Stage 52 — the pure Transactions body: glass header, pill filter row,
+ * GlassCard ledger and the selection bar.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -365,14 +369,15 @@ fun TransactionsScreenContent(
                     items = transactionFilterChips,
                     key = { it.name }
                 ) { filter ->
-                    FilterChip(
+                    FilterPill(
                         label = filter.label,
                         selected = state.selectedFilter == filter,
                         onClick = { callbacks.onFilterSelect(filter) }
                     )
                 }
             }
-Box(modifier = Modifier.fillMaxSize().nestedScroll(pullState.nestedScrollConnection)) {
+
+                Box(modifier = Modifier.fillMaxSize()) {
                 // Stage 22 — the lag sweep: the membership test keeps its
                 // identity, so the ledger does not re-run when only the
                 // selection changed (and vice versa).
@@ -572,15 +577,15 @@ private fun TransactionBody(
                     ) {
                         Text(
                             "$phoneFilter",
-                            color = AccentBlue,
-                            fontSize = 12.sp,
+                            color = DesignTokens.Color.Ink,
+                            fontSize = BingwaType.Label,
                             fontWeight = FontWeight.SemiBold,
                             modifier = Modifier.weight(1f)
                         )
                         Text(
                             "Clear search",
-                            color = TextGrey,
-                            fontSize = 12.sp,
+                            color = DesignTokens.Color.Ink.copy(alpha = 0.6f),
+                            fontSize = DesignTokens.Typography.Caption,
                             modifier = Modifier
                                 .clip(RoundedCornerShape(8.dp))
                                 .clickable(onClick = onClearPhoneFilter)
@@ -589,30 +594,30 @@ private fun TransactionBody(
                     }
                 }
                 LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(
-                    start = 20.dp,
-                    end = 20.dp,
-                    top = 8.dp,
-                    bottom = if (hasSelection) 104.dp else 24.dp
-                ),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                grouped.forEach { (day, rows) ->
-                    stickyHeader(key = "day-$day") { DayHeader(day) }
-                    items(rows, key = { it.id }) { transaction ->
-                        TransactionRow(
-                            transaction = transaction,
-                            selecting = hasSelection,
-                            selected = isSelected(transaction),
-                            // Stage 22 — the lag sweep: the row's actions keep
-                            // their identity, so a new transaction never re-runs
-                            // every visible row.
-                            onClick = rememberAction(transaction.id) { onRowClick(transaction) },
-                            onLongClick = rememberAction(transaction.id) { onRowLongClick(transaction) }
-                        )
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(
+                        start = 20.dp,
+                        end = 20.dp,
+                        top = 8.dp,
+                        bottom = if (hasSelection) 104.dp else 24.dp
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    grouped.forEach { (day, rows) ->
+                        stickyHeader(key = "day-$day") { DayHeader(day) }
+                        items(rows, key = { it.id }) { transaction ->
+                            TransactionRow(
+                                transaction = transaction,
+                                selecting = hasSelection,
+                                selected = isSelected(transaction),
+                                // Stage 22 — the lag sweep: the row's actions keep
+                                // their identity, so a new transaction never re-runs
+                                // every visible row.
+                                onClick = rememberAction(transaction.id) { onRowClick(transaction) },
+                                onLongClick = rememberAction(transaction.id) { onRowLongClick(transaction) }
+                            )
+                        }
                     }
-                }
                 }
             }
         }
@@ -626,14 +631,6 @@ private fun TransactionBody(
  * slides out, an X scales in on the left, a "N Selected" bubble takes the
  * middle and the trash scales in on the right — all on one 220ms spring so the
  * mode never feels like a different screen.
- */
-/**
- * POLISH P3 — the morphing header, now with search.
- *
- * Idle: "Transactions" on the left, a **search icon top-centre**, export on the
- * right. Tapping search fades the title out and only then springs the bar open,
- * so the two never overlap mid-flight. X cancels: the bar collapses, the title
- * comes back and the query is cleared.
  */
 @Composable
 private fun TransactionsTopBar(
@@ -650,6 +647,7 @@ private fun TransactionsTopBar(
 ) {
     var openRequested by remember { mutableStateOf(false) }
     var barOpen by remember { mutableStateOf(false) }
+    val titleShiftPx = with(LocalDensity.current) { -16.dp.toPx() }
 
     val titleAlpha by animateFloatAsState(
         targetValue = if (barOpen) 0f else 1f,
@@ -697,7 +695,7 @@ private fun TransactionsTopBar(
                 enter = fadeIn(tween(Motion.FADE)) + scaleIn(initialScale = 0.5f),
                 exit = fadeOut(tween(Motion.FADE)) + scaleOut(targetScale = 0.5f)
             ) {
-                BarIconButton(Icons.Rounded.Close, "Exit selection", TextWhite, onExit)
+                BarIconButton(Icons.Rounded.Close, "Exit selection", DesignTokens.Color.Ink, onExit)
             }
 
             Column(
@@ -705,16 +703,16 @@ private fun TransactionsTopBar(
                     .weight(1f)
                     .graphicsLayer {
                         alpha = 1f - titleAlpha
-                        translationX = titleAlpha * -16f * density
+                        translationX = titleAlpha * titleShiftPx
                     }
             ) {
                 Text(
                     "Transactions",
-                    color = TextWhite,
-                    fontSize = 22.sp,
+                    color = DesignTokens.Color.Ink,
+                    fontSize = DesignTokens.Typography.Headline,
                     fontWeight = FontWeight.Bold
                 )
-                Text("$recordCount record(s)", color = TextGrey, fontSize = 12.sp)
+                Text("$recordCount record(s)", color = DesignTokens.Color.Ink.copy(alpha = 0.6f), fontSize = DesignTokens.Typography.Caption)
             }
 
             AnimatedVisibility(
@@ -729,7 +727,7 @@ private fun TransactionsTopBar(
                     BarIconButton(
                         Icons.Rounded.Search,
                         "Search transactions",
-                        TextWhite,
+                        DesignTokens.Color.Ink,
                         onClick = { openRequested = true }
                     )
                 }
@@ -748,7 +746,7 @@ private fun TransactionsTopBar(
                 enter = fadeIn(tween(Motion.FADE)) + scaleIn(initialScale = 0.5f),
                 exit = fadeOut(tween(Motion.FADE)) + scaleOut(targetScale = 0.5f)
             ) {
-                BarIconButton(Icons.Rounded.Delete, "Delete selected", FailRed, onDelete)
+                BarIconButton(Icons.Rounded.Delete, "Delete selected", DesignTokens.Color.Brand.Error, onDelete)
             }
 
             AnimatedVisibility(
@@ -762,8 +760,8 @@ private fun TransactionsTopBar(
                     TextButton(onClick = onExport) {
                         Text(
                             "Export",
-                            color = AccentBlue,
-                            fontSize = 13.sp,
+                            color = DesignTokens.Color.Brand.Primary,
+                            fontSize = BingwaType.Label,
                             fontWeight = FontWeight.SemiBold
                         )
                     }
@@ -771,7 +769,7 @@ private fun TransactionsTopBar(
             }
         }
 
-        SearchBar(
+        GlassSearchBar(
             query = query,
             progress = barProgress,
             onQueryChange = onQueryChange,
@@ -788,31 +786,50 @@ private fun TransactionsTopBar(
 // opening search reads as one connected motion instead of a fade into a jump.
 private const val TITLE_FADE_MILLIS = Motion.MORPH_SPRING_MILLIS
 
-/** The springing search field: rounded, dark, with a cancel X. */
+/**
+ * Stage 52 — the glass search field: Obsidian card at 0.8 alpha with a 12dp
+ * backdrop blur, a 1dp Brand.Primary border and a soft glow on focus.
+ */
 @Composable
-private fun SearchBar(
+private fun GlassSearchBar(
     query: String,
     progress: Float,
     onQueryChange: (String) -> Unit,
     onClose: () -> Unit
 ) {
-    val shape = RoundedCornerShape(14.dp)
+    val shape = RoundedCornerShape(DesignTokens.Shape.RadiusMd)
+    val glowRadius = with(LocalDensity.current) { DesignTokens.Shape.RadiusMd.toPx() }
     val focusRequester = remember { FocusRequester() }
+    var focused by remember { mutableStateOf(false) }
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth(progress.coerceIn(0.001f, 1f))
             .clip(shape)
-            .background(Raised)
-            .border(1.dp, Hairline, shape)
+            .background(DesignTokens.Color.Obsidian.Card.copy(alpha = 0.8f))
+            .blur(12.dp)
+            .border(
+                if (focused) 1.dp else 0.dp,
+                DesignTokens.Color.Brand.Primary,
+                shape
+            )
+            .drawBehind {
+                if (focused) {
+                    drawRoundRect(
+                        brush = SolidColor(DesignTokens.Color.Brand.Primary.copy(alpha = 0.18f)),
+                        cornerRadius = CornerRadius(glowRadius, glowRadius)
+                    )
+                }
+            }
             .height(42.dp)
             .padding(start = 12.dp, end = 4.dp)
+            .onFocusChanged { focused = it.isFocused }
     ) {
         Icon(
             imageVector = Icons.Rounded.Search,
             contentDescription = null,
-            tint = AccentBlue,
+            tint = if (focused) DesignTokens.Color.Brand.Primary else DesignTokens.Color.Ink,
             modifier = Modifier.size(17.dp)
         )
         Spacer(modifier = Modifier.width(8.dp))
@@ -820,8 +837,8 @@ private fun SearchBar(
             if (query.isEmpty()) {
                 Text(
                     "Name, phone or transaction ID",
-                    color = TextDim,
-                    fontSize = 13.sp,
+                    color = DesignTokens.Color.Ink.copy(alpha = 0.6f),
+                    fontSize = DesignTokens.Typography.Body,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -830,8 +847,8 @@ private fun SearchBar(
                 value = query,
                 onValueChange = onQueryChange,
                 singleLine = true,
-                textStyle = TextStyle(color = TextWhite, fontSize = 14.sp),
-                cursorBrush = SolidColor(AccentBlue),
+                textStyle = TextStyle(color = DesignTokens.Color.Ink, fontSize = 14.sp),
+                cursorBrush = SolidColor(DesignTokens.Color.Brand.Primary),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
                 modifier = Modifier
                     .fillMaxWidth()
@@ -848,7 +865,7 @@ private fun SearchBar(
             Icon(
                 imageVector = Icons.Rounded.Close,
                 contentDescription = "Cancel search",
-                tint = TextGrey,
+                tint = DesignTokens.Color.Ink.copy(alpha = 0.6f),
                 modifier = Modifier.size(18.dp)
             )
         }
@@ -901,7 +918,7 @@ private fun BarIconButton(
 @Composable
 private fun CountBubble(count: Int) {
     var previous by remember { mutableStateOf(count) }
-    val pop = remember { androidx.compose.animation.core.Animatable(1f) }
+    val pop = remember { Animatable(1f) }
     LaunchedEffect(count) {
         if (count != previous) {
             pop.snapTo(1.15f)
@@ -923,8 +940,8 @@ private fun CountBubble(count: Int) {
     ) {
         Text(
             "$count Selected",
-            color = TextWhite,
-            fontSize = 12.sp,
+            color = DesignTokens.Color.Ink,
+            fontSize = DesignTokens.Typography.Caption,
             fontWeight = FontWeight.SemiBold
         )
     }
@@ -977,7 +994,7 @@ private fun DayHeader(day: String) {
             .padding(top = 14.dp, bottom = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(day, color = TextGrey, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+        Text(day, color = DesignTokens.Color.Ink.copy(alpha = 0.6f), fontSize = DesignTokens.Typography.Caption, fontWeight = FontWeight.SemiBold)
         Spacer(modifier = Modifier.width(10.dp))
         Box(
             modifier = Modifier
@@ -988,29 +1005,18 @@ private fun DayHeader(day: String) {
     }
 }
 
+/** Stage 52 — glass filter pill: active reads Brand.Primary on Ink, inactive is transparent. */
 @Composable
-private fun FilterChip(label: String, selected: Boolean, onClick: () -> Unit) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val shape = RoundedCornerShape(14.dp)
-    Box(
-        modifier = Modifier
-            .pressScale(interactionSource)
-            .clip(shape)
-            .background(if (selected) AccentBlue else Bubble)
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick
-            )
-            // Stage 9 — medium pills: 14h/10v sits between the old large
-            // (18/12) and the tiny (12/8); 13sp label keeps "Dennis K. Wachira"
-            // rows + chips on one visual register.
-            .padding(horizontal = 14.dp, vertical = 10.dp)
+private fun FilterPill(label: String, selected: Boolean, onClick: () -> Unit) {
+    GlassPill(
+        fill = if (selected) DesignTokens.Color.Brand.Primary else Color.Transparent,
+        pressScale = 1.05f,
+        onClick = onClick
     ) {
         Text(
             label,
-            color = if (selected) TextWhite else TextGrey,
-            fontSize = 13.sp,
+            color = if (selected) DesignTokens.Color.Ink else DesignTokens.Color.Obsidian.Ink.copy(alpha = 0.6f),
+            fontSize = BingwaType.Label,
             fontWeight = FontWeight.SemiBold
         )
     }
@@ -1037,22 +1043,13 @@ private fun TransactionSkeleton() {
     }
 }
 
-/**
- * POLISH P3 — one fixed row height, so ticking never reflows the list.
- *
- * U3 — right-sized: 45dp is ~30% shorter than the old 64dp box. A ledger row is
- * a glance, not a card, and the extra 19dp bought nothing but fewer rows on screen.
- */
-private val ROW_HEIGHT = 45.dp
+/** Stage 52 — one fixed row height, so ticking never reflows the list. */
+private val ROW_HEIGHT = 88.dp
 
-/** U3 — the row's leading status avatar. 36dp fits the compact row with breathing room. */
-private val ROW_AVATAR = 36.dp
+/** U3 — the row's leading status avatar. 40dp fits the premium row. */
+private val ROW_AVATAR = 40.dp
 
-/**
- * POLISH P3 — the 200ms spring behind the tick morph. Stiff enough to land in
- * about two frames' worth of perceived time, soft enough that the tick reads as
- * a click rather than a snap.
- */
+/** Stage 52 — the 200ms spring behind the tick morph. */
 private val MORPH_SPRING = spring<Float>(dampingRatio = 0.78f, stiffness = 900f)
 
 /** The same spring for the row wash, which animates a colour rather than a float. */
@@ -1060,14 +1057,14 @@ private val MORPH_SPRING_COLOR =
     spring<androidx.compose.ui.graphics.Color>(dampingRatio = 0.78f, stiffness = 900f)
 
 /**
- * One transaction row.
+ * Stage 52 — one transaction row. A GlassCard with a glowing status avatar:
  *
- * POLISH P3 — the row is a **fixed 64dp box**. Ticking a row used to push the
- * text sideways and the list down as the check slid in, because the check was
- * taking part in layout. It no longer does: the leading slot is always the same
- * size, and only the bars inside it animate — a 200ms spring on the tick and on
- * the wash. Scrolling a list while ticking rows is now visually still, which is
- * the whole point of a ledger.
+ * - Success: green circle with a checkmark and a soft green glow
+ * - Failed: red circle with an X and a soft red glow
+ * - Queued: blue circle with a clock, pulsing 1.0f -> 1.1f forever
+ *
+ * Amounts render in Headline: Success green for positive amounts, Error red for
+ * failed or negative amounts.
  */
 @Composable
 private fun TransactionRow(
@@ -1077,7 +1074,22 @@ private fun TransactionRow(
     onClick: () -> Unit,
     onLongClick: () -> Unit
 ) {
-    val statusColor = StatusColors.color(transaction.status)
+    val status = transaction.status
+    val isFailed = status == TransactionStatus.FAILED.value || status == TransactionStatus.FAILED_ALREADY_RECOMMENDED.value
+    val isQueued = status == TransactionStatus.PENDING.value || status == TransactionStatus.PROCESSING.value
+    val statusColor = when {
+        status == TransactionStatus.SUCCESSFUL.value -> DesignTokens.Color.Brand.Success
+        isFailed -> DesignTokens.Color.Brand.Error
+        isQueued || status == TransactionStatus.SCHEDULED.value -> DesignTokens.Color.Brand.Primary
+        else -> DesignTokens.Color.Ink.copy(alpha = 0.5f)
+    }
+    val statusIcon = when {
+        status == TransactionStatus.SUCCESSFUL.value -> Icons.Rounded.CheckCircle
+        isFailed -> Icons.Rounded.Close
+        isQueued || status == TransactionStatus.SCHEDULED.value -> Icons.Rounded.HourglassTop
+        else -> Icons.AutoMirrored.Rounded.HelpOutline
+    }
+
     val checkIn by animateFloatAsState(
         targetValue = if (selecting) 1f else 0f,
         animationSpec = MORPH_SPRING,
@@ -1094,97 +1106,130 @@ private fun TransactionRow(
         label = "rowFill"
     )
 
-    Row(
+    val amountColor = if (isFailed || transaction.amount < 0) DesignTokens.Color.Brand.Error else DesignTokens.Color.Brand.Success
+
+    val pulseTarget = if (isQueued) 1.1f else 1f
+    val pulse by animateFloatAsState(
+        targetValue = pulseTarget,
+            animationSpec =             repeatable(
+                animation = tween(DesignTokens.Motion.DurationNormal.toInt()),
+            repeatMode = RepeatMode.Reverse,
+            iterations = Int.MAX_VALUE
+        ),
+        label = "TransactionRowPulse"
+    )
+
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val pressAnim by animateFloatAsState(
+        targetValue = if (isPressed) 0.98f else 1f,
+        animationSpec = spring(
+            stiffness = DesignTokens.Motion.SpringStiffness,
+            dampingRatio = DesignTokens.Motion.SpringDamping
+        ),
+        label = "TransactionRowPress"
+    )
+
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(ROW_HEIGHT)
-            .clip(RoundedCornerShape(16.dp))
-            .background(rowFill)
-            .pointerInput(selecting, selected) {
-                // One gesture, one outcome: detectTapGestures consumes the long
-                // press, so a tick can never also be read as a tap.
-                detectTapGestures(
-                    onTap = { onClick() },
-                    onLongPress = { onLongClick() }
-                )
-            }
-            .padding(horizontal = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .graphicsLayer { scaleX = pressAnim; scaleY = pressAnim }
+            .combinedClickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick,
+                onLongClick = onLongClick
+            ),
+        contentAlignment = Alignment.Center
     ) {
-        // Fixed-size slot: the tick slides and scales inside it, never resizes it.
-        Box(
-            modifier = Modifier
-                .size(24.dp)
-                .graphicsLayer {
-                    alpha = checkIn
-                    scaleX = 0.6f + 0.4f * tick
-                    scaleY = 0.6f + 0.4f * tick
-                },
-            contentAlignment = Alignment.Center
+        GlassCard(
+            modifier = Modifier.fillMaxWidth()
         ) {
-            Icon(
-                imageVector = Icons.Rounded.CheckCircle,
-                contentDescription = null,
-                tint = if (selected) TickGreen else TextDim,
-                modifier = Modifier.size(22.dp)
-            )
-        }
+            Box(modifier = Modifier.fillMaxSize().background(rowFill)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    // Fixed-size slot: the tick slides and scales inside it.
+                    Box(
+                        modifier = Modifier
+                            .size(24.dp)
+                            .graphicsLayer {
+                                alpha = checkIn
+                                scaleX = 0.6f + 0.4f * tick
+                                scaleY = 0.6f + 0.4f * tick
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.CheckCircle,
+                            contentDescription = null,
+                            tint = DesignTokens.Color.Brand.Success,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
 
-        Spacer(modifier = Modifier.width(10.dp))
+                    Spacer(modifier = Modifier.width(10.dp))
 
-        // U3 — 36dp status avatar: a tinted disc behind the status glyph, which
-        // reads at a glance in a 45dp row where a bare 22dp icon got lost.
-        Box(
-            modifier = Modifier
-                .size(ROW_AVATAR)
-                .clip(CircleShape)
-                .background(statusColor.copy(alpha = 0.12f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = StatusColors.icon(transaction.status),
-                contentDescription = null,
-                tint = statusColor,
-                modifier = Modifier.size(18.dp)
-            )
-        }
+                    // Glowing status avatar: a soft status-coloured disc behind a solid disc.
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(CircleShape)
+                            .background(statusColor.copy(alpha = 0.2f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(ROW_AVATAR)
+                                .clip(CircleShape)
+                                .background(statusColor)
+                                .graphicsLayer { scaleX = pulse; scaleY = pulse }
+                        ) {
+                            Icon(
+                                imageVector = statusIcon,
+                                contentDescription = null,
+                                tint = DesignTokens.Color.Ink,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
 
-        Spacer(modifier = Modifier.width(12.dp))
+                    Spacer(modifier = Modifier.width(12.dp))
 
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                // U5 — one formatter: M-Pesa casing never reaches the ledger.
-                formatCustomerName(transaction.customerName)
-                    .ifBlank { transaction.phoneNumber },
-                color = TextWhite,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Text(
-                "${transaction.offerName} · ${relativeTime(transaction.createdAt)}",
-                color = TextGrey,
-                fontSize = 12.sp,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            formatCustomerName(transaction.customerName).ifBlank { transaction.phoneNumber },
+                            color = DesignTokens.Color.Ink,
+                            fontSize = BingwaType.Label,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            "${transaction.offerName} · ${relativeTime(transaction.createdAt)}",
+                            color = DesignTokens.Color.Ink.copy(alpha = 0.6f),
+                            fontSize = DesignTokens.Typography.Caption,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
 
-        Spacer(modifier = Modifier.width(10.dp))
+                    Spacer(modifier = Modifier.width(10.dp))
 
-        Column(horizontalAlignment = Alignment.End) {
-            Text(
-                "Ksh ${money(transaction.amount)}",
-                color = TextWhite,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                StatusColors.label(transaction.status),
-                color = statusColor,
-                fontSize = 11.sp
-            )
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text(
+                            "Ksh ${money(transaction.amount)}",
+                            color = amountColor,
+                            fontSize = DesignTokens.Typography.Headline,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            StatusColors.label(transaction.status),
+                            color = statusColor,
+                            fontSize = DesignTokens.Typography.Caption
+                        )
+                    }
+                }
+            }
         }
     }
 }

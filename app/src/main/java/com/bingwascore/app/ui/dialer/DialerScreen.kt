@@ -1,12 +1,14 @@
 package com.bingwascore.app.ui.dialer
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,33 +24,34 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Backspace
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.rounded.Inbox
-import androidx.compose.material.icons.rounded.Phone
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -56,28 +59,29 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bingwascore.app.data.local.Offer
 import com.bingwascore.app.domain.engine.UssdConsoleLine
 import com.bingwascore.app.domain.engine.UssdSessionEngine
-import com.bingwascore.app.ui.components.PrimaryButton
-import com.bingwascore.app.ui.components.pressScale
+import com.bingwascore.app.ui.components.GlassCard
+import com.bingwascore.app.ui.components.GlassPill
+import com.bingwascore.app.ui.theme.BingwaType
+import com.bingwascore.app.ui.theme.DesignTokens
+import com.bingwascore.app.ui.theme.BgBlack
+import com.bingwascore.app.ui.theme.Bubble
+import com.bingwascore.app.ui.theme.Motion
 import com.bingwascore.app.util.rememberHaptics
 import com.bingwascore.app.util.screenEnter
 import kotlinx.coroutines.delay
-import com.bingwascore.app.ui.theme.Hairline
-import com.bingwascore.app.ui.theme.Bubble
-import com.bingwascore.app.ui.theme.AccentBlue
-import com.bingwascore.app.ui.theme.TickGreen
-import com.bingwascore.app.ui.theme.accentBrush
-import com.bingwascore.app.ui.theme.FailRed
-import com.bingwascore.app.ui.theme.BgBlack
-import com.bingwascore.app.ui.theme.TextGrey
-import com.bingwascore.app.ui.theme.TextFaint
-import com.bingwascore.app.ui.theme.TextWhite
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import android.Manifest
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions
+import androidx.core.content.ContextCompat
 
 /**
- * Stage 19.7 — the PURE dialer surface.
+ * Stage 52 — the PURE quick dial surface: tactile POS terminal.
  *
- * The number field, the offer chips, the live dial string and the session log
- * all read from here; the permission launcher and the ViewModel live in the
- * wrapper.
+ * A digit-only keypad (no system keyboard), glass bundle cards, a massive Dial
+ * Now button and a glass session log. The ViewModel, Hilt wiring, permissions
+ * and data fetching are untouched — only UI composition changed.
  */
 data class DialerScreenState(
     val offers: List<Offer> = emptyList(),
@@ -91,7 +95,7 @@ data class DialerScreenState(
     val consoleOpen: Boolean = false
 )
 
-/** Stage 19.7 — every dialer side effect as a plain callback. */
+/** Stage 52 — every dialer side effect as a plain callback. */
 data class DialerScreenCallbacks(
     val onClose: () -> Unit = {},
     val onPhoneChange: (String) -> Unit = {},
@@ -119,8 +123,8 @@ fun DialerScreen(onClose: () -> Unit, viewModel: DialerViewModel = hiltViewModel
 
     // REBRAND R5 — the dial cannot work without these, so we ask up front instead
     // of letting a service fail silently in the background.
-    val permissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
-        androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()
+    val permissionLauncher = rememberLauncherForActivityResult(
+        RequestMultiplePermissions()
     ) { granted -> granted.values.forEach { if (it) haptics.tick() } }
 
     LaunchedEffect(Unit) {
@@ -129,8 +133,8 @@ fun DialerScreen(onClose: () -> Unit, viewModel: DialerViewModel = hiltViewModel
             haptics.error()
             permissionLauncher.launch(
                 arrayOf(
-                    android.Manifest.permission.CALL_PHONE,
-                    android.Manifest.permission.READ_PHONE_STATE
+                    Manifest.permission.CALL_PHONE,
+                    Manifest.permission.READ_PHONE_STATE
                 )
             )
         }
@@ -180,8 +184,8 @@ fun DialerScreen(onClose: () -> Unit, viewModel: DialerViewModel = hiltViewModel
         onRequestPermissions = {
             permissionLauncher.launch(
                 arrayOf(
-                    android.Manifest.permission.CALL_PHONE,
-                    android.Manifest.permission.READ_PHONE_STATE
+                    Manifest.permission.CALL_PHONE,
+                    Manifest.permission.READ_PHONE_STATE
                 )
             )
         },
@@ -192,10 +196,12 @@ fun DialerScreen(onClose: () -> Unit, viewModel: DialerViewModel = hiltViewModel
 }
 
 /**
- * Stage 19.7 — the pure dialer body.
+ * Stage 52 — the pure dialer body: phone display, tactile keypad, glass bundle
+ * cards, the Dial Now button and the session log.
  *
  * Nothing here touches a ViewModel, an Activity or a lifecycle: the state comes
- * in, the callbacks go out.
+ * in, the callbacks go out. No system keyboard ever rises — digits are entered
+ * through [TactileKeypad] only.
  */
 @Composable
 fun DialerScreenContent(
@@ -214,11 +220,16 @@ fun DialerScreenContent(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
-                Text("Quick dial", color = TextWhite, fontSize = 22.sp, fontWeight = FontWeight.Bold)
                 Text(
-                    "Dial a bundle straight from the app",
-                    color = TextWhite.copy(alpha = 0.5f),
-                    fontSize = 12.sp
+                    "Quick dial",
+                    color = DesignTokens.Color.Ink,
+                    fontSize = DesignTokens.Typography.Headline,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    "Dial a bundle straight from the terminal",
+                    color = DesignTokens.Color.Ink.copy(alpha = 0.6f),
+                    fontSize = DesignTokens.Typography.Caption
                 )
             }
             Box(
@@ -230,22 +241,46 @@ fun DialerScreenContent(
                 Icon(
                     imageVector = Icons.Rounded.Close,
                     contentDescription = "Close dialer",
-                    tint = TextWhite.copy(alpha = 0.7f),
+                    tint = DesignTokens.Color.Ink.copy(alpha = 0.7f),
                     modifier = Modifier.size(22.dp)
                 )
             }
         }
 
         Spacer(modifier = Modifier.height(24.dp))
-        GlassPhoneField(
-            value = state.phone,
-            onValueChange = callbacks.onPhoneChange,
-            // Parity E — normalise to 07XXXXXXXX the moment the field blurs.
-            onBlur = callbacks.onPhoneBlur
+
+        // ── Phone input: glass display + tactile keypad, no system keyboard ──
+        Text(
+            "Phone number",
+            color = DesignTokens.Color.Ink.copy(alpha = 0.6f),
+            fontSize = DesignTokens.Typography.Caption
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+
+        val display = formatPhoneDisplay(state.phone)
+        GlassCard(
+            modifier = Modifier.fillMaxWidth().height(80.dp)
+        ) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(
+                    text = if (display.isNotBlank()) display else "07XX XXX XXX",
+                    color = if (display.isNotBlank()) DesignTokens.Color.Ink else DesignTokens.Color.Ink.copy(alpha = 0.35f),
+                    fontSize = DesignTokens.Typography.Display,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+        TactileKeypad(
+            phone = state.phone,
+            onDigit = { callbacks.onPhoneChange(state.phone + it) },
+            onBackspace = { callbacks.onPhoneChange(state.phone.dropLast(1)) }
         )
 
-        Spacer(modifier = Modifier.height(22.dp))
-        Text("Active offers", color = TextWhite.copy(alpha = 0.5f), fontSize = 12.sp)
+        Spacer(modifier = Modifier.height(24.dp))
+        Text("Active offers", color = DesignTokens.Color.Ink.copy(alpha = 0.6f), fontSize = DesignTokens.Typography.Caption)
         Spacer(modifier = Modifier.height(10.dp))
 
         if (state.offers.isEmpty()) {
@@ -253,20 +288,20 @@ fun DialerScreenContent(
                 Icon(
                     imageVector = Icons.Rounded.Inbox,
                     contentDescription = null,
-                    tint = TextFaint,
+                    tint = DesignTokens.Color.Ink.copy(alpha = 0.4f),
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     "No active offers yet — add one in the Offers tab.",
-                    color = TextFaint,
-                    fontSize = 13.sp
+                    color = DesignTokens.Color.Ink.copy(alpha = 0.6f),
+                    fontSize = DesignTokens.Typography.Body
                 )
             }
         } else {
             LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 items(state.offers, key = { it.id }) { offer ->
-                    OfferChip(
+                    OfferCard(
                         offer = offer,
                         selected = offer.id == selectedOffer?.id,
                         onClick = { callbacks.onSelectOffer(offer) }
@@ -275,7 +310,7 @@ fun DialerScreenContent(
             }
         }
 
-        Spacer(modifier = Modifier.weight(1f))
+        Spacer(modifier = Modifier.height(24.dp))
 
         if (state.phone.isNotBlank() && selectedOffer != null) {
             // U1 — live dial truth: the real dial string, split on '*', each
@@ -284,31 +319,30 @@ fun DialerScreenContent(
                 code = UssdSessionEngine.generateDialString(selectedOffer.ussdCode, state.phone),
                 dialing = state.isDialing
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(16.dp))
         }
 
         state.feedback?.let { value ->
             Text(
-                value.message,
-                color = if (value.isError) FailRed else TickGreen,
-                fontSize = 13.sp
+                text = value.message,
+                color = if (value.isError) DesignTokens.Color.Brand.Error else DesignTokens.Color.Brand.Success,
+                fontSize = DesignTokens.Typography.Caption,
+                fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(12.dp))
         }
 
-        PrimaryButton(
-            text = "Dial Now",
+        DialNowButton(
             enabled = state.phone.isNotBlank() && selectedOffer != null,
             loading = state.isDialing,
-            loadingText = "Dialing...",
             onClick = callbacks.onDialNow
         )
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(16.dp))
         // Stage 9 — collapsible on-screen USSD session console: live step log
         // (code sent, response text, next input, escalation) so every stall
         // is visible without logcat.
-        UssdSessionConsole(
+        SessionLog(
             lines = state.consoleLines,
             open = state.consoleOpen,
             onToggle = callbacks.onToggleConsole
@@ -319,11 +353,11 @@ fun DialerScreenContent(
     // operator's exact reply, because "it failed" without the carrier's wording
     // is the one thing an agent cannot take to Safaricom support.
     state.result?.let { outcome ->
-        androidx.compose.material3.AlertDialog(
+        AlertDialog(
             onDismissRequest = callbacks.onConsumeResult,
             containerColor = Bubble,
-            titleContentColor = TextWhite,
-            textContentColor = TextGrey,
+            titleContentColor = DesignTokens.Color.Ink,
+            textContentColor = DesignTokens.Color.Ink.copy(alpha = 0.7f),
             title = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
@@ -333,15 +367,15 @@ fun DialerScreenContent(
                             Icons.Rounded.ErrorOutline
                         },
                         contentDescription = null,
-                        tint = if (outcome.successful) TickGreen else FailRed,
+                        tint = if (outcome.successful) DesignTokens.Color.Brand.Success else DesignTokens.Color.Brand.Error,
                         modifier = Modifier.size(22.dp)
                     )
                     Spacer(modifier = Modifier.width(10.dp))
                     Text(
                         if (outcome.successful) "Dial successful" else "Dial failed",
-                        color = TextWhite,
+                        color = DesignTokens.Color.Ink,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 17.sp
+                        fontSize = BingwaType.Label
                     )
                 }
             },
@@ -349,25 +383,310 @@ fun DialerScreenContent(
                 Text(
                     text = outcome.response?.takeIf { it.isNotBlank() }
                         ?: "Safaricom did not return a message for this dial.",
-                    color = TextGrey,
-                    fontSize = 13.sp
+                    color = DesignTokens.Color.Ink.copy(alpha = 0.7f),
+                    fontSize = DesignTokens.Typography.Caption
                 )
             },
             confirmButton = {
-                androidx.compose.material3.TextButton(onClick = callbacks.onConsumeResult) {
-                    Text("Done", color = AccentBlue, fontWeight = FontWeight.Bold)
+                TextButton(onClick = callbacks.onConsumeResult) {
+                    Text(
+                        "Done",
+                        color = DesignTokens.Color.Brand.Primary,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = BingwaType.Label
+                    )
                 }
             }
         )
     }
 }
 
+/** Formats digits for the terminal display: 07XX XXX XXX. */
+private fun formatPhoneDisplay(digits: String): String {
+    val d = digits.filter { it.isDigit() }
+    return when {
+        d.isEmpty() -> ""
+        d.length <= 2 -> d
+        d.length <= 5 -> "${d.substring(0, 2)} ${d.substring(2)}"
+        d.length <= 8 -> "${d.substring(0, 2)} ${d.substring(2, 5)} ${d.substring(5)}"
+        else -> "${d.substring(0, 2)} ${d.substring(2, 5)} ${d.substring(5, 8)} ${d.substring(8)}"
+    }
+}
+
+/** Stage 52 — the tactile keypad: 3x4 grid of pressable keys, no system keyboard. */
+@Composable
+private fun TactileKeypad(
+    phone: String,
+    onDigit: (String) -> Unit,
+    onBackspace: () -> Unit
+) {
+    val keys = listOf(
+        KeySpec("1"), KeySpec("2"), KeySpec("3"),
+        KeySpec("4"), KeySpec("5"), KeySpec("6"),
+        KeySpec("7"), KeySpec("8"), KeySpec("9"),
+        KeySpec("", icon = Icons.Rounded.Backspace, onClick = onBackspace),
+        KeySpec("0"),
+        KeySpec("")
+    )
+
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        repeat(4) { rowIndex ->
+            Row(
+                modifier = Modifier.size(KeypadGrid),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                repeat(3) { colIndex ->
+                    val spec = keys[rowIndex * 3 + colIndex]
+                    TactileKey(
+                        label = spec.label,
+                        icon = spec.icon,
+                        enabled = spec.label.isNotBlank() || spec.icon != null,
+                        onClick = spec.onClick
+                    )
+                }
+            }
+            if (rowIndex < 3) Spacer(modifier = Modifier.height(12.dp))
+        }
+    }
+}
+
+private val KeypadGrid: Dp = 216.dp // 3 x 64dp keys + 2 x 12dp gaps
+
+private data class KeySpec(
+    val label: String = "",
+    val icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
+    val onClick: () -> Unit = {}
+)
+
+/** One tactile key: 64dp circle, springs to 0.95 on press with a haptic LongPress. */
+@Composable
+private fun TactileKey(
+    label: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector?,
+    enabled: Boolean = true,
+    onClick: () -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed && enabled) 0.95f else 1f,
+        animationSpec = spring(
+            stiffness = DesignTokens.Motion.SpringStiffness,
+            dampingRatio = DesignTokens.Motion.SpringDamping
+        ),
+        label = "TactileKeyScale"
+    )
+    val hapticFeedback = LocalHapticFeedback.current
+
+    Box(
+        modifier = Modifier
+            .size(64.dp)
+            .clip(CircleShape)
+            .background(DesignTokens.Color.Card)
+            .border(1.dp, DesignTokens.Color.Border, CircleShape)
+            .graphicsLayer { scaleX = scale; scaleY = scale }
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                enabled = enabled,
+                onClick = {
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onClick()
+                }
+            )
+    ) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            if (icon != null) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = DesignTokens.Color.Ink,
+                    modifier = Modifier.size(24.dp)
+                )
+            } else {
+                Text(
+                    text = label,
+                    color = DesignTokens.Color.Ink,
+                    fontSize = BingwaType.Label,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
+    }
+}
+
+/** Stage 52 — glass bundle card: active tints Brand.Primary, inactive reads the hairline. */
+@Composable
+private fun OfferCard(offer: Offer, selected: Boolean, onClick: () -> Unit) {
+    GlassPill(
+        shape = RoundedCornerShape(DesignTokens.Shape.RadiusMd),
+        fill = if (selected) DesignTokens.Color.Brand.Primary.copy(alpha = 0.1f) else Color.Transparent,
+        borderWidth = if (selected) 2.dp else 1.dp,
+        borderColor = if (selected) DesignTokens.Color.Brand.Primary else DesignTokens.Color.Obsidian.Border.copy(alpha = 0.2f),
+        baseScale = if (selected) 1.02f else 1f,
+        pressScale = 0.98f,
+        onClick = onClick
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = offer.name,
+                color = if (selected) DesignTokens.Color.Ink else DesignTokens.Color.Ink.copy(alpha = 0.9f),
+                fontSize = BingwaType.Label,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = "Ksh ${offer.price}",
+                color = if (selected) DesignTokens.Color.Ink.copy(alpha = 0.8f) else DesignTokens.Color.Ink.copy(alpha = 0.5f),
+                fontSize = DesignTokens.Typography.Caption
+            )
+        }
+    }
+}
+
+/**
+ * Stage 52 — the massive Dial Now CTA: full-width button that presses to 0.98,
+ * shifts Brand.Primary -> Brand.DimAccent and fires an intense haptic.
+ */
+@Composable
+private fun DialNowButton(
+    enabled: Boolean,
+    loading: Boolean,
+    onClick: () -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed && enabled) 0.98f else 1f,
+        animationSpec = spring(
+            stiffness = DesignTokens.Motion.SpringStiffness,
+            dampingRatio = DesignTokens.Motion.SpringDamping
+        ),
+        label = "DialNowScale"
+    )
+    val fill by animateColorAsState(
+        targetValue = if (isPressed && enabled) DesignTokens.Color.Brand.DimAccent else DesignTokens.Color.Brand.Primary,
+        animationSpec = tween(DesignTokens.Motion.DurationFast.toInt()),
+        label = "DialNowFill"
+    )
+    val hapticFeedback = LocalHapticFeedback.current
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(64.dp)
+            .clip(RoundedCornerShape(DesignTokens.Shape.RadiusLg))
+            .background(if (enabled) fill else DesignTokens.Color.Brand.Primary.copy(alpha = 0.5f))
+            .graphicsLayer { scaleX = scale; scaleY = scale }
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                enabled = enabled && !loading,
+                onClick = {
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onClick()
+                }
+            )
+    ) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text(
+                text = if (loading) "Dialing…" else "Dial Now",
+                color = DesignTokens.Color.Ink,
+                fontSize = DesignTokens.Typography.Headline,
+                fontWeight = FontWeight.Bold
+            )
+        }
+    }
+}
+
+/**
+ * Stage 52 — the session log glass card: real-time dialing steps in monospace
+ * Caption, fading in with [animateFloatAsState].
+ */
+@Composable
+private fun SessionLog(
+    lines: List<UssdConsoleLine>,
+    open: Boolean,
+    onToggle: () -> Unit
+) {
+    val logAlpha by animateFloatAsState(
+        targetValue = if (open) 1f else 0f,
+        animationSpec = tween(DesignTokens.Motion.DurationNormal.toInt()),
+        label = "SessionLogAlpha"
+    )
+
+    GlassCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .graphicsLayer { alpha = logAlpha }
+            .clickable(onClick = onToggle)
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = "Session log",
+                    color = DesignTokens.Color.Ink,
+                    fontSize = BingwaType.Label,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.weight(1f)
+                )
+                Text(
+                    text = if (lines.isEmpty()) "idle" else "${lines.size} steps",
+                    color = DesignTokens.Color.Ink.copy(alpha = 0.6f),
+                    fontSize = DesignTokens.Typography.Caption
+                )
+                Text(
+                    text = if (open) "▾" else "▸",
+                    color = DesignTokens.Color.Ink.copy(alpha = 0.6f),
+                    fontSize = DesignTokens.Typography.Caption
+                )
+            }
+            if (open && lines.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(10.dp))
+                Column {
+                    lines.forEach { line ->
+                        Row(modifier = Modifier.padding(vertical = 2.dp)) {
+                            Text(
+                                text = "[${line.kind}] ",
+                                color = when (line.kind) {
+                                    "escalation" -> DesignTokens.Color.Brand.Error
+                                    "input" -> DesignTokens.Color.Brand.Primary
+                                    else -> DesignTokens.Color.Brand.Success
+                                },
+                                fontSize = DesignTokens.Typography.Caption,
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = FontFamily.Monospace
+                            )
+                            Text(
+                                text = line.text,
+                                color = DesignTokens.Color.Ink.copy(alpha = 0.7f),
+                                fontSize = DesignTokens.Typography.Caption,
+                                fontFamily = FontFamily.Monospace,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+                }
+            } else if (open) {
+                Text(
+                    text = "No session yet — dial to watch each step land here.",
+                    color = DesignTokens.Color.Ink.copy(alpha = 0.6f),
+                    fontSize = DesignTokens.Typography.Caption
+                )
+            }
+        }
+    }
+}
+
 /**
  * U1 — the dial string as it is actually being dialled: split on `*`, every
- * segment rendered. Idle: all white. Dialing: segments turn accent one at a
- * time left-to-right (the `180` in `*180*...` reads white the instant it is
- * in flight), then all settle to accent. The green status line below it is
- * unchanged — this row is truth, not decoration.
+ * segment rendered. Idle: all ink. Dialing: segments turn accent one at a
+ * time left-to-right, then all settle to accent.
  */
 @Composable
 private fun DialSegments(code: String, dialing: Boolean) {
@@ -379,8 +698,6 @@ private fun DialSegments(code: String, dialing: Boolean) {
         if (!dialing) {
             progress = -1
         } else {
-            // Walk the segments at a steady clip; the dial itself decides when
-            // it ends — this only mirrors "where are we in the string".
             for (i in segments.indices) {
                 progress = i
                 delay(U1_SEGMENT_STEP_MILLIS)
@@ -395,13 +712,13 @@ private fun DialSegments(code: String, dialing: Boolean) {
     ) {
         segments.forEachIndexed { index, segment ->
             if (index > 0) {
-                Text("*", color = TextFaint, fontSize = 12.sp)
+                Text("*", color = DesignTokens.Color.Ink.copy(alpha = 0.3f), fontSize = 12.sp)
             }
             val color = when {
-                !dialing -> TextWhite
-                index < progress -> AccentBlue
-                index == progress -> TextWhite
-                else -> TextFaint
+                !dialing -> DesignTokens.Color.Ink
+                index < progress -> DesignTokens.Color.Brand.Primary
+                index == progress -> DesignTokens.Color.Ink
+                else -> DesignTokens.Color.Ink.copy(alpha = 0.4f)
             }
             Text(
                 text = segment,
@@ -415,183 +732,3 @@ private fun DialSegments(code: String, dialing: Boolean) {
 
 /** U1 — cadence of the segment walk (visual only; the verdict is the engine's). */
 private const val U1_SEGMENT_STEP_MILLIS = 260L
-
-@Composable
-private fun GlassPhoneField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    onBlur: () -> Unit = {}
-) {
-    val shape = RoundedCornerShape(18.dp)
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(shape)
-            .background(Bubble)
-            .border(1.dp, Brush.verticalGradient(listOf(Hairline, Color.Transparent)), shape)
-            .padding(horizontal = 16.dp, vertical = 18.dp)
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = Icons.Rounded.Phone,
-                contentDescription = null,
-                tint = TextFaint,
-                modifier = Modifier.size(22.dp)
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            Box(modifier = Modifier.weight(1f)) {
-                BasicTextField(
-                    value = value,
-                    onValueChange = onValueChange,
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-                    textStyle = TextStyle(
-                        color = TextWhite,
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        letterSpacing = 1.sp
-                    ),
-                    cursorBrush = SolidColor(AccentBlue),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .onFocusChanged { focusState -> if (!focusState.isFocused) onBlur() }
-                )
-                if (value.isEmpty()) {
-                    Text(
-                        "07XX XXX XXX",
-                        color = TextFaint,
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun OfferChip(offer: Offer, selected: Boolean, onClick: () -> Unit) {
-    val shape = RoundedCornerShape(16.dp)
-    val interactionSource = remember { MutableInteractionSource() }
-    val base = if (selected) {
-        Modifier
-            .clip(shape)
-            .pressScale(interactionSource)
-            .background(accentBrush())
-    } else {
-        Modifier
-            .clip(shape)
-            .pressScale(interactionSource)
-            .background(Bubble)
-            .border(1.dp, Hairline, shape)
-    }
-    Column(
-        modifier = base
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick
-            )
-            .padding(horizontal = 14.dp, vertical = 10.dp)
-    ) {
-        Text(
-            offer.name,
-            color = if (selected) BgBlack else TextWhite,
-            fontSize = 13.sp,
-            fontWeight = FontWeight.SemiBold
-        )
-        Spacer(modifier = Modifier.height(2.dp))
-        Text(
-            "Ksh ${offer.price}",
-            color = if (selected) BgBlack.copy(alpha = 0.7f) else TextWhite.copy(alpha = 0.5f),
-            fontSize = 11.sp
-        )
-    }
-}
-
-/**
- * Stage 9 — collapsible on-screen USSD session console.
- *
- * Header always visible ("Session log", line count chevron); body expands
- * with [AnimatedVisibility] listing code sent / response / next input /
- * escalation lines, newest last. Empty state names the idle truth.
- */
-@Composable
-private fun UssdSessionConsole(
-    lines: List<UssdConsoleLine>,
-    open: Boolean,
-    onToggle: () -> Unit
-) {
-    val shape = RoundedCornerShape(14.dp)
-    val interaction = remember { MutableInteractionSource() }
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(shape)
-            .background(Bubble)
-            .border(1.dp, Hairline, shape)
-            .clickable(
-                interactionSource = interaction,
-                indication = null,
-                onClick = onToggle
-            )
-            .padding(horizontal = 14.dp, vertical = 12.dp)
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                "Session log",
-                color = TextWhite,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.weight(1f)
-            )
-            Text(
-                if (lines.isEmpty()) "idle" else "${lines.size} steps",
-                color = TextFaint,
-                fontSize = 11.sp
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                if (open) "▾" else "▸",
-                color = TextFaint,
-                fontSize = 13.sp
-            )
-        }
-        AnimatedVisibility(
-            visible = open,
-            enter = expandVertically(),
-            exit = shrinkVertically()
-        ) {
-            Column(modifier = Modifier.padding(top = 10.dp)) {
-                if (lines.isEmpty()) {
-                    Text(
-                        "No session yet — dial to watch each step land here.",
-                        color = TextFaint,
-                        fontSize = 12.sp
-                    )
-                } else {
-                    lines.forEach { line ->
-                        Row(modifier = Modifier.padding(vertical = 2.dp)) {
-                            Text(
-                                "[${line.kind}] ",
-                                color = when (line.kind) {
-                                    "escalation" -> FailRed
-                                    "input" -> AccentBlue
-                                    else -> TickGreen
-                                },
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                line.text,
-                                color = TextGrey,
-                                fontSize = 11.sp,
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
