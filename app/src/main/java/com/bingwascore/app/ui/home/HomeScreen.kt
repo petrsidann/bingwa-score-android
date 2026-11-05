@@ -65,7 +65,6 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bingwascore.app.data.local.Transaction
-import com.bingwascore.app.data.preferences.UserPreferences
 import com.bingwascore.app.domain.EngineState
 import com.bingwascore.app.domain.ThemeMode
 import com.bingwascore.app.domain.TransactionStatus
@@ -170,8 +169,7 @@ fun HomeScreen(
     onOpenTransactions: (statusFilter: String?) -> Unit = {},
     onOpenMyPlan: () -> Unit = {},
     onOpenDiplomatics: () -> Unit = {},
-    viewModel: HomeViewModel = hiltViewModel(),
-    prefs: UserPreferences = hiltViewModel()
+    viewModel: HomeViewModel = hiltViewModel()
 ) {
     // STAGE 19.7 — the wrapper owns every platform binding: the ViewModel, the
     // Activity context, the lifecycle and the permission launcher. The content
@@ -196,7 +194,7 @@ fun HomeScreen(
     // POLISH P2 — greeting, credits and the two Home sheets.
     val greeting by viewModel.greeting.collectAsStateWithLifecycle()
     val creditsLabel by viewModel.creditsLabel.collectAsStateWithLifecycle()
-    val themeMode by prefs.themeMode.collectAsStateWithLifecycle(ThemeMode.PORCELAIN_DIM)
+    val themeMode by viewModel.userPreferences.themeMode.collectAsStateWithLifecycle(ThemeMode.PORCELAIN_DIM)
     var showAutopilot by remember { mutableStateOf(false) }
     var showDiagnostics by remember { mutableStateOf(false) }
 
@@ -282,7 +280,7 @@ fun HomeScreen(
         onAutopilotPause = { viewModel.pauseEngine() },
         onThemeToggle = {
             val next = if (themeMode == ThemeMode.DARK) ThemeMode.PORCELAIN_DIM else ThemeMode.DARK
-            scope.launch { prefs.setThemeMode(next) }
+            scope.launch { viewModel.userPreferences.setThemeMode(next) }
         },
         onCrashBannerTap = { viewModel.startEngine() }
     )
