@@ -40,7 +40,7 @@ import com.bingwascore.app.util.CrashHandler
 class HomeViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val transactionRepository: TransactionRepository,
-    private val userPreferences: UserPreferences,
+    val userPreferences: UserPreferences,
     private val transactionPipeline: TransactionPipeline
 ) : ViewModel() {
 
