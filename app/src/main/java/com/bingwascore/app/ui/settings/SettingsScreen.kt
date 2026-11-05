@@ -1,16 +1,22 @@
 package com.bingwascore.app.ui.settings
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import android.widget.Toast
 import android.content.ClipboardManager
 import android.content.Context
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -26,19 +32,23 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Bolt
+import androidx.compose.material.icons.rounded.Brightness2
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Link
+import androidx.compose.material.icons.rounded.Nightlight
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.PrivacyTip
 import androidx.compose.material.icons.rounded.SaveAlt
 import androidx.compose.material.icons.rounded.SimCard
 import androidx.compose.material.icons.rounded.SystemUpdateAlt
+import androidx.compose.material.icons.rounded.WbSunny
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material.icons.rounded.Science
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -52,9 +62,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -67,28 +82,16 @@ import com.bingwascore.app.domain.AppProcessingMode
 import com.bingwascore.app.domain.ThemeMode
 import com.bingwascore.app.ui.components.BubbleCard
 import com.bingwascore.app.ui.components.ExplanationDialog
+import com.bingwascore.app.ui.components.GlassCard
 import com.bingwascore.app.ui.components.PrimaryButton
 import com.bingwascore.app.ui.components.SecondaryButton
-import com.bingwascore.app.ui.components.statusSwitchColors
+import com.bingwascore.app.ui.theme.DesignTokens
 import com.bingwascore.app.ui.home.ThemeToggle
 import com.bingwascore.app.updates.UpdateDownloader
 import com.bingwascore.app.util.rememberHaptics
 import com.bingwascore.app.util.screenEnter
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
-import com.bingwascore.app.ui.theme.Hairline
-import com.bingwascore.app.ui.theme.Bubble
-import com.bingwascore.app.ui.theme.AccentBlue
-import com.bingwascore.app.ui.theme.TextDim
-import com.bingwascore.app.ui.theme.TextGrey
-import com.bingwascore.app.ui.theme.TickGreen
-import com.bingwascore.app.ui.theme.FailRed
-import com.bingwascore.app.ui.theme.BgBlack
-import com.bingwascore.app.ui.theme.TextFaint
-import com.bingwascore.app.ui.theme.TextWhite
-import com.bingwascore.app.ui.theme.BingwaType
 import com.bingwascore.app.ui.glass.frostedGlass
 import com.bingwascore.app.util.BackupManager
 import com.bingwascore.app.util.CrashHandler
@@ -108,25 +111,252 @@ private enum class SettingsPage(val title: String) {
     SHOWCASE("Showcase Mode")
 }
 
+/**
+ * Stage 51 — premium toggle: transparent track with a 1dp Obsidian border,
+ * sliding thumb (animateDpAsState, SpringStiffness), Brand.Primary active fill
+ * and a Level1 shadow on the thumb when on. Haptic TextHandleMove on toggle.
+ */
+@Composable
+fun PremiumToggle(
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val density = LocalDensity.current
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val haptic = LocalHapticFeedback.current
+
+    val trackWidth = 44.dp
+    val trackHeight = 24.dp
+    val thumbSize = 18.dp
+    val pad = 3.dp
+
+    val thumbX by animateDpAsState(
+        targetValue = if (checked) trackWidth - thumbSize - pad else pad,
+        animationSpec = spring(
+            stiffness = DesignTokens.Motion.SpringStiffness,
+            dampingRatio = DesignTokens.Motion.SpringDamping
+        ),
+        label = "PremiumToggleThumb"
+    )
+    val pressScale by animateFloatAsState(
+        targetValue = if (isPressed) 0.97f else 1f,
+        animationSpec = spring(
+            stiffness = DesignTokens.Motion.SpringStiffness,
+            dampingRatio = DesignTokens.Motion.SpringDamping
+        ),
+        label = "PremiumTogglePress"
+    )
+
+    val radiusPx = with(density) { DesignTokens.Shape.RadiusFull.toPx() }
+    val thumbPx = with(density) { thumbSize.toPx() }
+    val trackHeightPx = with(density) { trackHeight.toPx() }
+    val shadowY = with(density) { DesignTokens.Elevation.Level1.first().offsetY.toPx() }
+    val shadowColor = DesignTokens.Elevation.Level1.first().color
+    val borderColor = DesignTokens.Color.Obsidian.Border.copy(alpha = 0.5f)
+    val trackShape = RoundedCornerShape(DesignTokens.Shape.RadiusFull)
+
+    Box(
+        modifier = modifier
+            .size(trackWidth, trackHeight)
+            .graphicsLayer { scaleX = pressScale; scaleY = pressScale }
+            .border(1.dp, borderColor, trackShape)
+            .clickable(interactionSource = interactionSource, indication = null, onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                onCheckedChange(!checked)
+            })
+            .drawBehind {
+                val fill = if (checked) DesignTokens.Color.Brand.Primary else Color.Transparent
+                drawRoundRect(
+                    brush = SolidColor(fill),
+                    cornerRadius = CornerRadius(radiusPx, radiusPx)
+                )
+            }
+    ) {
+        Box(
+            modifier = Modifier
+                .size(thumbSize, thumbSize)
+                .clip(CircleShape)
+                .background(DesignTokens.Color.Ink)
+                .graphicsLayer {
+                    translationX = with(density) { thumbX.toPx() }
+                    translationY = with(density) { ((trackHeight - thumbSize) / 2).toPx() }
+                }
+                .drawBehind {
+                    if (checked) {
+                        val cx = with(density) { thumbPx / 2f }
+                        val cy = with(density) { thumbPx / 2f + shadowY }
+                        drawCircle(
+                            color = shadowColor.copy(alpha = 0.5f),
+                            center = Offset(cx, cy),
+                            radius = with(density) { thumbPx / 2f }
+                        )
+                    }
+                }
+        )
+    }
+}
+
+/**
+ * Stage 51 — a pressable glass row: springs to 0.98 scale while pressed.
+ */
+@Composable
+private fun PressableGlassRow(
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit = {},
+    content: @Composable RowScope.() -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.98f else 1f,
+        animationSpec = spring(
+            stiffness = DesignTokens.Motion.SpringStiffness,
+            dampingRatio = DesignTokens.Motion.SpringDamping
+        ),
+        label = "SettingsRowPress"
+    )
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
+            .graphicsLayer { scaleX = scale; scaleY = scale }
+    ) {
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, content = content)
+    }
+}
+
+/** Stage 51 — subtle 1dp separator used between rows inside a glass group. */
+@Composable
+private fun GroupSeparator() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp)
+            .height(1.dp)
+            .background(DesignTokens.Color.Obsidian.Border.copy(alpha = 0.1f))
+    )
+}
+
+/** Stage 51 — section label inside a glass group. */
+@Composable
+private fun SectionLabel(label: String) {
+    Text(
+        text = label.uppercase(),
+        color = DesignTokens.Color.Ink.copy(alpha = 0.4f),
+        fontSize = 11.sp,
+        fontWeight = FontWeight.SemiBold,
+        modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp)
+    )
+}
+
+/**
+ * Stage 51 — a labelled on/off row: GlassCard row with a PremiumToggle.
+ */
+@Composable
+private fun SettingsSwitchRow(
+    title: String,
+    subtitle: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    last: Boolean = false
+) {
+    PressableGlassRow(onClick = { onCheckedChange(!checked) }) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(title, color = DesignTokens.Color.Ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+            Text(
+                subtitle,
+                color = DesignTokens.Color.Ink.copy(alpha = 0.5f),
+                fontSize = 11.sp
+            )
+        }
+        Spacer(modifier = Modifier.width(12.dp))
+        PremiumToggle(checked = checked, onCheckedChange = onCheckedChange)
+    }
+    if (!last) GroupSeparator()
+}
+
+/**
+ * Stage 51 — a navigable glass row: icon, title, subtitle, optional trailing,
+ * chevron tinted Obsidian.Ink at 0.4 alpha.
+ */
+@Composable
+private fun SettingsRow(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    trailing: (@Composable () -> Unit)? = null,
+    onClick: () -> Unit,
+    last: Boolean = false
+) {
+    PressableGlassRow(onClick = onClick) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .background(DesignTokens.Color.Brand.Primary.copy(alpha = 0.12f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = DesignTokens.Color.Brand.Primary,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+        Spacer(modifier = Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(title, color = DesignTokens.Color.Ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+            Spacer(modifier = Modifier.height(1.dp))
+            Text(subtitle, color = DesignTokens.Color.Ink.copy(alpha = 0.5f), fontSize = 11.sp)
+        }
+        Spacer(modifier = Modifier.width(8.dp))
+        if (trailing != null) {
+            trailing()
+        } else {
+            Icon(
+                imageVector = Icons.Rounded.ChevronRight,
+                contentDescription = null,
+                tint = DesignTokens.Color.Obsidian.Ink.copy(alpha = 0.4f),
+                modifier = Modifier.size(20.dp)
+            )
+        }
+    }
+    if (!last) GroupSeparator()
+}
+
+/** Stage 51 — the DEV chip used on the Test Drive row. */
+@Composable
+private fun DevChip() {
+    Text(
+        text = "DEV",
+        color = DesignTokens.Color.Ink,
+        fontSize = 10.sp,
+        fontWeight = FontWeight.Bold,
+        modifier = Modifier
+            .clip(CircleShape)
+            .background(DesignTokens.Color.Brand.Primary)
+            .padding(horizontal = 8.dp, vertical = 3.dp)
+    )
+}
+
 /** Settings hub with glass rows plus its own sub-pages. */
 @Composable
 fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
     var currentPage by remember { mutableStateOf<SettingsPage?>(null) }
 
     val showAdvancedExplanation by viewModel.showAdvancedExplanation.collectAsStateWithLifecycle()
-    // Stage 22 — the in-app update check and the dialog that carries its answer.
     val updateState by viewModel.updateState.collectAsStateWithLifecycle()
     val updateUrl by viewModel.updateUrl.collectAsStateWithLifecycle()
     var updateDialogOpen by remember { mutableStateOf(false) }
-    // Crash report (Stage 31): the last uncaught-exception stack, capturable on-phone.
     var crashDialogOpen by remember { mutableStateOf(false) }
     var crashReportText by remember { mutableStateOf<String?>(null) }
-    val context = LocalContext.current    // MEGA A — inbound routing switches.
+    val context = LocalContext.current
     val processMpesaMessages by viewModel.processMpesaMessages.collectAsStateWithLifecycle()
     val processSitelinkMessages by viewModel.processSitelinkMessages.collectAsStateWithLifecycle()
-    // Stage 14 — Customers autosave master switch.
     val customersAutosave by viewModel.customersAutosave.collectAsStateWithLifecycle()
-    // Stage 33 — effective backend URL (DataStore override of BuildConfig.BASE_URL).
+    val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
     val effectiveServerUrl by viewModel.effectiveServerUrl.collectAsStateWithLifecycle()
     if (showAdvancedExplanation) {
         ExplanationDialog(
@@ -137,14 +367,13 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
         )
     }
 
-
     val page = currentPage
     if (page != null) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .screenEnter()
-                .background(BgBlack)
+                .background(DesignTokens.Color.Bg)
         ) {
             PageHeader(title = page.title, onBack = { currentPage = null })
             Column(
@@ -173,7 +402,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
             modifier = Modifier
                 .fillMaxSize()
                 .screenEnter()
-                .background(BgBlack)
+                .background(DesignTokens.Color.Bg)
                 .verticalScroll(rememberScrollState())
         ) {
             Column(
@@ -181,135 +410,176 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp, vertical = 16.dp)
             ) {
-                Text("Settings", color = TextWhite, fontSize = 22.sp, fontWeight = FontWeight.Bold)
                 Text(
-                    "Tune how Bingwa Score behaves",
-                    color = TextWhite.copy(alpha = 0.5f),
-                    fontSize = 12.sp
+                    text = "Settings",
+                    color = DesignTokens.Color.Ink,
+                    fontSize = DesignTokens.Typography.Headline,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Tune how Bingwa Score behaves",
+                    color = DesignTokens.Color.Ink.copy(alpha = 0.5f),
+                    fontSize = DesignTokens.Typography.Caption
                 )
             }
 
-            // MEGA A — inbound message routing switches. Turning M-Pesa off is
-            // the panic switch; SiteLink narrows the engine to one channel.
-            SectionLabel("Message processing")
-            BubbleCard(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
-                SettingsSwitchRow(
-                    title = "Process M-Pesa Messages",
-                    subtitle = "Read inbound M-Pesa payment alerts and auto-dial offers",
-                    checked = processMpesaMessages,
-                    onCheckedChange = viewModel::setProcessMpesaMessages
-                )
-                Spacer(modifier = Modifier.height(10.dp))
-                SettingsSwitchRow(
-                    title = "Process SiteLink Messages",
-                    subtitle = "Handle SiteLink storefront order messages",
-                    checked = processSitelinkMessages,
-                    onCheckedChange = viewModel::setProcessSitelinkMessages
-                )
+            // Message Processing — grouped glass card with PremiumToggle rows.
+            GlassCard(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp)
+            ) {
+                Column {
+                    SectionLabel("Message Processing")
+                    SettingsSwitchRow(
+                        title = "Process M-Pesa Messages",
+                        subtitle = "Read inbound M-Pesa payment alerts and auto-dial offers",
+                        checked = processMpesaMessages,
+                        onCheckedChange = viewModel::setProcessMpesaMessages,
+                        last = false
+                    )
+                    SettingsSwitchRow(
+                        title = "Process SiteLink Messages",
+                        subtitle = "Handle SiteLink storefront order messages",
+                        checked = processSitelinkMessages,
+                        onCheckedChange = viewModel::setProcessSitelinkMessages,
+                        last = true
+                    )
+                }
             }
             Spacer(modifier = Modifier.height(18.dp))
-            // Stage 14 — Customers autosave master switch (default ON).
-            SectionLabel("Customers book")
-            BubbleCard(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
-                SettingsSwitchRow(
-                    title = "Auto-save Customers",
-                    subtitle = "Add every completed bundle's buyer to the Customers book",
-                    checked = customersAutosave,
-                    onCheckedChange = viewModel::setCustomersAutosave
-                )
+
+            // Customers book — grouped glass card.
+            GlassCard(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp)
+            ) {
+                Column {
+                    SectionLabel("Customers Book")
+                    SettingsSwitchRow(
+                        title = "Auto-save Customers",
+                        subtitle = "Add every completed bundle's buyer to the Customers book",
+                        checked = customersAutosave,
+                        onCheckedChange = viewModel::setCustomersAutosave,
+                        last = true
+                    )
+                }
             }
             Spacer(modifier = Modifier.height(18.dp))
-            SettingsRow(
-                icon = Icons.Rounded.Palette,
-                title = "Appearance",
-                subtitle = "Light, dark or follow system",
-                onClick = { currentPage = SettingsPage.APPEARANCE }
-            )
-            SettingsRow(
-                icon = Icons.Rounded.Bolt,
-                title = "Processing Mode",
-                subtitle = "How transactions are executed",
-                onClick = { currentPage = SettingsPage.PROCESSING_MODE }
-            )
-            SettingsRow(
-                icon = Icons.Rounded.SimCard,
-                title = "SIM Selection",
-                subtitle = "Line used for dialing and balance checks",
-                onClick = { currentPage = SettingsPage.SIM_SELECTION }
-            )
-            SettingsRow(
-                icon = Icons.Rounded.Science,
-                title = "Test Drive",
-                subtitle = "Sandbox: simulate an M-Pesa credit, zero real money",
-                trailing = {
-                    DevChip()
-                },
-                onClick = { currentPage = SettingsPage.SIMULATE_PAYMENT }
-            )
 
-            SectionLabel("Server")
-            SettingsRow(
-                icon = Icons.Rounded.Link,
-                title = "Server",
-                subtitle = "Backend base URL — $effectiveServerUrl",
-                onClick = { currentPage = SettingsPage.SERVER }
-            )
+            // Preferences — grouped glass card.
+            GlassCard(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp)
+            ) {
+                Column {
+                    SectionLabel("Preferences")
+                    SettingsRow(
+                        icon = Icons.Rounded.Palette,
+                        title = "Appearance",
+                        subtitle = "Light, dark or follow system",
+                        trailing = {
+                            ThemeIconPreview(isDark = themeMode == ThemeMode.DARK)
+                        },
+                        onClick = { currentPage = SettingsPage.APPEARANCE },
+                        last = false
+                    )
+                    SettingsRow(
+                        icon = Icons.Rounded.Bolt,
+                        title = "Processing Mode",
+                        subtitle = "How transactions are executed",
+                        onClick = { currentPage = SettingsPage.PROCESSING_MODE },
+                        last = false
+                    )
+                    SettingsRow(
+                        icon = Icons.Rounded.SimCard,
+                        title = "SIM Selection",
+                        subtitle = "Line used for dialing and balance checks",
+                        onClick = { currentPage = SettingsPage.SIM_SELECTION },
+                        last = false
+                    )
+                    SettingsRow(
+                        icon = Icons.Rounded.Bolt,
+                        title = "Test Drive",
+                        subtitle = "Sandbox: simulate an M-Pesa credit, zero real money",
+                        trailing = { DevChip() },
+                        onClick = { currentPage = SettingsPage.SIMULATE_PAYMENT },
+                        last = false
+                    )
+                    SettingsRow(
+                        icon = Icons.Rounded.Link,
+                        title = "Server",
+                        subtitle = "Backend base URL — $effectiveServerUrl",
+                        onClick = { currentPage = SettingsPage.SERVER },
+                        last = true
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(18.dp))
 
-            SectionLabel("General")
-            SettingsRow(
-                icon = Icons.Rounded.SaveAlt,
-                title = "Backup & Restore",
-                subtitle = "Export or import your data as JSON",
-                onClick = { currentPage = SettingsPage.BACKUP_RESTORE }
-            )
-            SettingsRow(
-                icon = Icons.Rounded.SystemUpdateAlt,
-                title = "Check for updates",
-                subtitle = "Compare this build against the latest release",
-                onClick = {
-                    // Stage 22 — the row runs the check and the answer arrives
-                    // in a dialog, right here on the Settings page.
-                    updateDialogOpen = true
-                    viewModel.checkForUpdates()
+            // Account & Data — grouped glass card.
+            GlassCard(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp)
+            ) {
+                Column {
+                    SectionLabel("Account & Data")
+                    SettingsRow(
+                        icon = Icons.Rounded.SaveAlt,
+                        title = "Backup & Restore",
+                        subtitle = "Export or import your data as JSON",
+                        onClick = { currentPage = SettingsPage.BACKUP_RESTORE },
+                        last = false
+                    )
+                    SettingsRow(
+                        icon = Icons.Rounded.SystemUpdateAlt,
+                        title = "Check for updates",
+                        subtitle = "Compare this build against the latest release",
+                        onClick = {
+                            updateDialogOpen = true
+                            viewModel.checkForUpdates()
+                        },
+                        last = false
+                    )
+                    SettingsRow(
+                        icon = Icons.Rounded.Description,
+                        title = "Last crash report",
+                        subtitle = "Copy the most recent uncaught-exception stack to share",
+                        onClick = {
+                            crashReportText = CrashHandler.readLatestCrashReport(context)
+                            crashDialogOpen = true
+                        },
+                        last = false
+                    )
+                    SettingsRow(
+                        icon = Icons.Rounded.Info,
+                        title = "About",
+                        subtitle = "Version and app information",
+                        onClick = { currentPage = SettingsPage.ABOUT },
+                        last = false
+                    )
+                    SettingsRow(
+                        icon = Icons.Rounded.Description,
+                        title = "Terms",
+                        subtitle = "Terms of service",
+                        onClick = { currentPage = SettingsPage.TERMS },
+                        last = false
+                    )
+                    SettingsRow(
+                        icon = Icons.Rounded.PrivacyTip,
+                        title = "Privacy",
+                        subtitle = "How your data is handled",
+                        onClick = { currentPage = SettingsPage.PRIVACY },
+                        last = false
+                    )
+                    SettingsRow(
+                        icon = Icons.Rounded.Bolt,
+                        title = "Showcase Mode",
+                        subtitle = if (DbNameHolder.showcaseMode) {
+                            "On — running on live demo data"
+                        } else {
+                            "Explore with a separate demo database"
+                        },
+                        onClick = { currentPage = SettingsPage.SHOWCASE },
+                        last = true
+                    )
                 }
-            )
-            SettingsRow(
-                icon = Icons.Rounded.Description,
-                title = "Last crash report",
-                subtitle = "Copy the most recent uncaught-exception stack to share",
-                onClick = {
-                    crashReportText = CrashHandler.readLatestCrashReport(context)
-                    crashDialogOpen = true
-                }
-            )
-            SettingsRow(
-                icon = Icons.Rounded.Info,
-                title = "About",
-                subtitle = "Version and app information",
-                onClick = { currentPage = SettingsPage.ABOUT }
-            )
-            SettingsRow(
-                icon = Icons.Rounded.Description,
-                title = "Terms",
-                subtitle = "Terms of service",
-                onClick = { currentPage = SettingsPage.TERMS }
-            )
-            SettingsRow(
-                icon = Icons.Rounded.PrivacyTip,
-                title = "Privacy",
-                subtitle = "How your data is handled",
-                onClick = { currentPage = SettingsPage.PRIVACY }
-            )
-            SettingsRow(
-                icon = Icons.Rounded.Science,
-                title = "Showcase Mode",
-                subtitle = if (DbNameHolder.showcaseMode) {
-                    "On — running on live demo data"
-                } else {
-                    "Explore with a separate demo database"
-                },
-                onClick = { currentPage = SettingsPage.SHOWCASE }
-            )
+            }
             Spacer(modifier = Modifier.height(24.dp))
         }
     }
@@ -342,6 +612,39 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
     }
 }
 
+/** Theme icon preview: sun/moon that rotates 180 degrees when tapped. */
+@Composable
+private fun ThemeIconPreview(isDark: Boolean) {
+    var rotation by remember { mutableStateOf(0f) }
+    val targetRotation by animateFloatAsState(
+        targetValue = rotation,
+        animationSpec = spring(
+            stiffness = DesignTokens.Motion.SpringStiffness,
+            dampingRatio = DesignTokens.Motion.SpringDamping
+        ),
+        label = "ThemeIconRotate"
+    )
+    val icon = if (isDark) Icons.Rounded.Nightlight else Icons.Rounded.Brightness2
+    Box(
+        modifier = Modifier
+            .size(28.dp)
+            .clip(CircleShape)
+            .background(DesignTokens.Color.Brand.Primary.copy(alpha = 0.12f))
+            .clickable(onClick = {
+                rotation = if (rotation == 0f) 180f else 0f
+            })
+            .graphicsLayer { rotationZ = targetRotation },
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = if (isDark) "Dark theme" else "Light theme",
+            tint = DesignTokens.Color.Brand.Primary,
+            modifier = Modifier.size(18.dp)
+        )
+    }
+}
+
 @Composable
 private fun CannotCheckDialog(
     onDismiss: () -> Unit,
@@ -349,30 +652,30 @@ private fun CannotCheckDialog(
 ) {
     androidx.compose.material3.AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = Bubble,
+        containerColor = DesignTokens.Color.Card,
         title = {
             Text(
-                "Can't check right now",
-                color = TextWhite,
+                text = "Can't check right now",
+                color = DesignTokens.Color.Ink,
                 fontWeight = FontWeight.Bold
             )
         },
         text = {
             Text(
-                "Bingwa Score can't reach the release server at the moment. " +
+                text = "Bingwa Score can't reach the release server at the moment. " +
                     "Check your connection and try again.",
-                color = TextGrey,
+                color = DesignTokens.Color.Ink.copy(alpha = 0.6f),
                 fontSize = 13.sp
             )
         },
         confirmButton = {
             androidx.compose.material3.TextButton(onClick = { onRetry(); onDismiss() }) {
-                Text("Retry", color = AccentBlue, fontWeight = FontWeight.Bold)
+                Text("Retry", color = DesignTokens.Color.Brand.Primary, fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
             androidx.compose.material3.TextButton(onClick = onDismiss) {
-                Text("Later", color = TextGrey)
+                Text("Later", color = DesignTokens.Color.Ink.copy(alpha = 0.6f))
             }
         }
     )
@@ -387,19 +690,19 @@ private fun CrashReportDialog(
     val scope = rememberCoroutineScope()
     androidx.compose.material3.AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = Bubble,
+        containerColor = DesignTokens.Color.Card,
         title = {
             Text(
-                "Last crash report",
-                color = TextWhite,
+                text = "Last crash report",
+                color = DesignTokens.Color.Ink,
                 fontWeight = FontWeight.Bold
             )
         },
         text = {
             val body = report ?: "No crash report on file yet."
             Text(
-                body,
-                color = TextGrey,
+                text = body,
+                color = DesignTokens.Color.Ink.copy(alpha = 0.7f),
                 fontSize = 12.sp,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -415,12 +718,12 @@ private fun CrashReportDialog(
                 }
                 onDismiss()
             }) {
-                Text("Copy", color = AccentBlue, fontWeight = FontWeight.Bold)
+                Text("Copy", color = DesignTokens.Color.Brand.Primary, fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
             androidx.compose.material3.TextButton(onClick = onDismiss) {
-                Text("Later", color = TextGrey)
+                Text("Later", color = DesignTokens.Color.Ink.copy(alpha = 0.6f))
             }
         }
     )
@@ -437,7 +740,7 @@ private fun PageHeader(title: String, onBack: () -> Unit) {
         Icon(
             imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
             contentDescription = "Back",
-            tint = TextWhite,
+            tint = DesignTokens.Color.Ink,
             modifier = Modifier
                 .clip(CircleShape)
                 .clickable(onClick = onBack)
@@ -445,146 +748,46 @@ private fun PageHeader(title: String, onBack: () -> Unit) {
                 .size(22.dp)
         )
         Spacer(modifier = Modifier.width(6.dp))
-        Text(title, color = TextWhite, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        Text(title, color = DesignTokens.Color.Ink, fontSize = 20.sp, fontWeight = FontWeight.Bold)
     }
 }
 
 /**
- * MEGA A — a labelled on/off row. Same glass chrome as [SettingsRow] but with a
- * switch instead of a chevron, used for the inbound message-routing toggles.
+ * MEGA A — a labelled on/off row with a PremiumToggle, glass chrome matching
+ * [SettingsRow], used for the inbound message-routing toggles.
  */
 @Composable
-private fun SettingsSwitchRow(
-    title: String,
-    subtitle: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit
-) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(title, color = TextWhite, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-            Text(
-                subtitle,
-                color = TextWhite.copy(alpha = 0.5f),
-                fontSize = 11.sp
-            )
-        }
-        // U4 — contrast audit: the settings switches use the ONE shared palette
-        // (blue track + black thumb on, raised track + visible hairline off),
-        // instead of a local set of colours that could drift below 3:1.
-        Switch(
-            checked = checked,
-            onCheckedChange = onCheckedChange,
-            colors = statusSwitchColors()
-        )
-    }
-}
-
-@Composable
-private fun SectionLabel(label: String) {
+private fun PageTitle(title: String) {
     Text(
-        label.uppercase(),
-        color = TextFaint,
-        fontSize = 11.sp,
+        text = title,
+        color = DesignTokens.Color.Ink,
+        fontSize = 16.sp,
         fontWeight = FontWeight.SemiBold,
-        modifier = Modifier.padding(horizontal = 24.dp, vertical = 6.dp)
+        modifier = Modifier.padding(bottom = 8.dp)
     )
 }
 
 @Composable
-private fun SettingsRow(
-    icon: ImageVector,
-    title: String,
-    subtitle: String,
-    trailing: (@Composable () -> Unit)? = null,
-    onClick: () -> Unit
-) {
-    BubbleCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 5.dp),
-        onClick = onClick
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(AccentBlue.copy(alpha = 0.12f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = AccentBlue,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-            Spacer(modifier = Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(title, color = TextWhite, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-                Spacer(modifier = Modifier.height(1.dp))
-                Text(subtitle, color = TextWhite.copy(alpha = 0.5f), fontSize = 11.sp)
-            }
-            Spacer(modifier = Modifier.width(8.dp))
-            if (trailing != null) {
-                trailing()
-                Spacer(modifier = Modifier.width(8.dp))
-            }
-            Icon(
-                imageVector = Icons.Rounded.ChevronRight,
-                contentDescription = null,
-                tint = TextFaint,
-                modifier = Modifier.size(20.dp)
-            )
-        }
-    }
+private fun PageIntro(text: String) {
+    Text(
+        text = text,
+        color = DesignTokens.Color.Ink.copy(alpha = 0.55f),
+        fontSize = 12.sp,
+        modifier = Modifier.padding(bottom = 12.dp)
+    )
 }
 
 @Composable
-private fun OptionCard(
-    title: String,
-    description: String,
-    selected: Boolean,
-    onClick: () -> Unit
-) {
-    BubbleCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 10.dp),
-        onClick = onClick
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(title, color = TextWhite, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(description, color = TextWhite.copy(alpha = 0.55f), fontSize = 12.sp)
-            }
-            Spacer(modifier = Modifier.width(12.dp))
-            if (selected) {
-                Icon(
-                    imageVector = Icons.Rounded.CheckCircle,
-                    contentDescription = "Selected",
-                    tint = AccentBlue,
-                    modifier = Modifier.size(22.dp)
-                )
-            } else {
-                Box(
-                    modifier = Modifier
-                        .size(22.dp)
-                        .clip(CircleShape)
-                        .background(Bubble)
-                )
-            }
+private fun PolicyBody(title: String, paragraphs: List<String>) {
+    PageTitle(title)
+    BubbleCard(modifier = Modifier.fillMaxWidth()) {
+        paragraphs.forEachIndexed { index, paragraph ->
+            if (index > 0) Spacer(modifier = Modifier.height(10.dp))
+            Text(paragraph, color = DesignTokens.Color.Ink.copy(alpha = 0.7f), fontSize = 13.sp)
         }
     }
 }
 
-/**
- * Stage 34 — the theme toggle: one sun/moon pill that switches Porcelain Dim
- * (light) <-> Obsidian (dark) and persists the choice. Tapping it repaints
- * the whole app instantly through UserPreferences.themeMode.
- */
 @Composable
 private fun AppearancePage(viewModel: SettingsViewModel) {
     val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
@@ -601,14 +804,14 @@ private fun AppearancePage(viewModel: SettingsViewModel) {
         ) {
             Text(
                 text = "Theme",
-                color = TextWhite,
+                color = DesignTokens.Color.Ink,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.SemiBold
             )
             Spacer(modifier = Modifier.width(12.dp))
             Text(
                 text = themeMode.label,
-                color = TextGrey,
+                color = DesignTokens.Color.Ink.copy(alpha = 0.5f),
                 fontSize = 13.sp
             )
             Spacer(modifier = Modifier.weight(1f))
@@ -634,7 +837,7 @@ private fun ProcessingModePage(viewModel: SettingsViewModel) {
         selected = processingMode == AppProcessingMode.EXPRESS,
         onClick = { viewModel.setProcessingMode(AppProcessingMode.EXPRESS) }
     )
-        OptionCard(
+    OptionCard(
         title = "Advanced",
         description = "Extra verification steps and retries",
         selected = processingMode == AppProcessingMode.ADVANCED,
@@ -642,10 +845,6 @@ private fun ProcessingModePage(viewModel: SettingsViewModel) {
     )
 }
 
-/**
- * Stage 33 — runtime server URL. The stored DataStore value overrides the
- * build-time default; invalid (non-https) input is rejected inline.
- */
 @Composable
 private fun ServerPage(viewModel: SettingsViewModel) {
     val haptics = rememberHaptics()
@@ -665,30 +864,30 @@ private fun ServerPage(viewModel: SettingsViewModel) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
-                    .background(Bubble)
-                    .border(1.dp, if (errorState.value != null) FailRed else Hairline, RoundedCornerShape(16.dp))
+                    .background(DesignTokens.Color.Card)
+                    .border(1.dp, if (errorState.value != null) DesignTokens.Color.Brand.Error else DesignTokens.Color.Border, RoundedCornerShape(16.dp))
                     .padding(horizontal = 14.dp, vertical = 13.dp)
             ) {
                 BasicTextField(
                     value = input,
                     onValueChange = { input = it },
                     singleLine = true,
-                    textStyle = TextStyle(color = TextWhite, fontSize = 14.sp),
-                    cursorBrush = SolidColor(AccentBlue),
+                    textStyle = TextStyle(color = DesignTokens.Color.Ink, fontSize = 14.sp),
+                    cursorBrush = SolidColor(DesignTokens.Color.Brand.Primary),
                     modifier = Modifier.fillMaxWidth()
                 )
                 if (input.isEmpty()) {
                     Text(
-                        "https://api.example.com",
-                        color = TextFaint,
+                        text = "https://api.example.com",
+                        color = DesignTokens.Color.Ink.copy(alpha = 0.5f),
                         fontSize = 14.sp
                     )
                 }
             }
             if (errorState.value != null) {
                 Text(
-                    errorState.value!!,
-                    color = FailRed,
+                    text = errorState.value!!,
+                    color = DesignTokens.Color.Brand.Error,
                     fontSize = 12.sp,
                     modifier = Modifier.padding(horizontal = 14.dp).padding(top = 6.dp)
                 )
@@ -707,12 +906,12 @@ private fun ServerPage(viewModel: SettingsViewModel) {
                 input = serverUrl
                 viewModel.resetServerUrl()
             }) {
-                Text("Reset to default", color = AccentBlue, fontWeight = FontWeight.SemiBold)
+                Text("Reset to default", color = DesignTokens.Color.Brand.Primary, fontWeight = FontWeight.SemiBold)
             }
             Spacer(modifier = Modifier.height(10.dp))
             Text(
-                "Effective URL: $effectiveUrl",
-                color = TextWhite.copy(alpha = 0.5f),
+                text = "Effective URL: $effectiveUrl",
+                color = DesignTokens.Color.Ink.copy(alpha = 0.5f),
                 fontSize = 12.sp
             )
         }
@@ -750,7 +949,6 @@ private fun SimulatePaymentPage(viewModel: SettingsViewModel) {
     val simulateFailed by viewModel.simulateFailed.collectAsStateWithLifecycle()
     val haptics = rememberHaptics()
 
-    // Parity E — a simulation that lands feels different from one that fails.
     LaunchedEffect(result) {
         result?.let { if (simulateFailed) haptics.error() else haptics.success() }
     }
@@ -763,15 +961,25 @@ private fun SimulatePaymentPage(viewModel: SettingsViewModel) {
     PageIntro("Sandbox — feeds a simulated INCOMING M-Pesa credit into the real pipeline. No real money moves.")
     BubbleCard(modifier = Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("DEV", color = BgBlack, fontSize = 10.sp, fontWeight = FontWeight.Bold,
-                modifier = Modifier.clip(CircleShape).background(AccentBlue).padding(horizontal = 8.dp, vertical = 3.dp))
+            Text(
+                text = "DEV",
+                color = DesignTokens.Color.Bg,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.clip(CircleShape).background(DesignTokens.Color.Brand.Primary).padding(horizontal = 8.dp, vertical = 3.dp)
+            )
             Spacer(modifier = Modifier.width(8.dp))
-            Text("Test Drive", color = TextWhite, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+            Text(
+                text = "Test Drive",
+                color = DesignTokens.Color.Ink,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold
+            )
         }
         Spacer(modifier = Modifier.height(4.dp))
         Text(
-            "Phone, payer name and amount become a fake \"received from\" SMS. The engine matches an offer, dials, updates status and replies — exactly like a real payment.",
-            color = TextWhite.copy(alpha = 0.55f),
+            text = "Phone, payer name and amount become a fake \"received from\" SMS. The engine matches an offer, dials, updates status and replies — exactly like a real payment.",
+            color = DesignTokens.Color.Ink.copy(alpha = 0.55f),
             fontSize = 12.sp
         )
         Spacer(modifier = Modifier.height(14.dp))
@@ -790,8 +998,8 @@ private fun SimulatePaymentPage(viewModel: SettingsViewModel) {
         result?.let {
             Spacer(modifier = Modifier.height(12.dp))
             Text(
-                it,
-                color = if (simulateFailed) FailRed else TickGreen,
+                text = it,
+                color = if (simulateFailed) DesignTokens.Color.Brand.Error else DesignTokens.Color.Brand.Success,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold
             )
@@ -801,43 +1009,28 @@ private fun SimulatePaymentPage(viewModel: SettingsViewModel) {
 
 @Composable
 private fun SimulateField(value: String, onValueChange: (String) -> Unit, hint: String) {
-    val shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)
+    val shape = RoundedCornerShape(16.dp)
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .clip(shape)
-            .background(Bubble)
-            .border(1.dp, Hairline, shape)
+            .background(DesignTokens.Color.Card)
+            .border(1.dp, DesignTokens.Color.Border, shape)
             .padding(horizontal = 14.dp, vertical = 13.dp)
     ) {
         BasicTextField(
             value = value,
             onValueChange = onValueChange,
             singleLine = true,
-            textStyle = TextStyle(color = TextWhite, fontSize = 14.sp),
-            cursorBrush = SolidColor(AccentBlue),
+            textStyle = TextStyle(color = DesignTokens.Color.Ink, fontSize = 14.sp),
+            cursorBrush = SolidColor(DesignTokens.Color.Brand.Primary),
             modifier = Modifier.fillMaxWidth()
         )
         if (value.isEmpty()) {
-            Text(hint, color = TextFaint, fontSize = 14.sp)
+            Text(hint, color = DesignTokens.Color.Ink.copy(alpha = 0.5f), fontSize = 14.sp)
         }
     }
 }
-
-@Composable
-private fun DevChip() {
-    Text(
-        "DEV",
-        color = BgBlack,
-        fontSize = 10.sp,
-        fontWeight = FontWeight.Bold,
-        modifier = Modifier
-            .clip(CircleShape)
-            .background(AccentBlue)
-            .padding(horizontal = 8.dp, vertical = 3.dp)
-    )
-}
-
 
 @Composable
 private fun BackupRestorePage(viewModel: SettingsViewModel) {
@@ -870,11 +1063,11 @@ private fun BackupRestorePage(viewModel: SettingsViewModel) {
     PageIntro("Export your transactions, offers, customers and auto-replies to a JSON file, or restore them later. Restoring replaces all current data.")
 
     BubbleCard(modifier = Modifier.fillMaxWidth()) {
-        Text("Export", color = TextWhite, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+        Text("Export", color = DesignTokens.Color.Ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
         Spacer(modifier = Modifier.height(2.dp))
         Text(
-            "Save all your app data to a JSON file in Bingwa Score/backups.",
-            color = TextWhite.copy(alpha = 0.55f),
+            text = "Save all your app data to a JSON file in Bingwa Score/backups.",
+            color = DesignTokens.Color.Ink.copy(alpha = 0.55f),
             fontSize = 12.sp
         )
         Spacer(modifier = Modifier.height(14.dp))
@@ -894,11 +1087,11 @@ private fun BackupRestorePage(viewModel: SettingsViewModel) {
     Spacer(modifier = Modifier.height(12.dp))
 
     BubbleCard(modifier = Modifier.fillMaxWidth()) {
-        Text("Import", color = TextWhite, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+        Text("Import", color = DesignTokens.Color.Ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
         Spacer(modifier = Modifier.height(2.dp))
         Text(
-            "Restore from a previously exported JSON backup. This clears current data first.",
-            color = TextWhite.copy(alpha = 0.55f),
+            text = "Restore from a previously exported JSON backup. This clears current data first.",
+            color = DesignTokens.Color.Ink.copy(alpha = 0.55f),
             fontSize = 12.sp
         )
         Spacer(modifier = Modifier.height(14.dp))
@@ -911,8 +1104,8 @@ private fun BackupRestorePage(viewModel: SettingsViewModel) {
     lastResult?.let { result ->
         Spacer(modifier = Modifier.height(12.dp))
         Text(
-            result,
-            color = if (result.contains("successful") || result.contains("saved")) TickGreen else TextWhite,
+            text = result,
+            color = if (result.contains("successful") || result.contains("saved")) DesignTokens.Color.Brand.Success else DesignTokens.Color.Ink,
             fontSize = 13.sp,
             fontWeight = FontWeight.SemiBold
         )
@@ -921,21 +1114,6 @@ private fun BackupRestorePage(viewModel: SettingsViewModel) {
 
 // __CHUNK5__
 
-
-// __CHUNK5__
-
-/**
- * Stage 22 — the update RESULT, in a dialog.
- *
- * The Settings row runs the check against the release manifest
- * (`/updates/latest.json`); the answer lands here. One dialog, two truths:
- * you are on the latest build, or a newer one is waiting.
- */
-/**
- * Stage 45 — the update answer lands on a frosted sheet (BitChord): GlassSpec
- * scrim + shadow over the settings page behind, identical in both themes. No
- * flat bubble dialogs on the update path.
- */
 @Composable
 private fun UpdateResultSheet(
     state: UpdateCheckState.Done,
@@ -947,7 +1125,6 @@ private fun UpdateResultSheet(
 ) {
     val context = LocalContext.current
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    // The answer lands the moment the check finishes: expand on entry.
     LaunchedEffect(Unit) { sheetState.expand() }
 
     ModalBottomSheet(
@@ -964,9 +1141,9 @@ private fun UpdateResultSheet(
         ) {
             Text(
                 text = if (state.upToDate) "You're up to date" else "Update available",
-                color = TextWhite,
+                color = DesignTokens.Color.Ink,
                 fontWeight = FontWeight.Bold,
-                fontSize = BingwaType.Subhead
+                fontSize = DesignTokens.Typography.Subhead
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
@@ -985,8 +1162,8 @@ private fun UpdateResultSheet(
                         }
                     }
                 },
-                color = TextGrey,
-                fontSize = BingwaType.Body
+                color = DesignTokens.Color.Ink.copy(alpha = 0.7f),
+                fontSize = DesignTokens.Typography.Body
             )
             Spacer(modifier = Modifier.height(20.dp))
             if (state.upToDate) {
@@ -1025,18 +1202,18 @@ private fun AboutPage(viewModel: SettingsViewModel) {
     PageTitle("About")
     PageIntro("What Bingwa Score is and which build is installed.")
     BubbleCard(modifier = Modifier.fillMaxWidth()) {
-        Text("Bingwa Score", color = TextWhite, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+        Text("Bingwa Score", color = DesignTokens.Color.Ink, fontSize = 18.sp, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(2.dp))
         Text(
-            "Version ${viewModel.appVersion}",
-            color = TextWhite.copy(alpha = 0.5f),
+            text = "Version ${viewModel.appVersion}",
+            color = DesignTokens.Color.Ink.copy(alpha = 0.5f),
             fontSize = 12.sp
         )
         Spacer(modifier = Modifier.height(10.dp))
         Text(
-            "Bingwa Score helps airtime agents sell Safaricom bundles faster: one-tap dialing, " +
+            text = "Bingwa Score helps airtime agents sell Safaricom bundles faster: one-tap dialing, " +
                 "auto renewals, smart follow-up and commission tracking — all on your phone.",
-            color = TextWhite.copy(alpha = 0.6f),
+            color = DesignTokens.Color.Ink.copy(alpha = 0.6f),
             fontSize = 13.sp
         )
     }
@@ -1081,27 +1258,23 @@ private fun ShowcaseActionRow(
     destructive: Boolean = false,
     onClick: () -> Unit
 ) {
-    BubbleCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 10.dp),
-        cornerRadius = 18.dp,
-        onClick = onClick
+    GlassCard(
+        modifier = Modifier.fillMaxWidth().padding(top = 10.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    title,
-                    color = if (enabled) TextWhite else TextGrey,
+                    text = title,
+                    color = DesignTokens.Color.Ink,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold
                 )
-                Text(subtitle, color = TextGrey, fontSize = 12.sp)
+                Text(subtitle, color = DesignTokens.Color.Ink.copy(alpha = 0.6f), fontSize = 12.sp)
             }
             if (destructive) {
                 Text(
-                    "Exit",
-                    color = FailRed,
+                    text = "Exit",
+                    color = DesignTokens.Color.Brand.Error,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -1129,89 +1302,87 @@ private fun ShowcasePage() {
             "live simulator. Your real data is never touched."
     )
 
-    BubbleCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 18.dp) {
+    GlassCard(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    "Demo data + live simulator",
-                    color = TextWhite,
+                    text = "Demo data + live simulator",
+                    color = DesignTokens.Color.Ink,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(
-                    if (enabled) "On — using ${DbNameHolder.DEMO_DB}" else "Off — using ${DbNameHolder.REAL_DB}",
-                    color = TextGrey,
+                    text = if (enabled) "On — using ${DbNameHolder.DEMO_DB}" else "Off — using ${DbNameHolder.REAL_DB}",
+                    color = DesignTokens.Color.Ink.copy(alpha = 0.5f),
                     fontSize = 12.sp
                 )
             }
-            androidx.compose.material3.Switch(
+            PremiumToggle(
                 checked = enabled,
                 onCheckedChange = { value ->
                     haptics.tick()
                     enabled = value
                     ShowcaseController.setEnabled(context, value)
                     pendingRestart = value
-                },
-                // U4 — one shared switch palette across the whole app.
-                colors = statusSwitchColors()
+                }
             )
         }
     }
 
     ShowcaseActionRow(
-                title = "Reseed demo data",
-                subtitle = "Wipe the demo database and rebuild it from scratch",
-                enabled = enabled,
-                onClick = {
-                    haptics.press()
-                    ShowcaseController.requestDemoReseed(context)
-                    pendingRestart = true
-                }
-            )
+        title = "Reseed demo data",
+        subtitle = "Wipe the demo database and rebuild it from scratch",
+        enabled = enabled,
+        onClick = {
+            haptics.press()
+            ShowcaseController.requestDemoReseed(context)
+            pendingRestart = true
+        }
+    )
 
-            ShowcaseActionRow(
-                title = "Exit showcase",
-                subtitle = "Leave the demo and go back to your own database",
-                enabled = enabled,
-                destructive = true,
-                onClick = {
-                    haptics.press()
-                    enabled = false
-                    ShowcaseController.setEnabled(context, false)
-                    pendingRestart = false
-                }
-            )
+    ShowcaseActionRow(
+        title = "Exit showcase",
+        subtitle = "Leave the demo and go back to your own database",
+        enabled = enabled,
+        destructive = true,
+        onClick = {
+            haptics.press()
+            enabled = false
+            ShowcaseController.setEnabled(context, false)
+            pendingRestart = false
+        }
+    )
 
-            Spacer(modifier = Modifier.height(12.dp))
+    Spacer(modifier = Modifier.height(12.dp))
 
-            Text(
-                "Demo traffic is generated on this device only: no USSD is dialled, no " +
-                    "SMS is sent, and nothing leaves the phone.",
-                color = TextDim,
-                fontSize = 12.sp
-            )
+    Text(
+        text = "Demo traffic is generated on this device only: no USSD is dialled, no " +
+            "SMS is sent, and nothing leaves the phone.",
+        color = DesignTokens.Color.Ink.copy(alpha = 0.5f),
+        fontSize = 12.sp
+    )
 
     if (pendingRestart != null) {
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { pendingRestart = null },
-            containerColor = Bubble,
-            title = { Text("Restart to apply", color = TextWhite, fontWeight = FontWeight.Bold) },
+            containerColor = DesignTokens.Color.Card,
+            title = { Text(text = "Restart to apply", color = DesignTokens.Color.Ink, fontWeight = FontWeight.Bold) },
             text = {
                 Text(
-                    "Showcase Mode switches to a different database, so Bingwa Score " +
+                    text = "Showcase Mode switches to a different database, so Bingwa Score " +
                         "needs to restart before the change takes effect.",
-                    color = TextGrey,
+                    color = DesignTokens.Color.Ink.copy(alpha = 0.7f),
                     fontSize = 14.sp
                 )
             },
             confirmButton = {
                 androidx.compose.material3.TextButton(onClick = {
                     ShowcaseController.restart(context)
-                }) { Text("Restart now", color = AccentBlue, fontWeight = FontWeight.SemiBold) }
+                }) { Text(text = "Restart now", color = DesignTokens.Color.Brand.Primary, fontWeight = FontWeight.SemiBold) }
             },
             dismissButton = {
                 androidx.compose.material3.TextButton(onClick = { pendingRestart = null }) {
-                    Text("Later", color = TextGrey)
+                    Text(text = "Later", color = DesignTokens.Color.Ink.copy(alpha = 0.6f))
                 }
             }
         )
@@ -1242,20 +1413,20 @@ fun FirstLaunchShowcaseOffer(onDecided: () -> Unit) {
             show = false
             onDecided()
         },
-        containerColor = Bubble,
+        containerColor = DesignTokens.Color.Card,
         title = {
             Text(
-                "Explore with live demo data first?",
-                color = TextWhite,
+                text = "Explore with live demo data first?",
+                color = DesignTokens.Color.Ink,
                 fontWeight = FontWeight.Bold
             )
         },
         text = {
             Text(
-                "Showcase Mode fills a separate demo database with customers, offers " +
+                text = "Showcase Mode fills a separate demo database with customers, offers " +
                     "and transactions, then keeps them moving while you watch. Your " +
                     "real data stays untouched and you can switch off any time.",
-                color = TextGrey,
+                color = DesignTokens.Color.Ink.copy(alpha = 0.7f),
                 fontSize = 14.sp
             )
         },
@@ -1266,7 +1437,7 @@ fun FirstLaunchShowcaseOffer(onDecided: () -> Unit) {
                 ShowcaseController.setEnabled(context, true)
                 show = false
                 ShowcaseController.restart(context)
-            }) { Text("Yes, show me", color = AccentBlue, fontWeight = FontWeight.SemiBold) }
+            }) { Text(text = "Yes, show me", color = DesignTokens.Color.Brand.Primary, fontWeight = FontWeight.SemiBold) }
         },
         dismissButton = {
             androidx.compose.material3.TextButton(onClick = {
@@ -1275,39 +1446,43 @@ fun FirstLaunchShowcaseOffer(onDecided: () -> Unit) {
                 ShowcaseController.setEnabled(context, false)
                 show = false
                 onDecided()
-            }) { Text("No thanks", color = TextGrey) }
+            }) { Text(text = "No thanks", color = DesignTokens.Color.Ink.copy(alpha = 0.6f)) }
         }
     )
 }
 
 @Composable
-private fun PageTitle(title: String) {
-    Text(
-        title,
-        color = TextWhite,
-        fontSize = 16.sp,
-        fontWeight = FontWeight.SemiBold,
-        modifier = Modifier.padding(bottom = 8.dp)
-    )
-}
-
-@Composable
-private fun PageIntro(text: String) {
-    Text(
-        text,
-        color = TextWhite.copy(alpha = 0.55f),
-        fontSize = 12.sp,
-        modifier = Modifier.padding(bottom = 12.dp)
-    )
-}
-
-@Composable
-private fun PolicyBody(title: String, paragraphs: List<String>) {
-    PageTitle(title)
-    BubbleCard(modifier = Modifier.fillMaxWidth()) {
-        paragraphs.forEachIndexed { index, paragraph ->
-            if (index > 0) Spacer(modifier = Modifier.height(10.dp))
-            Text(paragraph, color = TextWhite.copy(alpha = 0.7f), fontSize = 13.sp)
+private fun OptionCard(
+    title: String,
+    description: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    GlassCard(
+        modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(title, color = DesignTokens.Color.Ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(description, color = DesignTokens.Color.Ink.copy(alpha = 0.55f), fontSize = 12.sp)
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            if (selected) {
+                Icon(
+                    imageVector = Icons.Rounded.CheckCircle,
+                    contentDescription = "Selected",
+                    tint = DesignTokens.Color.Brand.Primary,
+                    modifier = Modifier.size(22.dp)
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .size(22.dp)
+                        .clip(CircleShape)
+                        .background(DesignTokens.Color.Card)
+                )
+            }
         }
     }
 }
