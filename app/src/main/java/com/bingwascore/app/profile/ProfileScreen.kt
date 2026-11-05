@@ -1,9 +1,19 @@
 package com.bingwascore.app.profile
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.border
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -24,46 +34,49 @@ import androidx.compose.material.icons.rounded.Storefront
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
+import kotlinx.coroutines.launch
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bingwascore.app.domain.EngineState
-import com.bingwascore.app.ui.components.BubbleCard
-import com.bingwascore.app.ui.components.HapticSwitch
-import com.bingwascore.app.ui.theme.PendGrey
+import com.bingwascore.app.ui.components.GlassCard
+import com.bingwascore.app.ui.components.NeoButton
 import com.bingwascore.app.ui.theme.Bronze
-import com.bingwascore.app.ui.theme.AccentBlue
-import com.bingwascore.app.ui.theme.TickGreen
-import com.bingwascore.app.ui.theme.accentBrush
+import com.bingwascore.app.ui.theme.DesignTokens
 import com.bingwascore.app.ui.theme.Gold
-import com.bingwascore.app.ui.theme.BgBlack
 import com.bingwascore.app.ui.theme.Platinum
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.text.TextStyle
-import com.bingwascore.app.ui.components.PrimaryButton
-import com.bingwascore.app.ui.theme.FailRed
-import com.bingwascore.app.ui.theme.Bubble
 import com.bingwascore.app.ui.theme.Silver
-import com.bingwascore.app.ui.theme.TextFaint
-import com.bingwascore.app.ui.theme.TextWhite
 import com.bingwascore.app.util.screenEnter
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.ui.geometry.Offset
 
 /**
- * Stage 19.7 — the PURE Profile surface.
+ * Stage 51 — premium Profile surface.
  *
- * The identity card, the Autopilot switch and the menu rows all read from here;
- * the ViewModel lives in the wrapper.
+ * Fintech-dashboard feel: gradient-ring avatar, tier badge, animated headline
+ * score, NeoButton CTAs and glass list rows. The ViewModel is untouched — only
+ * UI composition changed.
  */
+
 data class ProfileScreenState(
     val userName: String = "Bingwa User",
     val accountType: String = "Individual",
@@ -102,7 +115,6 @@ fun ProfileScreen(
     onSettings: () -> Unit = {},
     onAbout: () -> Unit = {}
 ) {
-    // STAGE 19.7 — the wrapper owns the ViewModel; the content below is pure.
     val userName by viewModel.userName.collectAsStateWithLifecycle()
     val accountType by viewModel.accountType.collectAsStateWithLifecycle()
     val phone by viewModel.phone.collectAsStateWithLifecycle()
@@ -147,185 +159,426 @@ fun ProfileScreen(
 }
 
 /**
- * Stage 19.7 — the pure Profile body: the editable identity card, the Autopilot
- * switch and the four menu doors.
+ * Stage 51 — the pure Profile body: gradient-ring header card, editable
+ * identity, Autopilot toggle and glass menu rows.
  */
 @Composable
 fun ProfileScreenContent(
     state: ProfileScreenState,
     callbacks: ProfileScreenCallbacks = ProfileScreenCallbacks()
 ) {
-    Box(
-        modifier = Modifier.fillMaxSize().screenEnter().background(BgBlack)
-    ) {
-        // PREMIUM LOCK — ambient blobs behind the glass cards on Profile.
+    val scoreAlpha by animateFloatAsState(
+        targetValue = 1f,
+        animationSpec = spring(
+            stiffness = DesignTokens.Motion.SpringStiffness,
+            dampingRatio = DesignTokens.Motion.SpringDamping
+        ),
+        label = "ProfileScoreAlpha"
+    )
+    val slideAnim = remember { Animatable(8f) }
+    LaunchedEffect(Unit) {
+        launch {
+            slideAnim.animateTo(
+                targetValue = 0f,
+                animationSpec = spring(
+                    stiffness = DesignTokens.Motion.SpringStiffness,
+                    dampingRatio = DesignTokens.Motion.SpringDamping
+                )
+            )
+        }
+    }
+    val scoreSlide = slideAnim.value
 
+    Box(
+        modifier = Modifier.fillMaxSize().screenEnter().background(DesignTokens.Color.Bg)
+    ) {
         Column(
             modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())
         ) {
-        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp)) {
-            Text("Profile", color = TextWhite, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-            Text("Your agent account", color = TextWhite.copy(alpha = 0.5f), fontSize = 12.sp)
-        }
+            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp)) {
+                Text(
+                    text = "Profile",
+                    color = DesignTokens.Color.Ink,
+                    fontSize = DesignTokens.Typography.Headline,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Your agent account",
+                    color = DesignTokens.Color.Ink.copy(alpha = 0.5f),
+                    fontSize = 12.sp
+                )
+            }
 
-        // MEGA A — the profile is EDITABLE and persisted, not a static card.
-        // Level and score stay read-only because they are earned, not typed.
-        BubbleCard(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier.size(54.dp).clip(CircleShape)
-                        .background(accentBrush()),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        (if (state.editState.isEditing) state.editState.name else state.userName)
-                            .ifBlank { "B" }.take(1).uppercase(),
-                        color = BgBlack, fontSize = 22.sp, fontWeight = FontWeight.Bold
-                    )
-                }
-                Spacer(modifier = Modifier.width(14.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    if (state.editState.isEditing) {
-                        ProfileField("Account Type", state.editState.accountType, callbacks.onUpdateAccountType)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        ProfileField("Name / Business", state.editState.name, callbacks.onUpdateName)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        ProfileField("Phone", state.editState.phone, callbacks.onUpdatePhone)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        ProfileField("Email", state.editState.email, callbacks.onUpdateEmail)
-                    } else {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(state.userName, color = TextWhite, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Header card: gradient-ring avatar, tier badge below it, animated score.
+            GlassCard(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp)
+            ) {
+                Column {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column {
+                            Box(
+                                modifier = Modifier
+                                    .size(56.dp)
+                                    .clip(CircleShape)
+                                    .background(
+                                        Brush.linearGradient(
+                                            colors = listOf(
+                                                DesignTokens.Color.Brand.Primary,
+                                                DesignTokens.Color.Brand.DimAccent
+                                            )
+                                        )
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(50.dp)
+                                        .clip(CircleShape)
+                                        .background(DesignTokens.Color.Bg)
+                                ) {
+                                    Text(
+                                        text = (if (state.editState.isEditing) state.editState.name else state.userName)
+                                            .ifBlank { "B" }.take(1).uppercase(),
+                                        color = DesignTokens.Color.Ink,
+                                        fontSize = 22.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            TierBadge(levelName = state.levelName)
+                        }
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = if (state.editState.isEditing) state.editState.name else state.userName,
+                                color = DesignTokens.Color.Ink,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(6.dp))
-                                    .background(Bubble)
+                                    .background(DesignTokens.Color.Brand.Primary)
                                     .padding(horizontal = 6.dp, vertical = 2.dp)
                             ) {
                                 Text(
-                                    state.accountType,
-                                    color = AccentBlue,
+                                    text = state.accountType,
+                                    color = DesignTokens.Color.Ink,
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold
                                 )
                             }
                         }
-                        Spacer(modifier = Modifier.height(4.dp))
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            state.phone.ifEmpty { "No phone set" },
-                            color = TextWhite.copy(alpha = 0.6f),
-                            fontSize = 12.sp
-                        )
-                        Text(
-                            state.email.ifEmpty { "No email set" },
-                            color = TextWhite.copy(alpha = 0.6f),
-                            fontSize = 12.sp
+                            text = "Score: ${state.score} pts",
+                            style = TextStyle(
+                                fontSize = DesignTokens.Typography.Headline,
+                                fontWeight = FontWeight.Bold
+                            ),
+                            color = DesignTokens.Color.Ink,
+                            modifier = Modifier.graphicsLayer {
+                                alpha = scoreAlpha
+                                translationY = scoreSlide
+                            }
                         )
                     }
-                    Spacer(modifier = Modifier.height(6.dp))
-                    LevelBadge(state.levelName)
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Score: ${state.score} pts", color = TextWhite.copy(alpha = 0.7f), fontSize = 13.sp)
-            }
+            Spacer(modifier = Modifier.height(16.dp))
 
-            // Inline validation + save state
-            state.editState.errorMessage?.let {
-                Spacer(modifier = Modifier.height(10.dp))
-                Text(it, color = FailRed, fontSize = 12.sp, fontWeight = FontWeight.Medium)
-            }
-            state.editState.savedMessage?.let {
-                Spacer(modifier = Modifier.height(10.dp))
-                Text(it, color = TickGreen, fontSize = 12.sp, fontWeight = FontWeight.Medium)
-            }
+            // Identity card: read-only info or the edit form.
+            IdentityCard(state = state, callbacks = callbacks)
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            if (state.editState.isEditing) {
-                if (state.editState.isReauthenticating) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(Bubble)
-                            .padding(12.dp)
-                    ) {
-                        Text("Re-authenticate to save changes", color = TextWhite, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        ProfileField(
-                            label = "Enter your PIN",
-                            value = state.editState.pinToConfirm,
-                            onValueChange = callbacks.onUpdatePinToConfirm,
-                            isPassword = true
+            // Bingwa Autopilot row with the custom premium toggle.
+            GlassCard(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Bingwa Autopilot",
+                            color = DesignTokens.Color.Ink,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold
                         )
-                        Spacer(modifier = Modifier.height(10.dp))
-                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            PrimaryButton(
-                                text = if (state.editState.isSaving) "Verifying…" else "Confirm & Save",
-                                enabled = state.editState.pinToConfirm.length >= 4 && !state.editState.isSaving,
-                                onClick = callbacks.onSave,
-                                modifier = Modifier.weight(1f).height(44.dp)
-                            )
-                            PrimaryButton(
-                                text = "Cancel",
-                                onClick = callbacks.onCancelReauth,
-                                modifier = Modifier.weight(1f).height(44.dp)
-                            )
-                        }
-                    }
-                } else {
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        PrimaryButton(
-                            text = "Save Changes",
-                            onClick = callbacks.onPromptReauth,
-                            modifier = Modifier.weight(1f).height(44.dp)
-                        )
-                        PrimaryButton(
-                            text = "Cancel",
-                            onClick = callbacks.onCancelEditing,
-                            modifier = Modifier.weight(1f).height(44.dp)
+                        Text(
+                            text = when (state.engineState) {
+                                EngineState.RUNNING -> "Running"
+                                EngineState.PAUSED -> "Paused"
+                                EngineState.STOPPED -> "Stopped"
+                            },
+                            color = when (state.engineState) {
+                                EngineState.RUNNING -> DesignTokens.Color.Brand.Success
+                                EngineState.PAUSED -> DesignTokens.Color.Ink.copy(alpha = 0.7f)
+                                EngineState.STOPPED -> DesignTokens.Color.Ink.copy(alpha = 0.5f)
+                            },
+                            fontSize = 12.sp
                         )
                     }
-                }
-            } else {
-                PrimaryButton(text = "Edit Profile", onClick = callbacks.onStartEditing, modifier = Modifier.height(44.dp))
-            }
-        }
-        Spacer(modifier = Modifier.height(16.dp))
-        BubbleCard(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text("Bingwa Autopilot", color = TextWhite, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-                    Text(
-                        text = when (state.engineState) {
-                            EngineState.RUNNING -> "Running"
-                            EngineState.PAUSED -> "Paused"
-                            EngineState.STOPPED -> "Stopped"
-                        },
-                        color = when (state.engineState) {
-                            EngineState.RUNNING -> TickGreen
-                            EngineState.PAUSED -> TextWhite.copy(alpha = 0.7f)
-                            EngineState.STOPPED -> TextWhite.copy(alpha = 0.5f)
-                        },
-                        fontSize = 12.sp
+                    Spacer(modifier = Modifier.width(8.dp))
+                    PremiumToggle(
+                        checked = state.engineEnabled,
+                        onCheckedChange = { callbacks.onToggleEngine() }
                     )
                 }
-                HapticSwitch(
-                    checked = state.engineEnabled,
-                    onCheckedChange = { callbacks.onToggleEngine() }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Glass menu rows: each wrapped in GlassCard, 1dp separator except last.
+            GlassMenuRow(
+                icon = Icons.Rounded.Storefront,
+                label = "Agent Portal",
+                onClick = callbacks.onMyStore,
+                last = false
+            )
+            GlassMenuRow(
+                icon = Icons.Rounded.Share,
+                label = "Refer & Earn",
+                onClick = callbacks.onReferEarn,
+                last = false
+            )
+            GlassMenuRow(
+                icon = Icons.Rounded.Settings,
+                label = "Settings",
+                onClick = callbacks.onSettings,
+                last = false
+            )
+            GlassMenuRow(
+                icon = Icons.Rounded.Info,
+                label = "About",
+                onClick = callbacks.onAbout,
+                last = true
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+    }
+}
+
+@Composable
+private fun TierBadge(levelName: String) {
+    val color = when (levelName) {
+        "Bronze" -> Bronze
+        "Silver" -> Silver
+        "Gold" -> Gold
+        "Platinum" -> Platinum
+        else -> DesignTokens.Color.Brand.Primary
+    }
+    val density = LocalDensity.current
+    val radiusPx = with(density) { DesignTokens.Shape.RadiusMd.toPx() }
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(DesignTokens.Shape.RadiusFull))
+            .background(color)
+            .padding(horizontal = 10.dp, vertical = 5.dp)
+            .drawBehind {
+                drawRoundRect(
+                    brush = SolidColor(DesignTokens.Color.Obsidian.Ink.copy(alpha = 0.10f)),
+                    cornerRadius = CornerRadius(radiusPx, radiusPx)
                 )
             }
+    ) {
+        Text(
+            text = levelName,
+            color = DesignTokens.Color.Ink,
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
+
+@Composable
+private fun IdentityCard(
+    state: ProfileScreenState,
+    callbacks: ProfileScreenCallbacks
+) {
+    GlassCard(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp)
+    ) {
+        Column {
+            if (state.editState.isEditing) {
+                EditForm(state = state, callbacks = callbacks)
+            } else {
+                ReadOnlyIdentity(state = state, callbacks = callbacks)
+            }
         }
-        Spacer(modifier = Modifier.height(16.dp))
-        ProfileMenuRow("Agent Portal", Icons.Rounded.Storefront, callbacks.onMyStore)
-        ProfileMenuRow("Refer & Earn", Icons.Rounded.Share, callbacks.onReferEarn)
-        ProfileMenuRow("Settings", Icons.Rounded.Settings, callbacks.onSettings)
-        ProfileMenuRow("About", Icons.Rounded.Info, callbacks.onAbout)
-        Spacer(modifier = Modifier.height(24.dp))
+    }
+}
+
+@Composable
+private fun ReadOnlyIdentity(
+    state: ProfileScreenState,
+    callbacks: ProfileScreenCallbacks
+) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            text = state.userName,
+            color = DesignTokens.Color.Ink,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.SemiBold
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(6.dp))
+                .background(DesignTokens.Color.Brand.Primary)
+                .padding(horizontal = 6.dp, vertical = 2.dp)
+        ) {
+            Text(
+                text = state.accountType,
+                color = DesignTokens.Color.Ink,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+    }
+    Spacer(modifier = Modifier.height(4.dp))
+    Text(
+        text = state.phone.ifEmpty { "No phone set" },
+        color = DesignTokens.Color.Ink.copy(alpha = 0.6f),
+        fontSize = 12.sp
+    )
+    Text(
+        text = state.email.ifEmpty { "No email set" },
+        color = DesignTokens.Color.Ink.copy(alpha = 0.6f),
+        fontSize = 12.sp
+    )
+    Spacer(modifier = Modifier.height(12.dp))
+    NeoButton(
+        onClick = callbacks.onStartEditing,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text(
+            text = "Edit Profile",
+            color = DesignTokens.Color.Ink,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
+
+@Composable
+private fun EditForm(
+    state: ProfileScreenState,
+    callbacks: ProfileScreenCallbacks
+) {
+    Column {
+        ProfileField(
+            label = "Account Type",
+            value = state.editState.accountType,
+            onValueChange = callbacks.onUpdateAccountType
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        ProfileField(
+            label = "Name / Business",
+            value = state.editState.name,
+            onValueChange = callbacks.onUpdateName
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        ProfileField(
+            label = "Phone",
+            value = state.editState.phone,
+            onValueChange = callbacks.onUpdatePhone
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        ProfileField(
+            label = "Email",
+            value = state.editState.email,
+            onValueChange = callbacks.onUpdateEmail
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+
+        state.editState.errorMessage?.let {
+            Text(
+                text = it,
+                color = DesignTokens.Color.Brand.Error,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+        }
+        state.editState.savedMessage?.let {
+            Text(
+                text = it,
+                color = DesignTokens.Color.Brand.Success,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        if (state.editState.isReauthenticating) {
+            Text(
+                text = "Re-authenticate to save changes",
+                color = DesignTokens.Color.Ink,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            ProfileField(
+                label = "Enter your PIN",
+                value = state.editState.pinToConfirm,
+                onValueChange = callbacks.onUpdatePinToConfirm,
+                isPassword = true
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                NeoButton(
+                    enabled = state.editState.pinToConfirm.length >= 4 && !state.editState.isSaving,
+                    onClick = callbacks.onSave,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        text = if (state.editState.isSaving) "Verifying…" else "Confirm & Save",
+                        color = DesignTokens.Color.Ink,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                NeoButton(
+                    onClick = callbacks.onCancelReauth,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        text = "Cancel",
+                        color = DesignTokens.Color.Ink,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        } else {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                NeoButton(
+                    onClick = callbacks.onPromptReauth,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        text = "Save Changes",
+                        color = DesignTokens.Color.Ink,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                NeoButton(
+                    onClick = callbacks.onCancelEditing,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        text = "Cancel",
+                        color = DesignTokens.Color.Ink,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
         }
     }
 }
@@ -338,53 +591,174 @@ private fun ProfileField(
     isPassword: Boolean = false
 ) {
     Column {
-        Text(label, color = TextFaint, fontSize = 10.sp)
+        Text(
+            text = label,
+            color = DesignTokens.Color.Ink.copy(alpha = 0.45f),
+            fontSize = 10.sp
+        )
         Spacer(modifier = Modifier.height(4.dp))
         BasicTextField(
             value = value,
             onValueChange = onValueChange,
             singleLine = true,
-            textStyle = TextStyle(color = TextWhite, fontSize = 14.sp),
+            textStyle = TextStyle(color = DesignTokens.Color.Ink, fontSize = 14.sp),
             visualTransformation = if (isPassword) androidx.compose.ui.text.input.PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
-            cursorBrush = SolidColor(AccentBlue),
+            cursorBrush = SolidColor(DesignTokens.Color.Brand.Primary),
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(10.dp))
-                .background(Bubble)
+                .background(DesignTokens.Color.Card)
                 .padding(horizontal = 10.dp, vertical = 9.dp)
         )
     }
 }
 
 @Composable
-private fun LevelBadge(levelName: String) {
-    val color = when (levelName) {
-        "Bronze" -> Bronze
-        "Silver" -> Silver
-        "Gold" -> Gold
-        "Platinum" -> Platinum
-        else -> PendGrey
-    }
+private fun GlassMenuRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    onClick: () -> Unit,
+    last: Boolean
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.98f else 1f,
+        animationSpec = spring(
+            stiffness = DesignTokens.Motion.SpringStiffness,
+            dampingRatio = DesignTokens.Motion.SpringDamping
+        ),
+        label = "GlassMenuRowPress"
+    )
+    val separator = DesignTokens.Color.Obsidian.Border.copy(alpha = 0.1f)
+
     Box(
-        modifier = Modifier.clip(RoundedCornerShape(16.dp))
-            .background(Brush.horizontalGradient(listOf(color, color.copy(alpha = 0.7f))))
-            .padding(horizontal = 12.dp, vertical = 4.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
+            .graphicsLayer { scaleX = scale; scaleY = scale }
     ) {
-        Text(levelName, color = BgBlack, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+        GlassCard(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 6.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = DesignTokens.Color.Brand.Primary,
+                    modifier = Modifier.size(22.dp)
+                )
+                Spacer(modifier = Modifier.width(14.dp))
+                Text(
+                    text = label,
+                    color = DesignTokens.Color.Ink,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.weight(1f)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Icon(
+                    imageVector = Icons.Rounded.ChevronRight,
+                    contentDescription = null,
+                    tint = DesignTokens.Color.Obsidian.Ink.copy(alpha = 0.4f),
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
+        if (!last) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp)
+                    .height(1.dp)
+                    .background(separator)
+            )
+        }
     }
 }
 
+/**
+ * Stage 51 — the Autopilot premium toggle: transparent track with a 1dp
+ * Obsidian border, sliding thumb, Brand.Primary active fill and a Level1
+ * shadow on the thumb when on. Haptic TextHandleMove on toggle.
+ */
 @Composable
-private fun ProfileMenuRow(label: String, icon: ImageVector, onClick: () -> Unit) {
-    BubbleCard(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp),
-        onClick = onClick
+private fun PremiumToggle(
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    val density = LocalDensity.current
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val haptic = LocalHapticFeedback.current
+
+    val trackWidth = 44.dp
+    val trackHeight = 24.dp
+    val thumbSize = 18.dp
+    val pad = 3.dp
+
+    val thumbX by animateDpAsState(
+        targetValue = if (checked) trackWidth - thumbSize - pad else pad,
+        animationSpec = spring(
+            stiffness = DesignTokens.Motion.SpringStiffness,
+            dampingRatio = DesignTokens.Motion.SpringDamping
+        ),
+        label = "PremiumToggleThumb"
+    )
+    val pressScale by animateFloatAsState(
+        targetValue = if (isPressed) 0.97f else 1f,
+        animationSpec = spring(
+            stiffness = DesignTokens.Motion.SpringStiffness,
+            dampingRatio = DesignTokens.Motion.SpringDamping
+        ),
+        label = "PremiumTogglePress"
+    )
+
+    val radiusPx = with(density) { DesignTokens.Shape.RadiusFull.toPx() }
+    val thumbPx = with(density) { thumbSize.toPx() }
+    val trackHeightPx = with(density) { trackHeight.toPx() }
+    val shadowY = with(density) { DesignTokens.Elevation.Level1.first().offsetY.toPx() }
+    val shadowColor = DesignTokens.Elevation.Level1.first().color
+    val borderColor = DesignTokens.Color.Obsidian.Border.copy(alpha = 0.5f)
+    val trackShape = RoundedCornerShape(DesignTokens.Shape.RadiusFull)
+
+    Box(
+        modifier = Modifier
+            .size(trackWidth, trackHeight)
+            .graphicsLayer { scaleX = pressScale; scaleY = pressScale }
+            .border(1.dp, borderColor, trackShape)
+            .clickable(interactionSource = interactionSource, indication = null, onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                onCheckedChange(!checked)
+            })
+            .drawBehind {
+                val fill = if (checked) DesignTokens.Color.Brand.Primary else Color.Transparent
+                drawRoundRect(
+                    brush = SolidColor(fill),
+                    cornerRadius = CornerRadius(radiusPx, radiusPx)
+                )
+            }
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(icon, contentDescription = null, tint = AccentBlue, modifier = Modifier.size(22.dp))
-            Spacer(modifier = Modifier.width(14.dp))
-            Text(label, color = TextWhite, fontSize = 15.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
-            Icon(Icons.Rounded.ChevronRight, contentDescription = null, tint = TextFaint, modifier = Modifier.size(20.dp))
-        }
+        Box(
+            modifier = Modifier
+                .size(thumbSize, thumbSize)
+                .clip(CircleShape)
+                .background(DesignTokens.Color.Ink)
+                .graphicsLayer {
+                    translationX = with(density) { thumbX.toPx() }
+                    translationY = with(density) { ((trackHeight - thumbSize) / 2).toPx() }
+                }
+                .drawBehind {
+                    if (checked) {
+                        val cx = with(density) { thumbPx / 2f }
+                        val cy = with(density) { thumbPx / 2f + shadowY }
+                        drawCircle(
+                            color = shadowColor.copy(alpha = 0.5f),
+                            center = Offset(cx, cy),
+                            radius = with(density) { thumbPx / 2f }
+                        )
+                    }
+                }
+        )
     }
 }
