@@ -3,19 +3,14 @@ package com.bingwascore.app.ui.screens
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
 import android.content.Context
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
-import androidx.compose.foundation.Canvas
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,7 +30,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Backspace
@@ -56,21 +50,23 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.fragment.app.FragmentActivity
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
@@ -80,17 +76,9 @@ import com.bingwascore.app.data.auth.AuthConstants
 import com.bingwascore.app.data.auth.AuthRepository
 import com.bingwascore.app.data.preferences.UserPreferences
 import com.bingwascore.app.data.remote.RemoteResult
-import com.bingwascore.app.ui.components.BubbleCard
-import com.bingwascore.app.ui.components.PrimaryButton
-import com.bingwascore.app.ui.components.pressScale
-import com.bingwascore.app.ui.theme.AccentBlue
-import com.bingwascore.app.ui.theme.BgBlack
-import com.bingwascore.app.ui.theme.Bubble
-import com.bingwascore.app.ui.theme.Hairline
-import com.bingwascore.app.ui.theme.TextFaint
-import com.bingwascore.app.ui.theme.TextWhite
-import com.bingwascore.app.ui.theme.TickGreen
-import com.bingwascore.app.ui.theme.isPorcelain
+import com.bingwascore.app.ui.components.GlassCard
+import com.bingwascore.app.ui.components.NeoButton
+import com.bingwascore.app.ui.theme.DesignTokens
 import com.bingwascore.app.util.CrashHandler
 import com.bingwascore.app.util.rememberHaptics
 import com.bingwascore.app.util.screenEnter
@@ -145,8 +133,6 @@ class LoginViewModel @Inject constructor(
     }
 
     fun updatePhone(value: String) {
-        // O(1) pure on state change: the custom keypad writes digits only,
-        // so there is no regex, no filter loop, and no per-keystroke scan.
         _state.value = _state.value.copy(phone = value)
     }
 
@@ -162,8 +148,6 @@ class LoginViewModel @Inject constructor(
                 phone = current.phone + digit
             )
         } else {
-            // STAGE 44 — INPUT TRUTH: an 11th press is an inline error, never a
-            // silent no-op and never an append.
             _state.value = current.copy(errorMessage = "Phone number is 10 digits")
         }
     }
@@ -186,8 +170,6 @@ class LoginViewModel @Inject constructor(
                 pin = current.pin + digit
             )
         } else {
-            // STAGE 44 — INPUT TRUTH: a 5th press is an inline error, never a
-            // silent no-op and never an append.
             _state.value = current.copy(errorMessage = "PIN is 4 digits")
         }
     }
@@ -263,11 +245,12 @@ class LoginViewModel @Inject constructor(
                     cooldownSeconds = _state.value.cooldownSeconds - 1
                 )
             }
-            // Reset attempts after cooldown ends
             _state.value = _state.value.copy(failedAttempts = 0)
         }
     }
 }
+
+private const val MAX_PIN_LENGTH = 4
 
 @Composable
 fun LoginScreen(
@@ -287,9 +270,6 @@ fun LoginScreen(
     val phoneFocusRequester = remember { FocusRequester() }
     val pinFocusRequester = remember { FocusRequester() }
 
-    // Clear a shown error on the very next keystroke. The write happens inside
-    // LaunchedEffect(snapshotFlow) — never during composition — so typing can
-    // never recompose mid-change and jank the frame.
     LaunchedEffect(Unit) {
         var lastPhone = ""
         var lastPin = ""
@@ -304,9 +284,6 @@ fun LoginScreen(
             .launchIn(this)
     }
 
-    // MEGA A — a numeric keypad with a fingerprint affordance. Biometrics is a
-    // shortcut for the *same* sign-in action; if the device has no sensor (or
-    // enrolment fails) we simply fall back to typing the PIN below.
     val activity = context as? FragmentActivity
     val biometricAvailable = remember {
         runCatching {
@@ -317,8 +294,6 @@ fun LoginScreen(
         }.getOrDefault(false)
     }
 
-    // The prompt is remembered across recompositions so a rotation mid-prompt
-    // does not leak a second BiometricPrompt instance.
     val biometricPrompt = remember(activity) {
         activity?.let {
             val executor: Executor = androidx.core.content.ContextCompat.getMainExecutor(it)
@@ -354,13 +329,10 @@ fun LoginScreen(
     }
 
     LaunchedEffect(Unit) {
-        // Default focus = Phone.
         runCatching { phoneFocusRequester.requestFocus() }
-        // Offer the sensor once on entry when the device supports it.
         if (biometricAvailable) launchBiometric()
     }
 
-    // Auto-jump to PIN after 10th phone digit
     LaunchedEffect(Unit) {
         snapshotFlow { phone.length }
             .collect { len ->
@@ -371,18 +343,12 @@ fun LoginScreen(
             }
     }
 
-        Box(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .screenEnter()
-            .background(BgBlack)
+            .background(DesignTokens.Color.Obsidian.Bg)
     ) {
-        // POLISH P6 — the hero behind the card. Login is the first screen a new
-        // agent sees and the last thing they look at, so it gets the one piece
-        // of colour the product allows itself: two soft gradient orbs, sitting
-        // behind a card that is otherwise identical to every other card.
-        LoginHeroOrbs()
-
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -390,203 +356,205 @@ fun LoginScreen(
                 .statusBarsPadding()
                 .padding(horizontal = 20.dp)
                 .navigationBarsPadding()
-                .imePadding()
+                .imePadding(),
+            verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center
         ) {
-        Spacer(modifier = Modifier.height(32.dp))
-
-        Text(
-            "Welcome back",
-            color = TextWhite,
-            fontSize = 28.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.combinedClickable(onLongClick = { showCrashReport = true }, onClick = {})
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Text(
-            "Sign in to continue",
-            color = TextWhite.copy(alpha = 0.6f),
-            fontSize = 14.sp
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Hard gate inline error card
-        state.errorMessage?.let { msg ->
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(com.bingwascore.app.ui.theme.FailRed.copy(alpha = 0.15f))
-                    .border(1.dp, com.bingwascore.app.ui.theme.FailRed, RoundedCornerShape(12.dp))
-                    .padding(14.dp)
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Rounded.ErrorOutline,
-                        contentDescription = "Error",
-                        tint = com.bingwascore.app.ui.theme.FailRed,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Text(
-                        msg,
-                        color = TextWhite,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-        }
-
-        // Cooldown notification
-        if (state.cooldownSeconds > 0) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(com.bingwascore.app.ui.theme.PendGrey.copy(alpha = 0.2f))
-                    .border(1.dp, com.bingwascore.app.ui.theme.PendGrey, RoundedCornerShape(12.dp))
-                    .padding(14.dp)
-            ) {
-                Text(
-                    "Too many failed attempts. Try again in ${state.cooldownSeconds}s",
-                    color = TextWhite,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-        }
-
-        BubbleCard(modifier = Modifier.fillMaxWidth()) {
-            GlassField(
-                value = phone,
-                onValueChange = viewModel::updatePhone,
-                hint = "Phone (e.g. 0712345678)",
-                isFocused = focusedField == LoginField.PHONE,
-                focusRequester = phoneFocusRequester,
-                onClick = {
-                    focusedField = LoginField.PHONE
-                    phoneFocusRequester.requestFocus()
-                },
-                keyboardType = KeyboardType.Phone
+            Text(
+                "Welcome back",
+                color = DesignTokens.Color.Ink,
+                fontSize = DesignTokens.Typography.Display,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.combinedClickable(onLongClick = { showCrashReport = true }, onClick = {})
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-            GlassField(
-                value = pin,
-                onValueChange = viewModel::updatePin,
-                hint = "PIN",
-                isFocused = focusedField == LoginField.PIN,
-                focusRequester = pinFocusRequester,
-                onClick = {
-                    focusedField = LoginField.PIN
-                    pinFocusRequester.requestFocus()
-                },
-                isPassword = true,
-                keyboardType = KeyboardType.NumberPassword
+            Text(
+                "Sign in to continue",
+                color = DesignTokens.Color.Ink.copy(alpha = 0.6f),
+                fontSize = DesignTokens.Typography.Body
             )
 
-            // MEGA A — fingerprint shortcut. Tapping it re-opens the sensor;
-            // it is purely an accelerator, the PIN path below always works.
-            if (biometricAvailable) {
-                Spacer(modifier = Modifier.height(16.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center
+            Spacer(modifier = Modifier.height(32.dp))
+
+            state.errorMessage?.let { msg ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(DesignTokens.Shape.RadiusMd))
+                        .background(DesignTokens.Color.Brand.Error.copy(alpha = 0.1f))
+                        .border(1.dp, DesignTokens.Color.Brand.Error, RoundedCornerShape(DesignTokens.Shape.RadiusMd))
+                        .padding(14.dp)
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(52.dp)
-                            .clip(CircleShape)
-                            .background(Bubble)
-                            .border(1.dp, Hairline, CircleShape)
-                            .clickable { launchBiometric() },
-                        contentAlignment = Alignment.Center
-                    ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            imageVector = Icons.Rounded.Fingerprint,
-                            contentDescription = "Sign in with fingerprint",
-                            tint = AccentBlue,
-                            modifier = Modifier.size(26.dp)
+                            imageVector = Icons.Rounded.ErrorOutline,
+                            contentDescription = "Error",
+                            tint = DesignTokens.Color.Brand.Error,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            msg,
+                            color = DesignTokens.Color.Ink,
+                            fontSize = DesignTokens.Typography.Caption,
+                            fontWeight = FontWeight.Medium
                         )
                     }
                 }
+                Spacer(modifier = Modifier.height(16.dp))
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
-
-            PinKeypad(
-                pin = pin,
-                onDigit = { digit ->
-                    when (focusedField) {
-                        LoginField.PHONE -> viewModel.appendPhoneDigit(digit)
-                        LoginField.PIN -> viewModel.appendPinDigit(digit)
-                    }
-                },
-                onBackspace = {
-                    when (focusedField) {
-                        LoginField.PHONE -> viewModel.backspacePhone()
-                        LoginField.PIN -> viewModel.backspacePin()
-                    }
+            if (state.cooldownSeconds > 0) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(DesignTokens.Shape.RadiusMd))
+                        .background(DesignTokens.Color.Obsidian.Elevated.copy(alpha = 0.5f))
+                        .padding(14.dp)
+                ) {
+                    Text(
+                        "Too many failed attempts. Try again in ${state.cooldownSeconds}s",
+                        color = DesignTokens.Color.Ink,
+                        fontSize = DesignTokens.Typography.Caption,
+                        fontWeight = FontWeight.SemiBold
+                    )
                 }
-            )
-        }
+                Spacer(modifier = Modifier.height(16.dp))
+            }
 
-        Spacer(modifier = Modifier.height(24.dp))
-
-        if (state.isSuccess) {
-            Row(
+            GlassCard(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
+                shape = RoundedCornerShape(DesignTokens.Shape.RadiusMd)
             ) {
-                Icon(
-                    imageVector = Icons.Rounded.CheckCircle,
-                    contentDescription = "Success",
-                    tint = TickGreen,
-                    modifier = Modifier.size(32.dp)
-                )
-                Spacer(modifier = Modifier.width(10.dp))
-                Text(
-                    "Verified!",
-                    color = TickGreen,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
-                )
+                Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 20.dp)) {
+                    GlassInputField(
+                        value = phone,
+                        onValueChange = viewModel::updatePhone,
+                        hint = "Phone (e.g. 0712345678)",
+                        isFocused = focusedField == LoginField.PHONE,
+                        focusRequester = phoneFocusRequester,
+                        onClick = {
+                            focusedField = LoginField.PHONE
+                            phoneFocusRequester.requestFocus()
+                        },
+                        isPassword = false
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    GlassInputField(
+                        value = pin,
+                        onValueChange = viewModel::updatePin,
+                        hint = "PIN",
+                        isFocused = focusedField == LoginField.PIN,
+                        focusRequester = pinFocusRequester,
+                        onClick = {
+                            focusedField = LoginField.PIN
+                            pinFocusRequester.requestFocus()
+                        },
+                        isPassword = true
+                    )
+
+                    if (biometricAvailable) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(52.dp)
+                                    .clip(CircleShape)
+                                    .background(DesignTokens.Color.Obsidian.Elevated)
+                                    .border(1.dp, DesignTokens.Color.Obsidian.Border.copy(alpha = 0.3f), CircleShape)
+                                    .clickable { launchBiometric() },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Fingerprint,
+                                    contentDescription = "Sign in with fingerprint",
+                                    tint = DesignTokens.Color.Brand.Primary,
+                                    modifier = Modifier.size(26.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    TactileKeypad(
+                        pin = pin,
+                        onDigit = { digit ->
+                            when (focusedField) {
+                                LoginField.PHONE -> viewModel.appendPhoneDigit(digit)
+                                LoginField.PIN -> viewModel.appendPinDigit(digit)
+                            }
+                        },
+                        onBackspace = {
+                            when (focusedField) {
+                                LoginField.PHONE -> viewModel.backspacePhone()
+                                LoginField.PIN -> viewModel.backspacePin()
+                            }
+                        }
+                    )
+                }
             }
-            LaunchedEffect(Unit) {
-                haptics.tick()
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            if (state.isSuccess) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.CheckCircle,
+                        contentDescription = "Success",
+                        tint = DesignTokens.Color.Brand.Success,
+                        modifier = Modifier.size(32.dp)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        "Verified!",
+                        color = DesignTokens.Color.Brand.Success,
+                        fontSize = DesignTokens.Typography.Headline,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                LaunchedEffect(Unit) {
+                    haptics.tick()
+                }
+            } else {
+                NeoButton(
+                    onClick = {
+                        viewModel.signIn(onSignIn)
+                    },
+                    enabled = state.isSubmittable && state.cooldownSeconds == 0 && !state.isLoading,
+                    modifier = Modifier.fillMaxWidth().height(52.dp)
+                ) {
+                    Text(
+                        text = if (state.isLoading) "Verifying…" else if (state.cooldownSeconds > 0) "Cooldown (${state.cooldownSeconds}s)" else "Sign In",
+                        color = DesignTokens.Color.Ink,
+                        fontSize = DesignTokens.Typography.Headline,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
-        } else {
-            PrimaryButton(
-                text = if (state.cooldownSeconds > 0) "Cooldown (${state.cooldownSeconds}s)" else "Sign In",
-                onClick = {
-                    viewModel.signIn(onSignIn)
-                },
-                loading = state.isLoading,
-                loadingText = "Verifying…",
-                enabled = state.isSubmittable && state.cooldownSeconds == 0 && !state.isLoading,
-                modifier = Modifier.fillMaxWidth().height(52.dp)
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                "Create account",
+                color = DesignTokens.Color.Ink.copy(alpha = 0.6f),
+                fontSize = DesignTokens.Typography.Body,
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .clickable { onCreateAccount() }
             )
-        }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-            "Create account",
-            color = TextWhite.copy(alpha = 0.6f),
-            fontSize = 14.sp,
-            modifier = Modifier
-                .align(Alignment.CenterHorizontally)
-                .clickable { onCreateAccount() }
-        )
-
-                Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(32.dp))
         }
 
         if (showCrashReport) {
@@ -610,22 +578,29 @@ private fun CrashReportDialog(onDismiss: () -> Unit, context: Context) {
             Column(modifier = Modifier.fillMaxWidth()) {
                 Text(
                     "Last CrashHandler stack",
-                    color = TextWhite,
-                    fontSize = 14.sp,
+                    color = DesignTokens.Color.Ink,
+                    fontSize = DesignTokens.Typography.Caption,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = report ?: "No crashes recorded.",
-                    style = TextStyle(fontSize = 12.sp)
+                    style = TextStyle(fontSize = DesignTokens.Typography.Caption)
                 )
             }
         }
     )
 }
 
+/**
+ * Custom glass input field: looks like a GlassCard (blur, scrim, 12dp radius).
+ * Focused border glows with Brand.Primary (1dp, alpha 0.8).
+ * Unfocused border is Obsidian.border at alpha 0.2.
+ * Text uses Typography.Body. Focus glow is animated with animateFloatAsState.
+ * ReadOnly — the system keyboard never rises; input comes from TactileKeypad.
+ */
 @Composable
-private fun GlassField(
+private fun GlassInputField(
     value: String,
     onValueChange: (String) -> Unit,
     hint: String,
@@ -633,70 +608,102 @@ private fun GlassField(
     isFocused: Boolean = false,
     focusRequester: FocusRequester = remember { FocusRequester() },
     onClick: () -> Unit = {},
-    isPassword: Boolean = false,
-    keyboardType: KeyboardType = KeyboardType.Text
+    isPassword: Boolean = false
 ) {
-    val shape = RoundedCornerShape(16.dp)
-    val focusedBorderColor = if (isPorcelain) Color(0xFF2F6AE0) else Color(0xFF2563EB)
-    val borderWidth = if (isFocused) 2.dp else 1.dp
-    val borderColor = if (isFocused) focusedBorderColor else Hairline
+    val density = LocalDensity.current
+    val glow by animateFloatAsState(
+        targetValue = if (isFocused) 1f else 0f,
+        animationSpec = spring(
+            stiffness = DesignTokens.Motion.SpringStiffness,
+            dampingRatio = DesignTokens.Motion.SpringDamping
+        ),
+        label = "GlassInputFocusGlow"
+    )
 
-    // Phone and PIN fields are driven by the custom glass keypad, so the
-    // system keyboard must never rise when they gain focus.
-    Box(
+    val baseBorder = DesignTokens.Color.Obsidian.Border.copy(alpha = 0.2f)
+    val focusedBorder = DesignTokens.Color.Brand.Primary.copy(alpha = 0.8f)
+    val borderColor = Color(
+        red = baseBorder.red + (focusedBorder.red - baseBorder.red) * glow,
+        green = baseBorder.green + (focusedBorder.green - baseBorder.green) * glow,
+        blue = baseBorder.blue + (focusedBorder.blue - baseBorder.blue) * glow,
+        alpha = baseBorder.alpha + (focusedBorder.alpha - baseBorder.alpha) * glow
+    )
+
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val pressScale by animateFloatAsState(
+        targetValue = if (isPressed) 0.98f else 1f,
+        animationSpec = spring(
+            stiffness = DesignTokens.Motion.SpringStiffness,
+            dampingRatio = DesignTokens.Motion.SpringDamping
+        ),
+        label = "GlassInputPressScale"
+    )
+
+    GlassCard(
         modifier = modifier
             .fillMaxWidth()
-            .clip(shape)
-            .background(Bubble)
-            .border(borderWidth, borderColor, shape)
-            .clickable { onClick() }
-            .padding(horizontal = 16.dp, vertical = 16.dp)
+            .graphicsLayer { scaleX = pressScale; scaleY = pressScale },
+        shape = RoundedCornerShape(DesignTokens.Shape.RadiusMd)
     ) {
-        BasicTextField(
-            value = value,
-            onValueChange = onValueChange,
-            singleLine = true,
-            readOnly = true,
-            textStyle = TextStyle(color = TextWhite, fontSize = 16.sp),
-            keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
-            visualTransformation = if (isPassword) PasswordVisualTransformation() else VisualTransformation.None,
-            cursorBrush = SolidColor(AccentBlue),
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .focusable()
-                .focusRequester(focusRequester)
-        )
-        if (value.isEmpty()) {
-            Text(
-                hint,
-                color = TextFaint,
-                fontSize = 16.sp
+                .padding(horizontal = 16.dp, vertical = 16.dp)
+                .border(1.dp, borderColor, RoundedCornerShape(DesignTokens.Shape.RadiusMd))
+                .clickable(
+                    interactionSource = interactionSource,
+                    indication = null,
+                    onClick = onClick
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            BasicTextField(
+                value = value,
+                onValueChange = onValueChange,
+                singleLine = true,
+                readOnly = true,
+                textStyle = TextStyle(
+                    color = DesignTokens.Color.Ink,
+                    fontSize = DesignTokens.Typography.Body
+                ),
+                visualTransformation = if (isPassword) PasswordVisualTransformation() else VisualTransformation.None,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusable()
+                    .focusRequester(focusRequester)
             )
+            if (value.isEmpty()) {
+                Text(
+                    hint,
+                    color = DesignTokens.Color.Ink.copy(alpha = 0.5f),
+                    fontSize = DesignTokens.Typography.Body
+                )
+            }
         }
     }
 }
 
-/** PINs are exactly 4 digits so the keypad and field can never disagree. */
-private const val MAX_PIN_LENGTH = 4
-
 /**
- * MEGA A — the login keypad: a 3x4 glass grid with a filled PIN readout, so a
- * user with no fingerprint sensor (or who cancels the prompt) has a complete,
- * obvious way in without ever opening the system keyboard.
+ * Tactile keypad: 3x4 grid at the bottom of the screen. Each key is a NeoButton
+ * (scale 0.95f on press, LongPress haptic) using Obsidian.card with Elevation.Level1.
+ * Backspace key has a distinct icon. Drives phone + PIN fields; system keyboard never rises.
  */
 @Composable
-private fun PinKeypad(
+private fun TactileKeypad(
     pin: String,
     onDigit: (Char) -> Unit,
     onBackspace: () -> Unit
 ) {
-    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+    val haptic = LocalHapticFeedback.current
+    val density = LocalDensity.current
+    val keySizePx = with(density) { 64.dp.toPx() }
+    val keyRadius = keySizePx / 2f
 
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Filled / empty PIN dots.
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             repeat(MAX_PIN_LENGTH) { index ->
                 val filled = index < pin.length
@@ -704,8 +711,8 @@ private fun PinKeypad(
                     modifier = Modifier
                         .size(12.dp)
                         .clip(CircleShape)
-                        .background(if (filled) AccentBlue else Bubble)
-                        .border(1.dp, Hairline, CircleShape)
+                        .background(if (filled) DesignTokens.Color.Brand.Primary else DesignTokens.Color.Obsidian.Card)
+                        .border(1.dp, DesignTokens.Color.Obsidian.Border.copy(alpha = 0.2f), CircleShape)
                 )
             }
         }
@@ -720,16 +727,21 @@ private fun PinKeypad(
         rows.forEach { row ->
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 row.forEach { digit ->
-                    KeypadKey(label = digit) {
-                        try {
-                            haptic.performHapticFeedback(
-                                androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove
-                            )
-                        } catch (_: Throwable) {
-                            // Haptics are optional polish; never block the tap.
+                    TactileKeypadKey(
+                        label = digit,
+                        keySizePx = keySizePx,
+                        keyRadius = keyRadius,
+                        onClick = {
+                            try {
+                                haptic.performHapticFeedback(
+                                    androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove
+                                )
+                            } catch (_: Throwable) {
+                                // Haptics are optional polish; never block the tap.
+                            }
+                            onDigit(digit.first())
                         }
-                        onDigit(digit.first())
-                    }
+                    )
                 }
             }
             Spacer(modifier = Modifier.height(12.dp))
@@ -737,79 +749,99 @@ private fun PinKeypad(
 
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             Spacer(modifier = Modifier.size(64.dp))
-            KeypadKey(label = "0") { onDigit('0') }
-            Box(
-                modifier = Modifier
-                    .size(64.dp)
-                    .clip(CircleShape)
-                    .background(Bubble)
-                    .border(1.dp, Hairline, CircleShape)
-                    .clickable { onBackspace() },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.Backspace,
-                    contentDescription = "Delete",
-                    tint = TextWhite.copy(alpha = 0.7f),
-                    modifier = Modifier.size(22.dp)
-                )
-            }
+            TactileKeypadKey(
+                label = "0",
+                keySizePx = keySizePx,
+                keyRadius = keyRadius,
+                onClick = {
+                    try {
+                        haptic.performHapticFeedback(
+                            androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove
+                        )
+                    } catch (_: Throwable) {
+                        // Haptics are optional polish; never block the tap.
+                    }
+                    onDigit('0')
+                }
+            )
+            TactileKeypadKey(
+                label = "",
+                keySizePx = keySizePx,
+                keyRadius = keyRadius,
+                icon = Icons.Rounded.Backspace,
+                onClick = {
+                    try {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    } catch (_: Throwable) {
+                        // Haptics are optional polish; never block the tap.
+                    }
+                    onBackspace()
+                }
+            )
         }
     }
 }
 
-/** One round glass key. Press-scale 0.98 for the same tactile feel as the app. */
 @Composable
-private fun KeypadKey(label: String, onClick: () -> Unit) {
+private fun TactileKeypadKey(
+    label: String,
+    keySizePx: Float,
+    keyRadius: Float,
+    icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
+    onClick: () -> Unit
+) {
     val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.95f else 1f,
+        animationSpec = spring(
+            stiffness = DesignTokens.Motion.SpringStiffness,
+            dampingRatio = DesignTokens.Motion.SpringDamping
+        ),
+        label = "TactileKeypadKeyScale"
+    )
+
+    val density = LocalDensity.current
+    val level1 = DesignTokens.Elevation.Level1.first()
+    val offsetY = with(density) { level1.offsetY.toPx() }
+    val haptics = rememberHaptics()
+
     Box(
         modifier = Modifier
             .size(64.dp)
-            .pressScale(interactionSource)
+            .drawBehind {
+                drawRoundRect(
+                    color = level1.color,
+                    topLeft = Offset(0f, offsetY),
+                    cornerRadius = CornerRadius(keyRadius, keyRadius)
+                )
+            }
             .clip(CircleShape)
-            .background(Bubble)
-            .border(1.dp, Hairline, CircleShape)
+            .background(DesignTokens.Color.Obsidian.Card)
+            .graphicsLayer { scaleX = scale; scaleY = scale }
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
-                onClick = onClick
-            ),
-        contentAlignment = Alignment.Center
+                onClick = {
+                    haptics.press()
+                    onClick()
+                }
+            )
     ) {
-        Text(
-            label,
-            color = TextWhite,
-            fontSize = 20.sp,
-            fontWeight = FontWeight.SemiBold
-        )
-    }
-}
-
-/**
- * POLISH P6 — the login hero.
- *
- * Two gradient orbs, one bleeding off the top-left, one off the bottom-right,
- * meeting behind the card. They are drawn (not blurred) from radial gradients,
- * so the effect is identical on every device from API 26 up — the login screen
- * is the one place the product spends colour, and it must never look cheaper on
- * an older phone than on a new one.
- */
-@Composable
-private fun LoginHeroOrbs() {
-    Canvas(modifier = Modifier.fillMaxSize()) {
-        drawCircle(
-            brush = Brush.radialGradient(
-                colors = listOf(AccentBlue.copy(alpha = 0.22f), Color.Transparent)
-            ),
-            radius = size.width * 0.85f,
-            center = Offset(size.width * 0.12f, size.height * 0.12f)
-        )
-        drawCircle(
-            brush = Brush.radialGradient(
-                colors = listOf(AccentBlue.copy(alpha = 0.16f), Color.Transparent)
-            ),
-            radius = size.width * 0.95f,
-            center = Offset(size.width * 0.95f, size.height * 0.92f)
-        )
+        if (icon != null) {
+            Icon(
+                imageVector = icon,
+                contentDescription = "Delete",
+                tint = DesignTokens.Color.Ink,
+                modifier = Modifier.size(22.dp)
+            )
+        } else {
+            Text(
+                label,
+                color = DesignTokens.Color.Ink,
+                fontSize = DesignTokens.Typography.Subhead,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
     }
 }

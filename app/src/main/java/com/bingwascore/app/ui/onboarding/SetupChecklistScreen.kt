@@ -5,7 +5,14 @@ import android.content.Intent
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -18,10 +25,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Bolt
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Inbox
 import androidx.compose.material.icons.rounded.SimCard
 import androidx.compose.material.icons.rounded.Warning
@@ -33,24 +42,25 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.bingwascore.app.ui.components.BubbleCard
-import com.bingwascore.app.ui.components.PrimaryButton
-import com.bingwascore.app.util.screenEnter
-import com.bingwascore.app.ui.theme.TickGreen
-import com.bingwascore.app.ui.theme.BgBlack
-import com.bingwascore.app.ui.theme.PendGrey
-import com.bingwascore.app.ui.theme.TextWhite
+import com.bingwascore.app.ui.components.GlassCard
+import com.bingwascore.app.ui.components.NeoButton
+import com.bingwascore.app.ui.theme.DesignTokens
 import com.bingwascore.app.util.PowerUtils
+import com.bingwascore.app.util.screenEnter
 
 @Composable
 fun SetupChecklistScreen(
@@ -76,23 +86,29 @@ fun SetupChecklistScreen(
         modifier = Modifier
             .fillMaxSize()
             .screenEnter()
-            .background(BgBlack)
+            .background(DesignTokens.Color.Obsidian.Bg)
             .verticalScroll(rememberScrollState())
             .navigationBarsPadding()
             .padding(horizontal = 20.dp, vertical = 24.dp)
     ) {
-        Text("Finish setup — let's lock in your engine", color = TextWhite, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        Text(
+            "Finish setup — let's lock in your engine",
+            color = DesignTokens.Color.Ink,
+            fontSize = DesignTokens.Typography.Display,
+            fontWeight = FontWeight.Bold
+        )
         Spacer(modifier = Modifier.height(4.dp))
         Text(
             "Grant these so Bingwa never misses an M-Pesa credit or USSD step.",
-            color = TextWhite.copy(alpha = 0.6f),
-            fontSize = 13.sp
+            color = DesignTokens.Color.Ink.copy(alpha = 0.6f),
+            fontSize = DesignTokens.Typography.Body
         )
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
         ChecklistRow(
             icon = Icons.Rounded.SimCard,
             title = "Phone & SMS permissions",
+            subtitle = "Allow Bingwa to read SMS and access phone state.",
             done = permissionsGranted,
             actionLabel = if (permissionsGranted) "Granted" else "Grant",
             onTap = { permissionLauncher.launch(SetupChecklistViewModel.REQUIRED_PERMISSIONS.toTypedArray()) }
@@ -100,11 +116,12 @@ fun SetupChecklistScreen(
         ChecklistRow(
             icon = Icons.Rounded.Inbox,
             title = "Notifications enabled",
+            subtitle = "Receive transaction and engine alerts.",
             done = notificationsEnabled,
             actionLabel = if (notificationsEnabled) "On" else "Enable",
-                        onTap = {
+            onTap = {
                 val host = activity ?: context
-                                val settings = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                val settings = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     putExtra(Settings.EXTRA_APP_PACKAGE, host.packageName)
                     putExtra(Settings.EXTRA_CHANNEL_ID, "")
@@ -115,6 +132,7 @@ fun SetupChecklistScreen(
         ChecklistRow(
             icon = Icons.Rounded.Warning,
             title = "Battery optimisation off",
+            subtitle = "Prevent the OS from killing the engine in the background.",
             done = batteryIgnored,
             actionLabel = if (batteryIgnored) "Excluded" else "Fix",
             onTap = {
@@ -125,18 +143,25 @@ fun SetupChecklistScreen(
         ChecklistRow(
             icon = Icons.Rounded.Bolt,
             title = "Engine running",
+            subtitle = "The USSD engine must be active to process transactions.",
             done = engineEnabled,
             actionLabel = if (engineEnabled) "Running" else "Start",
             onTap = { if (!engineEnabled) viewModel.startEngine() }
         )
 
         Spacer(modifier = Modifier.weight(1f))
-        PrimaryButton(
-            text = "Start Earning",
+
+        NeoButton(
             onClick = { viewModel.completeSetup() },
-            modifier = Modifier.fillMaxWidth(),
-                        enabled = true
-        )
+            modifier = Modifier.fillMaxWidth().height(56.dp)
+        ) {
+            Text(
+                text = "Start Earning",
+                color = DesignTokens.Color.Ink,
+                fontSize = DesignTokens.Typography.Headline,
+                fontWeight = FontWeight.Bold
+            )
+        }
     }
 }
 
@@ -144,52 +169,119 @@ fun SetupChecklistScreen(
 private fun ChecklistRow(
     icon: ImageVector,
     title: String,
+    subtitle: String,
     done: Boolean,
     actionLabel: String,
     onTap: () -> Unit
 ) {
     val haptic = LocalHapticFeedback.current
-    BubbleCard(
+
+    GlassCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 6.dp),
-        onClick = if (done) null else {
-            {
-                try {
-                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                } catch (_: Throwable) {
-                    // Haptics are optional polish; never block the tap.
-                }
-                onTap()
-            }
-        }
+        shape = RoundedCornerShape(DesignTokens.Shape.RadiusMd)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = if (done) TickGreen else PendGrey,
-                modifier = Modifier.size(22.dp)
-            )
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(DesignTokens.Shape.RadiusMd))
+                    .background(DesignTokens.Color.Brand.Primary.copy(alpha = 0.1f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = DesignTokens.Color.Brand.Primary,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(title, color = TextWhite, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                Text(
+                    title,
+                    color = DesignTokens.Color.Ink,
+                    fontSize = DesignTokens.Typography.Body,
+                    fontWeight = FontWeight.SemiBold
+                )
                 Spacer(modifier = Modifier.height(2.dp))
-                Text(actionLabel, color = if (done) TickGreen else PendGrey, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                Text(
+                    subtitle,
+                    color = DesignTokens.Color.Ink.copy(alpha = 0.7f),
+                    fontSize = DesignTokens.Typography.Caption
+                )
             }
-            StatusChip(text = if (done) "DONE" else "ACTION", color = if (done) TickGreen else PendGrey)
+            if (done) {
+                StatusPill(
+                    text = "DONE",
+                    color = DesignTokens.Color.Brand.Success,
+                    showCheckmark = true
+                )
+            } else {
+                StatusAction(
+                    onClick = {
+                        try {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        } catch (_: Throwable) {
+                            // Haptics are optional polish; never block the tap.
+                        }
+                        onTap()
+                    }
+                )
+            }
         }
     }
 }
 
+/**
+ * DONE state: neumorphic pill with Success color and a checkmark.
+ */
 @Composable
-private fun StatusChip(text: String, color: Color) {
+private fun StatusPill(text: String, color: Color, showCheckmark: Boolean) {
     Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(color.copy(alpha = 0.14f))
             .padding(horizontal = 8.dp, vertical = 3.dp)
+            .background(color, shape = RoundedCornerShape(DesignTokens.Shape.RadiusFull))
     ) {
-        Text(text, color = color, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (showCheckmark) {
+                Icon(
+                    imageVector = Icons.Rounded.Check,
+                    contentDescription = "Done",
+                    tint = DesignTokens.Color.Ink,
+                    modifier = Modifier.size(14.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+            }
+            Text(
+                text,
+                color = DesignTokens.Color.Ink,
+                fontSize = DesignTokens.Typography.Caption,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+    }
+}
+
+/**
+ * ACTION state: small NeoButton.
+ */
+@Composable
+private fun StatusAction(onClick: () -> Unit) {
+    NeoButton(
+        onClick = onClick,
+        pressScale = 0.98f,
+        height = 28.dp,
+        fillMaxWidth = false,
+        fill = DesignTokens.Color.Obsidian.Elevated,
+        modifier = Modifier.width(64.dp)
+    ) {
+        Text(
+            text = "ACTION",
+            color = DesignTokens.Color.Ink,
+            fontSize = DesignTokens.Typography.Caption,
+            fontWeight = FontWeight.SemiBold
+        )
     }
 }
