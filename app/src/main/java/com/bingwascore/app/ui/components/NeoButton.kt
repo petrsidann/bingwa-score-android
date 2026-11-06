@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.bingwascore.app.ui.theme.DesignTokens
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -26,20 +27,29 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 /**
  * Stage 48 — Neo button.
  *
- * Primary CTA with a spring-driven press scale (0.98) and mandatory haptic
- * feedback on press. Never a bare [clickable] without haptics.
+ * Primary CTA with a spring-driven press scale and mandatory haptic feedback
+ * on press. Never a bare [clickable] without haptics.
+ *
+ * [pressScale] overrides the default 0.98f press scale (keypad keys use 0.95f).
+ * [fillMaxWidth] and [height] control sizing; set [fillMaxWidth] = false and pass
+ * a sized [modifier] for square keypad keys. [fill] overrides the brand-primary
+ * background (keypad keys use Obsidian.card).
  */
 @Composable
 fun NeoButton(
     onClick: () -> Unit,
     enabled: Boolean = true,
     modifier: Modifier = Modifier,
+    pressScale: Float = 0.98f,
+    height: Dp = 56.dp,
+    fillMaxWidth: Boolean = true,
+    fill: Color = DesignTokens.Color.Brand.Primary,
     content: @Composable () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.98f else 1f,
+        targetValue = if (isPressed) pressScale else 1f,
         animationSpec = spring(
             stiffness = DesignTokens.Motion.SpringStiffness,
             dampingRatio = DesignTokens.Motion.SpringDamping
@@ -49,12 +59,12 @@ fun NeoButton(
     val hapticFeedback = LocalHapticFeedback.current
     Box(
         modifier = modifier
-            .fillMaxWidth()
-            .height(56.dp)
+            .then(if (fillMaxWidth) Modifier.fillMaxWidth() else Modifier)
+            .height(height)
             .clip(RoundedCornerShape(DesignTokens.Shape.RadiusMd))
             .background(
-                if (enabled) DesignTokens.Color.Brand.Primary
-                else DesignTokens.Color.Brand.Primary.copy(alpha = 0.5f)
+                if (enabled) fill
+                else fill.copy(alpha = 0.5f)
             )
             .graphicsLayer { scaleX = scale; scaleY = scale }
             .clickable(
