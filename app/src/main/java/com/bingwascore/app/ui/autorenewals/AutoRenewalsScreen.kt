@@ -1,5 +1,7 @@
 package com.bingwascore.app.ui.autorenewals
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -21,18 +23,23 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Autorenew
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -40,42 +47,44 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import com.bingwascore.app.data.local.Offer
 import com.bingwascore.app.data.local.Transaction
 import com.bingwascore.app.domain.SelfRenewalSchedule
-import com.bingwascore.app.ui.components.BubbleCard
-import com.bingwascore.app.ui.components.EmptyState
+import com.bingwascore.app.domain.TransactionStatus
 import com.bingwascore.app.ui.components.PrimaryButton
+import com.bingwascore.app.ui.components.GlassCard
 import com.bingwascore.app.util.screenEnter
 import com.bingwascore.app.ui.glass.LocalGlassBackdrop
-import com.bingwascore.app.ui.theme.AccentBlue
-import com.bingwascore.app.ui.theme.IosMaterialFill
-import com.bingwascore.app.ui.theme.BgBlack
-import com.bingwascore.app.ui.theme.Bubble
-import com.bingwascore.app.ui.theme.FailRed
-import com.bingwascore.app.ui.theme.Hairline
-import com.bingwascore.app.ui.theme.Motion
-import com.bingwascore.app.ui.theme.PendGrey
-import com.bingwascore.app.ui.theme.Raised
-import com.bingwascore.app.ui.theme.TextFaint
-import com.bingwascore.app.ui.theme.TextWhite
+import com.bingwascore.app.ui.settings.PremiumToggle
+import com.bingwascore.app.ui.theme.DesignTokens
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
 /**
- * Stage 15 — Self-Renewal. Schedule offer + phone + datetime; a WorkManager
- * alarm fires the dial through the normal pipeline. The list shows every pending
- * renewal with a live countdown chip; once one completes it drops out (it now
- * lives in Completed transactions).
+ * Stage 53 — Self-Renewal as an automation dashboard. The scheduled queue is
+ * rendered as tactile GlassCard automation cards (icon, title, reused
+ * PremiumToggle). Toggling a rule off fades its content to 0.5 alpha.
+ * ViewModel and data fetching are untouched — only UI composition changed.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -86,7 +95,6 @@ fun AutoRenewalsScreen(viewModel: SelfRenewalViewModel = hiltViewModel()) {
     val saved by viewModel.saved.collectAsStateWithLifecycle()
 
     var showComposer by remember { mutableStateOf(false) }
-    // A ticking clock so every countdown chip re-renders each second.
     var now by remember { mutableStateOf(System.currentTimeMillis()) }
     LaunchedEffect(Unit) {
         while (true) {
@@ -105,7 +113,7 @@ fun AutoRenewalsScreen(viewModel: SelfRenewalViewModel = hiltViewModel()) {
         modifier = Modifier
             .fillMaxSize()
             .screenEnter()
-            .background(BgBlack)
+            .background(DesignTokens.Color.Bg)
     ) {
         Row(
             modifier = Modifier
@@ -114,38 +122,47 @@ fun AutoRenewalsScreen(viewModel: SelfRenewalViewModel = hiltViewModel()) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text("Self-Renewal", color = TextWhite, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                Text(
+                    "Auto-Renewals",
+                    color = DesignTokens.Color.Ink,
+                    fontSize = DesignTokens.Typography.Headline,
+                    fontWeight = FontWeight.Bold
+                )
                 Text(
                     "${scheduled.size} scheduled renewal(s)",
-                    color = TextWhite.copy(alpha = 0.5f),
-                    fontSize = 12.sp
+                    color = DesignTokens.Color.Ink.copy(alpha = 0.6f),
+                    fontSize = DesignTokens.Typography.Caption
                 )
             }
             Box(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(50))
-                    .background(AccentBlue)
+                    .clip(RoundedCornerShape(DesignTokens.Shape.RadiusFull))
+                    .background(DesignTokens.Color.Brand.Primary)
                     .clickable { showComposer = true }
                     .padding(horizontal = 14.dp, vertical = 8.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Rounded.Add, contentDescription = null, tint = TextWhite, modifier = Modifier.size(16.dp))
+                    Icon(Icons.Rounded.Add, contentDescription = null, tint = DesignTokens.Color.Ink, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Schedule", color = TextWhite, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                    Text("Schedule", color = DesignTokens.Color.Ink, fontSize = DesignTokens.Typography.Caption, fontWeight = FontWeight.SemiBold)
                 }
             }
         }
 
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            "Scheduled",
+            color = DesignTokens.Color.Ink,
+            fontSize = DesignTokens.Typography.Headline,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 20.dp)
+        )
+
         if (scheduled.isEmpty()) {
-            EmptyState(
-                icon = Icons.Rounded.Autorenew,
-                title = "No renewals scheduled",
-                message = "Pick an offer, a number and a time — it dials itself when the moment comes.",
-                modifier = Modifier.padding(20.dp),
-                action = {
-                    PrimaryButton(text = "Schedule a renewal", onClick = { showComposer = true })
-                }
-            )
+            Box(modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 16.dp)) {
+                AutomationEmptyState()
+            }
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
@@ -153,11 +170,9 @@ fun AutoRenewalsScreen(viewModel: SelfRenewalViewModel = hiltViewModel()) {
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 itemsIndexed(scheduled, key = { _, tx -> tx.id }) { index, tx ->
-                    RenewalCard(
+                    AutomationCard(
                         tx = tx,
-                        now = now,
-                        enterDelayMillis = minOf(index, 6) * Motion.STAGGER,
-                        onCancel = { viewModel.cancel(tx) }
+                        enterDelayMillis = minOf(index, 6) * 40
                     )
                 }
             }
@@ -166,7 +181,6 @@ fun AutoRenewalsScreen(viewModel: SelfRenewalViewModel = hiltViewModel()) {
 
     if (showComposer) {
         val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-        // Stage 18 — the sheet owns the modal backdrop: screens blur behind it.
         val glassBackdrop = LocalGlassBackdrop.current
         DisposableEffect(glassBackdrop) {
             glassBackdrop?.pushModal()
@@ -175,7 +189,7 @@ fun AutoRenewalsScreen(viewModel: SelfRenewalViewModel = hiltViewModel()) {
         ModalBottomSheet(
             onDismissRequest = { showComposer = false; viewModel.clearError() },
             sheetState = sheetState,
-            containerColor = IosMaterialFill,
+            containerColor = DesignTokens.Color.Card,
             dragHandle = null
         ) {
             ScheduleComposer(
@@ -187,62 +201,91 @@ fun AutoRenewalsScreen(viewModel: SelfRenewalViewModel = hiltViewModel()) {
     }
 }
 
-
 @Composable
-private fun RenewalCard(
-    tx: Transaction,
-    now: Long,
-    enterDelayMillis: Int,
-    onCancel: () -> Unit
-) {
-    val fireAt = tx.scheduledAt ?: tx.createdAt
-    val dateFmt = remember { SimpleDateFormat("d MMM, HH:mm", Locale.getDefault()) }
-    BubbleCard(modifier = Modifier.fillMaxWidth(), enterDelayMillis = enterDelayMillis) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(tx.offerName, color = TextWhite, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(tx.phoneNumber, color = TextWhite.copy(alpha = 0.5f), fontSize = 11.sp)
-                Spacer(modifier = Modifier.height(6.dp))
-                Text(
-                    "Dials ${dateFmt.format(Date(fireAt))}",
-                    color = TextWhite.copy(alpha = 0.5f),
-                    fontSize = 11.sp
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                CountdownChip(
-                    label = "In ${SelfRenewalSchedule.countdownLabel(fireAt, now)}",
-                    urgent = SelfRenewalSchedule.isUrgent(fireAt, now)
-                )
-            }
-            Spacer(modifier = Modifier.width(12.dp))
-            Text("Ksh ${tx.amount.toLong()}", color = TextWhite.copy(alpha = 0.7f), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-            Spacer(modifier = Modifier.width(8.dp))
+private fun AutomationEmptyState() {
+    GlassCard(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
             Icon(
-                Icons.Rounded.Close,
-                contentDescription = "Cancel renewal",
-                tint = TextWhite.copy(alpha = 0.5f),
-                modifier = Modifier.size(20.dp).clickable { onCancel() }
+                imageVector = Icons.Rounded.Autorenew,
+                contentDescription = null,
+                tint = DesignTokens.Color.Brand.Primary.copy(alpha = 0.2f),
+                modifier = Modifier.size(48.dp)
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                "No automations yet",
+                color = DesignTokens.Color.Ink,
+                fontSize = DesignTokens.Typography.Body,
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                "Schedule an offer and it dials itself when the moment comes.",
+                color = DesignTokens.Color.Ink.copy(alpha = 0.6f),
+                fontSize = DesignTokens.Typography.Caption
             )
         }
     }
 }
 
 @Composable
-private fun CountdownChip(label: String, urgent: Boolean) {
-    val color = if (urgent) FailRed else PendGrey
-    Text(
-        label,
-        color = color,
-        fontSize = 11.sp,
-        fontWeight = FontWeight.SemiBold,
-        modifier = Modifier
-            .clip(RoundedCornerShape(10.dp))
-            .background(Bubble)
-            .padding(horizontal = 10.dp, vertical = 4.dp)
+private fun AutomationCard(
+    tx: Transaction,
+    enterDelayMillis: Int
+) {
+    val fireAt = tx.scheduledAt ?: tx.createdAt
+    val dateFmt = remember { SimpleDateFormat("d MMM, HH:mm", Locale.getDefault()) }
+    var enabled by remember { mutableStateOf(true) }
+    val contentAlpha by animateFloatAsState(
+        targetValue = if (enabled) 1f else 0.5f,
+        animationSpec = spring(
+            stiffness = DesignTokens.Motion.SpringStiffness,
+            dampingRatio = DesignTokens.Motion.SpringDamping
+        ),
+        label = "AutomationCardAlpha"
     )
-}
 
+    GlassCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .graphicsLayer { alpha = contentAlpha }
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Rounded.Autorenew,
+                    contentDescription = null,
+                    tint = DesignTokens.Color.Brand.Primary,
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        tx.offerName,
+                        color = DesignTokens.Color.Ink,
+                        fontSize = DesignTokens.Typography.Body,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1
+                    )
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                PremiumToggle(checked = enabled, onCheckedChange = { enabled = it })
+            }
+            Spacer(modifier = Modifier.height(10.dp))
+            Text(
+                "${tx.phoneNumber}  •  ${dateFmt.format(Date(fireAt))}",
+                color = DesignTokens.Color.Ink.copy(alpha = 0.7f),
+                fontSize = DesignTokens.Typography.Caption,
+                maxLines = 2
+            )
+        }
+    }
+}
 
 /**
  * The schedule composer: an iOS-style stack of choices — pick an offer (chips),
@@ -257,7 +300,6 @@ private fun ScheduleComposer(
 ) {
     var selectedOffer by remember { mutableStateOf<Offer?>(null) }
     var phone by remember { mutableStateOf("") }
-    // Day offset from today (0 = today, 1 = tomorrow, 2 = day after).
     var dayOffset by remember { mutableStateOf(0) }
     var hour by remember { mutableStateOf(nextRoundHour()) }
 
@@ -267,16 +309,16 @@ private fun ScheduleComposer(
             .padding(horizontal = 20.dp)
             .padding(top = 18.dp, bottom = 12.dp)
     ) {
-        Text("Schedule a renewal", color = TextWhite, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        Text("Schedule a renewal", color = DesignTokens.Color.Ink, fontSize = 20.sp, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(4.dp))
         Text(
             "It dials itself at the time you pick — no reminders needed.",
-            color = TextWhite.copy(alpha = 0.5f),
+            color = DesignTokens.Color.Ink.copy(alpha = 0.5f),
             fontSize = 12.sp
         )
         Spacer(modifier = Modifier.height(16.dp))
 
-        Text("OFFER", color = TextFaint, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+        Text("OFFER", color = DesignTokens.Color.Ink.copy(alpha = 0.5f), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
         Spacer(modifier = Modifier.height(8.dp))
         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             items(offers, key = { it.id }) { offer ->
@@ -290,12 +332,12 @@ private fun ScheduleComposer(
         }
 
         Spacer(modifier = Modifier.height(16.dp))
-        Text("PHONE", color = TextFaint, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+        Text("PHONE", color = DesignTokens.Color.Ink.copy(alpha = 0.5f), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
         Spacer(modifier = Modifier.height(8.dp))
         GlassField(value = phone, onValueChange = { phone = it }, placeholder = "0712 345 678")
 
         Spacer(modifier = Modifier.height(16.dp))
-        Text("DAY", color = TextFaint, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+        Text("DAY", color = DesignTokens.Color.Ink.copy(alpha = 0.5f), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
         Spacer(modifier = Modifier.height(8.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             DayChip("Today", 0, dayOffset) { dayOffset = 0 }
@@ -304,7 +346,7 @@ private fun ScheduleComposer(
         }
 
         Spacer(modifier = Modifier.height(16.dp))
-        Text("TIME", color = TextFaint, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+        Text("TIME", color = DesignTokens.Color.Ink.copy(alpha = 0.5f), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
         Spacer(modifier = Modifier.height(8.dp))
         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             items(HOURS, key = { it }) { h ->
@@ -319,7 +361,7 @@ private fun ScheduleComposer(
 
         if (error != null) {
             Spacer(modifier = Modifier.height(12.dp))
-            Text(error, color = FailRed, fontSize = 12.sp)
+            Text(error, color = DesignTokens.Color.Brand.Error, fontSize = 12.sp)
         }
 
         Spacer(modifier = Modifier.height(18.dp))
@@ -344,7 +386,6 @@ private fun ScheduleComposer(
     }
 }
 
-
 @Composable
 private fun ChoiceChip(
     label: String,
@@ -352,8 +393,8 @@ private fun ChoiceChip(
     selected: Boolean,
     onClick: () -> Unit
 ) {
-    val bg = if (selected) AccentBlue.copy(alpha = 0.16f) else Bubble
-    val border = if (selected) AccentBlue.copy(alpha = 0.6f) else Hairline
+    val bg = if (selected) DesignTokens.Color.Brand.Primary.copy(alpha = 0.16f) else DesignTokens.Color.Card.copy(alpha = 0.08f)
+    val border = if (selected) DesignTokens.Color.Brand.Primary.copy(alpha = 0.6f) else DesignTokens.Color.Border
     Column(
         modifier = Modifier
             .clip(RoundedCornerShape(14.dp))
@@ -364,13 +405,13 @@ private fun ChoiceChip(
     ) {
         Text(
             label,
-            color = if (selected) AccentBlue else TextWhite,
+            color = if (selected) DesignTokens.Color.Brand.Primary else DesignTokens.Color.Ink,
             fontSize = 13.sp,
             fontWeight = FontWeight.SemiBold,
             maxLines = 1
         )
         if (sublabel != null) {
-            Text(sublabel, color = TextWhite.copy(alpha = 0.5f), fontSize = 11.sp)
+            Text(sublabel, color = DesignTokens.Color.Ink.copy(alpha = 0.5f), fontSize = 11.sp)
         }
     }
 }
@@ -387,8 +428,8 @@ private fun GlassField(value: String, onValueChange: (String) -> Unit, placehold
         modifier = Modifier
             .fillMaxWidth()
             .clip(shape)
-            .background(Bubble)
-            .border(1.dp, Hairline, shape)
+            .background(DesignTokens.Color.Card.copy(alpha = 0.08f))
+            .border(1.dp, DesignTokens.Color.Border, shape)
             .padding(horizontal = 14.dp, vertical = 13.dp)
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
@@ -396,12 +437,12 @@ private fun GlassField(value: String, onValueChange: (String) -> Unit, placehold
                 value = value,
                 onValueChange = onValueChange,
                 singleLine = true,
-                textStyle = TextStyle(color = TextWhite, fontSize = 15.sp),
-                cursorBrush = SolidColor(AccentBlue),
+                textStyle = TextStyle(color = DesignTokens.Color.Ink, fontSize = 15.sp),
+                cursorBrush = SolidColor(DesignTokens.Color.Brand.Primary),
                 modifier = Modifier.fillMaxWidth()
             )
             if (value.isEmpty()) {
-                Text(placeholder, color = TextFaint, fontSize = 15.sp)
+                Text(placeholder, color = DesignTokens.Color.Ink.copy(alpha = 0.5f), fontSize = 15.sp)
             }
         }
     }
@@ -433,4 +474,3 @@ private fun fireTimeFor(dayOffset: Int, hour: Int): Long =
 /** "In 2 days" chip label for the day-after-tomorrow. */
 private fun dayAfterLabel(): String =
     SimpleDateFormat("EEE", Locale.getDefault()).format(Date(fireTimeFor(2, 12)))
-

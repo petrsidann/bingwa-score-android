@@ -3,6 +3,8 @@ package com.bingwascore.app.ui.customers
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -23,14 +25,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Block
 import androidx.compose.material.icons.rounded.Call
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Message
 import androidx.compose.material.icons.rounded.People
-import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -47,44 +47,41 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import com.bingwascore.app.data.local.Customer
 import com.bingwascore.app.domain.CustomerBook
-import com.bingwascore.app.ui.components.BubbleCard
-import com.bingwascore.app.ui.components.EmptyState
+import com.bingwascore.app.ui.components.GlassCard
+import com.bingwascore.app.ui.components.GlassSearchBar
 import com.bingwascore.app.util.formatCustomerName
 import com.bingwascore.app.util.screenEnter
 import com.bingwascore.app.ui.glass.LocalGlassBackdrop
-import com.bingwascore.app.ui.theme.AccentBlue
-import com.bingwascore.app.ui.theme.IosMaterialFill
-import com.bingwascore.app.ui.theme.BgBlack
-import com.bingwascore.app.ui.theme.Bubble
-import com.bingwascore.app.ui.theme.FailRed
-import com.bingwascore.app.ui.theme.Hairline
-import com.bingwascore.app.ui.theme.Motion
-import com.bingwascore.app.ui.theme.Raised
-import com.bingwascore.app.ui.theme.TextFaint
-import com.bingwascore.app.ui.theme.TextWhite
-import com.bingwascore.app.ui.theme.accentBrush
+import com.bingwascore.app.ui.theme.DesignTokens
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 /**
- * Stage 14 — the Customers book. An autosave roll-up of every SUCCESSFUL
- * purchase: recent-activity first, searchable by name/phone, each row an
- * initials avatar + name + phone + last offer. Tapping a row opens the detail
- * sheet (spend, first purchase, most-bought, count, last 5) with a Blacklist
- * action (confirm dialog) and a Contact chooser (WhatsApp / Phone / SMS).
+ * Stage 53 — the Customers book as a linear CRM. Every row is a tactile
+ * GlassCard (avatar, info column, status badge) with a spring press and
+ * mandatory haptics. Search + Blacklisted filter chip up top. ViewModel and
+ * data fetching are untouched — only UI composition changed.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -99,23 +96,27 @@ fun CustomersScreen(viewModel: CustomersViewModel = hiltViewModel()) {
         modifier = Modifier
             .fillMaxSize()
             .screenEnter()
-            .background(BgBlack)
+            .background(DesignTokens.Color.Bg)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp, vertical = 16.dp)
         ) {
-            Text("Customers", color = TextWhite, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Text(
+                "Customers",
+                color = DesignTokens.Color.Ink,
+                fontSize = DesignTokens.Typography.Headline,
+                fontWeight = FontWeight.Bold
+            )
             Text(
                 "${customers.size} customer(s)",
-                color = TextWhite.copy(alpha = 0.5f),
-                fontSize = 12.sp
+                color = DesignTokens.Color.Ink.copy(alpha = 0.6f),
+                fontSize = DesignTokens.Typography.Caption
             )
             Spacer(modifier = Modifier.height(14.dp))
-            GlassSearchField(value = query, onValueChange = viewModel::setQuery)
+            GlassSearchBar(query = query, onQueryChange = viewModel::setQuery)
             Spacer(modifier = Modifier.height(12.dp))
-            // Stage 14 — the "Blacklisted" filter chip lives inside the top bar.
             BlacklistFilterChip(
                 active = blacklistFilter,
                 onToggle = viewModel::toggleBlacklistFilter
@@ -123,16 +124,13 @@ fun CustomersScreen(viewModel: CustomersViewModel = hiltViewModel()) {
         }
 
         if (customers.isEmpty()) {
-            EmptyState(
-                icon = Icons.Rounded.People,
-                title = if (query.isBlank() && !blacklistFilter) "No customers yet" else "No matches found",
-                message = if (query.isBlank() && !blacklistFilter) {
-                    "Customers save themselves here every time a bundle completes."
-                } else {
-                    "Nothing matches — try a different name or number."
-                },
-                modifier = Modifier.padding(20.dp)
-            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 20.dp, vertical = 16.dp)
+            ) {
+                CustomerEmptyState()
+            }
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
@@ -142,7 +140,7 @@ fun CustomersScreen(viewModel: CustomersViewModel = hiltViewModel()) {
                 itemsIndexed(customers, key = { _, customer -> customer.phoneNumber }) { index, customer ->
                     CustomerRow(
                         customer = customer,
-                        enterDelayMillis = minOf(index, 6) * Motion.STAGGER,
+                        enterDelayMillis = minOf(index, 6) * 40,
                         onOpen = { viewModel.openDetail(customer) }
                     )
                 }
@@ -153,7 +151,6 @@ fun CustomersScreen(viewModel: CustomersViewModel = hiltViewModel()) {
     val open = selected
     if (open != null) {
         val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-        // Stage 18 — the sheet owns the modal backdrop: screens blur behind it.
         val glassBackdrop = LocalGlassBackdrop.current
         DisposableEffect(glassBackdrop) {
             glassBackdrop?.pushModal()
@@ -162,7 +159,7 @@ fun CustomersScreen(viewModel: CustomersViewModel = hiltViewModel()) {
         ModalBottomSheet(
             onDismissRequest = viewModel::closeDetail,
             sheetState = sheetState,
-            containerColor = IosMaterialFill,
+            containerColor = DesignTokens.Color.Card,
             dragHandle = null
         ) {
             CustomerDetailSheet(
@@ -175,12 +172,47 @@ fun CustomersScreen(viewModel: CustomersViewModel = hiltViewModel()) {
     }
 }
 
+@Composable
+private fun CustomerEmptyState() {
+    GlassCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 4.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.People,
+                contentDescription = null,
+                tint = DesignTokens.Color.Brand.Primary.copy(alpha = 0.2f),
+                modifier = Modifier.size(48.dp)
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                "No customers yet",
+                color = DesignTokens.Color.Ink,
+                fontSize = DesignTokens.Typography.Body,
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                "Customers save themselves here every time a bundle completes.",
+                color = DesignTokens.Color.Ink.copy(alpha = 0.6f),
+                fontSize = DesignTokens.Typography.Caption
+            )
+        }
+    }
+}
 
 @Composable
 private fun BlacklistFilterChip(active: Boolean, onToggle: () -> Unit) {
-    val bg = if (active) FailRed.copy(alpha = 0.16f) else Bubble
-    val border = if (active) FailRed.copy(alpha = 0.5f) else Hairline
-    val ink = if (active) FailRed else TextWhite.copy(alpha = 0.7f)
+    val bg = if (active) DesignTokens.Color.Brand.Error else Color.Transparent
+    val border = if (active) DesignTokens.Color.Brand.Error else DesignTokens.Color.Border
+    val ink = DesignTokens.Color.Ink
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
@@ -200,7 +232,7 @@ private fun BlacklistFilterChip(active: Boolean, onToggle: () -> Unit) {
         Text(
             "Blacklisted",
             color = ink,
-            fontSize = 12.sp,
+            fontSize = DesignTokens.Typography.Caption,
             fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal
         )
     }
@@ -212,70 +244,100 @@ private fun CustomerRow(
     enterDelayMillis: Int,
     onOpen: () -> Unit
 ) {
-    BubbleCard(
-        modifier = Modifier.fillMaxWidth(),
-        cornerRadius = 18.dp,
-        enterDelayMillis = enterDelayMillis,
-        onClick = onOpen
+    val isBlocked = customer.isBlacklisted
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val haptic = LocalHapticFeedback.current
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.98f else 1f,
+        animationSpec = spring(
+            stiffness = DesignTokens.Motion.SpringStiffness,
+            dampingRatio = DesignTokens.Motion.SpringDamping
+        ),
+        label = "CustomerCardPress"
+    )
+
+    val ringBrush: Brush = if (isBlocked) {
+        SolidColor(DesignTokens.Color.Brand.Error)
+    } else {
+        Brush.linearGradient(
+            colors = listOf(DesignTokens.Color.Brand.Primary, DesignTokens.Color.Brand.DimAccent)
+        )
+    }
+    val badgeColor = if (isBlocked) DesignTokens.Color.Brand.Error else DesignTokens.Color.Brand.Success
+
+    GlassCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .graphicsLayer { scaleX = scale; scaleY = scale }
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onOpen()
+                }
+            )
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            InitialsAvatar(name = customer.name ?: customer.phoneNumber)
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(ringBrush)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(30.dp)
+                        .clip(CircleShape)
+                        .background(DesignTokens.Color.Card),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        initialsOf(customer.name ?: customer.phoneNumber),
+                        color = DesignTokens.Color.Ink,
+                        fontSize = DesignTokens.Typography.Body,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     customer.name?.let { formatCustomerName(it) } ?: customer.phoneNumber,
-                    color = TextWhite,
-                    fontSize = 14.sp,
+                    color = DesignTokens.Color.Ink,
+                    fontSize = DesignTokens.Typography.Body,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     customer.phoneNumber,
-                    color = TextWhite.copy(alpha = 0.5f),
-                    fontSize = 11.sp
+                    color = DesignTokens.Color.Ink.copy(alpha = 0.7f),
+                    fontSize = DesignTokens.Typography.Caption
                 )
-                val lastOffer = customer.lastOfferName
-                if (!lastOffer.isNullOrBlank()) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        "Last: $lastOffer",
-                        color = AccentBlue,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Medium,
-                        maxLines = 1
-                    )
-                }
             }
             Spacer(modifier = Modifier.width(8.dp))
-            if (customer.isBlacklisted) {
+            Box(
+                modifier = Modifier
+            .clip(RoundedCornerShape(DesignTokens.Shape.RadiusFull))
+            .background(badgeColor)
+            .padding(horizontal = 8.dp, vertical = 3.dp)
+            .drawBehind {
+                drawRoundRect(
+                    brush = SolidColor(badgeColor.copy(alpha = 0.3f)),
+                    cornerRadius = CornerRadius(14f, 14f)
+                )
+            }
+            ) {
                 Text(
-                    "Blocked",
-                    color = FailRed,
-                    fontSize = 10.sp,
+                    if (isBlocked) "Blocked" else "Active",
+                    color = DesignTokens.Color.Ink,
+                    fontSize = DesignTokens.Typography.Caption,
                     fontWeight = FontWeight.SemiBold
                 )
             }
         }
-    }
-}
-
-@Composable
-private fun InitialsAvatar(name: String) {
-    val initials = remember(name) { initialsOf(name) }
-    Box(
-        modifier = Modifier
-            .size(44.dp)
-            .clip(CircleShape)
-            .background(accentBrush()),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            initials,
-            color = Color.White,
-            fontSize = 15.sp,
-            fontWeight = FontWeight.ExtraBold
-        )
     }
 }
 
@@ -289,8 +351,6 @@ private fun initialsOf(name: String): String {
     }
 }
 
-
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun CustomerDetailSheet(
     customer: Customer,
@@ -310,21 +370,34 @@ private fun CustomerDetailSheet(
             .padding(top = 20.dp, bottom = 12.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            InitialsAvatar(name = customer.name ?: customer.phoneNumber)
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(DesignTokens.Color.Brand.Primary.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    initialsOf(customer.name ?: customer.phoneNumber),
+                    color = DesignTokens.Color.Ink,
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.ExtraBold
+                )
+            }
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     customer.name?.let { formatCustomerName(it) } ?: customer.phoneNumber,
-                    color = TextWhite,
+                    color = DesignTokens.Color.Ink,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
                 )
-                Text(customer.phoneNumber, color = TextWhite.copy(alpha = 0.5f), fontSize = 12.sp)
+                Text(customer.phoneNumber, color = DesignTokens.Color.Ink.copy(alpha = 0.5f), fontSize = 12.sp)
             }
             Icon(
                 Icons.Rounded.Close,
                 contentDescription = "Close",
-                tint = TextWhite.copy(alpha = 0.5f),
+                tint = DesignTokens.Color.Ink.copy(alpha = 0.5f),
                 modifier = Modifier.size(22.dp).clickable { onClose() }
             )
         }
@@ -334,12 +407,11 @@ private fun CustomerDetailSheet(
         if (stats == null || stats.txCount == 0) {
             Text(
                 "No completed purchases recorded yet.",
-                color = TextFaint,
+                color = DesignTokens.Color.Ink.copy(alpha = 0.6f),
                 fontSize = 13.sp,
                 modifier = Modifier.padding(vertical = 12.dp)
             )
         } else {
-            // Stats grid: total spent / purchases / first purchase / most-bought.
             Row(modifier = Modifier.fillMaxWidth()) {
                 StatTile("Total spent", "Ksh ${formatAmount(stats.totalSpent)}", Modifier.weight(1f))
                 Spacer(modifier = Modifier.width(10.dp))
@@ -362,7 +434,7 @@ private fun CustomerDetailSheet(
 
             if (stats.lastFive.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(18.dp))
-                Text("Recent purchases", color = TextFaint, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                Text("Recent purchases", color = DesignTokens.Color.Ink.copy(alpha = 0.6f), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
                 Spacer(modifier = Modifier.height(8.dp))
                 stats.lastFive.forEach { sale ->
                     Row(
@@ -372,18 +444,19 @@ private fun CustomerDetailSheet(
                             .padding(vertical = 5.dp)
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(sale.offerName, color = TextWhite, fontSize = 13.sp, maxLines = 1)
+                            Text(sale.offerName, color = DesignTokens.Color.Ink, fontSize = 13.sp, maxLines = 1)
                             Text(
                                 dateFmt.format(Date(sale.at)),
-                                color = TextWhite.copy(alpha = 0.5f),
+                                color = DesignTokens.Color.Ink.copy(alpha = 0.5f),
                                 fontSize = 11.sp
                             )
                         }
                         Text(
                             "Ksh ${formatAmount(sale.amount)}",
-                            color = TextWhite.copy(alpha = 0.8f),
+                            color = DesignTokens.Color.Ink.copy(alpha = 0.8f),
                             fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.weight(1f)
                         )
                     }
                 }
@@ -392,12 +465,11 @@ private fun CustomerDetailSheet(
 
         Spacer(modifier = Modifier.height(18.dp))
 
-        // Actions: Contact chooser + Blacklist (confirm dialog).
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             ActionPill(
                 label = "Contact",
                 icon = Icons.Rounded.Call,
-                tint = AccentBlue,
+                tint = DesignTokens.Color.Brand.Primary,
                 modifier = Modifier.weight(1f),
                 onClick = { showContacts = true }
             )
@@ -407,10 +479,10 @@ private fun CustomerDetailSheet(
                 modifier = Modifier
                     .weight(1f)
                     .clip(RoundedCornerShape(14.dp))
-                    .background(if (customer.isBlacklisted) FailRed.copy(alpha = 0.14f) else Bubble)
+                    .background(if (customer.isBlacklisted) DesignTokens.Color.Brand.Error.copy(alpha = 0.14f) else DesignTokens.Color.Card.copy(alpha = 0.08f))
                     .border(
                         1.dp,
-                        if (customer.isBlacklisted) FailRed.copy(alpha = 0.5f) else Hairline,
+                        if (customer.isBlacklisted) DesignTokens.Color.Brand.Error.copy(alpha = 0.5f) else DesignTokens.Color.Border,
                         RoundedCornerShape(14.dp)
                     )
                     .clickable { confirmBlacklist = true }
@@ -419,13 +491,13 @@ private fun CustomerDetailSheet(
                 Icon(
                     Icons.Rounded.Block,
                     contentDescription = null,
-                    tint = if (customer.isBlacklisted) FailRed else TextWhite.copy(alpha = 0.7f),
+                    tint = if (customer.isBlacklisted) DesignTokens.Color.Brand.Error else DesignTokens.Color.Ink.copy(alpha = 0.7f),
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     if (customer.isBlacklisted) "Unblock" else "Blacklist",
-                    color = if (customer.isBlacklisted) FailRed else TextWhite,
+                    color = if (customer.isBlacklisted) DesignTokens.Color.Brand.Error else DesignTokens.Color.Ink,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.weight(1f)
@@ -439,11 +511,11 @@ private fun CustomerDetailSheet(
         val willBlock = !customer.isBlacklisted
         AlertDialog(
             onDismissRequest = { confirmBlacklist = false },
-            containerColor = Raised,
+            containerColor = DesignTokens.Color.Elevated,
             title = {
                 Text(
                     if (willBlock) "Blacklist this customer?" else "Remove from blacklist?",
-                    color = TextWhite,
+                    color = DesignTokens.Color.Ink,
                     fontWeight = FontWeight.Bold
                 )
             },
@@ -455,7 +527,7 @@ private fun CustomerDetailSheet(
                     } else {
                         "They will return to your normal customer list."
                     },
-                    color = TextWhite.copy(alpha = 0.7f)
+                    color = DesignTokens.Color.Ink.copy(alpha = 0.7f)
                 )
             },
             confirmButton = {
@@ -463,12 +535,12 @@ private fun CustomerDetailSheet(
                     confirmBlacklist = false
                     onToggleBlacklist()
                 }) {
-                    Text(if (willBlock) "Blacklist" else "Unblock", color = FailRed)
+                    Text(if (willBlock) "Blacklist" else "Unblock", color = DesignTokens.Color.Brand.Error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { confirmBlacklist = false }) {
-                    Text("Cancel", color = TextWhite.copy(alpha = 0.7f))
+                    Text("Cancel", color = DesignTokens.Color.Ink.copy(alpha = 0.7f))
                 }
             }
         )
@@ -477,7 +549,7 @@ private fun CustomerDetailSheet(
     if (showContacts) {
         ModalBottomSheet(
             onDismissRequest = { showContacts = false },
-            containerColor = Raised,
+            containerColor = DesignTokens.Color.Elevated,
             dragHandle = null
         ) {
             Column(
@@ -486,20 +558,20 @@ private fun CustomerDetailSheet(
                     .padding(horizontal = 20.dp)
                     .padding(top = 18.dp, bottom = 12.dp)
             ) {
-                Text("Contact", color = TextWhite, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Text("Contact", color = DesignTokens.Color.Ink, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 Text(
                     customer.phoneNumber,
-                    color = TextWhite.copy(alpha = 0.5f),
+                    color = DesignTokens.Color.Ink.copy(alpha = 0.5f),
                     fontSize = 12.sp
                 )
                 Spacer(modifier = Modifier.height(14.dp))
-                ContactRow("WhatsApp", Icons.Rounded.Message, AccentBlue) {
+                ContactRow("WhatsApp", Icons.Rounded.Message, DesignTokens.Color.Brand.Primary) {
                     openUri(context, CustomerBook.whatsappUri(customer.phoneNumber))
                 }
-                ContactRow("Phone call", Icons.Rounded.Call, AccentBlue) {
+                ContactRow("Phone call", Icons.Rounded.Call, DesignTokens.Color.Brand.Primary) {
                     openUri(context, CustomerBook.dialUri(customer.phoneNumber))
                 }
-                ContactRow("SMS", Icons.Rounded.Message, AccentBlue) {
+                ContactRow("SMS", Icons.Rounded.Message, DesignTokens.Color.Brand.Primary) {
                     openUri(context, CustomerBook.smsUri(customer.phoneNumber))
                 }
                 Spacer(modifier = Modifier.navigationBarsPadding().height(8.dp))
@@ -508,20 +580,19 @@ private fun CustomerDetailSheet(
     }
 }
 
-
 @Composable
 private fun StatTile(label: String, value: String, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(14.dp))
-            .background(Bubble)
+            .background(DesignTokens.Color.Card.copy(alpha = 0.06f))
             .padding(horizontal = 12.dp, vertical = 10.dp)
     ) {
-        Text(label, color = TextFaint, fontSize = 10.sp)
+        Text(label, color = DesignTokens.Color.Ink.copy(alpha = 0.5f), fontSize = 10.sp)
         Spacer(modifier = Modifier.height(3.dp))
         Text(
             value,
-            color = TextWhite,
+            color = DesignTokens.Color.Ink,
             fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold,
             maxLines = 1
@@ -533,7 +604,7 @@ private fun StatTile(label: String, value: String, modifier: Modifier = Modifier
 private fun ActionPill(
     label: String,
     icon: ImageVector,
-    tint: Color,
+    tint: androidx.compose.ui.graphics.Color,
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
@@ -541,19 +612,19 @@ private fun ActionPill(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .clip(RoundedCornerShape(14.dp))
-            .background(Bubble)
-            .border(1.dp, Hairline, RoundedCornerShape(14.dp))
+            .background(DesignTokens.Color.Card.copy(alpha = 0.06f))
+            .border(1.dp, DesignTokens.Color.Border, RoundedCornerShape(14.dp))
             .clickable { onClick() }
             .padding(horizontal = 12.dp, vertical = 10.dp)
     ) {
         Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(18.dp))
         Spacer(modifier = Modifier.width(8.dp))
-        Text(label, color = TextWhite, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+        Text(label, color = DesignTokens.Color.Ink, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
     }
 }
 
 @Composable
-private fun ContactRow(label: String, icon: ImageVector, tint: Color, onClick: () -> Unit) {
+private fun ContactRow(label: String, icon: ImageVector, tint: androidx.compose.ui.graphics.Color, onClick: () -> Unit) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
@@ -564,7 +635,7 @@ private fun ContactRow(label: String, icon: ImageVector, tint: Color, onClick: (
     ) {
         Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
         Spacer(modifier = Modifier.width(12.dp))
-        Text(label, color = TextWhite, fontSize = 15.sp, modifier = Modifier.weight(1f))
+        Text(label, color = DesignTokens.Color.Ink, fontSize = 15.sp, modifier = Modifier.weight(1f))
     }
 }
 
@@ -573,7 +644,6 @@ private fun openUri(context: Context, uri: String) {
     try {
         context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(uri)))
     } catch (t: Throwable) {
-        // No app can handle it — fall back to the dialer for the tel: family.
         try {
             val fallback = if (uri.startsWith("smsto:")) uri.replace("smsto:", "tel:") else uri
             context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(fallback)))
@@ -585,55 +655,3 @@ private fun openUri(context: Context, uri: String) {
 /** "1234.0" -> "1234", "1234.5" -> "1234.5" — no trailing ".0" in a money line. */
 private fun formatAmount(value: Double): String =
     if (value % 1.0 == 0.0) value.toLong().toString() else String.format(Locale.US, "%.2f", value)
-
-@Composable
-private fun GlassSearchField(value: String, onValueChange: (String) -> Unit) {
-    val shape = RoundedCornerShape(16.dp)
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(shape)
-            .background(Bubble)
-            .border(1.dp, Hairline, shape)
-            .padding(horizontal = 14.dp, vertical = 14.dp)
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = Icons.Rounded.Search,
-                contentDescription = null,
-                tint = TextFaint,
-                modifier = Modifier.size(20.dp)
-            )
-            Spacer(modifier = Modifier.width(10.dp))
-            Box(modifier = Modifier.weight(1f)) {
-                BasicTextField(
-                    value = value,
-                    onValueChange = onValueChange,
-                    singleLine = true,
-                    textStyle = TextStyle(color = TextWhite, fontSize = 15.sp),
-                    cursorBrush = SolidColor(AccentBlue),
-                    modifier = Modifier.fillMaxWidth()
-                )
-                if (value.isEmpty()) {
-                    Text(
-                        "Search name or phone number",
-                        color = TextFaint,
-                        fontSize = 15.sp
-                    )
-                }
-            }
-            if (value.isNotEmpty()) {
-                Spacer(modifier = Modifier.width(10.dp))
-                Icon(
-                    imageVector = Icons.Rounded.Close,
-                    contentDescription = "Clear search",
-                    tint = TextWhite.copy(alpha = 0.5f),
-                    modifier = Modifier
-                        .size(18.dp)
-                        .clickable { onValueChange("") }
-                )
-            }
-        }
-    }
-}
-
