@@ -29,6 +29,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import com.bingwascore.app.ui.components.GlassDialog
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -300,32 +301,20 @@ private fun EditTemplateDialog(
     var title by remember { mutableStateOf(template.title) }
     var message by remember { mutableStateOf(template.message) }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        containerColor = DesignTokens.Color.Card,
-        title = {
-            Text("Edit template", color = DesignTokens.Color.Ink, fontSize = 17.sp, fontWeight = FontWeight.Bold)
-        },
-        text = {
+    GlassDialog(
+        visible = true,
+        onDismiss = onDismiss,
+        title = "Edit template",
+        body = {
             Column {
                 DialogField(label = "Trigger label", value = title, onValueChange = { title = it })
                 Spacer(modifier = Modifier.height(4.dp))
                 DialogField(label = "Message", value = message, onValueChange = { message = it })
             }
         },
-        confirmButton = {
-            TextButton(
-                onClick = { onSave(template.copy(title = title.trim(), message = message.trim())) },
-                enabled = title.isNotBlank() && message.isNotBlank()
-            ) {
-                Text("Save", color = DesignTokens.Color.Brand.Primary, fontWeight = FontWeight.SemiBold)
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel", color = DesignTokens.Color.Ink.copy(alpha = 0.6f))
-            }
-        }
+        dismissLabel = "Cancel",
+        confirmLabel = "Save",
+        onConfirm = { onSave(template.copy(title = title.trim(), message = message.trim())) }
     )
 }
 

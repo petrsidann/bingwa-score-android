@@ -46,6 +46,8 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import com.bingwascore.app.ui.components.GlassBottomSheet
+import com.bingwascore.app.ui.components.GlassDialog
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -298,43 +300,29 @@ fun OffersScreen(viewModel: OffersViewModel = hiltViewModel()) {
 
     // Parity F — the single confirmation for non-silent offers.
     state.confirmOffers?.let { targets ->
-        AlertDialog(
-            onDismissRequest = callbacks.onDismissConfirm,
-            containerColor = Raised,
-            title = {
+    GlassDialog(
+        visible = true,
+        onDismiss = callbacks.onDismissConfirm,
+        title = "Queue ${targets.size} dials?",
+        body = {
+            Column {
                 Text(
-                    "Queue ${targets.size} dials?",
-                    color = TextWhite,
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.Bold
+                    "These offers are not marked SILENT, so the Ghost Queue will dial them one after the other:",
+                    color = TextWhite.copy(alpha = 0.6f),
+                    fontSize = 12.sp
                 )
-            },
-            text = {
-                Column {
-                    Text(
-                        "These offers are not marked SILENT, so the Ghost Queue will dial them one after the other:",
-                        color = TextWhite.copy(alpha = 0.6f),
-                        fontSize = 12.sp
-                    )
-                    Spacer(modifier = Modifier.height(10.dp))
-                    Text(
-                        BatchDialPlanner.confirmationMessage(targets),
-                        color = TextWhite,
-                        fontSize = 13.sp
-                    )
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = callbacks.onConfirmDial) {
-                    Text("Queue anyway", color = AccentBlue, fontWeight = FontWeight.Bold)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = callbacks.onDismissConfirm) {
-                    Text("Cancel", color = TextWhite.copy(alpha = 0.6f))
-                }
+                Spacer(modifier = Modifier.height(10.dp))
+                Text(
+                    BatchDialPlanner.confirmationMessage(targets),
+                    color = TextWhite,
+                    fontSize = 13.sp
+                )
             }
-        )
+        },
+        dismissLabel = "Cancel",
+        confirmLabel = "Queue anyway",
+        onConfirm = callbacks.onConfirmDial
+    )
     }
 
     if (showAddSheet) {
@@ -790,7 +778,7 @@ private fun AddOfferSheet(onDismiss: () -> Unit, onAdd: (name: String, price: In
     var price by remember { mutableStateOf("") }
     var ussdCode by remember { mutableStateOf("") }
 
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Raised) {
+    GlassBottomSheet(visible = true, onDismiss = onDismiss) {
         Column(
             modifier = Modifier
                 .verticalScroll(rememberScrollState())
@@ -946,7 +934,7 @@ private fun OfferSettingsSheet(
     var tag by remember { mutableStateOf(offer.tag.orEmpty()) }
     var relayDevice by remember { mutableStateOf(offer.relayDevice.orEmpty()) }
 
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Raised) {
+    GlassBottomSheet(visible = true, onDismiss = onDismiss) {
         Column(
             modifier = Modifier
                 .verticalScroll(rememberScrollState())
@@ -1096,7 +1084,7 @@ private fun OfferActionsSheet(
     var selectedStatus by remember { mutableStateOf(FALLBACK_STATUSES.first()) }
     var selectedTarget by remember { mutableStateOf<Offer?>(null) }
 
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Raised) {
+    GlassBottomSheet(visible = true, onDismiss = onDismiss) {
         Column(
             modifier = Modifier
                 .verticalScroll(rememberScrollState())

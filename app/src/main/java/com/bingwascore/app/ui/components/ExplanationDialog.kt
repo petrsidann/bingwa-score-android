@@ -33,37 +33,11 @@ fun ExplanationDialog(
     onDismiss: () -> Unit,
     onConfirm: () -> Unit
 ) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = {
-            TextButton(onClick = onConfirm) {
-                Text(
-                    confirmText,
-                    color = AccentBlue,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(
-                    "Not now",
-                    color = TextWhite.copy(alpha = 0.55f),
-                    fontSize = 14.sp
-                )
-            }
-        },
-        title = {
-            Text(
-                title,
-                color = TextWhite,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.fillMaxWidth()
-            )
-        },
-        text = {
+    GlassDialog(
+        visible = true,
+        onDismiss = onDismiss,
+        title = title,
+        body = {
             Text(
                 message,
                 color = TextWhite.copy(alpha = 0.8f),
@@ -71,8 +45,8 @@ fun ExplanationDialog(
                 modifier = Modifier.fillMaxWidth()
             )
         },
-        containerColor = Bubble,
-        tonalElevation = 8.dp,
-        shape = RoundedCornerShape(24.dp)
+        dismissLabel = "Not now",
+        confirmLabel = confirmText,
+        onConfirm = onConfirm
     )
 }

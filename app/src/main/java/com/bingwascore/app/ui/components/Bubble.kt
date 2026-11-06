@@ -171,11 +171,7 @@ fun PrimaryButton(
     ) {
         if (loading) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(18.dp),
-                    color = ink,
-                    strokeWidth = 2.dp
-                )
+                GlassSpinner(modifier = Modifier.size(18.dp), color = ink)
                 Spacer(modifier = Modifier.width(10.dp))
                 Text(loadingText, color = ink, fontWeight = FontWeight.Bold, fontSize = BingwaType.Body)
             }

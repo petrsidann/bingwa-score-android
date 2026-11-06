@@ -46,6 +46,8 @@ import androidx.compose.material.icons.rounded.SimCard
 import androidx.compose.material.icons.rounded.SystemUpdateAlt
 import androidx.compose.material.icons.rounded.WbSunny
 import androidx.compose.foundation.text.BasicTextField
+import com.bingwascore.app.ui.components.GlassBottomSheet
+import com.bingwascore.app.ui.components.GlassDialog
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -650,17 +652,11 @@ private fun CannotCheckDialog(
     onDismiss: () -> Unit,
     onRetry: () -> Unit
 ) {
-    androidx.compose.material3.AlertDialog(
-        onDismissRequest = onDismiss,
-        containerColor = DesignTokens.Color.Card,
-        title = {
-            Text(
-                text = "Can't check right now",
-                color = DesignTokens.Color.Ink,
-                fontWeight = FontWeight.Bold
-            )
-        },
-        text = {
+    GlassDialog(
+        visible = true,
+        onDismiss = onDismiss,
+        title = "Can't check right now",
+        body = {
             Text(
                 text = "Bingwa Score can't reach the release server at the moment. " +
                     "Check your connection and try again.",
@@ -668,19 +664,11 @@ private fun CannotCheckDialog(
                 fontSize = 13.sp
             )
         },
-        confirmButton = {
-            androidx.compose.material3.TextButton(onClick = { onRetry(); onDismiss() }) {
-                Text("Retry", color = DesignTokens.Color.Brand.Primary, fontWeight = FontWeight.Bold)
-            }
-        },
-        dismissButton = {
-            androidx.compose.material3.TextButton(onClick = onDismiss) {
-                Text("Later", color = DesignTokens.Color.Ink.copy(alpha = 0.6f))
-            }
-        }
+        dismissLabel = "Later",
+        confirmLabel = "Retry",
+        onConfirm = { onRetry(); onDismiss() }
     )
 }
-
 @Composable
 private fun CrashReportDialog(
     report: String?,
@@ -688,17 +676,11 @@ private fun CrashReportDialog(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    androidx.compose.material3.AlertDialog(
-        onDismissRequest = onDismiss,
-        containerColor = DesignTokens.Color.Card,
-        title = {
-            Text(
-                text = "Last crash report",
-                color = DesignTokens.Color.Ink,
-                fontWeight = FontWeight.Bold
-            )
-        },
-        text = {
+    GlassDialog(
+        visible = true,
+        onDismiss = onDismiss,
+        title = "Last crash report",
+        body = {
             val body = report ?: "No crash report on file yet."
             Text(
                 text = body,
@@ -710,25 +692,17 @@ private fun CrashReportDialog(
                     .verticalScroll(rememberScrollState())
             )
         },
-        confirmButton = {
-            androidx.compose.material3.TextButton(onClick = {
-                report?.let { text ->
-                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                    clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Bingwa crash report", text))
-                }
-                onDismiss()
-            }) {
-                Text("Copy", color = DesignTokens.Color.Brand.Primary, fontWeight = FontWeight.Bold)
+        dismissLabel = "Later",
+        confirmLabel = "Copy",
+        onConfirm = {
+            report?.let { text ->
+                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Bingwa crash report", text))
             }
-        },
-        dismissButton = {
-            androidx.compose.material3.TextButton(onClick = onDismiss) {
-                Text("Later", color = DesignTokens.Color.Ink.copy(alpha = 0.6f))
-            }
+            onDismiss()
         }
     )
 }
-
 @Composable
 private fun PageHeader(title: String, onBack: () -> Unit) {
     Row(
@@ -1124,14 +1098,9 @@ private fun UpdateResultSheet(
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    LaunchedEffect(Unit) { sheetState.expand() }
-
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = Color.Transparent,
-        dragHandle = null
+    GlassBottomSheet(
+        visible = true,
+        onDismiss = onDismiss
     ) {
         Column(
             modifier = Modifier
@@ -1363,11 +1332,11 @@ private fun ShowcasePage() {
     )
 
     if (pendingRestart != null) {
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = { pendingRestart = null },
-            containerColor = DesignTokens.Color.Card,
-            title = { Text(text = "Restart to apply", color = DesignTokens.Color.Ink, fontWeight = FontWeight.Bold) },
-            text = {
+        GlassDialog(
+            visible = true,
+            onDismiss = { pendingRestart = null },
+            title = "Restart to apply",
+            body = {
                 Text(
                     text = "Showcase Mode switches to a different database, so Bingwa Score " +
                         "needs to restart before the change takes effect.",
@@ -1375,16 +1344,9 @@ private fun ShowcasePage() {
                     fontSize = 14.sp
                 )
             },
-            confirmButton = {
-                androidx.compose.material3.TextButton(onClick = {
-                    ShowcaseController.restart(context)
-                }) { Text(text = "Restart now", color = DesignTokens.Color.Brand.Primary, fontWeight = FontWeight.SemiBold) }
-            },
-            dismissButton = {
-                androidx.compose.material3.TextButton(onClick = { pendingRestart = null }) {
-                    Text(text = "Later", color = DesignTokens.Color.Ink.copy(alpha = 0.6f))
-                }
-            }
+            dismissLabel = "Later",
+            confirmLabel = "Restart now",
+            onConfirm = { ShowcaseController.restart(context) }
         )
     }
 }
@@ -1407,21 +1369,15 @@ fun FirstLaunchShowcaseOffer(onDecided: () -> Unit) {
         return
     }
 
-    androidx.compose.material3.AlertDialog(
-        onDismissRequest = {
+    GlassDialog(
+        visible = true,
+        onDismiss = {
             DbNameHolder.markFirstLaunchSeen(context)
             show = false
             onDecided()
         },
-        containerColor = DesignTokens.Color.Card,
-        title = {
-            Text(
-                text = "Explore with live demo data first?",
-                color = DesignTokens.Color.Ink,
-                fontWeight = FontWeight.Bold
-            )
-        },
-        text = {
+        title = "Explore with live demo data first?",
+        body = {
             Text(
                 text = "Showcase Mode fills a separate demo database with customers, offers " +
                     "and transactions, then keeps them moving while you watch. Your " +
@@ -1430,26 +1386,16 @@ fun FirstLaunchShowcaseOffer(onDecided: () -> Unit) {
                 fontSize = 14.sp
             )
         },
-        confirmButton = {
-            androidx.compose.material3.TextButton(onClick = {
-                haptics.success()
-                DbNameHolder.markFirstLaunchSeen(context)
-                ShowcaseController.setEnabled(context, true)
-                show = false
-                ShowcaseController.restart(context)
-            }) { Text(text = "Yes, show me", color = DesignTokens.Color.Brand.Primary, fontWeight = FontWeight.SemiBold) }
-        },
-        dismissButton = {
-            androidx.compose.material3.TextButton(onClick = {
-                haptics.tick()
-                DbNameHolder.markFirstLaunchSeen(context)
-                ShowcaseController.setEnabled(context, false)
-                show = false
-                onDecided()
-            }) { Text(text = "No thanks", color = DesignTokens.Color.Ink.copy(alpha = 0.6f)) }
+        dismissLabel = "No thanks",
+        confirmLabel = "Yes, show me",
+        onConfirm = {
+            DbNameHolder.markFirstLaunchSeen(context)
+            ShowcaseController.setEnabled(context, true)
+            show = false
+            ShowcaseController.restart(context)
         }
-    )
-}
+        )
+    }
 
 @Composable
 private fun OptionCard(

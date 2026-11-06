@@ -82,10 +82,12 @@ import com.bingwascore.app.data.local.Transaction
 import com.bingwascore.app.domain.EngineState
 import com.bingwascore.app.domain.ThemeMode
 import com.bingwascore.app.domain.TransactionStatus
-import com.bingwascore.app.ui.components.DarkSnackbarHost
 import com.bingwascore.app.ui.components.GlassCard
+import com.bingwascore.app.ui.components.GlassDialog
+import com.bingwascore.app.ui.components.LocalPremiumToastManager
 import com.bingwascore.app.ui.components.NeoButton
 import com.bingwascore.app.ui.components.StatusDot
+import com.bingwascore.app.ui.components.ToastType
 import com.bingwascore.app.ui.theme.DesignTokens
 import com.bingwascore.app.util.CrashHandler
 import com.bingwascore.app.util.Haptics
@@ -215,9 +217,10 @@ fun HomeScreen(
 
     // POLISH P1 — the balance never raises a dialog. It explains itself once, in
     // a dark bubble, and then it leaves the number alone.
+    val toastManager = LocalPremiumToastManager.current
     LaunchedEffect(balanceError) {
         val message = balanceError ?: return@LaunchedEffect
-        snackbarHostState.showSnackbar(message = message, duration = SnackbarDuration.Short)
+        toastManager.show(ToastType.Error, message)
         viewModel.consumeBalanceError()
     }
 
@@ -551,17 +554,12 @@ fun HomeScreenContent(
                         now = now,
                         showDivider = index < state.transactions.size - 1
                     )
-                }
             }
         }
+        }
 
-        DarkSnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier.align(Alignment.BottomCenter)
-        )
     }
-
-    // POLISH P1 — permissions are requested behind a themed prompt instead of
+// POLISH P1 — permissions are requested behind a themed prompt instead of
     // ambushing the agent with a system sheet they did not ask for.
     if (state.permissionsMissing) {
         PhoneAccessPrompt(
@@ -1056,37 +1054,18 @@ private val REQUIRED_PERMISSION_ARRAY = REQUIRED_PERMISSIONS
  */
 @Composable
 private fun PhoneAccessPrompt(onGrant: () -> Unit, onNotNow: () -> Unit) {
-    androidx.compose.material3.AlertDialog(
-        onDismissRequest = onNotNow,
-        containerColor = DesignTokens.Color.Card,
-        titleContentColor = DesignTokens.Color.Ink,
-        textContentColor = DesignTokens.Color.Ink.copy(alpha = 0.6f),
-        title = {
+    GlassDialog(
+        visible = true,
+        onDismiss = onNotNow,
+        title = "Allow phone access?",
+        body = {
             Text(
-                text = "Allow phone access?",
-                color = DesignTokens.Color.Ink,
-                fontWeight = FontWeight.Bold,
-                fontSize = 17.sp
-            )
-        },
-        text = {
-            Text(
-                text = "Bingwa Score needs Call and Phone state to read your airtime balance " +
-                    "and dial bundles in the background. Nothing is ever shown to " +
-                    "the customer.",
-                color = DesignTokens.Color.Ink.copy(alpha = 0.6f),
+                text = "Bingwa Score needs Call and Phone state to read your airtime balance and dial bundles in the background. Nothing is ever shown to the customer.",
                 fontSize = 13.sp
             )
         },
-        confirmButton = {
-            androidx.compose.material3.TextButton(onClick = onGrant) {
-                Text(text = "Allow", color = DesignTokens.Color.Brand.Primary, fontWeight = FontWeight.Bold)
-            }
-        },
-        dismissButton = {
-            androidx.compose.material3.TextButton(onClick = onNotNow) {
-                Text(text = "Not now", color = DesignTokens.Color.Ink.copy(alpha = 0.6f))
-            }
-        }
+        dismissLabel = "Not now",
+        confirmLabel = "Allow",
+        onConfirm = onGrant
     )
 }

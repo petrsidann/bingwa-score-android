@@ -99,10 +99,12 @@ import androidx.compose.animation.fadeOut
 import com.bingwascore.app.BuildConfig
 import com.bingwascore.app.ui.autorenewals.AutoRenewalsScreen
 import com.bingwascore.app.ui.autoreplies.AutoRepliesScreen
-import com.bingwascore.app.ui.components.DarkSnackbarHost
 import com.bingwascore.app.ui.components.FloatingGlassTabBar
 import com.bingwascore.app.ui.components.LiquidGlassDrawer
+import com.bingwascore.app.ui.components.LocalPremiumToastManager
+import com.bingwascore.app.ui.components.PremiumToastHost
 import com.bingwascore.app.ui.components.ScreenTransition
+import com.bingwascore.app.ui.components.ToastType
 import com.bingwascore.app.ui.components.pressScale
 import com.bingwascore.app.ui.customers.CustomersScreen
 import com.bingwascore.app.ui.dialer.DialerScreen
@@ -326,14 +328,11 @@ fun MainScreen(remoteHttpClient: RemoteHttpClient) {
     val scope = rememberCoroutineScope()
     // Stage 33 — surface a "reconnected" snackbar whenever the network client
     // is rebuilt after a server URL change.
-    val snackbarHostState = remember { SnackbarHostState() }
     val reconnectCount by remoteHttpClient.reconnectCount.collectAsState(initial = 0)
+    val toastManager = LocalPremiumToastManager.current
     LaunchedEffect(reconnectCount) {
         if (reconnectCount == 0) return@LaunchedEffect
-        snackbarHostState.showSnackbar(
-            message = "Reconnected to server",
-            duration = SnackbarDuration.Short
-        )
+        toastManager.show(ToastType.Info, "Reconnected to server")
     }
     // Stage 18 — one backdrop registry for the shell: pill blur over the screens
     // recorded by glassSource (chrome sits outside the recorder).
@@ -361,7 +360,7 @@ fun MainScreen(remoteHttpClient: RemoteHttpClient) {
                 contentWindowInsets = WindowInsets.safeDrawing.only(
                     WindowInsetsSides.Top + WindowInsetsSides.Horizontal
                 ),
-                snackbarHost = { DarkSnackbarHost(hostState = snackbarHostState) },
+                snackbarHost = { PremiumToastHost() },
                 bottomBar = {
                     // U1 — single-active truth: the highlight is derived ONLY from
                     // the current route. Dialer open -> Dial (2). Drawer open ->

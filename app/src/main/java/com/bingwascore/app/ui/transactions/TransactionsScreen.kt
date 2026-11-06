@@ -67,12 +67,11 @@ import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.offset
 import com.bingwascore.app.ui.components.BubbleCard
-import com.bingwascore.app.ui.components.DarkSnackbarHost
+import com.bingwascore.app.ui.components.LocalPremiumToastManager
 import com.bingwascore.app.ui.theme.Raised
-import kotlin.math.roundToInt
-import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHost
+import com.bingwascore.app.ui.components.ToastType
 import androidx.compose.material3.SnackbarHostState
+import kotlin.math.roundToInt
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -203,6 +202,7 @@ fun TransactionsScreen(
     var searchOpen by remember { mutableStateOf(false) }
     var isRefreshing by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
+    val toastManager = LocalPremiumToastManager.current
     val pullState = rememberPullToRefreshState { isRefreshing }
 
     val allSelected = transactions.isNotEmpty() && selectedIds.size == transactions.size
@@ -259,14 +259,7 @@ fun TransactionsScreen(
             haptics.press()
             viewModel.softDeleteSelected { removed ->
                 scope.launch {
-                    val result = snackbarHostState.showSnackbar(
-                        message = "${removed.size} transaction(s) deleted",
-                        actionLabel = "Undo",
-                        duration = SnackbarDuration.Short
-                    )
-                    if (result == SnackbarResult.ActionPerformed) {
-                        viewModel.restoreAll(removed)
-                    }
+                    toastManager.show(ToastType.Info, "${removed.size} transaction(s) deleted")
                 }
             }
         },
@@ -428,11 +421,6 @@ fun TransactionsScreenContent(
                 onRetry = callbacks.onRetrySelected
             )
         }
-
-        DarkSnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier.align(Alignment.BottomCenter)
-        )
     }
 
     // REBRAND R4 — the focus sheet. The list behind it dims toward black (a

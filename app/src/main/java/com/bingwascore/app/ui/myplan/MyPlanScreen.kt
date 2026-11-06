@@ -38,6 +38,7 @@ import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import com.bingwascore.app.ui.components.GlassSpinner
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -819,11 +820,7 @@ private fun PendingPanel(message: String) {
             modifier = Modifier.fillMaxWidth()
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(16.dp),
-                    color = AccentBlue,
-                    strokeWidth = 2.dp
-                )
+                GlassSpinner(modifier = Modifier.size(16.dp), color = AccentBlue)
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "M-Pesa Payment",
