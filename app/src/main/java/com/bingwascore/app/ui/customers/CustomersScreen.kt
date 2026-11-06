@@ -37,6 +37,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import com.bingwascore.app.ui.components.GlassBottomSheet
+import com.bingwascore.app.ui.components.GlassDialog
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Composable
@@ -149,19 +151,11 @@ fun CustomersScreen(viewModel: CustomersViewModel = hiltViewModel()) {
     }
 
     val open = selected
-    if (open != null) {
-        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-        val glassBackdrop = LocalGlassBackdrop.current
-        DisposableEffect(glassBackdrop) {
-            glassBackdrop?.pushModal()
-            onDispose { glassBackdrop?.popModal() }
-        }
-        ModalBottomSheet(
-            onDismissRequest = viewModel::closeDetail,
-            sheetState = sheetState,
-            containerColor = DesignTokens.Color.Card,
-            dragHandle = null
-        ) {
+    GlassBottomSheet(
+        visible = open != null,
+        onDismiss = viewModel::closeDetail
+    ) {
+        if (open != null) {
             CustomerDetailSheet(
                 customer = open,
                 stats = stats,
@@ -509,17 +503,11 @@ private fun CustomerDetailSheet(
 
     if (confirmBlacklist) {
         val willBlock = !customer.isBlacklisted
-        AlertDialog(
-            onDismissRequest = { confirmBlacklist = false },
-            containerColor = DesignTokens.Color.Elevated,
-            title = {
-                Text(
-                    if (willBlock) "Blacklist this customer?" else "Remove from blacklist?",
-                    color = DesignTokens.Color.Ink,
-                    fontWeight = FontWeight.Bold
-                )
-            },
-            text = {
+        GlassDialog(
+            visible = true,
+            onDismiss = { confirmBlacklist = false },
+            title = if (willBlock) "Blacklist this customer?" else "Remove from blacklist?",
+            body = {
                 Text(
                     if (willBlock) {
                         "${customer.name?.let { formatCustomerName(it) } ?: customer.phoneNumber} will be " +
@@ -530,28 +518,20 @@ private fun CustomerDetailSheet(
                     color = DesignTokens.Color.Ink.copy(alpha = 0.7f)
                 )
             },
-            confirmButton = {
-                TextButton(onClick = {
-                    confirmBlacklist = false
-                    onToggleBlacklist()
-                }) {
-                    Text(if (willBlock) "Blacklist" else "Unblock", color = DesignTokens.Color.Brand.Error)
-                }
+            dismissLabel = "Cancel",
+            confirmLabel = if (willBlock) "Blacklist" else "Unblock",
+            onConfirm = {
+                confirmBlacklist = false
+                onToggleBlacklist()
             },
-            dismissButton = {
-                TextButton(onClick = { confirmBlacklist = false }) {
-                    Text("Cancel", color = DesignTokens.Color.Ink.copy(alpha = 0.7f))
-                }
-            }
+            confirmDangerous = willBlock
         )
     }
 
-    if (showContacts) {
-        ModalBottomSheet(
-            onDismissRequest = { showContacts = false },
-            containerColor = DesignTokens.Color.Elevated,
-            dragHandle = null
-        ) {
+    GlassBottomSheet(
+        visible = showContacts,
+        onDismiss = { showContacts = false }
+    ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -576,7 +556,6 @@ private fun CustomerDetailSheet(
                 }
                 Spacer(modifier = Modifier.navigationBarsPadding().height(8.dp))
             }
-        }
     }
 }
 

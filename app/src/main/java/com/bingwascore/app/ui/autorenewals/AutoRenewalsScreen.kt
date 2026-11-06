@@ -36,6 +36,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import com.bingwascore.app.ui.components.GlassBottomSheet
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -180,17 +181,9 @@ fun AutoRenewalsScreen(viewModel: SelfRenewalViewModel = hiltViewModel()) {
     }
 
     if (showComposer) {
-        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-        val glassBackdrop = LocalGlassBackdrop.current
-        DisposableEffect(glassBackdrop) {
-            glassBackdrop?.pushModal()
-            onDispose { glassBackdrop?.popModal() }
-        }
-        ModalBottomSheet(
-            onDismissRequest = { showComposer = false; viewModel.clearError() },
-            sheetState = sheetState,
-            containerColor = DesignTokens.Color.Card,
-            dragHandle = null
+        GlassBottomSheet(
+            visible = true,
+            onDismiss = { showComposer = false; viewModel.clearError() }
         ) {
             ScheduleComposer(
                 offers = offers,

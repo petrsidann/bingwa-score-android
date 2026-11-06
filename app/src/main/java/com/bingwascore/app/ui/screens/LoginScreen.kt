@@ -40,6 +40,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
+import com.bingwascore.app.ui.components.GlassDialog
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -566,15 +567,11 @@ fun LoginScreen(
 @Composable
 private fun CrashReportDialog(onDismiss: () -> Unit, context: Context) {
     val report = CrashHandler.readLatestCrashReport(context)
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("OK")
-            }
-        },
-        title = { Text("Crash Report") },
-        text = {
+    GlassDialog(
+        visible = true,
+        onDismiss = onDismiss,
+        title = "Crash Report",
+        body = {
             Column(modifier = Modifier.fillMaxWidth()) {
                 Text(
                     "Last CrashHandler stack",
@@ -588,7 +585,10 @@ private fun CrashReportDialog(onDismiss: () -> Unit, context: Context) {
                     style = TextStyle(fontSize = DesignTokens.Typography.Caption)
                 )
             }
-        }
+        },
+        dismissLabel = "OK",
+        confirmLabel = "OK",
+        onConfirm = onDismiss
     )
 }
 

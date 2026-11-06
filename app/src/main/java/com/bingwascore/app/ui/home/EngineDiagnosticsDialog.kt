@@ -35,6 +35,7 @@ import com.bingwascore.app.ui.theme.Bubble
 import com.bingwascore.app.ui.theme.StatusColors
 import com.bingwascore.app.ui.theme.TextGrey
 import com.bingwascore.app.ui.theme.TextWhite
+import com.bingwascore.app.ui.components.GlassDialog
 
 /**
  * E1 — the balance-unavailable escape hatch: the six on-screen engine checks
@@ -52,13 +53,11 @@ fun EngineDiagnosticsDialog(onDismiss: () -> Unit) {
         checks = EngineDiagnostics.runSync(context)
     }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        containerColor = Bubble,
-        titleContentColor = TextWhite,
-        textContentColor = TextGrey,
-        title = { Text("Engine diagnostics", fontWeight = FontWeight.Bold, fontSize = 17.sp) },
-        text = {
+    GlassDialog(
+        visible = true,
+        onDismiss = onDismiss,
+        title = "Engine diagnostics",
+        body = {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -102,9 +101,8 @@ fun EngineDiagnosticsDialog(onDismiss: () -> Unit) {
                 }
             }
         },
-        confirmButton = {
-            TextButton(onClick = onDismiss) { Text("Close", color = AccentBlue, fontWeight = FontWeight.Bold) }
-        },
-        shape = RoundedCornerShape(22.dp)
+        dismissLabel = "Close",
+        confirmLabel = "Close",
+        onConfirm = onDismiss
     )
 }

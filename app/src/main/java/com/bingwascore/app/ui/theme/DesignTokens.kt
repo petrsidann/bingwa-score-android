@@ -94,6 +94,23 @@ object DesignTokens {
         const val SpringDamping: Float = 0.75f
         const val DurationFast: Long = 150
         const val DurationNormal: Long = 250
+
+        // ─── Stage 55 — Standing Design Law motion ────────────────────────
+        const val DialogEnterStiffness: Float = 380f
+        const val DialogEnterDamping: Float = 0.86f
+        const val DialogExitStiffness: Float = 500f
+        const val DialogExitDamping: Float = 1.0f
+        const val DialogEnterDuration: Long = 120
+        const val DialogExitDuration: Long = 100
+        const val SheetEnterStiffness: Float = 380f
+        const val SheetEnterDamping: Float = 0.86f
+        const val ToastEnterStiffness: Float = 380f
+        const val ToastEnterDamping: Float = 0.86f
+        const val ToastAutoDismiss: Long = 3000
+        const val SpinnerRotationDuration: Long = 900
+        const val SpinnerGlowMinAlpha: Float = 0.4f
+        const val SpinnerGlowMaxAlpha: Float = 0.8f
+        const val PressScale: Float = 0.98f
     }
 
     // ─── Glass ────────────────────────────────────────────────────────────────
@@ -101,6 +118,10 @@ object DesignTokens {
     object Glass {
         val BlurRadius: Dp = 24.dp
         const val TintAlpha: Float = 0.7f
+        // ─── Stage 55 — Standing Design Law glass optics ──────────────────
+        const val ScrimInkAlpha: Float = 0.4f
+        const val SpecularAlpha: Float = 0.12f
+        const val SaturationBoost: Float = 1.1f
     }
 
     // ─── Spacing (8pt grid, docs/DESIGN.md) ──────────────────────────────────
@@ -111,6 +132,14 @@ object DesignTokens {
         val Md = 16.dp
         val Lg = 24.dp
         val Xl = 32.dp
+        // ─── Stage 55 — Standing Design Law spacing ───────────────────────
+        val ToastBottomOffset = 96.dp
+        val ToastHorizontalMargin = 16.dp
+        val EmptyIconSize = 64.dp
+        val EmptyIconAlpha = 0.25f
+        val DragHandleWidth = 32.dp
+        val DragHandleHeight = 4.dp
+        val DragHandleBorderAlpha = 0.4f
     }
 
     // ─── Typography (delegates to the BingwaType ramp; no literal sizes) ──────

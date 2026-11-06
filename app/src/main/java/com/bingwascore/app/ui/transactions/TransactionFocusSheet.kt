@@ -30,6 +30,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
+import com.bingwascore.app.ui.components.GlassDialog
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -295,33 +296,30 @@ fun TransactionFocusSheet(
 
 if (editingUssd) {
         var draft by remember { mutableStateOf(transaction.ussdCode) }
-        AlertDialog(
-            onDismissRequest = { editingUssd = false },
-            containerColor = Raised,
-            title = { Text("Edit USSD code", color = TextWhite, fontWeight = FontWeight.Bold) },
-            text = {
-                TextField(
-                    value = draft,
-                    onValueChange = { draft = it },
-                    singleLine = true,
-                    colors = TextFieldDefaults.colors(
-                        focusedTextColor = TextWhite,
-                        unfocusedTextColor = TextWhite,
-                        focusedContainerColor = Bubble,
-                        unfocusedContainerColor = Bubble
-                    )
+    GlassDialog(
+        visible = true,
+        onDismiss = { editingUssd = false },
+        title = "Edit USSD code",
+        body = {
+            TextField(
+                value = draft,
+                onValueChange = { draft = it },
+                singleLine = true,
+                colors = TextFieldDefaults.colors(
+                    focusedTextColor = TextWhite,
+                    unfocusedTextColor = TextWhite,
+                    focusedContainerColor = Bubble,
+                    unfocusedContainerColor = Bubble
                 )
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    onEditUssd(draft)
-                    editingUssd = false
-                }) { Text("Save", color = AccentBlue, fontWeight = FontWeight.SemiBold) }
-            },
-            dismissButton = {
-                TextButton(onClick = { editingUssd = false }) { Text("Cancel", color = TextGrey) }
-            }
-        )
+            )
+        },
+        dismissLabel = "Cancel",
+        confirmLabel = "Save",
+        onConfirm = {
+            onEditUssd(draft)
+            editingUssd = false
+        }
+    )
     }
 }
 

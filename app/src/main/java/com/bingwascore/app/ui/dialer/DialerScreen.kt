@@ -34,6 +34,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import com.bingwascore.app.ui.components.GlassDialog
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -353,51 +354,22 @@ fun DialerScreenContent(
     // operator's exact reply, because "it failed" without the carrier's wording
     // is the one thing an agent cannot take to Safaricom support.
     state.result?.let { outcome ->
-        AlertDialog(
-            onDismissRequest = callbacks.onConsumeResult,
-            containerColor = Bubble,
-            titleContentColor = DesignTokens.Color.Ink,
-            textContentColor = DesignTokens.Color.Ink.copy(alpha = 0.7f),
-            title = {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = if (outcome.successful) {
-                            Icons.Rounded.CheckCircle
-                        } else {
-                            Icons.Rounded.ErrorOutline
-                        },
-                        contentDescription = null,
-                        tint = if (outcome.successful) DesignTokens.Color.Brand.Success else DesignTokens.Color.Brand.Error,
-                        modifier = Modifier.size(22.dp)
-                    )
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Text(
-                        if (outcome.successful) "Dial successful" else "Dial failed",
-                        color = DesignTokens.Color.Ink,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = BingwaType.Label
-                    )
-                }
-            },
-            text = {
-                Text(
-                    text = outcome.response?.takeIf { it.isNotBlank() }
-                        ?: "Safaricom did not return a message for this dial.",
-                    color = DesignTokens.Color.Ink.copy(alpha = 0.7f),
-                    fontSize = DesignTokens.Typography.Caption
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = callbacks.onConsumeResult) {
-                    Text(
-                        "Done",
-                        color = DesignTokens.Color.Brand.Primary,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = BingwaType.Label
-                    )
-                }
-            }
-        )
+    GlassDialog(
+        visible = true,
+        onDismiss = callbacks.onConsumeResult,
+        title = if (outcome.successful) "Dial successful" else "Dial failed",
+        body = {
+            Text(
+                text = outcome.response?.takeIf { it.isNotBlank() }
+                    ?: "Safaricom did not return a message for this dial.",
+                color = DesignTokens.Color.Ink.copy(alpha = 0.7f),
+                fontSize = DesignTokens.Typography.Caption
+            )
+        },
+        dismissLabel = "Done",
+        confirmLabel = "Done",
+        onConfirm = callbacks.onConsumeResult
+    )
     }
 }
 

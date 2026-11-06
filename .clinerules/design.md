@@ -22,3 +22,26 @@
 8. Showcase Mode is the ONLY local-data path, explicitly labelled "Demo data".
 9. No machine paths in gradle.properties; no secrets/tokens in repo.
 10. The wordmark is ALWAYS BrandWordmark.TEXT.
+
+# STANDING DESIGN LAW (Stage 55)
+
+## Shadows
+- Layered stacks only: 1px border-shadow + ambient shadow + 1dp top specular highlight for glass. Never single elevation values.
+
+## Motion
+- Spring-first, all values from [DesignTokens.Motion]. Enter: stiffness 380 / damping 0.86 (slight overshoot). Exit: stiffness 500 / damping 1.0 (no overshoot, 90–120ms). Never LinearEasing for surfaces.
+- If system "remove animations" is on, all springs collapse to 1ms crossfades.
+
+## Glass Optics
+- Blur 24dp + tint 70% + saturation +10% + 1dp top specular (Ink 12% alpha). Max ONE glass layer per screen region; never glass-on-glass.
+
+## Haptic Grammar
+- Light (TextHandleMove) = select / navigate.
+- TextHandleMove = toggle.
+- LongPress / Heavy = commit / destructive.
+
+## Type
+- 4-step scale only: Display / Headline / Body / Caption. Display gets -0.5sp tracking.
+
+## States
+- Every list/screen ships 4 states: loading (skeleton), empty, error(retry), success. No screen may show a bare spinner or bare blank.
