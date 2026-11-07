@@ -3,82 +3,74 @@ package com.bingwascore.app.ui.components
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.pointerInput
+
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.material3.Text
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.bingwascore.app.ui.theme.DesignTokens
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 
 /**
- * Stage 48 — Neo button.
+ * Stage 57 — the one branded CTA pill.
  *
- * Primary CTA with a spring-driven press scale and mandatory haptic feedback
- * on press. Never a bare [clickable] without haptics.
- *
- * [pressScale] overrides the default 0.98f press scale (keypad keys use 0.95f).
- * [fillMaxWidth] and [height] control sizing; set [fillMaxWidth] = false and pass
- * a sized [modifier] for square keypad keys. [fill] overrides the brand-primary
- * background (keypad keys use Obsidian.card).
+ * Fixed 56dp height with 16dp horizontal padding applied INSIDE the component,
+ * so a full-bleed button glued to the screen edges is impossible by construction.
+ * Press springs to 0.98x and fires a LongPress haptic on tap.
  */
 @Composable
 fun NeoButton(
     onClick: () -> Unit,
+    text: String,
     enabled: Boolean = true,
-    modifier: Modifier = Modifier,
-    pressScale: Float = 0.98f,
-    height: Dp = 56.dp,
-    fillMaxWidth: Boolean = true,
-    fill: Color = Color.Unspecified,
-    content: @Composable () -> Unit
+    modifier: Modifier = Modifier
 ) {
     val roles = DesignTokens.LocalBingwaRoles.current
-    val resolvedFill = if (fill == Color.Unspecified) roles.brand else fill
+    val haptic = LocalHapticFeedback.current
     val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
+    val pressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) pressScale else 1f,
-        animationSpec = spring(
-            stiffness = DesignTokens.Motion.SpringStiffness,
-            dampingRatio = DesignTokens.Motion.SpringDamping
-        ),
+        targetValue = if (pressed) 0.98f else 1f,
+        animationSpec = spring(dampingRatio = 0.86f, stiffness = 380f),
         label = "NeoButtonScale"
     )
-    val hapticFeedback = LocalHapticFeedback.current
     Box(
         modifier = modifier
-            .then(if (fillMaxWidth) Modifier.fillMaxWidth() else Modifier)
-            .height(height)
-            .clip(RoundedCornerShape(DesignTokens.Shape.RadiusMd))
-            .background(
-                if (enabled) resolvedFill
-                else resolvedFill.copy(alpha = 0.5f)
-            )
+            .padding(horizontal = 16.dp)
+            .fillMaxWidth()
+            .height(56.dp)
             .graphicsLayer { scaleX = scale; scaleY = scale }
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                enabled = enabled,
-                onClick = {
-                    hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                    onClick()
-                }
-            )
+            .clip(RoundedCornerShape(999.dp))
+            .background(if (enabled) roles.brand else roles.brand.copy(alpha = 0.4f))
+            .pointerInput(enabled) {
+                if (enabled) detectTapGestures(
+                    onTap = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onClick()
+                    }
+                )
+            },
+        contentAlignment = Alignment.Center
     ) {
-        content()
+        Text(text, color = roles.onBrand, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
     }
 }

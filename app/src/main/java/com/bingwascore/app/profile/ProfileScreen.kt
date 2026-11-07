@@ -462,14 +462,8 @@ private fun ReadOnlyIdentity(
     Spacer(modifier = Modifier.height(12.dp))
     NeoButton(
         onClick = callbacks.onStartEditing,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Text(
-            text = "Edit Profile",
-            color = DesignTokens.Color.Ink,
-            fontWeight = FontWeight.Bold
-        )
-    }
+        text = "Edit Profile"
+    )
 }
 
 @Composable
@@ -544,47 +538,23 @@ private fun EditForm(
                 NeoButton(
                     enabled = state.editState.pinToConfirm.length >= 4 && !state.editState.isSaving,
                     onClick = callbacks.onSave,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(
-                        text = if (state.editState.isSaving) "Verifying…" else "Confirm & Save",
-                        color = DesignTokens.Color.Ink,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+                    text = if (state.editState.isSaving) "Verifying…" else "Confirm & Save"
+                )
                 NeoButton(
                     onClick = callbacks.onCancelReauth,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(
-                        text = "Cancel",
-                        color = DesignTokens.Color.Ink,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+                    text = "Cancel"
+                )
             }
         } else {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 NeoButton(
                     onClick = callbacks.onPromptReauth,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(
-                        text = "Save Changes",
-                        color = DesignTokens.Color.Ink,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+                    text = "Save Changes"
+                )
                 NeoButton(
                     onClick = callbacks.onCancelEditing,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(
-                        text = "Cancel",
-                        color = DesignTokens.Color.Ink,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+                    text = "Cancel"
+                )
             }
         }
     }

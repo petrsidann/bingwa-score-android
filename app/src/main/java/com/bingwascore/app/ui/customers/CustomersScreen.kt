@@ -523,8 +523,7 @@ private fun CustomerDetailSheet(
             onConfirm = {
                 confirmBlacklist = false
                 onToggleBlacklist()
-            },
-            confirmDangerous = willBlock
+            }
         )
     }
 

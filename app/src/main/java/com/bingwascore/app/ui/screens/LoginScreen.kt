@@ -78,6 +78,8 @@ import com.bingwascore.app.data.auth.AuthRepository
 import com.bingwascore.app.data.preferences.UserPreferences
 import com.bingwascore.app.data.remote.RemoteResult
 import com.bingwascore.app.ui.components.GlassCard
+import com.bingwascore.app.ui.components.GlassInputField
+import com.bingwascore.app.ui.components.KeypadKey
 import com.bingwascore.app.ui.components.NeoButton
 import com.bingwascore.app.ui.theme.DesignTokens
 import com.bingwascore.app.util.CrashHandler
@@ -432,14 +434,14 @@ fun LoginScreen(
                     GlassInputField(
                         value = phone,
                         onValueChange = viewModel::updatePhone,
-                        hint = "Phone (e.g. 0712345678)",
-                        isFocused = focusedField == LoginField.PHONE,
+                        placeholder = "Phone (e.g. 0712345678)",
+                        focused = focusedField == LoginField.PHONE,
+                        readOnly = true,
                         focusRequester = phoneFocusRequester,
                         onClick = {
                             focusedField = LoginField.PHONE
                             phoneFocusRequester.requestFocus()
-                        },
-                        isPassword = false
+                        }
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))
@@ -447,14 +449,15 @@ fun LoginScreen(
                     GlassInputField(
                         value = pin,
                         onValueChange = viewModel::updatePin,
-                        hint = "PIN",
-                        isFocused = focusedField == LoginField.PIN,
+                        placeholder = "PIN",
+                        focused = focusedField == LoginField.PIN,
+                        readOnly = true,
+                        isPassword = true,
                         focusRequester = pinFocusRequester,
                         onClick = {
                             focusedField = LoginField.PIN
                             pinFocusRequester.requestFocus()
-                        },
-                        isPassword = true
+                        }
                     )
 
                     if (biometricAvailable) {
@@ -529,19 +532,10 @@ fun LoginScreen(
                 }
             } else {
                 NeoButton(
-                    onClick = {
-                        viewModel.signIn(onSignIn)
-                    },
+                    onClick = { viewModel.signIn(onSignIn) },
                     enabled = state.isSubmittable && state.cooldownSeconds == 0 && !state.isLoading,
-                    modifier = Modifier.fillMaxWidth().height(52.dp)
-                ) {
-                    Text(
-                        text = if (state.isLoading) "Verifying…" else if (state.cooldownSeconds > 0) "Cooldown (${state.cooldownSeconds}s)" else "Sign In",
-                        color = DesignTokens.LocalBingwaRoles.current.textPrimary,
-                        fontSize = DesignTokens.Typography.Headline,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+                    text = if (state.isLoading) "Verifying…" else if (state.cooldownSeconds > 0) "Cooldown (${state.cooldownSeconds}s)" else "Sign In"
+                )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -593,101 +587,9 @@ private fun CrashReportDialog(onDismiss: () -> Unit, context: Context) {
 }
 
 /**
- * Custom glass input field: looks like a GlassCard (blur, scrim, 12dp radius).
- * Focused border glows with Brand.Primary (1dp, alpha 0.8).
- * Unfocused border is Obsidian.border at alpha 0.2.
- * Text uses Typography.Body. Focus glow is animated with animateFloatAsState.
- * ReadOnly — the system keyboard never rises; input comes from TactileKeypad.
- */
-@Composable
-private fun GlassInputField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    hint: String,
-    modifier: Modifier = Modifier,
-    isFocused: Boolean = false,
-    focusRequester: FocusRequester = remember { FocusRequester() },
-    onClick: () -> Unit = {},
-    isPassword: Boolean = false
-) {
-    val density = LocalDensity.current
-    val glow by animateFloatAsState(
-        targetValue = if (isFocused) 1f else 0f,
-        animationSpec = spring(
-            stiffness = DesignTokens.Motion.SpringStiffness,
-            dampingRatio = DesignTokens.Motion.SpringDamping
-        ),
-        label = "GlassInputFocusGlow"
-    )
-
-    val baseBorder = DesignTokens.LocalBingwaRoles.current.border.copy(alpha = 0.2f)
-    val focusedBorder = DesignTokens.LocalBingwaRoles.current.brand.copy(alpha = 0.8f)
-    val borderColor = Color(
-        red = baseBorder.red + (focusedBorder.red - baseBorder.red) * glow,
-        green = baseBorder.green + (focusedBorder.green - baseBorder.green) * glow,
-        blue = baseBorder.blue + (focusedBorder.blue - baseBorder.blue) * glow,
-        alpha = baseBorder.alpha + (focusedBorder.alpha - baseBorder.alpha) * glow
-    )
-
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val pressScale by animateFloatAsState(
-        targetValue = if (isPressed) 0.98f else 1f,
-        animationSpec = spring(
-            stiffness = DesignTokens.Motion.SpringStiffness,
-            dampingRatio = DesignTokens.Motion.SpringDamping
-        ),
-        label = "GlassInputPressScale"
-    )
-
-    GlassCard(
-        modifier = modifier
-            .fillMaxWidth()
-            .graphicsLayer { scaleX = pressScale; scaleY = pressScale },
-        shape = RoundedCornerShape(DesignTokens.Shape.RadiusMd)
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 16.dp)
-                .border(1.dp, borderColor, RoundedCornerShape(DesignTokens.Shape.RadiusMd))
-                .clickable(
-                    interactionSource = interactionSource,
-                    indication = null,
-                    onClick = onClick
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            BasicTextField(
-                value = value,
-                onValueChange = onValueChange,
-                singleLine = true,
-                readOnly = true,
-                textStyle = TextStyle(
-                    color = DesignTokens.LocalBingwaRoles.current.textPrimary,
-                    fontSize = DesignTokens.Typography.Body
-                ),
-                visualTransformation = if (isPassword) PasswordVisualTransformation() else VisualTransformation.None,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .focusable()
-                    .focusRequester(focusRequester)
-            )
-            if (value.isEmpty()) {
-                Text(
-                    hint,
-                    color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.5f),
-                    fontSize = DesignTokens.Typography.Body
-                )
-            }
-        }
-    }
-}
-
-/**
- * Tactile keypad: 3x4 grid at the bottom of the screen. Each key is a NeoButton
- * (scale 0.95f on press, LongPress haptic) using Obsidian.card with Elevation.Level1.
- * Backspace key has a distinct icon. Drives phone + PIN fields; system keyboard never rises.
+ * Tactile keypad: 3x4 grid of KeypadKey keys plus a 4-dot PIN readout.
+ * KeypadKey carries the TextHandleMove haptic internally; the system keyboard
+ * never rises — PIN and phone fields are driven only by the keypad.
  */
 @Composable
 private fun TactileKeypad(
@@ -695,11 +597,6 @@ private fun TactileKeypad(
     onDigit: (Char) -> Unit,
     onBackspace: () -> Unit
 ) {
-    val haptic = LocalHapticFeedback.current
-    val density = LocalDensity.current
-    val keySizePx = with(density) { 64.dp.toPx() }
-    val keyRadius = keySizePx / 2f
-
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -727,20 +624,9 @@ private fun TactileKeypad(
         rows.forEach { row ->
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 row.forEach { digit ->
-                    TactileKeypadKey(
-                        label = digit,
-                        keySizePx = keySizePx,
-                        keyRadius = keyRadius,
-                        onClick = {
-                            try {
-                                haptic.performHapticFeedback(
-                                    androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove
-                                )
-                            } catch (_: Throwable) {
-                                // Haptics are optional polish; never block the tap.
-                            }
-                            onDigit(digit.first())
-                        }
+                    KeypadKey(
+                        d = digit,
+                        onKey = { onDigit(digit.first()) }
                     )
                 }
             }
@@ -749,98 +635,14 @@ private fun TactileKeypad(
 
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             Spacer(modifier = Modifier.size(64.dp))
-            TactileKeypadKey(
-                label = "0",
-                keySizePx = keySizePx,
-                keyRadius = keyRadius,
-                onClick = {
-                    try {
-                        haptic.performHapticFeedback(
-                            androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove
-                        )
-                    } catch (_: Throwable) {
-                        // Haptics are optional polish; never block the tap.
-                    }
-                    onDigit('0')
-                }
+            KeypadKey(
+                d = "0",
+                onKey = { onDigit('0') }
             )
-            TactileKeypadKey(
-                label = "",
-                keySizePx = keySizePx,
-                keyRadius = keyRadius,
+            KeypadKey(
+                d = "",
                 icon = Icons.Rounded.Backspace,
-                onClick = {
-                    try {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    } catch (_: Throwable) {
-                        // Haptics are optional polish; never block the tap.
-                    }
-                    onBackspace()
-                }
-            )
-        }
-    }
-}
-
-@Composable
-private fun TactileKeypadKey(
-    label: String,
-    keySizePx: Float,
-    keyRadius: Float,
-    icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
-    onClick: () -> Unit
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.95f else 1f,
-        animationSpec = spring(
-            stiffness = DesignTokens.Motion.SpringStiffness,
-            dampingRatio = DesignTokens.Motion.SpringDamping
-        ),
-        label = "TactileKeypadKeyScale"
-    )
-
-    val density = LocalDensity.current
-    val level1 = DesignTokens.Elevation.Level1.first()
-    val offsetY = with(density) { level1.offsetY.toPx() }
-    val haptics = rememberHaptics()
-
-    Box(
-        modifier = Modifier
-            .size(64.dp)
-            .drawBehind {
-                drawRoundRect(
-                    color = level1.color,
-                    topLeft = Offset(0f, offsetY),
-                    cornerRadius = CornerRadius(keyRadius, keyRadius)
-                )
-            }
-            .clip(CircleShape)
-            .background(DesignTokens.LocalBingwaRoles.current.card)
-            .graphicsLayer { scaleX = scale; scaleY = scale }
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = {
-                    haptics.press()
-                    onClick()
-                }
-            )
-    ) {
-        if (icon != null) {
-            Icon(
-                imageVector = icon,
-                contentDescription = "Delete",
-                tint = DesignTokens.LocalBingwaRoles.current.textPrimary,
-                modifier = Modifier.size(22.dp)
-            )
-        } else {
-            Text(
-                label,
-                color = DesignTokens.LocalBingwaRoles.current.textPrimary,
-                fontSize = DesignTokens.Typography.Subhead,
-                fontWeight = FontWeight.SemiBold
+                onKey = { onBackspace() }
             )
         }
     }

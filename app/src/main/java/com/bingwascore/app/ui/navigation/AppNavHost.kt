@@ -348,36 +348,19 @@ fun MainScreen(remoteHttpClient: RemoteHttpClient) {
     Box(modifier = Modifier.fillMaxSize()) {
         CompositionLocalProvider(LocalGlassBackdrop provides glassBackdrop) {
             Scaffold(
-                modifier = Modifier.fillMaxSize(),
-                containerColor = DesignTokens.LocalBingwaRoles.current.bg,
+                modifier = Modifier.fillMaxSize().background(DesignTokens.LocalBingwaRoles.current.bg),
                 contentWindowInsets = WindowInsets.safeDrawing.only(
                     WindowInsetsSides.Top + WindowInsetsSides.Horizontal
                 ),
                 snackbarHost = { PremiumToastHost() },
                 bottomBar = {
-                    // U1 — single-active truth: the highlight is derived ONLY from
-                    // the current route. Dialer open -> Dial (2). Drawer open ->
-                    // no tab (-1). Otherwise the active tab.
-                    val navSelected = when {
-                        showDialer -> 2
-                        drawerOpen -> -1
-                        else -> selectedTab
-                    }
                     FloatingGlassTabBar(
-                        selected = navSelected,
-                        dialerOpen = showDialer,
+                        selected = selectedTab,
                         onSelect = {
-                            // POLISH P1 — the dialer is a real destination, not an
-                            // overlay: choosing any tab leaves it.
                             selectedTab = it
                             drawerOpen = false
                             showDialer = false
-                        },
-                        onDialer = {
-                            drawerOpen = false
-                            showDialer = true
-                        },
-                        onMenu = { drawerOpen = true }
+                        }
                     )
                 }
             ) { innerPadding ->

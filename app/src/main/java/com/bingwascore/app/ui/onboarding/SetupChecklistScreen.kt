@@ -153,15 +153,8 @@ fun SetupChecklistScreen(
 
         NeoButton(
             onClick = { viewModel.completeSetup() },
-            modifier = Modifier.fillMaxWidth().height(56.dp)
-        ) {
-            Text(
-                text = "Start Earning",
-                color = DesignTokens.Color.Ink,
-                fontSize = DesignTokens.Typography.Headline,
-                fontWeight = FontWeight.Bold
-            )
-        }
+            text = "Start Earning"
+        )
     }
 }
 
@@ -269,13 +262,14 @@ private fun StatusPill(text: String, color: Color, showCheckmark: Boolean) {
  */
 @Composable
 private fun StatusAction(onClick: () -> Unit) {
-    NeoButton(
-        onClick = onClick,
-        pressScale = 0.98f,
-        height = 28.dp,
-        fillMaxWidth = false,
-        fill = DesignTokens.LocalBingwaRoles.current.elevated,
-        modifier = Modifier.width(64.dp)
+    Box(
+        modifier = Modifier
+            .width(64.dp)
+            .height(28.dp)
+            .clip(RoundedCornerShape(999.dp))
+            .background(DesignTokens.LocalBingwaRoles.current.elevated)
+            .clickable { onClick() },
+        contentAlignment = Alignment.Center
     ) {
         Text(
             text = "ACTION",

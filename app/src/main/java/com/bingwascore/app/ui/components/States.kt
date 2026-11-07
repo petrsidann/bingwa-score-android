@@ -139,17 +139,8 @@ fun GlassErrorState(
             ) {
                 NeoButton(
                     onClick = onRetry,
-                    fillMaxWidth = false,
-                    height = 44.dp,
-                    fill = roles.brand
-                ) {
-                    Text(
-                        text = "Retry",
-                        color = roles.onBrand,
-                        fontSize = DesignTokens.Typography.Caption,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
+                    text = "Retry"
+                )
             }
         }
     }

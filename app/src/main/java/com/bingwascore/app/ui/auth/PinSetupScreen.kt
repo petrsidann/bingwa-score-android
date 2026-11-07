@@ -60,6 +60,8 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bingwascore.app.ui.components.GlassCard
+import com.bingwascore.app.ui.components.GlassInputField
+import com.bingwascore.app.ui.components.KeypadKey
 import com.bingwascore.app.ui.components.NeoButton
 import com.bingwascore.app.ui.theme.DesignTokens
 import com.bingwascore.app.util.rememberHaptics
@@ -142,8 +144,14 @@ fun PinSetupScreen(
                 shape = RoundedCornerShape(DesignTokens.Shape.RadiusMd)
             ) {
                 Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 20.dp)) {
+                    Text(
+                        text = "Your name or business name",
+                        color = DesignTokens.LocalBingwaRoles.current.textSecondary.copy(alpha = 0.6f),
+                        fontSize = DesignTokens.Typography.Caption,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
                     GlassInputField(
-                        label = "Your name or business name",
                         value = state.name,
                         onValueChange = viewModel::updateName,
                         placeholder = "e.g. Jane Doe or Bingwa Telecoms"
@@ -151,8 +159,14 @@ fun PinSetupScreen(
 
                     Spacer(modifier = Modifier.height(14.dp))
 
+                    Text(
+                        text = "Phone Number (Kenyan)",
+                        color = DesignTokens.LocalBingwaRoles.current.textSecondary.copy(alpha = 0.6f),
+                        fontSize = DesignTokens.Typography.Caption,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
                     GlassInputField(
-                        label = "Phone Number (Kenyan)",
                         value = state.phone,
                         onValueChange = viewModel::updatePhone,
                         placeholder = "0712345678"
@@ -169,8 +183,14 @@ fun PinSetupScreen(
 
                     Spacer(modifier = Modifier.height(14.dp))
 
+                    Text(
+                        text = "Email Address",
+                        color = DesignTokens.LocalBingwaRoles.current.textSecondary.copy(alpha = 0.6f),
+                        fontSize = DesignTokens.Typography.Caption,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
                     GlassInputField(
-                        label = "Email Address",
                         value = state.email,
                         onValueChange = viewModel::updateEmail,
                         placeholder = "agent@example.com"
@@ -285,21 +305,14 @@ fun PinSetupScreen(
                             haptics.tick()
                         }
                     } else {
-                        NeoButton(
-                            onClick = {
-                                haptics.press()
-                                viewModel.submit()
-                            },
-                            enabled = state.isSubmittable && !state.isLoading,
-                            modifier = Modifier.fillMaxWidth().height(48.dp)
-                        ) {
-                            Text(
-                                text = if (state.isLoading) "Creating Account…" else "Create Account",
-                                color = DesignTokens.Color.Ink,
-                                fontSize = DesignTokens.Typography.Headline,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
+                    NeoButton(
+                        onClick = {
+                            haptics.press()
+                            viewModel.submit()
+                        },
+                        enabled = state.isSubmittable && !state.isLoading,
+                        text = if (state.isLoading) "Creating Account…" else "Create Account"
+                    )
                         if (!state.isSubmittable) {
                             state.submitDisabledReason?.let { reason ->
                                 Spacer(modifier = Modifier.height(8.dp))
@@ -453,11 +466,6 @@ private fun TactileKeypad(
     onDigit: (Char) -> Unit,
     onBackspace: () -> Unit
 ) {
-    val haptic = LocalHapticFeedback.current
-    val density = LocalDensity.current
-    val keySizePx = with(density) { 64.dp.toPx() }
-    val keyRadius = keySizePx / 2f
-
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -470,20 +478,9 @@ private fun TactileKeypad(
         rows.forEach { row ->
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 row.forEach { digit ->
-                    TactileKeypadKey(
-                        label = digit,
-                        keySizePx = keySizePx,
-                        keyRadius = keyRadius,
-                        onClick = {
-                            try {
-                                haptic.performHapticFeedback(
-                                    HapticFeedbackType.TextHandleMove
-                                )
-                            } catch (_: Throwable) {
-                                // Haptics are optional polish; never block the tap.
-                            }
-                            onDigit(digit.first())
-                        }
+                    KeypadKey(
+                        d = digit,
+                        onKey = { onDigit(digit.first()) }
                     )
                 }
             }
@@ -492,98 +489,14 @@ private fun TactileKeypad(
 
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             Spacer(modifier = Modifier.size(64.dp))
-            TactileKeypadKey(
-                label = "0",
-                keySizePx = keySizePx,
-                keyRadius = keyRadius,
-                onClick = {
-                    try {
-                        haptic.performHapticFeedback(
-                            HapticFeedbackType.TextHandleMove
-                        )
-                    } catch (_: Throwable) {
-                        // Haptics are optional polish; never block the tap.
-                    }
-                    onDigit('0')
-                }
+            KeypadKey(
+                d = "0",
+                onKey = { onDigit('0') }
             )
-            TactileKeypadKey(
-                label = "",
-                keySizePx = keySizePx,
-                keyRadius = keyRadius,
+            KeypadKey(
+                d = "",
                 icon = Icons.Rounded.Backspace,
-                onClick = {
-                    try {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    } catch (_: Throwable) {
-                        // Haptics are optional polish; never block the tap.
-                    }
-                    onBackspace()
-                }
-            )
-        }
-    }
-}
-
-@Composable
-private fun TactileKeypadKey(
-    label: String,
-    keySizePx: Float,
-    keyRadius: Float,
-    icon: ImageVector? = null,
-    onClick: () -> Unit
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.95f else 1f,
-        animationSpec = spring(
-            stiffness = DesignTokens.Motion.SpringStiffness,
-            dampingRatio = DesignTokens.Motion.SpringDamping
-        ),
-        label = "TactileKeypadKeyScale"
-    )
-
-    val density = LocalDensity.current
-    val level1 = DesignTokens.Elevation.Level1.first()
-    val offsetY = with(density) { level1.offsetY.toPx() }
-    val haptics = rememberHaptics()
-
-    Box(
-        modifier = Modifier
-            .size(64.dp)
-            .drawBehind {
-                drawRoundRect(
-                    color = level1.color,
-                    topLeft = Offset(0f, offsetY),
-                    cornerRadius = CornerRadius(keyRadius, keyRadius)
-                )
-            }
-            .clip(CircleShape)
-            .background(DesignTokens.LocalBingwaRoles.current.card)
-            .graphicsLayer { scaleX = scale; scaleY = scale }
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = {
-                    haptics.press()
-                    onClick()
-                }
-            )
-    ) {
-        if (icon != null) {
-            Icon(
-                imageVector = icon,
-                contentDescription = "Delete",
-                tint = DesignTokens.Color.Ink,
-                modifier = Modifier.size(22.dp)
-            )
-        } else {
-            Text(
-                label,
-                color = DesignTokens.Color.Ink,
-                fontSize = DesignTokens.Typography.Subhead,
-                fontWeight = FontWeight.SemiBold
+                onKey = { onBackspace() }
             )
         }
     }
