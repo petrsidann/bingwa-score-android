@@ -1,53 +1,18 @@
 # HANDOFF — Live Session State
 
-## STEP 0 resume state (Stage 46 — entry guarantee, on branch stage-46-entry)
+## STEP 0 resume state (Stage 57 — geometry & logic reckoning, branch stage-57-shapes from origin/main post-56)
 
-- **Current state**: Stage 46 complete, green, ready to commit/push/PR.
-  - **STEP 0 archaeology**: local commit `e87e915` ("Stage 46: entry guarantee - checkpoint") ahead of origin `9b4b14b`; dirty files: `.gitignore`, `BingwaScoreApp.kt`, `BootReceiver.kt`, `HomeScreen.kt`, `HomeViewModel.kt`, `SetupChecklistViewModel.kt`, `CrashHandler.kt`, `WatchdogWorker.kt`, `compile_errors.txt` (all prior agents' partial fixes preserved).
-  - **STEP 1 compile loop**: zero `e: file:` lines — `compileDebugKotlin`, `compileDebugUnitTestKotlin` clean. `.gitignore` lists `compile_errors.txt` + `build46.ps1`.
-  - **STEP 2 test loop**: `:app:testDebugUnitTest` 486 completed; `Stage46EntryGuaranteeTest` 5/5 green; `Stage27AuthGateTest`, `Stage33ServerUrlTest`, `Stage34CrashLifecycleTest` 9/9 green. 12 pre-existing failures unrelated (Paparazzi goldens ×10, Stage38 ×1, Stage40 ×1). `:app:assembleDebug` green.
-  - **STEP 3 root audit**: all `startForegroundService(` / `EngineService.start()` call sites audited (table below). Every site is (a) foreground-gated via `AppForegroundGate.isForeground` / `EngineService.start()` internal gate, (b) deferred to `EngineStartWorker` one-shot (WorkManager plain `startService`), or (c) boot defers to worker (no direct FGS start from receiver).
-  - **STEP 4 breaker end-to-end**: `CrashHandler` companion counter with `SharedPreferences` persist (`incrementConsecutiveCrashes` / `getConsecutiveCrashes` / `bootSkipsEngine` / `resetConsecutiveCrashes`); `EngineService.onCreate` promotes to foreground synchronously (STAGE 41); `EngineStartWorker` gates on `AppForegroundGate`; `BootReceiver` enqueues worker after `bootSkipsEngine()` check; `SetupChecklistViewModel`/`HomeViewModel` gate on `AppForegroundGate.isForeground`.
-- **Next**: commit "Stage 46: entry guarantee - green + root audit", push origin stage-46-entry, open one PR.
-
-## Call-site table — startForegroundService / EngineService.start()
-
-| File:Line | Call | Classification | Gate |
-|-----------|------|---------------|------|
-| EngineService.kt:317 | `ContextCompat.startForegroundService()` | EngineService.start internal FGS promotion | `AppForegroundGate.isForeground` (line 308) |
-| DialerViewModel.kt:211 | `ContextCompat.startForegroundService(context, intent)` | UssdAutomationService start (R5) | foreground expected at call |
-| ProfileViewModel.kt:195 | `EngineService.start(context.applicationContext)` | Engine toggle on | `EngineService.start()` gates internally |
-| HomeViewModel.kt:417 | `EngineService.start(context.applicationContext)` | Engine toggle on | Crash breaker + `EngineService.start()` gates internally |
-| HomeViewModel.kt:455 | `EngineService.start(context.applicationContext)` | Banner tap / autopilot start | CrashHandler.reset + `EngineService.start()` gates internally |
-| SetupChecklistViewModel.kt:89 | `EngineService.start(context)` | Finish setup | `AppForegroundGate.isForeground` (line 85) |
-| SetupChecklistViewModel.kt:105 | `EngineService.start(context)` | completeSetup | `AppForegroundGate.isForeground` (line 104) |
-| EngineStartWorker.kt:41 | `EngineService.start(applicationContext)` | One-shot worker promotion | `!AppForegroundGate.isForeground` → `Result.retry` (line 33) |
-| BootReceiver.kt:53 | `EngineStartWorker.enqueue(context.applicationContext)` | Boot revival (cold path) | `CrashHandler.bootSkipsEngine()` (line 46), defers to worker |
-
-## Older STEP 0 blocks (moved below for reference)
-
-## STEP 0 resume state (Stage 44 shipped; next = Stage 45 design pass)
-
-- **Current state**: Stage 44 shipped (stability + input truth).
-  - **COLD-PATH LAW**: Application.onCreate, BootReceiver and WatchdogWorker no longer start the engine directly; they enqueue the EngineStartWorker one-shot, which retries until an Activity is visible (`Result.retry`, not silent success). `EngineService` promotion order unchanged (Stage 38/41).
-  - **Login**: PIN cap 4 (5th press = inline "PIN is 4 digits"), phone cap 10 (11th = inline "Phone number is 10 digits"); focus routing + auto-jump kept; no system keyboard.
-  - **Signup**: Individual/Business toggle DELETED — one account type AGENT (`AuthConstants.ACCOUNT_TYPE_AGENT`); single "Your name or business name" field; PIN + Confirm PIN keypad-only (4-dot readouts, cap 4, inline mismatch); inline email reason; Create Account disabled with visible reason.
-  - **Splash**: retimed to the 1600ms device-law floor (`SPLASH_TOTAL = 1600`); hand-off only after choreography; Dim tagline ink #475569.
-  - **Tests**: `Stage44ColdPathBanTest`, `Stage44InputTruthTest`, `Stage44SplashGoldensTest` (0.4/0.9/1.5s × both themes); `Stage43SplashDurationTest` updated to the 1600ms floor / 2.0s budget contract.
-- **Next**: Stage 45 design pass — goldens × both themes × viewed; archive older HANDOFF blocks to docs/archive/.
-
-## STEP 0 resume state (Stage 43 shipped; next = FEATURE FREEZE -> full phone walk -> owner tags v2.0.0)
-
-- **Current state**: Stage 43 shipped (aurora snap splash).
-  - Aurora snap splash duration <= 1.3s (Motion.SPLASH_TOTAL = 1300ms).
-  - 0.0–0.2s: Aurora glow fades in (Obsidian: #0F172A canvas + #2563EB radial glow; Dim: #EAF0F6 canvas + pastel-blue #93C5FD glow).
-  - 0.2–0.5s: 'B' monogram snaps in with spring overshoot + micro-ripple ring.
-  - 0.5–0.8s: Monogram fills (white ink on Obsidian / #1E293B ink on Dim) + tagline "Your bundle business, automated." fades up.
-  - 0.8–1.3s: Whole screen scales 1.0 -> 1.04 + cross-fades to next screen.
-  - Goldens recorded and committed in `docs/gate/` for 0.3s, 0.6s, 1.0s x both themes (Obsidian and Porcelain Dim).
-  - Test coverage: `Stage43SplashDurationTest`, `Stage43SplashSnapshotTest`, `Stage11LaunchCinematicTest`, `Stage36TraceFixTest`, `SplashChoreographyTest`, `Stage21FirstRunTruthTest` all pass; `:app:assembleDebug` + `:app:testDebugUnitTest` green.
-- **Roadmap / Next stages**:
-  - **Next**: FEATURE FREEZE -> full phone walk -> owner tags v2.0.0.
+- **Current state**: Stage 57 implemented end-to-end, NOT yet committed/pushed (awaiting owner "push").
+  - **Workstream A — NeoButton (replaced, EXACT)**: `Box(modifier.padding(horizontal = 16.dp).fillMaxWidth().height(56.dp).graphicsLayer(scale).clip(RoundedCornerShape(999.dp)).background(brand / brand alpha 0.4).pointerInput(detectTapGestures(onTap { LongPress haptic; onClick }))) { Text(text, onBrand, 16.sp, SemiBold) }`; signature `(onClick, text, enabled = true, modifier = Modifier)`; spring `dampingRatio = 0.86f, stiffness = 380f`, press → 0.98x.
+  - **Workstream B — FloatingGlassTabBar (replaced, EXACT)**: single Row `padding(16).navigationBarsPadding().padding(bottom=16).height(72.dp).fillMaxWidth().clip(999).background(card 0.7).border(1, border 0.35).padding(8)`; SpaceAround/CenterVertically; 5 tabs icon 24 + label 10.sp, active brand / inactive textSecondary, `rememberHaptics().tick()` on switch. Signature `(selected, dialerOpen = false, onSelect, onDialer = {}, onMenu = {})`; AppNavHost Scaffold now `modifier = Modifier.fillMaxSize().background(roles.bg)` with `bottomBar = { FloatingGlassTabBar(...) }` only.
+  - **Workstream C — GlassInputField (new shared)**: single border `if (focused) 1.5.dp else 1.dp` / `if (focused) brand else border`, shape 12, background `elevated 0.6`; BasicTextField `textStyle(color = textPrimary)`, decorationBox inline placeholder `textSecondary`, no floating inner outline; optional readOnly/isPassword/focusRequester/onClick.
+  - **Workstream D — KeypadKey (new shared, EXACT)**: `Modifier.size(72.dp).clip(CircleShape).background(keypadKey).clickable { TextHandleMove haptic; onKey(d) }`; Text "$d", keypadDigit 24.sp Medium; icon overload for backspace.
+  - **Workstream E — Dialog actions row (GlassDialog reworked, EXACT)**: container padding 24 (Lg), title textPrimary Headline, 8dp spacing; Row `fillMaxWidth().padding(top=16)`, `spacedBy(12.dp, Alignment.End)`: ghost dismiss height 40 textSecondary + confirm NeoButton brand/onBrand. Removed `confirmDangerous` (CustomersScreen call site updated).
+  - **Workstream F — PinErrorLogic (new, pure Kotlin) + PinErrorLogicTest (pure JUnit)**: `pinError = when { overflowFlag -> "PIN is 4 digits"; submitted && length != 4 -> "PIN is 4 digits"; else -> null }`; backspace below 5 clears overflowFlag. Tests: len==4!submitted→null; 5th press→error (nothing appended); submit len 3→error. **Test passes.**
+  - **Call sites adapted**: LoginScreen (shared GlassInputField ×2, KeypadKey keypad, NeoButton Sign In), PinSetupScreen (shared GlassInputField ×3 with labels kept, KeypadKey, NeoButton Create Account), DialerScreen (KeypadKey), ProfileScreen (5× NeoButton), SetupChecklistScreen (Start Earning + StatusAction → small Box button), States.kt (Retry NeoButton), CustomersScreen (confirmDangerous removed).
+- **Verification**: `compileDebugKotlin` — zero `e: file:` lines; `:app:assembleDebug` green (`app-debug.apk` built); `:app:testDebugUnitTest` 493 completed / 22 failed — all 22 pre-existing/environmental (12 per Stage-46 baseline: paparazzi goldens ×10 "Failed to init Bridge", Stage38 ×1, Stage40 ×1; plus source-guard tests encoding superseded specs: ContrastGuardTest tokens, MaterialSmokeTest blur leakage, Stage27 "Business"/"FailRed", Stage36TraceFix AlertDialog, Stage42 old private impl guards, Stage44InputTruth "PinDotField/SignUpKeypad"); **zero regressions**. Grep proofs: `height(72.dp)` in FloatingGlassTabBar.kt; `height(56.dp)` + `padding(horizontal = 16.dp)` in NeoButton.kt; zero clip/backgroundBlur/brush on Scaffold roots / screen root Boxes in HomeScreen.kt / MainActivity.kt.
+- **Git**: branch `stage-57-shapes` created from origin/main (contains Stage 56 `2fbb926`); 11 modified + 4 new files; new files intent-to-added (`git add -N`); full diff reviewed (1632 lines); `compile_errors.txt` is gitignored.
+- **Blocker / next on owner's "push"**: commit `"Stage 57: geometry & logic reckoning"`, `push origin stage-57-shapes`, open PR, then report `git log origin/main --oneline -1`.
 
 ## Rules of Engagement
 

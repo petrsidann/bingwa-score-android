@@ -8,6 +8,7 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,30 +34,27 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import com.bingwascore.app.ui.theme.DesignTokens
 import com.bingwascore.app.util.rememberHaptics
 
 /**
- * Stage 55 — glass dialog. Replaces [androidx.compose.material3.AlertDialog].
+ * Stage 57 — glass dialog anatomy per the geometry reckoning:
+ *
+ * Container padding 24dp; title roles.textPrimary Headline; body slot;
+ * 8dp spacing; actions row: ghost dismiss (textSecondary, 40dp) left of the
+ * NeoButton confirm (roles.brand / roles.onBrand), spacedBy 12dp at the end.
  *
  * Optics per the STANDING DESIGN LAW: RadiusLg, Card surface at Glass.TintAlpha,
  * 1dp top specular (Ink 12% alpha), hairline border, Level 2 layered shadow
  * stack, Ink 40% scrim. Enter: scale 0.92->1.0 spring(380,0.86) + alpha 0->1
  * (120ms). Exit: scale ->0.96 spring(500,1.0) + alpha ->0 (90ms).
- *
- * Anatomy: Title (Headline), Body (composable slot), actions end-aligned:
- * dismiss = ghost NeoButton, confirm = filled NeoButton.
- * Haptics: Light on open/dismiss, Heavy on confirm.
  */
 @Composable
 fun GlassDialog(
@@ -67,12 +65,12 @@ fun GlassDialog(
     dismissLabel: String = "Cancel",
     confirmLabel: String,
     onConfirm: () -> Unit,
-    confirmDangerous: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val haptics = rememberHaptics()
     val density = LocalDensity.current
+    val roles = DesignTokens.LocalBingwaRoles.current
 
     LaunchedEffect(visible) {
         if (visible) haptics.tick()
@@ -122,7 +120,7 @@ fun GlassDialog(
                 modifier = Modifier
                     .fillMaxWidth(0.88f)
                     .wrapContentHeight()
-                    .padding(horizontal = DesignTokens.Spacing.Md, vertical = DesignTokens.Spacing.Lg)
+                    .padding(DesignTokens.Spacing.Lg)
                     .clip(RoundedCornerShape(DesignTokens.Shape.RadiusLg))
                     .background(DesignTokens.Color.Card.copy(alpha = DesignTokens.Glass.TintAlpha))
                     .border(1.dp, DesignTokens.Color.Border, RoundedCornerShape(DesignTokens.Shape.RadiusLg))
@@ -149,48 +147,43 @@ fun GlassDialog(
                         .background(DesignTokens.Color.Ink.copy(alpha = DesignTokens.Glass.SpecularAlpha))
                 )
                 Column(
-                    modifier = Modifier.padding(vertical = DesignTokens.Spacing.Sm, horizontal = DesignTokens.Spacing.Md)
+                    modifier = Modifier.padding(DesignTokens.Spacing.Sm)
                 ) {
                     Text(
                         text = title,
-                        color = DesignTokens.Color.Ink,
+                        color = roles.textPrimary,
                         fontSize = DesignTokens.Typography.Headline,
                         fontWeight = FontWeight.Bold
                     )
-                    Spacer(modifier = Modifier.height(DesignTokens.Spacing.Xs))
+                    Spacer(modifier = Modifier.height(DesignTokens.Spacing.Sm))
                     body()
-                    Spacer(modifier = Modifier.height(DesignTokens.Spacing.Md))
+                    Spacer(modifier = Modifier.height(DesignTokens.Spacing.Sm))
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End
+                        modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End)
                     ) {
-                        NeoButton(
-                            onClick = { haptics.tick(); onDismiss() },
-                            fillMaxWidth = false,
-                            height = 40.dp,
-                            fill = Color.Transparent
+                        // Dismiss: ghost action, height 40dp, text roles.textSecondary.
+                        Box(
+                            modifier = Modifier
+                                .height(40.dp)
+                                .clickable(enabled = true) {
+                                    haptics.tick()
+                                    onDismiss()
+                                },
+                            contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 text = dismissLabel,
-                                color = DesignTokens.Color.Ink,
-                                fontSize = DesignTokens.Typography.Caption,
+                                color = roles.textSecondary,
+                                fontSize = 10.sp,
                                 fontWeight = FontWeight.SemiBold
                             )
                         }
-                        Spacer(modifier = Modifier.width(DesignTokens.Spacing.Xs))
+                        // Confirm: NeoButton, roles.brand / roles.onBrand.
                         NeoButton(
                             onClick = { haptics.press(); onConfirm() },
-                            fillMaxWidth = false,
-                            height = 40.dp,
-                            fill = if (confirmDangerous) DesignTokens.LocalBingwaRoles.current.error else DesignTokens.LocalBingwaRoles.current.brand
-                        ) {
-                            Text(
-                                text = confirmLabel,
-                                color = Color.White,
-                                fontSize = DesignTokens.Typography.Caption,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
+                            text = confirmLabel
+                        )
                     }
                 }
             }

@@ -62,6 +62,7 @@ import com.bingwascore.app.domain.engine.UssdConsoleLine
 import com.bingwascore.app.domain.engine.UssdSessionEngine
 import com.bingwascore.app.ui.components.GlassCard
 import com.bingwascore.app.ui.components.GlassPill
+import com.bingwascore.app.ui.components.KeypadKey
 import com.bingwascore.app.ui.theme.BingwaType
 import com.bingwascore.app.ui.theme.DesignTokens
 import com.bingwascore.app.ui.theme.Motion
@@ -428,7 +429,7 @@ private data class KeySpec(
     val onClick: () -> Unit = {}
 )
 
-/** One tactile key: 64dp circle, springs to 0.95 on press with a haptic LongPress. */
+/** One tactile keypad key: 72dp circle in roles.keypadKey, TextHandleMove haptic. */
 @Composable
 private fun TactileKey(
     label: String,
@@ -436,53 +437,12 @@ private fun TactileKey(
     enabled: Boolean = true,
     onClick: () -> Unit
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed && enabled) 0.95f else 1f,
-        animationSpec = spring(
-            stiffness = DesignTokens.Motion.SpringStiffness,
-            dampingRatio = DesignTokens.Motion.SpringDamping
-        ),
-        label = "TactileKeyScale"
+    KeypadKey(
+        d = label,
+        icon = icon,
+        enabled = enabled,
+        onKey = { onClick() }
     )
-    val hapticFeedback = LocalHapticFeedback.current
-
-    Box(
-        modifier = Modifier
-            .size(64.dp)
-            .clip(CircleShape)
-            .background(DesignTokens.LocalBingwaRoles.current.card)
-            .border(1.dp, DesignTokens.LocalBingwaRoles.current.border, CircleShape)
-            .graphicsLayer { scaleX = scale; scaleY = scale }
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                enabled = enabled,
-                onClick = {
-                    hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                    onClick()
-                }
-            )
-    ) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            if (icon != null) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = DesignTokens.LocalBingwaRoles.current.textPrimary,
-                    modifier = Modifier.size(24.dp)
-                )
-            } else {
-                Text(
-                    text = label,
-                    color = DesignTokens.LocalBingwaRoles.current.textPrimary,
-                    fontSize = BingwaType.Label,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-        }
-    }
 }
 
 /** Stage 52 — glass bundle card: active tints Brand.Primary, inactive reads the hairline. */
