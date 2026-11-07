@@ -48,19 +48,11 @@ import com.bingwascore.app.ui.components.EmptyState
 import com.bingwascore.app.ui.components.BubbleCard
 import com.bingwascore.app.ui.components.pressScale
 import com.bingwascore.app.util.screenEnter
-import com.bingwascore.app.ui.theme.Hairline
-import com.bingwascore.app.ui.theme.Bubble
+import com.bingwascore.app.ui.theme.DesignTokens
 import com.bingwascore.app.ui.theme.PendGrey
-import com.bingwascore.app.ui.theme.AccentBlue
-import com.bingwascore.app.ui.theme.TickGreen
-import com.bingwascore.app.ui.theme.FailRed
-import com.bingwascore.app.ui.theme.TextFaint
-import com.bingwascore.app.ui.theme.TextWhite
-import com.bingwascore.app.ui.theme.accentBrush
-import com.bingwascore.app.ui.theme.BgBlack
 import com.bingwascore.app.ui.theme.ChartBlue
+import com.bingwascore.app.ui.theme.accentBrush
 import com.bingwascore.app.ui.theme.TextFaint
-import com.bingwascore.app.ui.theme.TextWhite
 
 /**
  * Authorized Senders: trusted numbers whose SMS the bot may act on.
@@ -86,24 +78,24 @@ fun AuthorizedSendersScreen(viewModel: AuthorizedSendersViewModel = hiltViewMode
         modifier = Modifier
             .fillMaxSize()
             .screenEnter()
-            .background(BgBlack)
+            .background(DesignTokens.LocalBingwaRoles.current.bg)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp, vertical = 16.dp)
         ) {
-            Text("Trusted Partners", color = TextWhite, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Text("Trusted Partners", color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 22.sp, fontWeight = FontWeight.Bold)
             Text(
                 "${senders.size} trusted number(s)",
-                color = TextWhite.copy(alpha = 0.5f),
+                color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.5f),
                 fontSize = 12.sp
             )
             Spacer(modifier = Modifier.height(14.dp))
             SenderInput(value = input, onValueChange = { input = it; error = null }, onSubmit = submit)
             if (error != null) {
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(error.orEmpty(), color = FailRed, fontSize = 12.sp)
+                Text(error.orEmpty(), color = DesignTokens.LocalBingwaRoles.current.error, fontSize = 12.sp)
             }
         }
 
@@ -141,8 +133,8 @@ private fun SenderInput(value: String, onValueChange: (String) -> Unit, onSubmit
             modifier = Modifier
                 .weight(1f)
                 .clip(shape)
-                .background(Bubble)
-                .border(1.dp, Hairline, shape)
+                .background(DesignTokens.LocalBingwaRoles.current.card)
+                .border(1.dp, DesignTokens.LocalBingwaRoles.current.border, shape)
                 .padding(horizontal = 14.dp, vertical = 13.dp)
         ) {
             Box(modifier = Modifier.weight(1f)) {
@@ -150,8 +142,8 @@ private fun SenderInput(value: String, onValueChange: (String) -> Unit, onSubmit
                     value = value,
                     onValueChange = onValueChange,
                     singleLine = true,
-                    textStyle = TextStyle(color = TextWhite, fontSize = 14.sp),
-                    cursorBrush = SolidColor(AccentBlue),
+                    textStyle = TextStyle(color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 14.sp),
+                    cursorBrush = SolidColor(DesignTokens.LocalBingwaRoles.current.brand),
                     modifier = Modifier.fillMaxWidth()
                 )
                 if (value.isEmpty()) {
@@ -165,7 +157,7 @@ private fun SenderInput(value: String, onValueChange: (String) -> Unit, onSubmit
                 .size(48.dp)
                 .pressScale(addInteraction)
                 .clip(CircleShape)
-                .background(accentBrush())
+                .background(DesignTokens.LocalBingwaRoles.current.brand)
                 .clickable(
                     interactionSource = addInteraction,
                     indication = null,
@@ -176,7 +168,7 @@ private fun SenderInput(value: String, onValueChange: (String) -> Unit, onSubmit
             Icon(
                 imageVector = Icons.Rounded.Add,
                 contentDescription = "Add trusted number",
-                tint = TextWhite,
+                tint = DesignTokens.LocalBingwaRoles.current.textPrimary,
                 modifier = Modifier.size(24.dp)
             )
         }
@@ -203,10 +195,10 @@ private fun SenderRow(number: String, enterDelayMillis: Int, onRemove: () -> Uni
             }
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(number, color = TextWhite, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                Text(number, color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                 Text(
                     "Trusted sender",
-                    color = TickGreen,
+                    color = DesignTokens.LocalBingwaRoles.current.success,
                     fontSize = 11.sp
                 )
             }
@@ -214,7 +206,7 @@ private fun SenderRow(number: String, enterDelayMillis: Int, onRemove: () -> Uni
             Icon(
                 imageVector = Icons.Rounded.Close,
                 contentDescription = "Remove $number",
-                tint = TextWhite.copy(alpha = 0.55f),
+                tint = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.55f),
                 modifier = Modifier
                     .size(20.dp)
                     .clip(CircleShape)

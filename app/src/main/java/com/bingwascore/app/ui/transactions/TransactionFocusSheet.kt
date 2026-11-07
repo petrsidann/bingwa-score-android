@@ -49,16 +49,9 @@ import androidx.compose.ui.unit.sp
 import com.bingwascore.app.data.local.Transaction
 import com.bingwascore.app.util.formatCustomerName
 import com.bingwascore.app.util.rememberHaptics
-import com.bingwascore.app.ui.theme.AccentBlue
-import com.bingwascore.app.ui.theme.Bubble
-import com.bingwascore.app.ui.theme.FailRed
-import com.bingwascore.app.ui.theme.Hairline
-import com.bingwascore.app.ui.theme.Raised
+import com.bingwascore.app.ui.theme.DesignTokens
 import com.bingwascore.app.ui.theme.StatusColors
-import com.bingwascore.app.ui.theme.TextDim
-import com.bingwascore.app.ui.theme.TextGrey
-import com.bingwascore.app.ui.theme.TextWhite
-import com.bingwascore.app.ui.theme.TickGreen
+import com.bingwascore.app.ui.theme.isPorcelain
 import java.util.Calendar
 import java.util.Locale
 
@@ -108,26 +101,26 @@ fun TransactionFocusSheet(
                 modifier = Modifier
                     .size(48.dp)
                     .clip(CircleShape)
-                    .background(AccentBlue),
+                    .background(DesignTokens.LocalBingwaRoles.current.brand),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     name.take(1).uppercase(Locale.ROOT),
-                    color = TextWhite,
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold
                 )
             }
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(name, color = TextWhite, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                Text(name, color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 17.sp, fontWeight = FontWeight.Bold)
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(transaction.phoneNumber, color = TextGrey, fontSize = 12.sp)
+                    Text(transaction.phoneNumber, color = DesignTokens.LocalBingwaRoles.current.textSecondary, fontSize = 12.sp)
                     Spacer(modifier = Modifier.width(8.dp))
                     Icon(
                         imageVector = Icons.Rounded.ContentCopy,
                         contentDescription = "Copy number",
-                        tint = TextDim,
+                        tint = DesignTokens.LocalBingwaRoles.current.textSecondary,
                         modifier = Modifier
                             .size(16.dp)
                             .clip(CircleShape)
@@ -143,7 +136,7 @@ fun TransactionFocusSheet(
 
         Text(
             "View all from this number",
-            color = AccentBlue,
+            color = DesignTokens.LocalBingwaRoles.current.brand,
             fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier
@@ -171,7 +164,7 @@ fun TransactionFocusSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(14.dp))
-                .background(Bubble)
+                .background(DesignTokens.LocalBingwaRoles.current.card)
                 .padding(14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -189,11 +182,11 @@ fun TransactionFocusSheet(
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold
                 )
-                Text(transaction.offerName, color = TextGrey, fontSize = 12.sp)
+                Text(transaction.offerName, color = DesignTokens.LocalBingwaRoles.current.textSecondary, fontSize = 12.sp)
             }
             Text(
                 "Ksh ${money(transaction.amount)}",
-                color = TextWhite,
+                color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -206,34 +199,34 @@ fun TransactionFocusSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(14.dp))
-                .background(Bubble)
+                .background(DesignTokens.LocalBingwaRoles.current.card)
                 .clickable { editingUssd = true }
                 .padding(14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text("USSD code", color = TextGrey, fontSize = 12.sp)
+                Text("USSD code", color = DesignTokens.LocalBingwaRoles.current.textSecondary, fontSize = 12.sp)
                 Text(
                     transaction.ussdCode,
-                    color = TextWhite,
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold
                 )
             }
-            Text("Tap to edit", color = AccentBlue, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+            Text("Tap to edit", color = DesignTokens.LocalBingwaRoles.current.brand, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
         }
 
         Spacer(modifier = Modifier.height(12.dp))
 
         // ── The M-Pesa message, in full ───────────────────────────────────────
-        Text("M-Pesa message", color = TextGrey, fontSize = 12.sp)
+        Text("M-Pesa message", color = DesignTokens.LocalBingwaRoles.current.textSecondary, fontSize = 12.sp)
         Spacer(modifier = Modifier.height(6.dp))
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(14.dp))
-                .background(Bubble)
-                .border(1.dp, Hairline, RoundedCornerShape(14.dp))
+                .background(DesignTokens.LocalBingwaRoles.current.card)
+                .border(1.dp, DesignTokens.LocalBingwaRoles.current.border, RoundedCornerShape(14.dp))
                 .padding(14.dp)
         ) {
             SelectionContainer {
@@ -241,7 +234,7 @@ fun TransactionFocusSheet(
                     text = transaction.mpesaReceipt
                         ?: transaction.responseMessage
                         ?: "No message was captured for this transaction.",
-                    color = if (transaction.mpesaReceipt != null) TextWhite else TextDim,
+                    color = if (transaction.mpesaReceipt != null) DesignTokens.LocalBingwaRoles.current.textPrimary else DesignTokens.LocalBingwaRoles.current.textSecondary,
                     fontSize = 13.sp
                 )
             }
@@ -253,10 +246,10 @@ fun TransactionFocusSheet(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(14.dp))
-                    .background(FailRed.copy(alpha = 0.12f))
+                    .background(DesignTokens.LocalBingwaRoles.current.error.copy(alpha = 0.12f))
                     .padding(14.dp)
             ) {
-                Text(error, color = FailRed, fontSize = 13.sp)
+                Text(error, color = DesignTokens.LocalBingwaRoles.current.error, fontSize = 13.sp)
             }
         }
 
@@ -272,23 +265,23 @@ fun TransactionFocusSheet(
             SheetAction(
                 icon = Icons.Rounded.Refresh,
                 label = "Retry",
-                tint = AccentBlue,
+                tint = DesignTokens.LocalBingwaRoles.current.brand,
                 enabled = rules.canRetry,
                 onReject = haptics::error,
                 modifier = Modifier.weight(1f),
                 onClick = onRetry
             )
-            SheetAction(Icons.Rounded.Schedule, "Schedule", TextGrey, Modifier.weight(1f), onSchedule)
+            SheetAction(Icons.Rounded.Schedule, "Schedule", DesignTokens.LocalBingwaRoles.current.textSecondary, Modifier.weight(1f), onSchedule)
             SheetAction(
                 icon = Icons.Rounded.Check,
                 label = "Complete",
-                tint = TickGreen,
+                tint = DesignTokens.LocalBingwaRoles.current.success,
                 enabled = rules.canComplete,
                 onReject = haptics::error,
                 modifier = Modifier.weight(1f),
                 onClick = onComplete
             )
-            SheetAction(Icons.Rounded.DeleteOutline, "Delete", FailRed, Modifier.weight(1f), onDelete)
+            SheetAction(Icons.Rounded.DeleteOutline, "Delete", DesignTokens.LocalBingwaRoles.current.error, Modifier.weight(1f), onDelete)
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -306,10 +299,10 @@ if (editingUssd) {
                 onValueChange = { draft = it },
                 singleLine = true,
                 colors = TextFieldDefaults.colors(
-                    focusedTextColor = TextWhite,
-                    unfocusedTextColor = TextWhite,
-                    focusedContainerColor = Bubble,
-                    unfocusedContainerColor = Bubble
+                    focusedTextColor = DesignTokens.LocalBingwaRoles.current.textPrimary,
+                    unfocusedTextColor = DesignTokens.LocalBingwaRoles.current.textPrimary,
+                    focusedContainerColor = DesignTokens.LocalBingwaRoles.current.card,
+                    unfocusedContainerColor = DesignTokens.LocalBingwaRoles.current.card
                 )
             )
         },
@@ -328,12 +321,12 @@ private fun StatTile(label: String, value: String, modifier: Modifier = Modifier
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(14.dp))
-            .background(Bubble)
+            .background(DesignTokens.LocalBingwaRoles.current.card)
             .padding(12.dp)
     ) {
-        Text(value, color = TextWhite, fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+        Text(value, color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1)
         Spacer(modifier = Modifier.height(2.dp))
-        Text(label, color = TextGrey, fontSize = 11.sp, maxLines = 1)
+        Text(label, color = DesignTokens.LocalBingwaRoles.current.textSecondary, fontSize = 11.sp, maxLines = 1)
     }
 }
 
@@ -353,12 +346,12 @@ private fun SheetAction(
     enabled: Boolean = true,
     onReject: () -> Unit = {}
 ) {
-    val ink = if (enabled) tint else TextDim
+    val ink = if (enabled) tint else DesignTokens.LocalBingwaRoles.current.textSecondary
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier
             .clip(RoundedCornerShape(14.dp))
-            .background(Bubble)
+            .background(DesignTokens.LocalBingwaRoles.current.card)
             .clickable {
                 if (enabled) onClick() else onReject()
             }

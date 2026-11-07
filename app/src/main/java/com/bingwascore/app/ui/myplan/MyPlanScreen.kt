@@ -74,20 +74,11 @@ import com.bingwascore.app.domain.PlanOffer
 import com.bingwascore.app.domain.PlanState
 import com.bingwascore.app.domain.TransactionStatus
 import com.bingwascore.app.ui.components.PrimaryButton
-import com.bingwascore.app.ui.theme.FailRed
-import com.bingwascore.app.ui.theme.PendGrey
 import com.bingwascore.app.ui.components.pressScale
-import com.bingwascore.app.ui.theme.AccentBlue
+import com.bingwascore.app.ui.theme.DesignTokens
+import com.bingwascore.app.ui.theme.PendGrey
 import com.bingwascore.app.ui.theme.BandWhite
-import com.bingwascore.app.ui.theme.BgBlack
-import com.bingwascore.app.ui.theme.Bubble
 import com.bingwascore.app.ui.theme.CtaInk
-import com.bingwascore.app.ui.theme.Hairline
-import com.bingwascore.app.ui.theme.Raised
-import com.bingwascore.app.ui.theme.TextDim
-import com.bingwascore.app.ui.theme.TextGrey
-import com.bingwascore.app.ui.theme.TextWhite
-import com.bingwascore.app.ui.theme.TickGreen
 import com.bingwascore.app.ui.glass.frostedGlass
 import com.bingwascore.app.ui.glass.GlassSpec
 import com.bingwascore.app.util.Haptics
@@ -333,7 +324,7 @@ fun MyPlanScreenContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(BgBlack)
+            .background(DesignTokens.LocalBingwaRoles.current.bg)
     ) {
         PlanBand(
             plan = state.plan,
@@ -387,7 +378,7 @@ fun MyPlanScreenContent(
                         .padding(horizontal = 3.dp)
                         .size(if (active) 8.dp else 6.dp)
                         .clip(CircleShape)
-                        .background(if (active) AccentBlue else TextDim)
+                        .background(if (active) DesignTokens.LocalBingwaRoles.current.brand else DesignTokens.LocalBingwaRoles.current.textSecondary)
                 )
             }
         }
@@ -451,13 +442,13 @@ private fun PlanBand(
             Column {
                 Text(
                     text = "My Plan",
-                    color = TextWhite,
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                     fontSize = 21.sp,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
                     text = line,
-                    color = TextGrey,
+                    color = DesignTokens.LocalBingwaRoles.current.textSecondary,
                     fontSize = 12.sp
                 )
             }
@@ -480,7 +471,7 @@ private fun MonogramTile(letters: String, size: Dp = 40.dp) {
     ) {
         Text(
             text = letters,
-            color = AccentBlue,
+            color = DesignTokens.LocalBingwaRoles.current.brand,
             fontSize = (size.value * 0.32f).sp,
             fontWeight = FontWeight.Bold
         )
@@ -513,7 +504,7 @@ private fun FamilyPill(
                     modifier = Modifier
                         .pressScale(interactionSource)
                         .clip(RoundedCornerShape(18.dp))
-                        .background(if (selected) AccentBlue else Color.Transparent)
+                        .background(if (selected) DesignTokens.LocalBingwaRoles.current.brand else Color.Transparent)
                         .clickable(
                             interactionSource = interactionSource,
                             indication = null,
@@ -523,7 +514,7 @@ private fun FamilyPill(
                 ) {
                     Text(
                         text = candidate.label,
-                        color = if (selected) CtaInk else TextGrey,
+                        color = if (selected) CtaInk else DesignTokens.LocalBingwaRoles.current.textSecondary,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -571,7 +562,7 @@ private fun PlanPaywallPage(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = offer.displayName,
-                    color = TextWhite,
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                     fontSize = 26.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -583,7 +574,7 @@ private fun PlanPaywallPage(
             Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = offer.truthSubtitle,
-                color = TextGrey,
+                color = DesignTokens.LocalBingwaRoles.current.textSecondary,
                 fontSize = 13.sp
             )
             Spacer(modifier = Modifier.height(12.dp))
@@ -591,14 +582,14 @@ private fun PlanPaywallPage(
             Row(verticalAlignment = Alignment.Bottom) {
                 Text(
                     text = "Ksh ${offer.priceKes}",
-                    color = AccentBlue,
+                    color = DesignTokens.LocalBingwaRoles.current.brand,
                     fontSize = 26.sp,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "once · via M-Pesa",
-                    color = TextDim,
+                    color = DesignTokens.LocalBingwaRoles.current.textSecondary,
                     fontSize = 12.sp,
                     modifier = Modifier.padding(bottom = 4.dp)
                 )
@@ -642,18 +633,18 @@ private fun PlanPaywallPage(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(1.dp)
-                    .background(Hairline)
+                    .background(DesignTokens.LocalBingwaRoles.current.border)
             )
             Spacer(modifier = Modifier.height(10.dp))
             Text(
                 text = offer.legalLine,
-                color = TextDim,
+                color = DesignTokens.LocalBingwaRoles.current.textSecondary,
                 fontSize = 11.sp
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = "Payments settle securely to Bingwa Score till (M-Pesa)",
-                color = TextGrey.copy(alpha = 0.8f),
+                color = DesignTokens.LocalBingwaRoles.current.textSecondary.copy(alpha = 0.8f),
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Medium
             )
@@ -681,7 +672,7 @@ private fun ActiveBadge() {
         contentAlignment = Alignment.Center,
         modifier = Modifier
             .clip(RoundedCornerShape(10.dp))
-            .background(AccentBlue)
+            .background(DesignTokens.LocalBingwaRoles.current.brand)
             .padding(horizontal = 8.dp, vertical = 3.dp)
     ) {
         Text(
@@ -707,12 +698,12 @@ private fun BenefitRow(icon: ImageVector, title: String, desc: String) {
             modifier = Modifier
                 .size(30.dp)
                 .clip(CircleShape)
-                .background(AccentBlue.copy(alpha = 0.14f))
+                .background(DesignTokens.LocalBingwaRoles.current.brand.copy(alpha = 0.14f))
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = AccentBlue,
+                tint = DesignTokens.LocalBingwaRoles.current.brand,
                 modifier = Modifier.size(16.dp)
             )
         }
@@ -720,13 +711,13 @@ private fun BenefitRow(icon: ImageVector, title: String, desc: String) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
-                color = TextWhite,
+                color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold
             )
             Text(
                 text = desc,
-                color = TextGrey,
+                color = DesignTokens.LocalBingwaRoles.current.textSecondary,
                 fontSize = 11.sp
             )
         }
@@ -753,13 +744,13 @@ private fun BenefitsExpander(expanded: Boolean, onToggle: () -> Unit) {
         Icon(
             imageVector = if (expanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
             contentDescription = null,
-            tint = AccentBlue,
+            tint = DesignTokens.LocalBingwaRoles.current.brand,
             modifier = Modifier.size(18.dp)
         )
         Spacer(modifier = Modifier.width(6.dp))
         Text(
             text = "Explore all benefits",
-            color = AccentBlue,
+            color = DesignTokens.LocalBingwaRoles.current.brand,
             fontSize = 13.sp,
             fontWeight = FontWeight.SemiBold
         )
@@ -773,7 +764,7 @@ private fun FactsBlock(offer: PlanOffer) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(Raised)
+            .background(DesignTokens.LocalBingwaRoles.current.elevated)
             .padding(horizontal = 14.dp, vertical = 12.dp)
     ) {
         FactRow("Plan", offer.displayName)
@@ -788,13 +779,13 @@ private fun FactRow(label: String, value: String) {
     Row(modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp)) {
         Text(
             text = label,
-            color = TextGrey,
+            color = DesignTokens.LocalBingwaRoles.current.textSecondary,
             fontSize = 12.sp,
             modifier = Modifier.width(88.dp)
         )
         Text(
             text = value,
-            color = TextWhite,
+            color = DesignTokens.LocalBingwaRoles.current.textPrimary,
             fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold
         )
@@ -810,8 +801,8 @@ private fun PendingPanel(message: String) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(AccentBlue.copy(alpha = 0.1f))
-            .border(1.dp, AccentBlue.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
+            .background(DesignTokens.LocalBingwaRoles.current.brand.copy(alpha = 0.1f))
+            .border(1.dp, DesignTokens.LocalBingwaRoles.current.brand.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
             .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
         Row(
@@ -820,11 +811,11 @@ private fun PendingPanel(message: String) {
             modifier = Modifier.fillMaxWidth()
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                GlassSpinner(modifier = Modifier.size(16.dp), color = AccentBlue)
+                GlassSpinner(modifier = Modifier.size(16.dp), color = DesignTokens.LocalBingwaRoles.current.brand)
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "M-Pesa Payment",
-                    color = TextWhite,
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -834,7 +825,7 @@ private fun PendingPanel(message: String) {
         Spacer(modifier = Modifier.height(6.dp))
         Text(
             text = message,
-            color = TextGrey,
+            color = DesignTokens.LocalBingwaRoles.current.textSecondary,
             fontSize = 12.sp
         )
     }
@@ -849,7 +840,7 @@ private fun StatusChipQueued() {
         fontWeight = FontWeight.SemiBold,
         modifier = Modifier
             .clip(RoundedCornerShape(10.dp))
-            .background(Bubble)
+            .background(DesignTokens.LocalBingwaRoles.current.card)
             .padding(horizontal = 10.dp, vertical = 3.dp)
     )
 }
@@ -863,21 +854,21 @@ private fun FailedPanel(message: String, onRetry: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(FailRed.copy(alpha = 0.12f))
-            .border(1.dp, FailRed.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
+            .background(DesignTokens.LocalBingwaRoles.current.error.copy(alpha = 0.12f))
+            .border(1.dp, DesignTokens.LocalBingwaRoles.current.error.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
             .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 imageVector = Icons.Rounded.ErrorOutline,
                 contentDescription = null,
-                tint = FailRed,
+                tint = DesignTokens.LocalBingwaRoles.current.error,
                 modifier = Modifier.size(20.dp)
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = message,
-                color = TextWhite,
+                color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Medium,
                 modifier = Modifier.weight(1f)
@@ -912,14 +903,14 @@ private fun ActivePanel(countdown: String, receipt: String?) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(AccentBlue.copy(alpha = 0.12f))
-            .border(1.dp, AccentBlue.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
+            .background(DesignTokens.LocalBingwaRoles.current.brand.copy(alpha = 0.12f))
+            .border(1.dp, DesignTokens.LocalBingwaRoles.current.brand.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
             .padding(horizontal = 16.dp, vertical = 13.dp)
     ) {
         Icon(
             imageVector = Icons.Rounded.CheckCircle,
             contentDescription = null,
-            tint = if (receipt == null) AccentBlue else TickGreen,
+            tint = if (receipt == null) DesignTokens.LocalBingwaRoles.current.brand else DesignTokens.LocalBingwaRoles.current.success,
             modifier = Modifier
                 .size(20.dp)
                 .scale(scale)
@@ -928,20 +919,20 @@ private fun ActivePanel(countdown: String, receipt: String?) {
         Column {
             Text(
                 text = if (receipt == null) "Active plan" else "Plan activated",
-                color = TextWhite,
+                color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold
             )
             Text(
                 text = receipt ?: countdown,
-                color = if (receipt == null) AccentBlue else TickGreen,
+                color = if (receipt == null) DesignTokens.LocalBingwaRoles.current.brand else DesignTokens.LocalBingwaRoles.current.success,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold
             )
             if (receipt != null) {
                 Text(
                     text = countdown,
-                    color = TextGrey,
+                    color = DesignTokens.LocalBingwaRoles.current.textSecondary,
                     fontSize = 12.sp
                 )
             }

@@ -1,5 +1,6 @@
 package com.bingwascore.app.ui.theme
 
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color as ComposeColor
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
@@ -25,7 +26,7 @@ object DesignTokens {
     // ─── Colours ──────────────────────────────────────────────────────────────
 
     object Color {
-        object Obsidian {
+        private object Obsidian {
             val Bg = ComposeColor(0xFF0F172A)
             val Card = ComposeColor(0xFF1E293B)
             val Elevated = ComposeColor(0xFF334155)
@@ -33,7 +34,7 @@ object DesignTokens {
             val Ink = ComposeColor(0xFFFFFFFF)
         }
 
-        object PorcelainDim {
+        private object PorcelainDim {
             val Bg = ComposeColor(0xFFEAF0F6)
             val Card = ComposeColor(0xFFFFFFFF)
             val Elevated = ComposeColor(0xFFF8FAFC)
@@ -41,7 +42,7 @@ object DesignTokens {
             val Ink = ComposeColor(0xFF1E293B)
         }
 
-        object Brand {
+        private object Brand {
             val Primary = ComposeColor(0xFF2563EB)
             val DimAccent = ComposeColor(0xFF2F6AE0)
             val Success = ComposeColor(0xFF00C853)
@@ -55,6 +56,66 @@ object DesignTokens {
         val Border: ComposeColor get() = if (isPorcelain) PorcelainDim.Border else Obsidian.Border
         val Ink: ComposeColor get() = if (isPorcelain) PorcelainDim.Ink else Obsidian.Ink
     }
+
+    // ─── Role system (Stage 56 — color & contrast reckoning) ────────────────
+    // Semantic role tokens consumed by every screen/component via LocalBingwaRoles.
+    // Raw palette objects (Obsidian / PorcelainDim / Brand) above are now private.
+
+    object Role {
+        data class ThemeRoles(
+            val bg: ComposeColor,
+            val card: ComposeColor,
+            val elevated: ComposeColor,
+            val border: ComposeColor,
+            val textPrimary: ComposeColor,
+            val textSecondary: ComposeColor,
+            val brand: ComposeColor,
+            val onBrand: ComposeColor,
+            val success: ComposeColor,
+            val onSuccess: ComposeColor,
+            val error: ComposeColor,
+            val onError: ComposeColor,
+            val keypadKey: ComposeColor,
+            val keypadDigit: ComposeColor
+        )
+
+        val Obsidian = ThemeRoles(
+            bg = ComposeColor(0xFF0F172A),
+            card = ComposeColor(0xFF1E293B),
+            elevated = ComposeColor(0xFF334155),
+            border = ComposeColor(0xFF475569),
+            textPrimary = ComposeColor(0xFFF8FAFC),
+            textSecondary = ComposeColor(0xFF94A3B8),
+            brand = ComposeColor(0xFF2563EB),
+            onBrand = ComposeColor(0xFFFFFFFF),
+            success = ComposeColor(0xFF34D399),
+            onSuccess = ComposeColor(0xFF06281A),
+            error = ComposeColor(0xFFF87171),
+            onError = ComposeColor(0xFF2A0A0A),
+            keypadKey = ComposeColor(0xFF334155),
+            keypadDigit = ComposeColor(0xFFF8FAFC)
+        )
+
+        val Dim = ThemeRoles(
+            bg = ComposeColor(0xFFEAF0F6),
+            card = ComposeColor(0xFFFFFFFF),
+            elevated = ComposeColor(0xFFF8FAFC),
+            border = ComposeColor(0xFFCBD5E1),
+            textPrimary = ComposeColor(0xFF1E293B),
+            textSecondary = ComposeColor(0xFF475569),
+            brand = ComposeColor(0xFF2F6AE0),
+            onBrand = ComposeColor(0xFFFFFFFF),
+            success = ComposeColor(0xFF059669),
+            onSuccess = ComposeColor(0xFFFFFFFF),
+            error = ComposeColor(0xFFDC2626),
+            onError = ComposeColor(0xFFFFFFFF),
+            keypadKey = ComposeColor(0xFFFFFFFF),
+            keypadDigit = ComposeColor(0xFF1E293B)
+        )
+    }
+
+    /** Mode-aware semantic roles: Obsidian when dark, Dim (Porcelain) when light. */
+    val LocalBingwaRoles = staticCompositionLocalOf { Role.Dim }
 
     // ─── Elevation (layered shadow stacks) ────────────────────────────────────
 

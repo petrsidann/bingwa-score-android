@@ -22,24 +22,18 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bingwascore.app.engagebot.BotLog
 import com.bingwascore.app.engagebot.BotLogKind
-import com.bingwascore.app.ui.theme.PendGrey
-import com.bingwascore.app.ui.theme.TickGreen
-import com.bingwascore.app.ui.theme.FailRed
-import com.bingwascore.app.ui.theme.Bubble
-import com.bingwascore.app.ui.theme.PendGrey
-import com.bingwascore.app.ui.theme.TextFaint
-import com.bingwascore.app.ui.theme.TextWhite
+import com.bingwascore.app.ui.theme.DesignTokens
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 /** Severity color for a bot activity line — shared across bot screens. */
-fun botLogColor(kind: BotLogKind): Color = when (kind) {
-    BotLogKind.ENGAGE -> PendGrey
-    BotLogKind.SUCCESS -> TickGreen
-    BotLogKind.INVALID -> PendGrey
-    BotLogKind.ERROR -> FailRed
-    BotLogKind.INFO -> TextWhite.copy(alpha = 0.5f)
+fun botLogColor(kind: BotLogKind, roles: DesignTokens.Role.ThemeRoles): Color = when (kind) {
+    BotLogKind.ENGAGE -> roles.textSecondary
+    BotLogKind.SUCCESS -> roles.success
+    BotLogKind.INVALID -> roles.textSecondary
+    BotLogKind.ERROR -> roles.error
+    BotLogKind.INFO -> roles.textPrimary.copy(alpha = 0.5f)
 }
 
 /**
@@ -48,12 +42,13 @@ fun botLogColor(kind: BotLogKind): Color = when (kind) {
  */
 @Composable
 fun BotLogRow(log: BotLog, modifier: Modifier = Modifier) {
+    val roles = DesignTokens.LocalBingwaRoles.current
     val timeFormat = remember { SimpleDateFormat("HH:mm:ss", Locale.getDefault()) }
     Row(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(Bubble)
+            .background(roles.card)
             .padding(horizontal = 14.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -61,14 +56,14 @@ fun BotLogRow(log: BotLog, modifier: Modifier = Modifier) {
             modifier = Modifier
                 .size(8.dp)
                 .clip(CircleShape)
-                .background(botLogColor(log.kind))
+                .background(botLogColor(log.kind, roles))
         )
         Spacer(modifier = Modifier.width(10.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(log.message, color = TextWhite.copy(alpha = 0.85f), fontSize = 12.sp)
+            Text(log.message, color = roles.textPrimary.copy(alpha = 0.85f), fontSize = 12.sp)
             Text(
                 timeFormat.format(Date(log.timestamp)),
-                color = TextFaint,
+                color = roles.textPrimary.copy(alpha = 0.6f),
                 fontSize = 10.sp
             )
         }

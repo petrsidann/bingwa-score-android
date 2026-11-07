@@ -85,7 +85,7 @@ fun AutoRepliesScreen(viewModel: AutoRepliesViewModel = hiltViewModel()) {
         modifier = Modifier
             .fillMaxSize()
             .screenEnter()
-            .background(DesignTokens.Color.Bg)
+            .background(DesignTokens.LocalBingwaRoles.current.bg)
     ) {
         Column(
             modifier = Modifier
@@ -94,13 +94,13 @@ fun AutoRepliesScreen(viewModel: AutoRepliesViewModel = hiltViewModel()) {
         ) {
             Text(
                 "Smart Follow-Up",
-                color = DesignTokens.Color.Ink,
+                color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                 fontSize = DesignTokens.Typography.Headline,
                 fontWeight = FontWeight.Bold
             )
             Text(
                 "${templates.size} template(s)",
-                color = DesignTokens.Color.Ink.copy(alpha = 0.6f),
+                color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f),
                 fontSize = DesignTokens.Typography.Caption
             )
         }
@@ -123,7 +123,7 @@ fun AutoRepliesScreen(viewModel: AutoRepliesViewModel = hiltViewModel()) {
         } else {
             Text(
                 "Templates",
-                color = DesignTokens.Color.Ink,
+                color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                 fontSize = DesignTokens.Typography.Headline,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(horizontal = 20.dp)
@@ -147,7 +147,7 @@ fun AutoRepliesScreen(viewModel: AutoRepliesViewModel = hiltViewModel()) {
             Spacer(modifier = Modifier.height(16.dp))
             Text(
                 "Bot Activity",
-                color = DesignTokens.Color.Ink,
+                color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                 fontSize = DesignTokens.Typography.Headline,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(horizontal = 20.dp)
@@ -188,20 +188,20 @@ private fun AutomationEmptyState() {
             Icon(
                 imageVector = Icons.Rounded.SmartToy,
                 contentDescription = null,
-                tint = DesignTokens.Color.Brand.Primary.copy(alpha = 0.2f),
+                tint = DesignTokens.LocalBingwaRoles.current.brand.copy(alpha = 0.2f),
                 modifier = Modifier.size(48.dp)
             )
             Spacer(modifier = Modifier.height(12.dp))
             Text(
                 "No automations yet",
-                color = DesignTokens.Color.Ink,
+                color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                 fontSize = DesignTokens.Typography.Body,
                 fontWeight = FontWeight.SemiBold
             )
             Spacer(modifier = Modifier.height(6.dp))
             Text(
                 "Create follow-up templates to engage customers after every sale.",
-                color = DesignTokens.Color.Ink.copy(alpha = 0.6f),
+                color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f),
                 fontSize = DesignTokens.Typography.Caption
             )
         }
@@ -216,7 +216,7 @@ private fun EngageBotRow(active: Boolean, onToggle: (Boolean) -> Unit) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 "Engage Bot",
-                color = DesignTokens.Color.Ink,
+                color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                 fontSize = DesignTokens.Typography.Body,
                 fontWeight = FontWeight.SemiBold
             )
@@ -228,7 +228,7 @@ private fun EngageBotRow(active: Boolean, onToggle: (Boolean) -> Unit) {
                     } else {
                         "Off — no engage messages will be sent"
                     },
-                    color = DesignTokens.Color.Ink.copy(alpha = 0.5f),
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.5f),
                     fontSize = DesignTokens.Typography.Caption
                 )
             }
@@ -265,14 +265,14 @@ private fun TemplateCard(
                 Icon(
                     imageVector = Icons.Rounded.SmartToy,
                     contentDescription = null,
-                    tint = DesignTokens.Color.Brand.Primary,
+                    tint = DesignTokens.LocalBingwaRoles.current.brand,
                     modifier = Modifier.size(24.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         template.title,
-                        color = DesignTokens.Color.Ink,
+                        color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                         fontSize = DesignTokens.Typography.Body,
                         fontWeight = FontWeight.SemiBold,
                         maxLines = 1
@@ -284,7 +284,7 @@ private fun TemplateCard(
             Spacer(modifier = Modifier.height(10.dp))
             Text(
                 template.message,
-                color = DesignTokens.Color.Ink.copy(alpha = 0.7f),
+                color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.7f),
                 fontSize = DesignTokens.Typography.Caption,
                 maxLines = 2
             )
@@ -321,21 +321,21 @@ private fun EditTemplateDialog(
 @Composable
 private fun DialogField(label: String, value: String, onValueChange: (String) -> Unit) {
     Column(modifier = Modifier.fillMaxWidth()) {
-        Text(label, color = DesignTokens.Color.Ink.copy(alpha = 0.55f), fontSize = 11.sp)
+        Text(label, color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.55f), fontSize = 11.sp)
         Spacer(modifier = Modifier.height(6.dp))
         val shape = RoundedCornerShape(12.dp)
         androidx.compose.foundation.layout.Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(shape)
-                .background(DesignTokens.Color.Card.copy(alpha = 0.08f))
+                .background(DesignTokens.LocalBingwaRoles.current.card.copy(alpha = 0.08f))
                 .padding(horizontal = 12.dp, vertical = 10.dp)
         ) {
             BasicTextField(
                 value = value,
                 onValueChange = onValueChange,
-                textStyle = TextStyle(color = DesignTokens.Color.Ink, fontSize = 14.sp),
-                cursorBrush = SolidColor(DesignTokens.Color.Brand.Primary),
+                textStyle = TextStyle(color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 14.sp),
+                cursorBrush = SolidColor(DesignTokens.LocalBingwaRoles.current.brand),
                 modifier = Modifier.fillMaxWidth()
             )
         }

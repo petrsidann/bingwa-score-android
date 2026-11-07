@@ -38,14 +38,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import com.bingwascore.app.data.preferences.UserPreferences
 import com.bingwascore.app.ui.home.Greetings
-import com.bingwascore.app.ui.theme.AccentBlue
-import com.bingwascore.app.ui.theme.BgBlack
+import com.bingwascore.app.ui.theme.DesignTokens
 import com.bingwascore.app.ui.theme.Hairline
 import com.bingwascore.app.ui.theme.IOS_CARD_RADIUS
 import com.bingwascore.app.ui.theme.Raised
 import com.bingwascore.app.ui.theme.TextDim
-import com.bingwascore.app.ui.theme.TextGrey
-import com.bingwascore.app.ui.theme.TextWhite
 import com.bingwascore.app.util.rememberHaptics
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
@@ -121,19 +118,19 @@ fun DiplomaticsScreen(viewModel: DiplomaticsViewModel = hiltViewModel()) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(BgBlack)
+            .background(DesignTokens.LocalBingwaRoles.current.bg)
             .padding(horizontal = 16.dp)
     ) {
         Spacer(modifier = Modifier.height(20.dp))
         Text(
             text = "Diplomatics",
-            color = TextWhite,
+            color = DesignTokens.LocalBingwaRoles.current.textPrimary,
             fontSize = 28.sp,
             fontWeight = FontWeight.Bold
         )
         Text(
             text = "The greeting meets you in a language on purpose.",
-            color = TextGrey,
+            color = DesignTokens.LocalBingwaRoles.current.textSecondary,
             fontSize = 13.sp
         )
         Spacer(modifier = Modifier.height(16.dp))
@@ -151,15 +148,15 @@ fun DiplomaticsScreen(viewModel: DiplomaticsViewModel = hiltViewModel()) {
             Icon(
                 imageVector = Icons.Rounded.PushPin,
                 contentDescription = null,
-                tint = AccentBlue,
+                tint = DesignTokens.LocalBingwaRoles.current.brand,
                 modifier = Modifier.size(16.dp)
             )
             Spacer(modifier = Modifier.width(10.dp))
             Column {
-                Text(text = "Now greeting in", color = TextGrey, fontSize = 11.sp)
+                Text(text = "Now greeting in", color = DesignTokens.LocalBingwaRoles.current.textSecondary, fontSize = 11.sp)
                 Text(
                     text = "${current.endonym} · " + Greetings.text(Greetings.Bucket.MORNING, current),
-                    color = TextWhite,
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -252,7 +249,7 @@ private fun LanguageList(
                     .background(Raised)
                     .border(
                         1.dp,
-                        if (isCurrent) AccentBlue.copy(alpha = 0.45f) else Hairline,
+                        if (isCurrent) DesignTokens.LocalBingwaRoles.current.brand.copy(alpha = 0.45f) else Hairline,
                         RoundedCornerShape(IOS_CARD_RADIUS)
                     )
                     .clickable { onPin(language) }
@@ -261,13 +258,13 @@ private fun LanguageList(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = language.endonym,
-                        color = TextWhite,
+                        color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold
                     )
                     Text(
                         text = sample,
-                        color = TextGrey,
+                        color = DesignTokens.LocalBingwaRoles.current.textSecondary,
                         fontSize = 12.sp,
                         fontStyle = FontStyle.Italic,
                         maxLines = 1,
@@ -278,14 +275,14 @@ private fun LanguageList(
                     Icon(
                         imageVector = Icons.Rounded.PushPin,
                         contentDescription = "Pinned",
-                        tint = AccentBlue,
+                        tint = DesignTokens.LocalBingwaRoles.current.brand,
                         modifier = Modifier.size(14.dp)
                     )
                 } else if (isCurrent) {
                     Icon(
                         imageVector = Icons.Rounded.CheckCircle,
                         contentDescription = "Current",
-                        tint = AccentBlue,
+                        tint = DesignTokens.LocalBingwaRoles.current.brand,
                         modifier = Modifier.size(14.dp)
                     )
                 }
@@ -305,13 +302,13 @@ private fun SegmentCell(
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier
-            .background(if (selected) AccentBlue.copy(alpha = 0.16f) else Color.Transparent)
+            .background(if (selected) DesignTokens.LocalBingwaRoles.current.brand.copy(alpha = 0.16f) else Color.Transparent)
             .clickable(onClick = onClick)
             .padding(vertical = 10.dp)
     ) {
         Text(
             text = label,
-            color = if (selected) AccentBlue else TextGrey,
+            color = if (selected) DesignTokens.LocalBingwaRoles.current.brand else DesignTokens.LocalBingwaRoles.current.textSecondary,
             fontSize = 13.sp,
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
         )

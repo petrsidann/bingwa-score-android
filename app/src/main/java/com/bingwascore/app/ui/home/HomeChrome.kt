@@ -75,8 +75,7 @@ import com.bingwascore.app.ui.components.SecondaryButton
 import com.bingwascore.app.ui.components.StatusDot
 import com.bingwascore.app.ui.glass.iosMaterial
 import com.bingwascore.app.ui.glass.LocalGlassBackdrop
-import com.bingwascore.app.ui.theme.AccentBlue
-import com.bingwascore.app.ui.theme.BgBlack
+import com.bingwascore.app.ui.theme.DesignTokens
 import com.bingwascore.app.ui.theme.FailRed
 import com.bingwascore.app.ui.theme.Hairline
 import com.bingwascore.app.ui.theme.IosMaterialFill
@@ -84,8 +83,6 @@ import com.bingwascore.app.ui.theme.Motion
 import com.bingwascore.app.ui.theme.Raised
 import com.bingwascore.app.ui.theme.TextDim
 import com.bingwascore.app.ui.theme.TextGrey
-import com.bingwascore.app.ui.theme.TextWhite
-import com.bingwascore.app.ui.theme.TickGreen
 import com.bingwascore.app.ui.theme.isPorcelain
 import com.bingwascore.app.util.rememberHaptics
 import kotlinx.coroutines.launch
@@ -124,7 +121,7 @@ fun GreetingLine(
     ) {
         Text(
             text = text,
-            color = TextWhite,
+            color = DesignTokens.LocalBingwaRoles.current.textPrimary,
             fontFamily = FontFamily.Serif,
             fontStyle = FontStyle.Italic,
             fontSize = 19.sp,
@@ -161,13 +158,13 @@ fun CreditsBubble(label: String, onClick: () -> Unit, modifier: Modifier = Modif
         Icon(
             imageVector = Icons.Rounded.Stars,
             contentDescription = null,
-            tint = AccentBlue,
+            tint = DesignTokens.LocalBingwaRoles.current.brand,
             modifier = Modifier.size(13.dp)
         )
         Spacer(modifier = Modifier.width(5.dp))
         Text(
             text = label,
-            color = TextWhite,
+            color = DesignTokens.LocalBingwaRoles.current.textPrimary,
             fontSize = 12.sp,
             fontWeight = FontWeight.Bold
         )
@@ -204,8 +201,8 @@ fun ThemeToggle(
         modifier = modifier
             .size(pillWidth)
             .clip(shape)
-            .background(if (isPorcelain) AccentBlue.copy(alpha = 0.14f) else TextWhite.copy(alpha = 0.10f))
-            .border(1.dp, if (isPorcelain) AccentBlue.copy(alpha = 0.45f) else Hairline, shape)
+            .background(if (isPorcelain) DesignTokens.LocalBingwaRoles.current.brand.copy(alpha = 0.14f) else DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.10f))
+            .border(1.dp, if (isPorcelain) DesignTokens.LocalBingwaRoles.current.brand.copy(alpha = 0.45f) else Hairline, shape)
             .clickable(enabled = true, onClick = { haptics.tick(); onToggle() })
     ) {
         Box(
@@ -221,7 +218,7 @@ fun ThemeToggle(
         Icon(
             imageVector = if (isPorcelain) Icons.Rounded.Brightness2 else Icons.Rounded.WbSunny,
             contentDescription = if (isPorcelain) "Switch to dark" else "Switch to light",
-            tint = TextWhite,
+            tint = DesignTokens.LocalBingwaRoles.current.textPrimary,
             modifier = Modifier
                 .size(16.dp)
                 .align(Alignment.Center)
@@ -287,20 +284,20 @@ fun CreditsSheet(
                 Icon(
                     imageVector = Icons.Rounded.Stars,
                     contentDescription = null,
-                    tint = AccentBlue,
+                    tint = DesignTokens.LocalBingwaRoles.current.brand,
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "Credits",
-                    color = TextWhite,
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                     fontSize = 19.sp,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.weight(1f))
                 Text(
                     text = "$credits earned",
-                    color = AccentBlue,
+                    color = DesignTokens.LocalBingwaRoles.current.brand,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -308,7 +305,7 @@ fun CreditsSheet(
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = "One credit for every bundle that completed.",
-                color = TextGrey,
+                color = DesignTokens.LocalBingwaRoles.current.textSecondary,
                 fontSize = 12.sp
             )
             Spacer(modifier = Modifier.height(14.dp))
@@ -316,7 +313,7 @@ fun CreditsSheet(
             if (rows.isEmpty()) {
                 Text(
                     text = "No credits yet. Your first completed bundle will land here.",
-                    color = TextDim,
+                    color = DesignTokens.LocalBingwaRoles.current.textSecondary,
                     fontSize = 13.sp,
                     modifier = Modifier.padding(vertical = 18.dp)
                 )
@@ -331,29 +328,29 @@ fun CreditsSheet(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(14.dp))
-                                .background(AccentBlue.copy(alpha = 0.10f))
+                                .background(DesignTokens.LocalBingwaRoles.current.brand.copy(alpha = 0.10f))
                                 .padding(horizontal = 12.dp, vertical = 10.dp)
                         ) {
-                            StatusDot(color = TickGreen, lit = true, size = 8.dp)
+                            StatusDot(color = DesignTokens.LocalBingwaRoles.current.success, lit = true, size = 8.dp)
                             Spacer(modifier = Modifier.width(10.dp))
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = row.title,
-                                    color = TextWhite,
+                                    color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     maxLines = 1
                                 )
                                 Text(
                                     text = row.subtitle,
-                                    color = TextGrey,
+                                    color = DesignTokens.LocalBingwaRoles.current.textSecondary,
                                     fontSize = 11.sp,
                                     maxLines = 1
                                 )
                             }
                             Text(
                                 text = "+1",
-                                color = AccentBlue,
+                                color = DesignTokens.LocalBingwaRoles.current.brand,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -433,16 +430,16 @@ fun AutopilotPill(
             .clip(shape)
             .background(
                 when {
-                    isRunning -> AccentBlue.copy(alpha = 0.14f)
-                    isPaused -> TextDim.copy(alpha = 0.20f)
+                    isRunning -> DesignTokens.LocalBingwaRoles.current.brand.copy(alpha = 0.14f)
+                    isPaused -> DesignTokens.LocalBingwaRoles.current.textSecondary.copy(alpha = 0.20f)
                     else -> Raised
                 }
             )
             .border(
                 1.dp,
                 when {
-                    isRunning -> AccentBlue.copy(alpha = 0.45f)
-                    isPaused -> TextDim.copy(alpha = 0.5f)
+                    isRunning -> DesignTokens.LocalBingwaRoles.current.brand.copy(alpha = 0.45f)
+                    isPaused -> DesignTokens.LocalBingwaRoles.current.textSecondary.copy(alpha = 0.5f)
                     else -> Hairline
                 },
                 shape
@@ -485,6 +482,7 @@ fun AutopilotPill(
             }
             .padding(horizontal = 12.dp, vertical = 8.dp)
     ) {
+        val roles = DesignTokens.LocalBingwaRoles.current
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier.size(22.dp)
@@ -493,9 +491,9 @@ fun AutopilotPill(
                 imageVector = Icons.Rounded.Radar,
                 contentDescription = null,
                 tint = when {
-                    isRunning -> AccentBlue
-                    isPaused -> TextGrey
-                    else -> TextDim
+                    isRunning -> roles.brand
+                    isPaused -> roles.textSecondary
+                    else -> roles.textSecondary
                 },
                 modifier = Modifier.size(15.dp)
             )
@@ -503,7 +501,7 @@ fun AutopilotPill(
             if (ringProgress > 0f) {
                 Canvas(modifier = Modifier.size(22.dp)) {
                     drawArc(
-                        color = AccentBlue,
+                        color = roles.brand,
                         startAngle = -90f,
                         sweepAngle = 360f * ringProgress,
                         useCenter = false,
@@ -522,7 +520,7 @@ fun AutopilotPill(
                 com.bingwascore.app.domain.EngineState.PAUSED -> "Autopilot · Paused"
                 com.bingwascore.app.domain.EngineState.STOPPED -> "Autopilot · Stopped"
             },
-            color = if (isStopped) TextGrey else TextWhite,
+            color = if (isStopped) DesignTokens.LocalBingwaRoles.current.textSecondary else DesignTokens.LocalBingwaRoles.current.textPrimary,
             fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold
         )
@@ -557,13 +555,13 @@ fun AutopilotSheet(
                 Icon(
                     imageVector = Icons.Rounded.Radar,
                     contentDescription = null,
-                    tint = if (engineState == com.bingwascore.app.domain.EngineState.RUNNING) AccentBlue else TextDim,
+                    tint = if (engineState == com.bingwascore.app.domain.EngineState.RUNNING) DesignTokens.LocalBingwaRoles.current.brand else DesignTokens.LocalBingwaRoles.current.textSecondary,
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "Autopilot",
-                    color = TextWhite,
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                     fontSize = 19.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -575,8 +573,8 @@ fun AutopilotSheet(
                         com.bingwascore.app.domain.EngineState.STOPPED -> "Stopped"
                     },
                     color = when (engineState) {
-                        com.bingwascore.app.domain.EngineState.RUNNING -> AccentBlue
-                        com.bingwascore.app.domain.EngineState.PAUSED -> TextGrey
+                        com.bingwascore.app.domain.EngineState.RUNNING -> DesignTokens.LocalBingwaRoles.current.brand
+                        com.bingwascore.app.domain.EngineState.PAUSED -> DesignTokens.LocalBingwaRoles.current.textSecondary
                         com.bingwascore.app.domain.EngineState.STOPPED -> FailRed
                     },
                     fontSize = 13.sp,
@@ -587,7 +585,7 @@ fun AutopilotSheet(
             Text(
                 text = "Autopilot watches every incoming M-Pesa payment, matches it to an " +
                     "offer and dials the bundle without you touching the phone.",
-                color = TextGrey,
+                color = DesignTokens.LocalBingwaRoles.current.textSecondary,
                 fontSize = 13.sp
             )
             Spacer(modifier = Modifier.height(16.dp))
@@ -611,7 +609,7 @@ fun AutopilotSheet(
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = "Hold for 600ms to stop Autopilot completely.",
-                        color = TextDim,
+                        color = DesignTokens.LocalBingwaRoles.current.textSecondary,
                         fontSize = 11.sp
                     )
                 }
@@ -622,7 +620,7 @@ fun AutopilotSheet(
                             onResume()
                         },
                         shape = RoundedCornerShape(14.dp),
-                        color = AccentBlue,
+                        color = DesignTokens.LocalBingwaRoles.current.brand,
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Box(
@@ -654,7 +652,7 @@ fun AutopilotSheet(
                             onStart()
                         },
                         shape = RoundedCornerShape(14.dp),
-                        color = AccentBlue,
+                        color = DesignTokens.LocalBingwaRoles.current.brand,
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Box(
@@ -715,7 +713,7 @@ private fun HoldToStopButton(onArm: () -> Unit) {
         Spacer(modifier = Modifier.width(8.dp))
         Text(
             text = "Hold to stop Autopilot",
-            color = TextWhite,
+            color = DesignTokens.LocalBingwaRoles.current.textPrimary,
             fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold
         )

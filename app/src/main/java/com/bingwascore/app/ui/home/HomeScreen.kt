@@ -374,7 +374,7 @@ fun HomeScreenContent(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(DesignTokens.Color.Bg)
+            .background(DesignTokens.LocalBingwaRoles.current.bg)
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -391,19 +391,19 @@ fun HomeScreenContent(
                             .fillMaxWidth()
                             .padding(vertical = 8.dp)
                             .background(
-                                DesignTokens.Color.Brand.Primary.copy(alpha = 0.10f),
+                                DesignTokens.LocalBingwaRoles.current.brand.copy(alpha = 0.10f),
                                 shape = RoundedCornerShape(DesignTokens.Shape.RadiusMd)
                             )
                             .border(
                                 1.dp,
-                                DesignTokens.Color.Brand.Primary.copy(alpha = 0.30f),
+                                DesignTokens.LocalBingwaRoles.current.brand.copy(alpha = 0.30f),
                                 RoundedCornerShape(DesignTokens.Shape.RadiusMd)
                             )
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
                             Text(
                                 text = "Engine paused after crashes - tap to enable",
-                                color = DesignTokens.Color.Ink,
+                                color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                                 fontSize = DesignTokens.Typography.Body,
                                 fontWeight = FontWeight.SemiBold
                             )
@@ -416,7 +416,7 @@ fun HomeScreenContent(
                             ) {
                                 Text(
                                     "Enable",
-                                    color = DesignTokens.Color.Ink,
+                                    color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = DesignTokens.Typography.Caption
                                 )
@@ -454,7 +454,7 @@ fun HomeScreenContent(
                 ) {
                     Text(
                         text = state.greetingLanguage.endonym,
-                        color = DesignTokens.Color.Ink.copy(alpha = 0.6f),
+                        color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f),
                         fontSize = DesignTokens.Typography.Caption,
                         modifier = Modifier.clickable {
                             haptics.tick()
@@ -529,14 +529,14 @@ fun HomeScreenContent(
                                     "Autopilot stopped — history lives in Transactions."
                                 else -> "Nothing yet — every bundle you dial lands here."
                             },
-                            color = DesignTokens.Color.Ink.copy(alpha = 0.6f),
+                            color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f),
                             fontSize = DesignTokens.Typography.Caption,
                             modifier = Modifier.weight(1f)
                         )
                         if (state.engineState == EngineState.STOPPED) {
                             Text(
                                 "Start",
-                                color = DesignTokens.Color.Brand.Primary,
+                                color = DesignTokens.LocalBingwaRoles.current.brand,
                                 fontSize = DesignTokens.Typography.Caption,
                                 fontWeight = FontWeight.SemiBold,
                                 modifier = Modifier.clickable {
@@ -586,8 +586,8 @@ private fun HeroBar(
     val density = LocalDensity.current
     val gradient = Brush.verticalGradient(
         colors = listOf(
-            DesignTokens.Color.Brand.Primary.copy(alpha = 0.14f),
-            DesignTokens.Color.Brand.Primary.copy(alpha = 0.02f)
+            DesignTokens.LocalBingwaRoles.current.brand.copy(alpha = 0.14f),
+            DesignTokens.LocalBingwaRoles.current.brand.copy(alpha = 0.02f)
         ),
         startY = 0f,
         endY = with(density) { 120.dp.toPx() }
@@ -614,7 +614,7 @@ private fun HeroBar(
                     MoneyLine(
                         label = "Airtime used today",
                         value = if (valuesVisible) "Ksh ${money(airtimeToday)}" else MASK,
-                        valueColor = DesignTokens.Color.Ink.copy(alpha = 0.7f)
+                        valueColor = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.7f)
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                     // E1 — NEVER a fake number: null balance shows unavailable + link.
@@ -638,7 +638,7 @@ private fun HeroBar(
                             MoneyLine(label = "Current balance", value = "Unavailable")
                             Text(
                                 "run Diagnostics",
-                                color = DesignTokens.Color.Brand.Primary,
+                                color = DesignTokens.LocalBingwaRoles.current.brand,
                                 fontSize = DesignTokens.Typography.Caption,
                                 fontWeight = FontWeight.SemiBold,
                                 modifier = Modifier.clickable(onClick = onOpenDiagnostics)
@@ -647,7 +647,7 @@ private fun HeroBar(
                             MoneyLine(
                                 label = "Current balance",
                                 value = if (valuesVisible) "Ksh ${money(balance ?: 0.0)}" else MASK,
-                                valueColor = DesignTokens.Color.Ink,
+                                valueColor = DesignTokens.LocalBingwaRoles.current.textPrimary,
                                 valueSize = DesignTokens.Typography.Display,
                                 valueWeight = FontWeight.Bold
                             )
@@ -668,7 +668,7 @@ private fun HeroBar(
                         imageVector = if (valuesVisible) Icons.Rounded.VisibilityOff
                         else Icons.Rounded.Visibility,
                         contentDescription = if (valuesVisible) "Hide amounts" else "Show amounts",
-                        tint = DesignTokens.Color.Ink.copy(alpha = 0.6f),
+                        tint = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f),
                         modifier = Modifier.size(19.dp)
                     )
                 }
@@ -691,13 +691,13 @@ private fun StatsRow(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        StatCard(completed, "Done", DesignTokens.Color.Brand.Success, Modifier.weight(1f)) {
+        StatCard(completed, "Done", DesignTokens.LocalBingwaRoles.current.success, Modifier.weight(1f)) {
             onOpenTransactions("SUCCESSFUL")
         }
-        StatCard(failed, "Failed", DesignTokens.Color.Brand.Error, Modifier.weight(1f)) {
+        StatCard(failed, "Failed", DesignTokens.LocalBingwaRoles.current.error, Modifier.weight(1f)) {
             onOpenTransactions("FAILED")
         }
-        StatCard(pending, "Queued", DesignTokens.Color.Ink.copy(alpha = 0.45f), Modifier.weight(1f)) {
+        StatCard(pending, "Queued", DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.45f), Modifier.weight(1f)) {
             onOpenTransactions("PENDING")
         }
     }
@@ -759,14 +759,14 @@ private fun StatCard(
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
                     "$value",
-                    color = DesignTokens.Color.Ink,
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                     fontSize = DesignTokens.Typography.Subhead,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1
                 )
             }
             Spacer(modifier = Modifier.height(1.dp))
-            Text(label, color = DesignTokens.Color.Ink.copy(alpha = 0.5f), fontSize = DesignTokens.Typography.Caption, maxLines = 1)
+            Text(label, color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.5f), fontSize = DesignTokens.Typography.Caption, maxLines = 1)
         }
     }
 }
@@ -780,14 +780,14 @@ private fun PermissionCard(onGrant: () -> Unit) {
         Column {
             Text(
                 "Phone permission needed",
-                color = DesignTokens.Color.Ink,
+                color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.SemiBold
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
                 "Grant call and phone access so dial and balance can work. Tap to grant.",
-                color = DesignTokens.Color.Ink.copy(alpha = 0.6f),
+                color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f),
                 fontSize = 12.sp
             )
         }
@@ -804,9 +804,9 @@ private fun SectionHeader(title: String, trailing: String) {
             .padding(top = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(title, color = DesignTokens.Color.Ink, fontSize = DesignTokens.Typography.Subhead, fontWeight = FontWeight.Bold)
+        Text(title, color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = DesignTokens.Typography.Subhead, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.width(8.dp))
-        Text(trailing, color = DesignTokens.Color.Ink.copy(alpha = 0.5f), fontSize = DesignTokens.Typography.Caption)
+        Text(trailing, color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.5f), fontSize = DesignTokens.Typography.Caption)
     }
 }
 
@@ -815,7 +815,7 @@ private fun SectionHeader(title: String, trailing: String) {
 private fun MoneyLine(
     label: String,
     value: String,
-    valueColor: Color = DesignTokens.Color.Ink,
+    valueColor: Color = DesignTokens.LocalBingwaRoles.current.textPrimary,
     valueSize: TextUnit = DesignTokens.Typography.Body,
     valueWeight: FontWeight = FontWeight.Bold,
     modifier: Modifier = Modifier
@@ -826,7 +826,7 @@ private fun MoneyLine(
     ) {
         Text(
             label,
-            color = DesignTokens.Color.Ink.copy(alpha = 0.6f),
+            color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f),
             fontSize = DesignTokens.Typography.Caption,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -862,15 +862,15 @@ private fun RefreshButton(loading: Boolean, onClick: () -> Unit) {
         modifier = Modifier
             .size(34.dp)
             .clip(CircleShape)
-            .background(DesignTokens.Color.Card)
-            .border(1.dp, DesignTokens.Color.Border, CircleShape)
+            .background(DesignTokens.LocalBingwaRoles.current.card)
+            .border(1.dp, DesignTokens.LocalBingwaRoles.current.border, CircleShape)
             .clickable(enabled = !loading, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         Icon(
             imageVector = Icons.Rounded.Refresh,
             contentDescription = "Refresh balance",
-            tint = if (loading) DesignTokens.Color.Brand.Primary else DesignTokens.Color.Ink.copy(alpha = 0.6f),
+            tint = if (loading) DesignTokens.LocalBingwaRoles.current.brand else DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f),
             modifier = Modifier
                 .size(18.dp)
                 .graphicsLayer { rotationZ = angle }
@@ -894,12 +894,12 @@ private fun HomeTransactionRow(
     showDivider: Boolean = false
 ) {
     val statusColor = when (tx.status) {
-        TransactionStatus.SUCCESSFUL.value -> DesignTokens.Color.Brand.Primary
+        TransactionStatus.SUCCESSFUL.value -> DesignTokens.LocalBingwaRoles.current.brand
         TransactionStatus.FAILED.value,
         TransactionStatus.FAILED_ALREADY_RECOMMENDED.value,
         TransactionStatus.UNMATCHED.value,
-        TransactionStatus.CANCELLED.value -> DesignTokens.Color.Brand.Error
-        else -> DesignTokens.Color.Ink.copy(alpha = 0.45f)
+        TransactionStatus.CANCELLED.value -> DesignTokens.LocalBingwaRoles.current.error
+        else -> DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.45f)
     }
     val showPausedBadge = engineState == EngineState.PAUSED &&
         tx.status == TransactionStatus.PENDING.value
@@ -932,7 +932,7 @@ private fun HomeTransactionRow(
                 Text(
                     // U5 — the same formatter as the Transactions list.
                     formatCustomerName(tx.customerName).ifBlank { tx.phoneNumber },
-                    color = DesignTokens.Color.Ink,
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
@@ -940,7 +940,7 @@ private fun HomeTransactionRow(
                 )
                 Text(
                     "${tx.offerName} · ${timeAgo(tx.createdAt, now)}",
-                    color = DesignTokens.Color.Ink.copy(alpha = 0.6f),
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f),
                     fontSize = 12.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -949,26 +949,26 @@ private fun HomeTransactionRow(
             if (showPausedBadge) {
                 Text(
                     "Paused",
-                    color = DesignTokens.Color.Ink.copy(alpha = 0.6f),
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f),
                     fontSize = 10.sp,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier
                         .clip(RoundedCornerShape(50))
-                        .background(DesignTokens.Color.Ink.copy(alpha = 0.20f))
+                        .background(DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.20f))
                         .padding(horizontal = 7.dp, vertical = 3.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
             }
             Text(
                 "Ksh ${money(tx.amount)}",
-                color = DesignTokens.Color.Ink,
+                color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold
             )
         }
         if (showDivider) {
             Spacer(modifier = Modifier.height(4.dp))
-            Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(DesignTokens.Color.Border))
+            Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(DesignTokens.LocalBingwaRoles.current.border))
         }
     }
 }

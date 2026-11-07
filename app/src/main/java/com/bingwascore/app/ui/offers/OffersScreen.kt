@@ -48,6 +48,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import com.bingwascore.app.ui.components.GlassBottomSheet
 import com.bingwascore.app.ui.components.GlassDialog
+import com.bingwascore.app.ui.components.BubbleCard
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -71,7 +72,6 @@ import com.bingwascore.app.data.preferences.OfferTransitionRule
 import com.bingwascore.app.domain.BatchDialPlanner
 import com.bingwascore.app.domain.TransactionStatus
 import com.bingwascore.app.ui.components.EmptyState
-import com.bingwascore.app.ui.components.BubbleCard
 import com.bingwascore.app.ui.components.PrimaryButton
 import com.bingwascore.app.ui.components.HapticSwitch
 import com.bingwascore.app.ui.components.ShimmerBlock
@@ -80,20 +80,10 @@ import com.bingwascore.app.ui.components.rememberAction
 import com.bingwascore.app.util.Haptics
 import com.bingwascore.app.util.rememberHaptics
 import com.bingwascore.app.util.screenEnter
-import com.bingwascore.app.ui.theme.Hairline
-import com.bingwascore.app.ui.theme.Raised
-import com.bingwascore.app.ui.theme.Bubble
-import com.bingwascore.app.ui.theme.AccentBlue
-import com.bingwascore.app.ui.theme.TickGreen
+import com.bingwascore.app.ui.theme.DesignTokens
+import com.bingwascore.app.ui.theme.Motion
 import com.bingwascore.app.ui.theme.OfferTags
 import com.bingwascore.app.ui.theme.accentBrush
-import com.bingwascore.app.ui.theme.FailRed
-import com.bingwascore.app.ui.theme.Motion
-import com.bingwascore.app.ui.theme.BgBlack
-import com.bingwascore.app.ui.theme.TextDim
-import com.bingwascore.app.ui.theme.TextGrey
-import com.bingwascore.app.ui.theme.TextFaint
-import com.bingwascore.app.ui.theme.TextWhite
 import java.util.Locale
 
 /** Statuses a fallback dial rule can trigger on. */
@@ -308,13 +298,13 @@ fun OffersScreen(viewModel: OffersViewModel = hiltViewModel()) {
             Column {
                 Text(
                     "These offers are not marked SILENT, so the Ghost Queue will dial them one after the other:",
-                    color = TextWhite.copy(alpha = 0.6f),
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f),
                     fontSize = 12.sp
                 )
                 Spacer(modifier = Modifier.height(10.dp))
                 Text(
                     BatchDialPlanner.confirmationMessage(targets),
-                    color = TextWhite,
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                     fontSize = 13.sp
                 )
             }
@@ -377,7 +367,7 @@ fun OffersScreenContent(
         modifier = Modifier
             .fillMaxSize()
             .screenEnter()
-            .background(BgBlack)
+            .background(DesignTokens.LocalBingwaRoles.current.bg)
     ) {
         // REBRAND R1 — flat black stage; the offer cards are bubbles, so there
         // is no ambient art left to refract behind them.
@@ -388,11 +378,11 @@ fun OffersScreenContent(
                     .fillMaxWidth()
                     .padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 6.dp)
             ) {
-                Text("Offers", color = TextWhite, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                Text("Offers", color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 22.sp, fontWeight = FontWeight.Bold)
                 Text(
                     if (state.selectionMode) "${selectedOffers.size} selected"
                     else "${offers.size} offer(s)",
-                    color = TextWhite.copy(alpha = 0.5f),
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.5f),
                     fontSize = 12.sp
                 )
             }
@@ -556,13 +546,13 @@ private fun OfferCard(
             Icon(
                 imageVector = categoryIcon(offerCategoryOf(offer)),
                 contentDescription = offer.type,
-                tint = if (offer.isActive) AccentBlue else TextDim,
+                tint = if (offer.isActive) DesignTokens.LocalBingwaRoles.current.brand else DesignTokens.LocalBingwaRoles.current.textSecondary,
                 modifier = Modifier.size(16.dp)
             )
             Spacer(modifier = Modifier.width(6.dp))
             Text(
                 offer.name,
-                color = if (offer.isActive) TextWhite else TextGrey,
+                color = if (offer.isActive) DesignTokens.LocalBingwaRoles.current.textPrimary else DesignTokens.LocalBingwaRoles.current.textSecondary,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 2,
@@ -573,7 +563,7 @@ private fun OfferCard(
                 Icon(
                     imageVector = Icons.Rounded.Verified,
                     contentDescription = "Verified",
-                    tint = TickGreen,
+                    tint = DesignTokens.LocalBingwaRoles.current.success,
                     modifier = Modifier.size(14.dp)
                 )
             }
@@ -593,12 +583,12 @@ private fun OfferCard(
                     onCheckedChange = { onToggle() },
                     modifier = Modifier.scale(0.82f),
                     colors = SwitchDefaults.colors(
-                        checkedThumbColor = BgBlack,
-                        checkedTrackColor = AccentBlue,
-                        checkedBorderColor = AccentBlue,
-                        uncheckedThumbColor = TextWhite.copy(alpha = 0.7f),
-                        uncheckedTrackColor = Raised,
-                        uncheckedBorderColor = Hairline
+                        checkedThumbColor = DesignTokens.LocalBingwaRoles.current.bg,
+                        checkedTrackColor = DesignTokens.LocalBingwaRoles.current.brand,
+                        checkedBorderColor = DesignTokens.LocalBingwaRoles.current.brand,
+                        uncheckedThumbColor = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.7f),
+                        uncheckedTrackColor = DesignTokens.LocalBingwaRoles.current.elevated,
+                        uncheckedBorderColor = DesignTokens.LocalBingwaRoles.current.border
                     )
                 )
                 Box(
@@ -611,7 +601,7 @@ private fun OfferCard(
                     Icon(
                         imageVector = Icons.Rounded.Tune,
                         contentDescription = "Offer actions",
-                        tint = TextWhite.copy(alpha = 0.6f),
+                        tint = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f),
                         modifier = Modifier.size(17.dp)
                     )
                 }
@@ -648,7 +638,7 @@ private fun CategoryChips(
                 modifier = Modifier
                     .pressScale(interactionSource)
                     .clip(shape)
-                    .background(if (isSelected) AccentBlue else Bubble)
+                    .background(if (isSelected) DesignTokens.LocalBingwaRoles.current.brand else DesignTokens.LocalBingwaRoles.current.card)
                     .clickable(
                         interactionSource = interactionSource,
                         indication = null,
@@ -658,14 +648,14 @@ private fun CategoryChips(
             ) {
                 Text(
                     category.label,
-                    color = if (isSelected) TextWhite else TextGrey,
+                    color = if (isSelected) DesignTokens.LocalBingwaRoles.current.textPrimary else DesignTokens.LocalBingwaRoles.current.textSecondary,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold
                 )
                 Spacer(modifier = Modifier.width(5.dp))
                 Text(
                     "$count",
-                    color = if (isSelected) TextWhite.copy(alpha = 0.7f) else TextDim,
+                    color = if (isSelected) DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.7f) else DesignTokens.LocalBingwaRoles.current.textSecondary,
                     fontSize = 11.sp
                 )
             }
@@ -696,12 +686,12 @@ private fun TagOptionChip(label: String, selected: Boolean, onClick: () -> Unit)
     } else {
         Modifier
             .clip(shape)
-            .background(Bubble)
-            .border(1.dp, Hairline, shape)
+            .background(DesignTokens.LocalBingwaRoles.current.card)
+            .border(1.dp, DesignTokens.LocalBingwaRoles.current.border, shape)
     }
     Text(
         label,
-        color = if (selected) BgBlack else TextWhite.copy(alpha = 0.75f),
+        color = if (selected) DesignTokens.LocalBingwaRoles.current.bg else DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.75f),
         fontSize = 11.sp,
         fontWeight = FontWeight.SemiBold,
         modifier = base.clickable(onClick = onClick).padding(horizontal = 10.dp, vertical = 8.dp)
@@ -713,13 +703,13 @@ private fun TagChip(tag: String) {
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(12.dp))
-            .background(Bubble)
-            .border(1.dp, Hairline, RoundedCornerShape(12.dp))
+            .background(DesignTokens.LocalBingwaRoles.current.card)
+            .border(1.dp, DesignTokens.LocalBingwaRoles.current.border, RoundedCornerShape(12.dp))
             .padding(horizontal = 10.dp, vertical = 5.dp)
     ) {
         Text(
             tag,
-            color = TextWhite.copy(alpha = 0.8f),
+            color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.8f),
             fontSize = 10.sp,
             fontWeight = FontWeight.Bold
         )
@@ -736,7 +726,7 @@ private fun PriceChip(price: Int) {
     ) {
         Text(
             "Ksh $price",
-            color = BgBlack,
+            color = DesignTokens.LocalBingwaRoles.current.bg,
             fontSize = 12.sp,
             fontWeight = FontWeight.Bold
         )
@@ -766,7 +756,7 @@ private fun AddOfferFab(modifier: Modifier = Modifier, onClick: () -> Unit) {
         Icon(
             imageVector = Icons.Rounded.Add,
             contentDescription = "Add offer",
-            tint = BgBlack,
+            tint = DesignTokens.LocalBingwaRoles.current.bg,
             modifier = Modifier.size(26.dp)
         )
     }
@@ -785,10 +775,10 @@ private fun AddOfferSheet(onDismiss: () -> Unit, onAdd: (name: String, price: In
                 .padding(horizontal = 24.dp)
                 .padding(bottom = 28.dp)
         ) {
-            Text("Add offer", color = TextWhite, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Text("Add offer", color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             Text(
                 "A bundle customers can buy from you",
-                color = TextWhite.copy(alpha = 0.5f),
+                color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.5f),
                 fontSize = 12.sp
             )
             Spacer(modifier = Modifier.height(16.dp))
@@ -807,7 +797,7 @@ private fun AddOfferSheet(onDismiss: () -> Unit, onAdd: (name: String, price: In
             )
             Text(
                 "Use \"ph\" where the customer number goes — the dialer swaps it in automatically.",
-                color = TextFaint,
+                color = DesignTokens.LocalBingwaRoles.current.textSecondary,
                 fontSize = 11.sp
             )
             Spacer(modifier = Modifier.height(18.dp))
@@ -830,15 +820,15 @@ private fun SheetTextField(
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
-        Text(label, color = TextWhite.copy(alpha = 0.55f), fontSize = 11.sp)
+        Text(label, color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.55f), fontSize = 11.sp)
         Spacer(modifier = Modifier.height(6.dp))
         val shape = RoundedCornerShape(14.dp)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(shape)
-                .background(Bubble)
-                .border(1.dp, Hairline, shape)
+                .background(DesignTokens.LocalBingwaRoles.current.card)
+                .border(1.dp, DesignTokens.LocalBingwaRoles.current.border, shape)
                 .padding(horizontal = 14.dp, vertical = 12.dp)
         ) {
             Box {
@@ -846,14 +836,14 @@ private fun SheetTextField(
                     value = value,
                     onValueChange = onValueChange,
                     singleLine = true,
-                    textStyle = TextStyle(color = TextWhite, fontSize = 14.sp),
-                    cursorBrush = SolidColor(AccentBlue),
+                    textStyle = TextStyle(color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 14.sp),
+                    cursorBrush = SolidColor(DesignTokens.LocalBingwaRoles.current.brand),
                     modifier = Modifier.fillMaxWidth()
                 )
                 if (value.isEmpty() && placeholder.isNotEmpty()) {
                     Text(
                         placeholder,
-                        color = TextFaint,
+                        color = DesignTokens.LocalBingwaRoles.current.textSecondary,
                         fontSize = 14.sp
                     )
                 }
@@ -873,7 +863,7 @@ private fun SwitchRow(label: String, checked: Boolean, onCheckedChange: (Boolean
     ) {
         Text(
             label,
-            color = TextWhite,
+            color = DesignTokens.LocalBingwaRoles.current.textPrimary,
             fontSize = 14.sp,
             modifier = Modifier.weight(1f)
         )
@@ -881,12 +871,12 @@ private fun SwitchRow(label: String, checked: Boolean, onCheckedChange: (Boolean
             checked = checked,
             onCheckedChange = onCheckedChange,
             colors = SwitchDefaults.colors(
-                checkedThumbColor = BgBlack,
-                checkedTrackColor = AccentBlue,
-                checkedBorderColor = AccentBlue,
-                uncheckedThumbColor = TextWhite.copy(alpha = 0.7f),
-                uncheckedTrackColor = Raised,
-                uncheckedBorderColor = Hairline
+                checkedThumbColor = DesignTokens.LocalBingwaRoles.current.bg,
+                checkedTrackColor = DesignTokens.LocalBingwaRoles.current.brand,
+                checkedBorderColor = DesignTokens.LocalBingwaRoles.current.brand,
+                uncheckedThumbColor = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.7f),
+                uncheckedTrackColor = DesignTokens.LocalBingwaRoles.current.elevated,
+                uncheckedBorderColor = DesignTokens.LocalBingwaRoles.current.border
             )
         )
     }
@@ -941,12 +931,12 @@ private fun OfferSettingsSheet(
                 .padding(horizontal = 24.dp)
                 .padding(bottom = 28.dp)
         ) {
-            Text("Offer settings", color = TextWhite, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-            Text(offer.name, color = TextWhite.copy(alpha = 0.5f), fontSize = 12.sp)
+            Text("Offer settings", color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Text(offer.name, color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.5f), fontSize = 12.sp)
             Spacer(modifier = Modifier.height(14.dp))
 
             // MEGA A — type bucket chips (Airtime / Data / SMS / Combo).
-            Text("Type", color = TextWhite.copy(alpha = 0.55f), fontSize = 11.sp)
+            Text("Type", color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.55f), fontSize = 11.sp)
             Spacer(modifier = Modifier.height(6.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Offer.TYPES.forEach { option ->
@@ -964,7 +954,7 @@ private fun OfferSettingsSheet(
             SwitchRow("Strict mode", strictMode) { strictMode = it }
             Text(
                 "Never resell this bundle once Safaricom says the customer was already recommended it.",
-                color = TextFaint,
+                color = DesignTokens.LocalBingwaRoles.current.textSecondary,
                 fontSize = 11.sp
             )
             Spacer(modifier = Modifier.height(8.dp))
@@ -972,7 +962,7 @@ private fun OfferSettingsSheet(
             SwitchRow("Retry network problems", retryConnectionProblems) { retryConnectionProblems = it }
             Text(
                 "Silent offers are queued straight away in the Ghost Queue — no per-dial confirmation.",
-                color = TextFaint,
+                color = DesignTokens.LocalBingwaRoles.current.textSecondary,
                 fontSize = 11.sp
             )
             Spacer(modifier = Modifier.height(8.dp))
@@ -1015,7 +1005,7 @@ private fun OfferSettingsSheet(
 
             // Parity D — Hybrid OfferTag bucket (OFFER_1..OFFER_4, optional).
             Spacer(modifier = Modifier.height(4.dp))
-            Text("Offer tag", color = TextWhite.copy(alpha = 0.55f), fontSize = 11.sp)
+            Text("Offer tag", color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.55f), fontSize = 11.sp)
             Spacer(modifier = Modifier.height(6.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 TagOptionChip(label = "None", selected = tag.isBlank()) { tag = "" }
@@ -1037,11 +1027,11 @@ private fun OfferSettingsSheet(
             // MEGA A — inline form feedback: a red error or a green confirmation
             // rendered above the button, so a failed save can never look saved.
             settingsState.errorMessage?.let { message ->
-                Text(message, color = FailRed, fontSize = 12.sp)
+                Text(message, color = DesignTokens.LocalBingwaRoles.current.error, fontSize = 12.sp)
                 Spacer(modifier = Modifier.height(10.dp))
             }
             settingsState.savedMessage?.let { message ->
-                Text(message, color = TickGreen, fontSize = 12.sp)
+                Text(message, color = DesignTokens.LocalBingwaRoles.current.success, fontSize = 12.sp)
                 Spacer(modifier = Modifier.height(10.dp))
             }
 
@@ -1091,20 +1081,20 @@ private fun OfferActionsSheet(
                 .padding(horizontal = 24.dp)
                 .padding(bottom = 28.dp)
         ) {
-            Text("Offer actions", color = TextWhite, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-            Text(offer.name, color = TextWhite.copy(alpha = 0.5f), fontSize = 12.sp)
+            Text("Offer actions", color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Text(offer.name, color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.5f), fontSize = 12.sp)
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
                 "Fallback rule",
-                color = TextWhite,
+                color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 "When a transaction ends in status X, dial offer Y",
-                color = TextFaint,
+                color = DesignTokens.LocalBingwaRoles.current.textSecondary,
                 fontSize = 11.sp
             )
             Spacer(modifier = Modifier.height(10.dp))
@@ -1125,7 +1115,7 @@ private fun OfferActionsSheet(
             Spacer(modifier = Modifier.height(14.dp))
             Text(
                 "Then dial offer",
-                color = TextWhite,
+                color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold
             )
@@ -1135,7 +1125,7 @@ private fun OfferActionsSheet(
             if (targets.isEmpty()) {
                 Text(
                     "No other offers available yet.",
-                    color = TextFaint,
+                    color = DesignTokens.LocalBingwaRoles.current.textSecondary,
                     fontSize = 12.sp
                 )
             } else {
@@ -1175,14 +1165,14 @@ private fun OfferActionsSheet(
             // reported here in red instead of silently overwriting the old rule.
             if (ruleError != null) {
                 Spacer(modifier = Modifier.height(10.dp))
-                Text(ruleError, color = FailRed, fontSize = 12.sp)
+                Text(ruleError, color = DesignTokens.LocalBingwaRoles.current.error, fontSize = 12.sp)
             }
 
             if (rules.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(20.dp))
                 Text(
                     "Saved rules",
-                    color = TextWhite,
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -1205,13 +1195,13 @@ private fun StatusChip(status: TransactionStatus, selected: Boolean, onClick: ()
     } else {
         Modifier
             .clip(shape)
-            .background(Bubble)
-            .border(1.dp, Hairline, shape)
+            .background(DesignTokens.LocalBingwaRoles.current.card)
+            .border(1.dp, DesignTokens.LocalBingwaRoles.current.border, shape)
     }
     Text(
         status.value.replace('_', ' ').lowercase()
             .replaceFirstChar { it.uppercase() },
-        color = if (selected) BgBlack else TextWhite.copy(alpha = 0.75f),
+        color = if (selected) DesignTokens.LocalBingwaRoles.current.bg else DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.75f),
         fontSize = 11.sp,
         fontWeight = FontWeight.SemiBold,
         modifier = base.clickable(onClick = onClick).padding(horizontal = 10.dp, vertical = 8.dp)
@@ -1228,21 +1218,21 @@ private fun OfferPickChip(offer: Offer, selected: Boolean, onClick: () -> Unit) 
     } else {
         Modifier
             .clip(shape)
-            .background(Bubble)
-            .border(1.dp, Hairline, shape)
+            .background(DesignTokens.LocalBingwaRoles.current.card)
+            .border(1.dp, DesignTokens.LocalBingwaRoles.current.border, shape)
     }
     Column(
         modifier = base.clickable(onClick = onClick).padding(horizontal = 12.dp, vertical = 8.dp)
     ) {
         Text(
             offer.name,
-            color = if (selected) BgBlack else TextWhite,
+            color = if (selected) DesignTokens.LocalBingwaRoles.current.bg else DesignTokens.LocalBingwaRoles.current.textPrimary,
             fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold
         )
         Text(
             "Ksh ${offer.price}",
-            color = if (selected) BgBlack.copy(alpha = 0.7f) else TextWhite.copy(alpha = 0.5f),
+            color = if (selected) DesignTokens.LocalBingwaRoles.current.bg.copy(alpha = 0.7f) else DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.5f),
             fontSize = 10.sp
         )
     }
@@ -1254,7 +1244,7 @@ private fun RuleRow(rule: OfferTransitionRule, onDelete: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(Bubble)
+            .background(DesignTokens.LocalBingwaRoles.current.card)
             .padding(horizontal = 14.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -1262,20 +1252,20 @@ private fun RuleRow(rule: OfferTransitionRule, onDelete: () -> Unit) {
             Text(
                 rule.fromStatus.replace('_', ' ').lowercase()
                     .replaceFirstChar { it.uppercase() },
-                color = FailRed,
+                color = DesignTokens.LocalBingwaRoles.current.error,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.SemiBold
             )
             Text(
                 "Dial ${rule.toOfferName}",
-                color = TextWhite,
+                color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                 fontSize = 12.sp
             )
         }
         Icon(
             imageVector = Icons.Rounded.Delete,
             contentDescription = "Delete rule",
-            tint = TextWhite.copy(alpha = 0.55f),
+            tint = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.55f),
             modifier = Modifier
                 .clip(CircleShape)
                 .clickable(onClick = onDelete)
@@ -1295,13 +1285,13 @@ private fun SilentChip() {
     Box(
         modifier = Modifier
             .clip(shape)
-            .background(AccentBlue.copy(alpha = 0.16f))
-            .border(1.dp, AccentBlue.copy(alpha = 0.55f), shape)
+            .background(DesignTokens.LocalBingwaRoles.current.brand.copy(alpha = 0.16f))
+            .border(1.dp, DesignTokens.LocalBingwaRoles.current.brand.copy(alpha = 0.55f), shape)
             .padding(horizontal = 8.dp, vertical = 5.dp)
     ) {
         Text(
             "SILENT",
-            color = AccentBlue,
+            color = DesignTokens.LocalBingwaRoles.current.brand,
             fontSize = 9.sp,
             fontWeight = FontWeight.Bold
         )
@@ -1316,15 +1306,15 @@ private fun SelectionCheckbox(checked: Boolean) {
         modifier = Modifier
             .size(24.dp)
             .clip(shape)
-            .background(if (checked) accentBrush() else SolidColor(Bubble))
-            .border(1.dp, if (checked) AccentBlue else Hairline, shape),
+            .background(if (checked) accentBrush() else SolidColor(DesignTokens.LocalBingwaRoles.current.card))
+            .border(1.dp, if (checked) DesignTokens.LocalBingwaRoles.current.brand else DesignTokens.LocalBingwaRoles.current.border, shape),
         contentAlignment = Alignment.Center
     ) {
         if (checked) {
             Icon(
                 imageVector = Icons.Rounded.Check,
                 contentDescription = "Selected",
-                tint = BgBlack,
+                tint = DesignTokens.LocalBingwaRoles.current.bg,
                 modifier = Modifier.size(16.dp)
             )
         }
@@ -1351,20 +1341,20 @@ private fun BatchDialBar(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     "$count selected — $silentCount run silently",
-                    color = TextWhite,
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(
                     "Silent offers dial straight away; the rest ask once.",
-                    color = TextWhite.copy(alpha = 0.5f),
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.5f),
                     fontSize = 10.sp
                 )
             }
             Icon(
                 imageVector = Icons.Rounded.Close,
                 contentDescription = "Cancel selection",
-                tint = TextWhite.copy(alpha = 0.6f),
+                tint = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f),
                 modifier = Modifier
                     .clip(CircleShape)
                     .clickable(onClick = onCancel)

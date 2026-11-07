@@ -60,23 +60,24 @@ fun GlassSearchBar(
     val shape = RoundedCornerShape(DesignTokens.Shape.RadiusMd)
     val glowRadius = with(LocalDensity.current) { DesignTokens.Shape.RadiusMd.toPx() }
     var focused by remember { mutableStateOf(false) }
+    val roles = DesignTokens.LocalBingwaRoles.current
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .fillMaxWidth()
             .clip(shape)
-            .background(DesignTokens.Color.Obsidian.Card.copy(alpha = 0.8f))
+            .background(roles.card.copy(alpha = 0.8f))
             .blur(12.dp)
             .border(
                 if (focused) 1.dp else 0.dp,
-                DesignTokens.Color.Brand.Primary,
+                roles.brand,
                 shape
             )
             .drawBehind {
                 if (focused) {
                     drawRoundRect(
-                        brush = SolidColor(DesignTokens.Color.Brand.Primary.copy(alpha = 0.18f)),
+                        brush = SolidColor(roles.brand.copy(alpha = 0.18f)),
                         cornerRadius = CornerRadius(glowRadius, glowRadius)
                     )
                 }
@@ -88,7 +89,7 @@ fun GlassSearchBar(
         Icon(
             imageVector = Icons.Rounded.Search,
             contentDescription = null,
-            tint = if (focused) DesignTokens.Color.Brand.Primary else DesignTokens.Color.Ink,
+            tint = if (focused) roles.brand else roles.textPrimary,
             modifier = Modifier.size(17.dp)
         )
         Spacer(modifier = Modifier.width(8.dp))
@@ -96,7 +97,7 @@ fun GlassSearchBar(
             if (query.isEmpty()) {
                 Text(
                     placeholder,
-                    color = DesignTokens.Color.Ink.copy(alpha = 0.6f),
+                    color = roles.textPrimary.copy(alpha = 0.6f),
                     fontSize = DesignTokens.Typography.Body,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -106,8 +107,8 @@ fun GlassSearchBar(
                 value = query,
                 onValueChange = onQueryChange,
                 singleLine = true,
-                textStyle = TextStyle(color = DesignTokens.Color.Ink, fontSize = 14.sp),
-                cursorBrush = SolidColor(DesignTokens.Color.Brand.Primary),
+                textStyle = TextStyle(color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 14.sp),
+                cursorBrush = SolidColor(DesignTokens.LocalBingwaRoles.current.brand),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
                 modifier = Modifier.fillMaxWidth()
             )
@@ -124,7 +125,7 @@ fun GlassSearchBar(
                 Icon(
                     imageVector = Icons.Rounded.Close,
                     contentDescription = "Clear search",
-                    tint = DesignTokens.Color.Ink.copy(alpha = 0.6f),
+                    tint = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f),
                     modifier = Modifier.size(18.dp)
                 )
             }

@@ -106,9 +106,9 @@ fun PremiumToast(data: ToastData, onDismiss: () -> Unit) {
     )
 
     val (icon, tint) = when (data.type) {
-        ToastType.Success -> Icons.Rounded.CheckCircle to DesignTokens.Color.Brand.Success
-        ToastType.Error -> Icons.Rounded.ErrorOutline to DesignTokens.Color.Brand.Error
-        ToastType.Info -> Icons.Rounded.Info to DesignTokens.Color.Brand.Primary
+        ToastType.Success -> Icons.Rounded.CheckCircle to DesignTokens.LocalBingwaRoles.current.success
+        ToastType.Error -> Icons.Rounded.ErrorOutline to DesignTokens.LocalBingwaRoles.current.error
+        ToastType.Info -> Icons.Rounded.Info to DesignTokens.LocalBingwaRoles.current.brand
     }
 
     Box(

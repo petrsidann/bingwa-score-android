@@ -98,7 +98,7 @@ fun CustomersScreen(viewModel: CustomersViewModel = hiltViewModel()) {
         modifier = Modifier
             .fillMaxSize()
             .screenEnter()
-            .background(DesignTokens.Color.Bg)
+            .background(DesignTokens.LocalBingwaRoles.current.bg)
     ) {
         Column(
             modifier = Modifier
@@ -107,13 +107,13 @@ fun CustomersScreen(viewModel: CustomersViewModel = hiltViewModel()) {
         ) {
             Text(
                 "Customers",
-                color = DesignTokens.Color.Ink,
+                color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                 fontSize = DesignTokens.Typography.Headline,
                 fontWeight = FontWeight.Bold
             )
             Text(
                 "${customers.size} customer(s)",
-                color = DesignTokens.Color.Ink.copy(alpha = 0.6f),
+                color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f),
                 fontSize = DesignTokens.Typography.Caption
             )
             Spacer(modifier = Modifier.height(14.dp))
@@ -182,20 +182,20 @@ private fun CustomerEmptyState() {
             Icon(
                 imageVector = Icons.Rounded.People,
                 contentDescription = null,
-                tint = DesignTokens.Color.Brand.Primary.copy(alpha = 0.2f),
+                tint = DesignTokens.LocalBingwaRoles.current.brand.copy(alpha = 0.2f),
                 modifier = Modifier.size(48.dp)
             )
             Spacer(modifier = Modifier.height(12.dp))
             Text(
                 "No customers yet",
-                color = DesignTokens.Color.Ink,
+                color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                 fontSize = DesignTokens.Typography.Body,
                 fontWeight = FontWeight.SemiBold
             )
             Spacer(modifier = Modifier.height(6.dp))
             Text(
                 "Customers save themselves here every time a bundle completes.",
-                color = DesignTokens.Color.Ink.copy(alpha = 0.6f),
+                color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f),
                 fontSize = DesignTokens.Typography.Caption
             )
         }
@@ -204,9 +204,9 @@ private fun CustomerEmptyState() {
 
 @Composable
 private fun BlacklistFilterChip(active: Boolean, onToggle: () -> Unit) {
-    val bg = if (active) DesignTokens.Color.Brand.Error else Color.Transparent
-    val border = if (active) DesignTokens.Color.Brand.Error else DesignTokens.Color.Border
-    val ink = DesignTokens.Color.Ink
+    val bg = if (active) DesignTokens.LocalBingwaRoles.current.error else Color.Transparent
+    val border = if (active) DesignTokens.LocalBingwaRoles.current.error else DesignTokens.LocalBingwaRoles.current.border
+    val ink = DesignTokens.LocalBingwaRoles.current.textPrimary
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
@@ -252,13 +252,13 @@ private fun CustomerRow(
     )
 
     val ringBrush: Brush = if (isBlocked) {
-        SolidColor(DesignTokens.Color.Brand.Error)
+        SolidColor(DesignTokens.LocalBingwaRoles.current.error)
     } else {
         Brush.linearGradient(
-            colors = listOf(DesignTokens.Color.Brand.Primary, DesignTokens.Color.Brand.DimAccent)
+            colors = listOf(DesignTokens.LocalBingwaRoles.current.brand, DesignTokens.LocalBingwaRoles.current.brand)
         )
     }
-    val badgeColor = if (isBlocked) DesignTokens.Color.Brand.Error else DesignTokens.Color.Brand.Success
+    val badgeColor = if (isBlocked) DesignTokens.LocalBingwaRoles.current.error else DesignTokens.LocalBingwaRoles.current.success
 
     GlassCard(
         modifier = Modifier
@@ -284,12 +284,12 @@ private fun CustomerRow(
                     modifier = Modifier
                         .size(30.dp)
                         .clip(CircleShape)
-                        .background(DesignTokens.Color.Card),
+                        .background(DesignTokens.LocalBingwaRoles.current.card),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         initialsOf(customer.name ?: customer.phoneNumber),
-                        color = DesignTokens.Color.Ink,
+                        color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                         fontSize = DesignTokens.Typography.Body,
                         fontWeight = FontWeight.Bold
                     )
@@ -299,7 +299,7 @@ private fun CustomerRow(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     customer.name?.let { formatCustomerName(it) } ?: customer.phoneNumber,
-                    color = DesignTokens.Color.Ink,
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                     fontSize = DesignTokens.Typography.Body,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1
@@ -307,7 +307,7 @@ private fun CustomerRow(
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     customer.phoneNumber,
-                    color = DesignTokens.Color.Ink.copy(alpha = 0.7f),
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.7f),
                     fontSize = DesignTokens.Typography.Caption
                 )
             }
@@ -326,7 +326,7 @@ private fun CustomerRow(
             ) {
                 Text(
                     if (isBlocked) "Blocked" else "Active",
-                    color = DesignTokens.Color.Ink,
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                     fontSize = DesignTokens.Typography.Caption,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -368,12 +368,12 @@ private fun CustomerDetailSheet(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(CircleShape)
-                    .background(DesignTokens.Color.Brand.Primary.copy(alpha = 0.12f)),
+                    .background(DesignTokens.LocalBingwaRoles.current.brand.copy(alpha = 0.12f)),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     initialsOf(customer.name ?: customer.phoneNumber),
-                    color = DesignTokens.Color.Ink,
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                     fontSize = 17.sp,
                     fontWeight = FontWeight.ExtraBold
                 )
@@ -382,16 +382,16 @@ private fun CustomerDetailSheet(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     customer.name?.let { formatCustomerName(it) } ?: customer.phoneNumber,
-                    color = DesignTokens.Color.Ink,
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
                 )
-                Text(customer.phoneNumber, color = DesignTokens.Color.Ink.copy(alpha = 0.5f), fontSize = 12.sp)
+                Text(customer.phoneNumber, color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.5f), fontSize = 12.sp)
             }
             Icon(
                 Icons.Rounded.Close,
                 contentDescription = "Close",
-                tint = DesignTokens.Color.Ink.copy(alpha = 0.5f),
+                tint = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.5f),
                 modifier = Modifier.size(22.dp).clickable { onClose() }
             )
         }
@@ -401,7 +401,7 @@ private fun CustomerDetailSheet(
         if (stats == null || stats.txCount == 0) {
             Text(
                 "No completed purchases recorded yet.",
-                color = DesignTokens.Color.Ink.copy(alpha = 0.6f),
+                color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f),
                 fontSize = 13.sp,
                 modifier = Modifier.padding(vertical = 12.dp)
             )
@@ -428,7 +428,7 @@ private fun CustomerDetailSheet(
 
             if (stats.lastFive.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(18.dp))
-                Text("Recent purchases", color = DesignTokens.Color.Ink.copy(alpha = 0.6f), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                Text("Recent purchases", color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
                 Spacer(modifier = Modifier.height(8.dp))
                 stats.lastFive.forEach { sale ->
                     Row(
@@ -438,16 +438,16 @@ private fun CustomerDetailSheet(
                             .padding(vertical = 5.dp)
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(sale.offerName, color = DesignTokens.Color.Ink, fontSize = 13.sp, maxLines = 1)
+                            Text(sale.offerName, color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 13.sp, maxLines = 1)
                             Text(
                                 dateFmt.format(Date(sale.at)),
-                                color = DesignTokens.Color.Ink.copy(alpha = 0.5f),
+                                color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.5f),
                                 fontSize = 11.sp
                             )
                         }
                         Text(
                             "Ksh ${formatAmount(sale.amount)}",
-                            color = DesignTokens.Color.Ink.copy(alpha = 0.8f),
+                            color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.8f),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
                             modifier = Modifier.weight(1f)
@@ -463,7 +463,7 @@ private fun CustomerDetailSheet(
             ActionPill(
                 label = "Contact",
                 icon = Icons.Rounded.Call,
-                tint = DesignTokens.Color.Brand.Primary,
+                tint = DesignTokens.LocalBingwaRoles.current.brand,
                 modifier = Modifier.weight(1f),
                 onClick = { showContacts = true }
             )
@@ -473,10 +473,10 @@ private fun CustomerDetailSheet(
                 modifier = Modifier
                     .weight(1f)
                     .clip(RoundedCornerShape(14.dp))
-                    .background(if (customer.isBlacklisted) DesignTokens.Color.Brand.Error.copy(alpha = 0.14f) else DesignTokens.Color.Card.copy(alpha = 0.08f))
+                    .background(if (customer.isBlacklisted) DesignTokens.LocalBingwaRoles.current.error.copy(alpha = 0.14f) else DesignTokens.LocalBingwaRoles.current.card.copy(alpha = 0.08f))
                     .border(
                         1.dp,
-                        if (customer.isBlacklisted) DesignTokens.Color.Brand.Error.copy(alpha = 0.5f) else DesignTokens.Color.Border,
+                        if (customer.isBlacklisted) DesignTokens.LocalBingwaRoles.current.error.copy(alpha = 0.5f) else DesignTokens.LocalBingwaRoles.current.border,
                         RoundedCornerShape(14.dp)
                     )
                     .clickable { confirmBlacklist = true }
@@ -485,13 +485,13 @@ private fun CustomerDetailSheet(
                 Icon(
                     Icons.Rounded.Block,
                     contentDescription = null,
-                    tint = if (customer.isBlacklisted) DesignTokens.Color.Brand.Error else DesignTokens.Color.Ink.copy(alpha = 0.7f),
+                    tint = if (customer.isBlacklisted) DesignTokens.LocalBingwaRoles.current.error else DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.7f),
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     if (customer.isBlacklisted) "Unblock" else "Blacklist",
-                    color = if (customer.isBlacklisted) DesignTokens.Color.Brand.Error else DesignTokens.Color.Ink,
+                    color = if (customer.isBlacklisted) DesignTokens.LocalBingwaRoles.current.error else DesignTokens.LocalBingwaRoles.current.textPrimary,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.weight(1f)
@@ -515,7 +515,7 @@ private fun CustomerDetailSheet(
                     } else {
                         "They will return to your normal customer list."
                     },
-                    color = DesignTokens.Color.Ink.copy(alpha = 0.7f)
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.7f)
                 )
             },
             dismissLabel = "Cancel",
@@ -538,20 +538,20 @@ private fun CustomerDetailSheet(
                     .padding(horizontal = 20.dp)
                     .padding(top = 18.dp, bottom = 12.dp)
             ) {
-                Text("Contact", color = DesignTokens.Color.Ink, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Text("Contact", color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 Text(
                     customer.phoneNumber,
-                    color = DesignTokens.Color.Ink.copy(alpha = 0.5f),
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.5f),
                     fontSize = 12.sp
                 )
                 Spacer(modifier = Modifier.height(14.dp))
-                ContactRow("WhatsApp", Icons.Rounded.Message, DesignTokens.Color.Brand.Primary) {
+                ContactRow("WhatsApp", Icons.Rounded.Message, DesignTokens.LocalBingwaRoles.current.brand) {
                     openUri(context, CustomerBook.whatsappUri(customer.phoneNumber))
                 }
-                ContactRow("Phone call", Icons.Rounded.Call, DesignTokens.Color.Brand.Primary) {
+                ContactRow("Phone call", Icons.Rounded.Call, DesignTokens.LocalBingwaRoles.current.brand) {
                     openUri(context, CustomerBook.dialUri(customer.phoneNumber))
                 }
-                ContactRow("SMS", Icons.Rounded.Message, DesignTokens.Color.Brand.Primary) {
+                ContactRow("SMS", Icons.Rounded.Message, DesignTokens.LocalBingwaRoles.current.brand) {
                     openUri(context, CustomerBook.smsUri(customer.phoneNumber))
                 }
                 Spacer(modifier = Modifier.navigationBarsPadding().height(8.dp))
@@ -564,14 +564,14 @@ private fun StatTile(label: String, value: String, modifier: Modifier = Modifier
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(14.dp))
-            .background(DesignTokens.Color.Card.copy(alpha = 0.06f))
+            .background(DesignTokens.LocalBingwaRoles.current.card.copy(alpha = 0.06f))
             .padding(horizontal = 12.dp, vertical = 10.dp)
     ) {
-        Text(label, color = DesignTokens.Color.Ink.copy(alpha = 0.5f), fontSize = 10.sp)
+        Text(label, color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.5f), fontSize = 10.sp)
         Spacer(modifier = Modifier.height(3.dp))
         Text(
             value,
-            color = DesignTokens.Color.Ink,
+            color = DesignTokens.LocalBingwaRoles.current.textPrimary,
             fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold,
             maxLines = 1
@@ -591,14 +591,14 @@ private fun ActionPill(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .clip(RoundedCornerShape(14.dp))
-            .background(DesignTokens.Color.Card.copy(alpha = 0.06f))
-            .border(1.dp, DesignTokens.Color.Border, RoundedCornerShape(14.dp))
+            .background(DesignTokens.LocalBingwaRoles.current.card.copy(alpha = 0.06f))
+            .border(1.dp, DesignTokens.LocalBingwaRoles.current.border, RoundedCornerShape(14.dp))
             .clickable { onClick() }
             .padding(horizontal = 12.dp, vertical = 10.dp)
     ) {
         Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(18.dp))
         Spacer(modifier = Modifier.width(8.dp))
-        Text(label, color = DesignTokens.Color.Ink, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+        Text(label, color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
     }
 }
 
@@ -614,7 +614,7 @@ private fun ContactRow(label: String, icon: ImageVector, tint: androidx.compose.
     ) {
         Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
         Spacer(modifier = Modifier.width(12.dp))
-        Text(label, color = DesignTokens.Color.Ink, fontSize = 15.sp, modifier = Modifier.weight(1f))
+        Text(label, color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 15.sp, modifier = Modifier.weight(1f))
     }
 }
 

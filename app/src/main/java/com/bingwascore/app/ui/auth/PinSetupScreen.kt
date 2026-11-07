@@ -92,7 +92,7 @@ fun PinSetupScreen(
         modifier = Modifier
             .fillMaxSize()
             .screenEnter()
-            .background(DesignTokens.Color.Obsidian.Bg)
+            .background(DesignTokens.LocalBingwaRoles.current.bg)
     ) {
         Column(
             modifier = Modifier
@@ -116,7 +116,7 @@ fun PinSetupScreen(
                     modifier = Modifier
                         .size(48.dp)
                         .clip(RoundedCornerShape(DesignTokens.Shape.RadiusSm))
-                        .background(DesignTokens.Color.Obsidian.Elevated)
+                        .background(DesignTokens.LocalBingwaRoles.current.elevated)
                         .clickable { onBack() },
                     contentAlignment = Alignment.Center
                 ) {
@@ -161,7 +161,7 @@ fun PinSetupScreen(
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
                             message,
-                            color = DesignTokens.Color.Brand.Error,
+                            color = DesignTokens.LocalBingwaRoles.current.error,
                             fontSize = DesignTokens.Typography.Caption,
                             fontWeight = FontWeight.Medium
                         )
@@ -179,7 +179,7 @@ fun PinSetupScreen(
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
                             message,
-                            color = DesignTokens.Color.Brand.Error,
+                            color = DesignTokens.LocalBingwaRoles.current.error,
                             fontSize = DesignTokens.Typography.Caption,
                             fontWeight = FontWeight.Medium
                         )
@@ -199,7 +199,7 @@ fun PinSetupScreen(
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
                             message,
-                            color = DesignTokens.Color.Brand.Error,
+                            color = DesignTokens.LocalBingwaRoles.current.error,
                             fontSize = DesignTokens.Typography.Caption,
                             fontWeight = FontWeight.Medium
                         )
@@ -217,7 +217,7 @@ fun PinSetupScreen(
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
                             message,
-                            color = DesignTokens.Color.Brand.Error,
+                            color = DesignTokens.LocalBingwaRoles.current.error,
                             fontSize = DesignTokens.Typography.Caption,
                             fontWeight = FontWeight.Medium
                         )
@@ -226,7 +226,7 @@ fun PinSetupScreen(
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
                             "PINs don't match",
-                            color = DesignTokens.Color.Brand.Error,
+                            color = DesignTokens.LocalBingwaRoles.current.error,
                             fontSize = DesignTokens.Typography.Caption,
                             fontWeight = FontWeight.Medium
                         )
@@ -253,7 +253,7 @@ fun PinSetupScreen(
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
                             message,
-                            color = DesignTokens.Color.Brand.Error,
+                            color = DesignTokens.LocalBingwaRoles.current.error,
                             fontSize = DesignTokens.Typography.Caption,
                             fontWeight = FontWeight.Medium
                         )
@@ -270,13 +270,13 @@ fun PinSetupScreen(
                             Icon(
                                 imageVector = Icons.Rounded.CheckCircle,
                                 contentDescription = "Success",
-                                tint = DesignTokens.Color.Brand.Success,
+                                tint = DesignTokens.LocalBingwaRoles.current.success,
                                 modifier = Modifier.size(28.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 "Account Created!",
-                                color = DesignTokens.Color.Brand.Success,
+                                color = DesignTokens.LocalBingwaRoles.current.success,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = DesignTokens.Typography.Body
                             )
@@ -350,8 +350,8 @@ private fun GlassInputField(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(DesignTokens.Shape.RadiusMd))
-                .background(DesignTokens.Color.Obsidian.Card)
-                .border(1.dp, DesignTokens.Color.Obsidian.Border.copy(alpha = 0.2f), RoundedCornerShape(DesignTokens.Shape.RadiusMd))
+                .background(DesignTokens.LocalBingwaRoles.current.card)
+                .border(1.dp, DesignTokens.LocalBingwaRoles.current.border.copy(alpha = 0.2f), RoundedCornerShape(DesignTokens.Shape.RadiusMd))
                 .padding(horizontal = 14.dp, vertical = 14.dp)
         ) {
             BasicTextField(
@@ -398,8 +398,8 @@ private fun PinDotInput(
         label = "PinDotFocusGlow"
     )
 
-    val baseBorder = DesignTokens.Color.Obsidian.Border.copy(alpha = 0.2f)
-    val focusedBorder = DesignTokens.Color.Brand.Primary.copy(alpha = 0.8f)
+    val baseBorder = DesignTokens.LocalBingwaRoles.current.border.copy(alpha = 0.2f)
+    val focusedBorder = DesignTokens.LocalBingwaRoles.current.brand.copy(alpha = 0.8f)
     val borderColor = Color(
         red = baseBorder.red + (focusedBorder.red - baseBorder.red) * glow,
         green = baseBorder.green + (focusedBorder.green - baseBorder.green) * glow,
@@ -433,8 +433,8 @@ private fun PinDotInput(
                             modifier = Modifier
                                 .size(12.dp)
                                 .clip(CircleShape)
-                                .background(if (filled) DesignTokens.Color.Brand.Primary else DesignTokens.Color.Obsidian.Card)
-                                .border(1.dp, DesignTokens.Color.Obsidian.Border.copy(alpha = 0.2f), CircleShape)
+                                .background(if (filled) DesignTokens.LocalBingwaRoles.current.brand else DesignTokens.LocalBingwaRoles.current.card)
+                                .border(1.dp, DesignTokens.LocalBingwaRoles.current.border.copy(alpha = 0.2f), CircleShape)
                         )
                     }
                 }
@@ -560,7 +560,7 @@ private fun TactileKeypadKey(
                 )
             }
             .clip(CircleShape)
-            .background(DesignTokens.Color.Obsidian.Card)
+            .background(DesignTokens.LocalBingwaRoles.current.card)
             .graphicsLayer { scaleX = scale; scaleY = scale }
             .clickable(
                 interactionSource = interactionSource,

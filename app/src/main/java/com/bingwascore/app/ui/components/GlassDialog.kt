@@ -182,7 +182,7 @@ fun GlassDialog(
                             onClick = { haptics.press(); onConfirm() },
                             fillMaxWidth = false,
                             height = 40.dp,
-                            fill = if (confirmDangerous) DesignTokens.Color.Brand.Error else DesignTokens.Color.Brand.Primary
+                            fill = if (confirmDangerous) DesignTokens.LocalBingwaRoles.current.error else DesignTokens.LocalBingwaRoles.current.brand
                         ) {
                             Text(
                                 text = confirmLabel,

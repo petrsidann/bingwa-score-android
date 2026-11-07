@@ -38,16 +38,7 @@ import com.bingwascore.app.ui.components.BubbleCard
 import com.bingwascore.app.ui.components.PrimaryButton
 import com.bingwascore.app.ui.components.HapticSwitch
 import com.bingwascore.app.util.screenEnter
-import com.bingwascore.app.ui.theme.Hairline
-import com.bingwascore.app.ui.theme.Raised
-import com.bingwascore.app.ui.theme.Bubble
-import com.bingwascore.app.ui.theme.PendGrey
-import com.bingwascore.app.ui.theme.AccentBlue
-import com.bingwascore.app.ui.theme.TickGreen
-import com.bingwascore.app.ui.theme.FailRed
-import com.bingwascore.app.ui.theme.BgBlack
-import com.bingwascore.app.ui.theme.TextFaint
-import com.bingwascore.app.ui.theme.TextWhite
+import com.bingwascore.app.ui.theme.DesignTokens
 
 /**
  * Agent Portal — the agent's public storefront.
@@ -70,7 +61,7 @@ fun MyStoreScreen(viewModel: MyStoreViewModel = hiltViewModel()) {
         modifier = Modifier
             .fillMaxSize()
             .screenEnter()
-            .background(BgBlack)
+            .background(DesignTokens.LocalBingwaRoles.current.bg)
     ) {
         Row(
             modifier = Modifier
@@ -79,18 +70,18 @@ fun MyStoreScreen(viewModel: MyStoreViewModel = hiltViewModel()) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text("Agent Portal", color = TextWhite, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                Text("Agent Portal", color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 22.sp, fontWeight = FontWeight.Bold)
                 Text(
                     if (storeLink.isEmpty()) "Create your public storefront link"
                     else "Your storefront is ${if (isActive) "live" else "paused"}",
-                    color = TextWhite.copy(alpha = 0.5f),
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.5f),
                     fontSize = 12.sp
                 )
             }
             Icon(
                 Icons.Rounded.Share,
                 contentDescription = "Share store",
-                tint = AccentBlue,
+                tint = DesignTokens.LocalBingwaRoles.current.brand,
                 modifier = Modifier
                     .size(36.dp)
                     .clip(RoundedCornerShape(10.dp))
@@ -128,22 +119,22 @@ fun MyStoreScreen(viewModel: MyStoreViewModel = hiltViewModel()) {
                 Icon(
                     imageVector = Icons.Rounded.Storefront,
                     contentDescription = null,
-                    tint = AccentBlue,
+                    tint = DesignTokens.LocalBingwaRoles.current.brand,
                     modifier = Modifier.size(34.dp)
                 )
                 Spacer(modifier = Modifier.height(12.dp))
-                Text("No store yet", color = TextWhite, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                Text("No store yet", color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     "Generate a shareable link from your name. Customers use it to browse " +
                         "your offers and buy bundles directly.",
-                    color = TextWhite.copy(alpha = 0.55f),
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.55f),
                     fontSize = 13.sp
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     "bingwascore.com/store/${MyStoreViewModel.slugify(userName)}",
-                    color = PendGrey,
+                    color = DesignTokens.LocalBingwaRoles.current.textSecondary,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -164,7 +155,7 @@ fun MyStoreScreen(viewModel: MyStoreViewModel = hiltViewModel()) {
             Spacer(modifier = Modifier.height(18.dp))
             Text(
                 "${activeOffers.size} active ${if (activeOffers.size == 1) "offer" else "offers"} on sale",
-                color = TextWhite.copy(alpha = 0.55f),
+                color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.55f),
                 fontSize = 12.sp,
                 modifier = Modifier.padding(horizontal = 20.dp)
             )
@@ -186,11 +177,11 @@ private fun StoreLinkCard(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
-                Text("Storefront", color = TextWhite, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                Text("Storefront", color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     if (isActive) "Visible to customers" else "Hidden from customers",
-                    color = if (isActive) TickGreen else TextFaint,
+                    color = if (isActive) DesignTokens.LocalBingwaRoles.current.success else DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -200,12 +191,12 @@ private fun StoreLinkCard(
                 checked = isActive,
                 onCheckedChange = onToggle,
                 colors = SwitchDefaults.colors(
-                    checkedThumbColor = BgBlack,
-                    checkedTrackColor = AccentBlue,
-                    checkedBorderColor = AccentBlue,
-                    uncheckedThumbColor = TextWhite.copy(alpha = 0.7f),
-                    uncheckedTrackColor = Raised,
-                    uncheckedBorderColor = Hairline
+                    checkedThumbColor = DesignTokens.LocalBingwaRoles.current.bg,
+                    checkedTrackColor = DesignTokens.LocalBingwaRoles.current.brand,
+                    checkedBorderColor = DesignTokens.LocalBingwaRoles.current.brand,
+                    uncheckedThumbColor = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.7f),
+                    uncheckedTrackColor = DesignTokens.LocalBingwaRoles.current.elevated,
+                    uncheckedBorderColor = DesignTokens.LocalBingwaRoles.current.border
                 )
             )
         }
@@ -217,17 +208,17 @@ private fun StoreLinkCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(14.dp))
-                .background(Bubble)
+                .background(DesignTokens.LocalBingwaRoles.current.card)
                 .padding(horizontal = 14.dp, vertical = 12.dp)
         ) {
             Icon(
                 imageVector = Icons.Rounded.Link,
                 contentDescription = null,
-                tint = PendGrey,
+                tint = DesignTokens.LocalBingwaRoles.current.textSecondary,
                 modifier = Modifier.size(18.dp)
             )
             Spacer(modifier = Modifier.width(10.dp))
-            Text(storeLink, color = TextWhite, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+            Text(storeLink, color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 13.sp, fontWeight = FontWeight.Medium)
         }
 
         Spacer(modifier = Modifier.height(6.dp))
@@ -243,13 +234,13 @@ private fun StoreLinkCard(
             Icon(
                 imageVector = Icons.Rounded.DeleteOutline,
                 contentDescription = "Delete store",
-                tint = FailRed,
+                tint = DesignTokens.LocalBingwaRoles.current.error,
                 modifier = Modifier.size(18.dp)
             )
             Spacer(modifier = Modifier.width(10.dp))
             Text(
                 "Delete store",
-                color = FailRed,
+                color = DesignTokens.LocalBingwaRoles.current.error,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold
             )

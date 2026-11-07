@@ -8,6 +8,7 @@ import com.bingwascore.app.ui.screens.SplashBrand
 import com.bingwascore.app.ui.screens.splashGlowAlpha
 import com.bingwascore.app.ui.screens.splashInk
 import com.bingwascore.app.ui.screens.wordmarkAlphas
+import com.bingwascore.app.ui.theme.DesignTokens
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
@@ -80,9 +81,9 @@ class Stage21FirstRunTruthTest {
         // The string is legible in both themes: full ink, and NOT one ink
         // shared by both canvases (light ink on obsidian, dark ink on porcelain).
         listOf(true, false).forEach { dark ->
-            assertEquals("ink must be opaque in dark=$dark", 1f, splashInk(dark).alpha, 0.0001f)
+            assertEquals("ink must be opaque in dark=$dark", 1f, splashInk(if (dark) DesignTokens.Role.Obsidian else DesignTokens.Role.Dim).alpha, 0.0001f)
         }
-        assertNotEquals("the two themes must not share one ink", splashInk(true), splashInk(false))
+        assertNotEquals("the two themes must not share one ink", splashInk(DesignTokens.Role.Obsidian), splashInk(DesignTokens.Role.Dim))
     }
 
     @Test

@@ -3,6 +3,7 @@ package com.bingwascore.app.ui.theme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
@@ -59,10 +60,15 @@ fun BingwaScoreTheme(
         }
     }
 
-    MaterialTheme(
-        colorScheme = scheme,
-        typography = Typography,
-        content = content
-    )
+    CompositionLocalProvider(
+        DesignTokens.LocalBingwaRoles provides
+            if (themeMode == ThemeMode.DARK) DesignTokens.Role.Obsidian else DesignTokens.Role.Dim
+    ) {
+        MaterialTheme(
+            colorScheme = scheme,
+            typography = Typography,
+            content = content
+        )
+    }
 }
 

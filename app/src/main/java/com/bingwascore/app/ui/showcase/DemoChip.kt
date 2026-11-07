@@ -13,8 +13,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bingwascore.app.data.local.DbNameHolder
-import com.bingwascore.app.ui.theme.AccentBlue
-import com.bingwascore.app.ui.theme.TextGrey
+import com.bingwascore.app.ui.theme.DesignTokens
 
 /**
  * SHOWCASE S3 — the honesty badge.
@@ -30,13 +29,13 @@ fun DemoChip(modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(6.dp))
-            .border(1.dp, AccentBlue, RoundedCornerShape(6.dp))
-            .background(AccentBlue.copy(alpha = 0.12f))
+            .border(1.dp, DesignTokens.LocalBingwaRoles.current.brand, RoundedCornerShape(6.dp))
+            .background(DesignTokens.LocalBingwaRoles.current.brand.copy(alpha = 0.12f))
             .padding(horizontal = 8.dp, vertical = 3.dp)
     ) {
         Text(
             "DEMO",
-            color = AccentBlue,
+            color = DesignTokens.LocalBingwaRoles.current.brand,
             fontSize = 11.sp,
             letterSpacing = 1.sp
         )

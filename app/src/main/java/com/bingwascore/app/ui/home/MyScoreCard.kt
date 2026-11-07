@@ -33,12 +33,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bingwascore.app.domain.MyScore
 import com.bingwascore.app.ui.components.BubbleCard
-import com.bingwascore.app.ui.theme.AccentBlue
-import com.bingwascore.app.ui.theme.Bubble
-import com.bingwascore.app.ui.theme.Raised
-import com.bingwascore.app.ui.theme.TextFaint
-import com.bingwascore.app.ui.theme.TextWhite
-import com.bingwascore.app.ui.theme.TickGreen
+import com.bingwascore.app.ui.theme.DesignTokens
 
 /**
  * Stage 15 — "My Score" analytics card (bolt-in-trophy logo). One honest,
@@ -47,6 +42,7 @@ import com.bingwascore.app.ui.theme.TickGreen
  */
 @Composable
 fun MyScoreCard(viewModel: MyScoreViewModel = hiltViewModel()) {
+    val roles = DesignTokens.LocalBingwaRoles.current
     val score by viewModel.score.collectAsStateWithLifecycle()
 
     BubbleCard(modifier = Modifier.fillMaxWidth()) {
@@ -54,8 +50,8 @@ fun MyScoreCard(viewModel: MyScoreViewModel = hiltViewModel()) {
             BoltTrophyLogo(size = 34.dp)
             Spacer(modifier = Modifier.width(10.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text("My Score", color = TextWhite, fontSize = 17.sp, fontWeight = FontWeight.Bold)
-                Text("Last 24 hours", color = TextFaint, fontSize = 11.sp)
+                Text("My Score", color = roles.textPrimary, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                Text("Last 24 hours", color = roles.textPrimary.copy(alpha = 0.6f), fontSize = 11.sp)
             }
             SuccessRateRing(rate = score.successRate)
         }
@@ -65,7 +61,7 @@ fun MyScoreCard(viewModel: MyScoreViewModel = hiltViewModel()) {
         if (score.topOffers.isEmpty() && score.successRate == null) {
             Text(
                 "No activity in the last 24 hours yet — your score builds as bundles complete.",
-                color = TextFaint,
+                color = roles.textPrimary.copy(alpha = 0.6f),
                 fontSize = 13.sp
             )
             return@BubbleCard
@@ -79,10 +75,10 @@ fun MyScoreCard(viewModel: MyScoreViewModel = hiltViewModel()) {
                     modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(offer, color = TextWhite, fontSize = 13.sp, modifier = Modifier.weight(1f), maxLines = 1)
+                    Text(offer, color = roles.textPrimary, fontSize = 13.sp, modifier = Modifier.weight(1f), maxLines = 1)
                     Text(
                         "$count sold",
-                        color = TextWhite.copy(alpha = 0.6f),
+                        color = roles.textPrimary.copy(alpha = 0.6f),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -103,14 +99,14 @@ fun MyScoreCard(viewModel: MyScoreViewModel = hiltViewModel()) {
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(12.dp))
-                .background(Bubble)
+                .background(roles.card)
                 .padding(horizontal = 12.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Best weekday", color = TextFaint, fontSize = 12.sp, modifier = Modifier.weight(1f))
+            Text("Best weekday", color = roles.textPrimary.copy(alpha = 0.6f), fontSize = 12.sp, modifier = Modifier.weight(1f))
             Text(
                 score.bestWeekday?.let { MyScore.weekdayName(it) } ?: "—",
-                color = TextWhite,
+                color = roles.textPrimary,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold
             )
@@ -120,27 +116,29 @@ fun MyScoreCard(viewModel: MyScoreViewModel = hiltViewModel()) {
 
 @Composable
 private fun SectionLabel(text: String) {
-    Text(text, color = TextFaint, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+    val roles = DesignTokens.LocalBingwaRoles.current
+    Text(text, color = roles.textPrimary.copy(alpha = 0.6f), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
     Spacer(modifier = Modifier.height(4.dp))
 }
 
 @Composable
 private fun HourPanel(title: String, buckets: List<MyScore.HourBucket>, modifier: Modifier = Modifier) {
+    val roles = DesignTokens.LocalBingwaRoles.current
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(12.dp))
-            .background(Bubble)
+            .background(roles.card)
             .padding(horizontal = 12.dp, vertical = 10.dp)
     ) {
-        Text(title, color = TextFaint, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+        Text(title, color = roles.textPrimary.copy(alpha = 0.6f), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
         Spacer(modifier = Modifier.height(6.dp))
         if (buckets.isEmpty()) {
-            Text("—", color = TextWhite.copy(alpha = 0.5f), fontSize = 12.sp)
+            Text("—", color = roles.textPrimary.copy(alpha = 0.5f), fontSize = 12.sp)
         } else {
             buckets.forEach { bucket ->
                 Row(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
-                    Text(bucket.label, color = TextWhite, fontSize = 12.sp, modifier = Modifier.weight(1f))
-                    Text("${bucket.count}", color = TextWhite.copy(alpha = 0.6f), fontSize = 12.sp)
+                    Text(bucket.label, color = roles.textPrimary, fontSize = 12.sp, modifier = Modifier.weight(1f))
+                    Text("${bucket.count}", color = roles.textPrimary.copy(alpha = 0.6f), fontSize = 12.sp)
                 }
             }
         }
@@ -150,6 +148,7 @@ private fun HourPanel(title: String, buckets: List<MyScore.HourBucket>, modifier
 /** A success-rate ring: brand-blue arc over a track, whole-percent in the middle. */
 @Composable
 private fun SuccessRateRing(rate: Float?, size: Dp = 52.dp) {
+    val roles = DesignTokens.LocalBingwaRoles.current
     val sweep = ((rate ?: 0f).coerceIn(0f, 1f)) * 360f
     Box(modifier = Modifier.size(size), contentAlignment = Alignment.Center) {
         Canvas(modifier = Modifier.size(size)) {
@@ -157,7 +156,7 @@ private fun SuccessRateRing(rate: Float?, size: Dp = 52.dp) {
             val inset = stroke / 2
             val arcSize = Size(this.size.width - stroke, this.size.height - stroke)
             drawArc(
-                color = Raised,
+                color = roles.elevated,
                 startAngle = -90f,
                 sweepAngle = 360f,
                 useCenter = false,
@@ -167,7 +166,7 @@ private fun SuccessRateRing(rate: Float?, size: Dp = 52.dp) {
             )
             if (sweep > 0f) {
                 drawArc(
-                    color = AccentBlue,
+                    color = roles.brand,
                     startAngle = -90f,
                     sweepAngle = sweep,
                     useCenter = false,
@@ -179,7 +178,7 @@ private fun SuccessRateRing(rate: Float?, size: Dp = 52.dp) {
         }
         Text(
             MyScore.successRateLabel(rate),
-            color = TextWhite,
+            color = roles.textPrimary,
             fontSize = 12.sp,
             fontWeight = FontWeight.Bold
         )
@@ -192,6 +191,7 @@ private fun SuccessRateRing(rate: Float?, size: Dp = 52.dp) {
  */
 @Composable
 private fun BoltTrophyLogo(size: Dp) {
+    val roles = DesignTokens.LocalBingwaRoles.current
     Box(modifier = Modifier.size(size), contentAlignment = Alignment.Center) {
         Canvas(modifier = Modifier.size(size)) {
             val w = this.size.width
@@ -204,15 +204,15 @@ private fun BoltTrophyLogo(size: Dp) {
                 quadraticBezierTo(w * 0.5f, h * 0.66f, w * 0.30f, h * 0.56f)
                 close()
             }
-            drawPath(cup, color = AccentBlue)
+            drawPath(cup, color = roles.brand)
             // Stem + base.
             drawRect(
-                color = AccentBlue,
+                color = roles.brand,
                 topLeft = Offset(w * 0.46f, h * 0.66f),
                 size = Size(w * 0.08f, h * 0.18f)
             )
             drawRect(
-                color = AccentBlue,
+                color = roles.brand,
                 topLeft = Offset(w * 0.32f, h * 0.84f),
                 size = Size(w * 0.36f, h * 0.06f)
             )
@@ -227,7 +227,7 @@ private fun BoltTrophyLogo(size: Dp) {
                 lineTo(w * 0.60f, h * 0.20f)
                 close()
             }
-            drawPath(bolt, color = TickGreen)
+            drawPath(bolt, color = roles.success)
         }
     }
 }

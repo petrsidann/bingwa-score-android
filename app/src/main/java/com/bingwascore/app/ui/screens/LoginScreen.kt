@@ -348,7 +348,7 @@ fun LoginScreen(
         modifier = Modifier
             .fillMaxSize()
             .screenEnter()
-            .background(DesignTokens.Color.Obsidian.Bg)
+            .background(DesignTokens.LocalBingwaRoles.current.bg)
     ) {
         Column(
             modifier = Modifier
@@ -362,7 +362,7 @@ fun LoginScreen(
         ) {
             Text(
                 "Welcome back",
-                color = DesignTokens.Color.Ink,
+                color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                 fontSize = DesignTokens.Typography.Display,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.combinedClickable(onLongClick = { showCrashReport = true }, onClick = {})
@@ -372,7 +372,7 @@ fun LoginScreen(
 
             Text(
                 "Sign in to continue",
-                color = DesignTokens.Color.Ink.copy(alpha = 0.6f),
+                color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f),
                 fontSize = DesignTokens.Typography.Body
             )
 
@@ -383,21 +383,21 @@ fun LoginScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(DesignTokens.Shape.RadiusMd))
-                        .background(DesignTokens.Color.Brand.Error.copy(alpha = 0.1f))
-                        .border(1.dp, DesignTokens.Color.Brand.Error, RoundedCornerShape(DesignTokens.Shape.RadiusMd))
+                        .background(DesignTokens.LocalBingwaRoles.current.error.copy(alpha = 0.1f))
+                        .border(1.dp, DesignTokens.LocalBingwaRoles.current.error, RoundedCornerShape(DesignTokens.Shape.RadiusMd))
                         .padding(14.dp)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             imageVector = Icons.Rounded.ErrorOutline,
                             contentDescription = "Error",
-                            tint = DesignTokens.Color.Brand.Error,
+                            tint = DesignTokens.LocalBingwaRoles.current.error,
                             modifier = Modifier.size(20.dp)
                         )
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
                             msg,
-                            color = DesignTokens.Color.Ink,
+                            color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                             fontSize = DesignTokens.Typography.Caption,
                             fontWeight = FontWeight.Medium
                         )
@@ -411,12 +411,12 @@ fun LoginScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(DesignTokens.Shape.RadiusMd))
-                        .background(DesignTokens.Color.Obsidian.Elevated.copy(alpha = 0.5f))
+                        .background(DesignTokens.LocalBingwaRoles.current.elevated.copy(alpha = 0.5f))
                         .padding(14.dp)
                 ) {
                     Text(
                         "Too many failed attempts. Try again in ${state.cooldownSeconds}s",
-                        color = DesignTokens.Color.Ink,
+                        color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                         fontSize = DesignTokens.Typography.Caption,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -467,15 +467,15 @@ fun LoginScreen(
                                 modifier = Modifier
                                     .size(52.dp)
                                     .clip(CircleShape)
-                                    .background(DesignTokens.Color.Obsidian.Elevated)
-                                    .border(1.dp, DesignTokens.Color.Obsidian.Border.copy(alpha = 0.3f), CircleShape)
+                                    .background(DesignTokens.LocalBingwaRoles.current.elevated)
+                                    .border(1.dp, DesignTokens.LocalBingwaRoles.current.border.copy(alpha = 0.3f), CircleShape)
                                     .clickable { launchBiometric() },
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     imageVector = Icons.Rounded.Fingerprint,
                                     contentDescription = "Sign in with fingerprint",
-                                    tint = DesignTokens.Color.Brand.Primary,
+                                    tint = DesignTokens.LocalBingwaRoles.current.brand,
                                     modifier = Modifier.size(26.dp)
                                 )
                             }
@@ -513,13 +513,13 @@ fun LoginScreen(
                     Icon(
                         imageVector = Icons.Rounded.CheckCircle,
                         contentDescription = "Success",
-                        tint = DesignTokens.Color.Brand.Success,
+                        tint = DesignTokens.LocalBingwaRoles.current.success,
                         modifier = Modifier.size(32.dp)
                     )
                     Spacer(modifier = Modifier.width(10.dp))
                     Text(
                         "Verified!",
-                        color = DesignTokens.Color.Brand.Success,
+                        color = DesignTokens.LocalBingwaRoles.current.success,
                         fontSize = DesignTokens.Typography.Headline,
                         fontWeight = FontWeight.Bold
                     )
@@ -537,7 +537,7 @@ fun LoginScreen(
                 ) {
                     Text(
                         text = if (state.isLoading) "Verifying…" else if (state.cooldownSeconds > 0) "Cooldown (${state.cooldownSeconds}s)" else "Sign In",
-                        color = DesignTokens.Color.Ink,
+                        color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                         fontSize = DesignTokens.Typography.Headline,
                         fontWeight = FontWeight.Bold
                     )
@@ -548,7 +548,7 @@ fun LoginScreen(
 
             Text(
                 "Create account",
-                color = DesignTokens.Color.Ink.copy(alpha = 0.6f),
+                color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f),
                 fontSize = DesignTokens.Typography.Body,
                 modifier = Modifier
                     .align(Alignment.CenterHorizontally)
@@ -575,7 +575,7 @@ private fun CrashReportDialog(onDismiss: () -> Unit, context: Context) {
             Column(modifier = Modifier.fillMaxWidth()) {
                 Text(
                     "Last CrashHandler stack",
-                    color = DesignTokens.Color.Ink,
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                     fontSize = DesignTokens.Typography.Caption,
                     fontWeight = FontWeight.Bold
                 )
@@ -620,8 +620,8 @@ private fun GlassInputField(
         label = "GlassInputFocusGlow"
     )
 
-    val baseBorder = DesignTokens.Color.Obsidian.Border.copy(alpha = 0.2f)
-    val focusedBorder = DesignTokens.Color.Brand.Primary.copy(alpha = 0.8f)
+    val baseBorder = DesignTokens.LocalBingwaRoles.current.border.copy(alpha = 0.2f)
+    val focusedBorder = DesignTokens.LocalBingwaRoles.current.brand.copy(alpha = 0.8f)
     val borderColor = Color(
         red = baseBorder.red + (focusedBorder.red - baseBorder.red) * glow,
         green = baseBorder.green + (focusedBorder.green - baseBorder.green) * glow,
@@ -664,7 +664,7 @@ private fun GlassInputField(
                 singleLine = true,
                 readOnly = true,
                 textStyle = TextStyle(
-                    color = DesignTokens.Color.Ink,
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                     fontSize = DesignTokens.Typography.Body
                 ),
                 visualTransformation = if (isPassword) PasswordVisualTransformation() else VisualTransformation.None,
@@ -676,7 +676,7 @@ private fun GlassInputField(
             if (value.isEmpty()) {
                 Text(
                     hint,
-                    color = DesignTokens.Color.Ink.copy(alpha = 0.5f),
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.5f),
                     fontSize = DesignTokens.Typography.Body
                 )
             }
@@ -711,8 +711,8 @@ private fun TactileKeypad(
                     modifier = Modifier
                         .size(12.dp)
                         .clip(CircleShape)
-                        .background(if (filled) DesignTokens.Color.Brand.Primary else DesignTokens.Color.Obsidian.Card)
-                        .border(1.dp, DesignTokens.Color.Obsidian.Border.copy(alpha = 0.2f), CircleShape)
+                        .background(if (filled) DesignTokens.LocalBingwaRoles.current.brand else DesignTokens.LocalBingwaRoles.current.card)
+                        .border(1.dp, DesignTokens.LocalBingwaRoles.current.border.copy(alpha = 0.2f), CircleShape)
                 )
             }
         }
@@ -817,7 +817,7 @@ private fun TactileKeypadKey(
                 )
             }
             .clip(CircleShape)
-            .background(DesignTokens.Color.Obsidian.Card)
+            .background(DesignTokens.LocalBingwaRoles.current.card)
             .graphicsLayer { scaleX = scale; scaleY = scale }
             .clickable(
                 interactionSource = interactionSource,
@@ -832,13 +832,13 @@ private fun TactileKeypadKey(
             Icon(
                 imageVector = icon,
                 contentDescription = "Delete",
-                tint = DesignTokens.Color.Ink,
+                tint = DesignTokens.LocalBingwaRoles.current.textPrimary,
                 modifier = Modifier.size(22.dp)
             )
         } else {
             Text(
                 label,
-                color = DesignTokens.Color.Ink,
+                color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                 fontSize = DesignTokens.Typography.Subhead,
                 fontWeight = FontWeight.SemiBold
             )

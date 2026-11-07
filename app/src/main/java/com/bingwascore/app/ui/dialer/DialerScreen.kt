@@ -64,8 +64,6 @@ import com.bingwascore.app.ui.components.GlassCard
 import com.bingwascore.app.ui.components.GlassPill
 import com.bingwascore.app.ui.theme.BingwaType
 import com.bingwascore.app.ui.theme.DesignTokens
-import com.bingwascore.app.ui.theme.BgBlack
-import com.bingwascore.app.ui.theme.Bubble
 import com.bingwascore.app.ui.theme.Motion
 import com.bingwascore.app.util.rememberHaptics
 import com.bingwascore.app.util.screenEnter
@@ -216,20 +214,20 @@ fun DialerScreenContent(
         modifier = Modifier
             .fillMaxSize()
             .screenEnter()
-            .background(BgBlack)
+            .background(DesignTokens.LocalBingwaRoles.current.bg)
             .padding(horizontal = 20.dp, vertical = 16.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     "Quick dial",
-                    color = DesignTokens.Color.Ink,
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                     fontSize = DesignTokens.Typography.Headline,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
                     "Dial a bundle straight from the terminal",
-                    color = DesignTokens.Color.Ink.copy(alpha = 0.6f),
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f),
                     fontSize = DesignTokens.Typography.Caption
                 )
             }
@@ -242,7 +240,7 @@ fun DialerScreenContent(
                 Icon(
                     imageVector = Icons.Rounded.Close,
                     contentDescription = "Close dialer",
-                    tint = DesignTokens.Color.Ink.copy(alpha = 0.7f),
+                    tint = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.7f),
                     modifier = Modifier.size(22.dp)
                 )
             }
@@ -253,7 +251,7 @@ fun DialerScreenContent(
         // ── Phone input: glass display + tactile keypad, no system keyboard ──
         Text(
             "Phone number",
-            color = DesignTokens.Color.Ink.copy(alpha = 0.6f),
+            color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f),
             fontSize = DesignTokens.Typography.Caption
         )
         Spacer(modifier = Modifier.height(8.dp))
@@ -265,7 +263,7 @@ fun DialerScreenContent(
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(
                     text = if (display.isNotBlank()) display else "07XX XXX XXX",
-                    color = if (display.isNotBlank()) DesignTokens.Color.Ink else DesignTokens.Color.Ink.copy(alpha = 0.35f),
+                    color = if (display.isNotBlank()) DesignTokens.LocalBingwaRoles.current.textPrimary else DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.35f),
                     fontSize = DesignTokens.Typography.Display,
                     fontWeight = FontWeight.Bold,
                     fontFamily = FontFamily.Monospace
@@ -281,7 +279,7 @@ fun DialerScreenContent(
         )
 
         Spacer(modifier = Modifier.height(24.dp))
-        Text("Active offers", color = DesignTokens.Color.Ink.copy(alpha = 0.6f), fontSize = DesignTokens.Typography.Caption)
+        Text("Active offers", color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f), fontSize = DesignTokens.Typography.Caption)
         Spacer(modifier = Modifier.height(10.dp))
 
         if (state.offers.isEmpty()) {
@@ -289,13 +287,13 @@ fun DialerScreenContent(
                 Icon(
                     imageVector = Icons.Rounded.Inbox,
                     contentDescription = null,
-                    tint = DesignTokens.Color.Ink.copy(alpha = 0.4f),
+                    tint = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.4f),
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     "No active offers yet — add one in the Offers tab.",
-                    color = DesignTokens.Color.Ink.copy(alpha = 0.6f),
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f),
                     fontSize = DesignTokens.Typography.Body
                 )
             }
@@ -326,7 +324,7 @@ fun DialerScreenContent(
         state.feedback?.let { value ->
             Text(
                 text = value.message,
-                color = if (value.isError) DesignTokens.Color.Brand.Error else DesignTokens.Color.Brand.Success,
+                color = if (value.isError) DesignTokens.LocalBingwaRoles.current.error else DesignTokens.LocalBingwaRoles.current.success,
                 fontSize = DesignTokens.Typography.Caption,
                 fontWeight = FontWeight.Bold
             )
@@ -362,7 +360,7 @@ fun DialerScreenContent(
             Text(
                 text = outcome.response?.takeIf { it.isNotBlank() }
                     ?: "Safaricom did not return a message for this dial.",
-                color = DesignTokens.Color.Ink.copy(alpha = 0.7f),
+                color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.7f),
                 fontSize = DesignTokens.Typography.Caption
             )
         },
@@ -454,8 +452,8 @@ private fun TactileKey(
         modifier = Modifier
             .size(64.dp)
             .clip(CircleShape)
-            .background(DesignTokens.Color.Card)
-            .border(1.dp, DesignTokens.Color.Border, CircleShape)
+            .background(DesignTokens.LocalBingwaRoles.current.card)
+            .border(1.dp, DesignTokens.LocalBingwaRoles.current.border, CircleShape)
             .graphicsLayer { scaleX = scale; scaleY = scale }
             .clickable(
                 interactionSource = interactionSource,
@@ -472,13 +470,13 @@ private fun TactileKey(
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = DesignTokens.Color.Ink,
+                    tint = DesignTokens.LocalBingwaRoles.current.textPrimary,
                     modifier = Modifier.size(24.dp)
                 )
             } else {
                 Text(
                     text = label,
-                    color = DesignTokens.Color.Ink,
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                     fontSize = BingwaType.Label,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -492,9 +490,9 @@ private fun TactileKey(
 private fun OfferCard(offer: Offer, selected: Boolean, onClick: () -> Unit) {
     GlassPill(
         shape = RoundedCornerShape(DesignTokens.Shape.RadiusMd),
-        fill = if (selected) DesignTokens.Color.Brand.Primary.copy(alpha = 0.1f) else Color.Transparent,
+        fill = if (selected) DesignTokens.LocalBingwaRoles.current.brand.copy(alpha = 0.1f) else Color.Transparent,
         borderWidth = if (selected) 2.dp else 1.dp,
-        borderColor = if (selected) DesignTokens.Color.Brand.Primary else DesignTokens.Color.Obsidian.Border.copy(alpha = 0.2f),
+        borderColor = if (selected) DesignTokens.LocalBingwaRoles.current.brand else DesignTokens.LocalBingwaRoles.current.border.copy(alpha = 0.2f),
         baseScale = if (selected) 1.02f else 1f,
         pressScale = 0.98f,
         onClick = onClick
@@ -505,7 +503,7 @@ private fun OfferCard(offer: Offer, selected: Boolean, onClick: () -> Unit) {
         ) {
             Text(
                 text = offer.name,
-                color = if (selected) DesignTokens.Color.Ink else DesignTokens.Color.Ink.copy(alpha = 0.9f),
+                color = if (selected) DesignTokens.LocalBingwaRoles.current.textPrimary else DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.9f),
                 fontSize = BingwaType.Label,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
@@ -514,7 +512,7 @@ private fun OfferCard(offer: Offer, selected: Boolean, onClick: () -> Unit) {
             Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = "Ksh ${offer.price}",
-                color = if (selected) DesignTokens.Color.Ink.copy(alpha = 0.8f) else DesignTokens.Color.Ink.copy(alpha = 0.5f),
+                color = if (selected) DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.8f) else DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.5f),
                 fontSize = DesignTokens.Typography.Caption
             )
         }
@@ -542,7 +540,7 @@ private fun DialNowButton(
         label = "DialNowScale"
     )
     val fill by animateColorAsState(
-        targetValue = if (isPressed && enabled) DesignTokens.Color.Brand.DimAccent else DesignTokens.Color.Brand.Primary,
+        targetValue = if (isPressed && enabled) DesignTokens.LocalBingwaRoles.current.brand else DesignTokens.LocalBingwaRoles.current.brand,
         animationSpec = tween(DesignTokens.Motion.DurationFast.toInt()),
         label = "DialNowFill"
     )
@@ -553,7 +551,7 @@ private fun DialNowButton(
             .fillMaxWidth()
             .height(64.dp)
             .clip(RoundedCornerShape(DesignTokens.Shape.RadiusLg))
-            .background(if (enabled) fill else DesignTokens.Color.Brand.Primary.copy(alpha = 0.5f))
+            .background(if (enabled) fill else DesignTokens.LocalBingwaRoles.current.brand.copy(alpha = 0.5f))
             .graphicsLayer { scaleX = scale; scaleY = scale }
             .clickable(
                 interactionSource = interactionSource,
@@ -568,7 +566,7 @@ private fun DialNowButton(
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text(
                 text = if (loading) "Dialing…" else "Dial Now",
-                color = DesignTokens.Color.Ink,
+                color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                 fontSize = DesignTokens.Typography.Headline,
                 fontWeight = FontWeight.Bold
             )
@@ -602,19 +600,19 @@ private fun SessionLog(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = "Session log",
-                    color = DesignTokens.Color.Ink,
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                     fontSize = BingwaType.Label,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.weight(1f)
                 )
                 Text(
                     text = if (lines.isEmpty()) "idle" else "${lines.size} steps",
-                    color = DesignTokens.Color.Ink.copy(alpha = 0.6f),
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f),
                     fontSize = DesignTokens.Typography.Caption
                 )
                 Text(
                     text = if (open) "▾" else "▸",
-                    color = DesignTokens.Color.Ink.copy(alpha = 0.6f),
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f),
                     fontSize = DesignTokens.Typography.Caption
                 )
             }
@@ -626,9 +624,9 @@ private fun SessionLog(
                             Text(
                                 text = "[${line.kind}] ",
                                 color = when (line.kind) {
-                                    "escalation" -> DesignTokens.Color.Brand.Error
-                                    "input" -> DesignTokens.Color.Brand.Primary
-                                    else -> DesignTokens.Color.Brand.Success
+                                    "escalation" -> DesignTokens.LocalBingwaRoles.current.error
+                                    "input" -> DesignTokens.LocalBingwaRoles.current.brand
+                                    else -> DesignTokens.LocalBingwaRoles.current.success
                                 },
                                 fontSize = DesignTokens.Typography.Caption,
                                 fontWeight = FontWeight.Bold,
@@ -636,7 +634,7 @@ private fun SessionLog(
                             )
                             Text(
                                 text = line.text,
-                                color = DesignTokens.Color.Ink.copy(alpha = 0.7f),
+                                color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.7f),
                                 fontSize = DesignTokens.Typography.Caption,
                                 fontFamily = FontFamily.Monospace,
                                 modifier = Modifier.weight(1f)
@@ -647,7 +645,7 @@ private fun SessionLog(
             } else if (open) {
                 Text(
                     text = "No session yet — dial to watch each step land here.",
-                    color = DesignTokens.Color.Ink.copy(alpha = 0.6f),
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f),
                     fontSize = DesignTokens.Typography.Caption
                 )
             }
@@ -684,13 +682,13 @@ private fun DialSegments(code: String, dialing: Boolean) {
     ) {
         segments.forEachIndexed { index, segment ->
             if (index > 0) {
-                Text("*", color = DesignTokens.Color.Ink.copy(alpha = 0.3f), fontSize = 12.sp)
+                Text("*", color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.3f), fontSize = 12.sp)
             }
             val color = when {
-                !dialing -> DesignTokens.Color.Ink
-                index < progress -> DesignTokens.Color.Brand.Primary
-                index == progress -> DesignTokens.Color.Ink
-                else -> DesignTokens.Color.Ink.copy(alpha = 0.4f)
+                !dialing -> DesignTokens.LocalBingwaRoles.current.textPrimary
+                index < progress -> DesignTokens.LocalBingwaRoles.current.brand
+                index == progress -> DesignTokens.LocalBingwaRoles.current.textPrimary
+                else -> DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.4f)
             }
             Text(
                 text = segment,

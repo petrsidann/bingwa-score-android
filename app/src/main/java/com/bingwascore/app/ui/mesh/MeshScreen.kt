@@ -48,15 +48,7 @@ import com.bingwascore.app.domain.mesh.MeshCore
 import com.bingwascore.app.ui.components.BubbleCard
 import com.bingwascore.app.ui.components.PrimaryButton
 import com.bingwascore.app.util.screenEnter
-import com.bingwascore.app.ui.theme.AccentBlue
-import com.bingwascore.app.ui.theme.BgBlack
-import com.bingwascore.app.ui.theme.Bubble
-import com.bingwascore.app.ui.theme.FailRed
-import com.bingwascore.app.ui.theme.Hairline
-import com.bingwascore.app.ui.theme.PendGrey
-import com.bingwascore.app.ui.theme.TextFaint
-import com.bingwascore.app.ui.theme.TextWhite
-import com.bingwascore.app.ui.theme.TickGreen
+import com.bingwascore.app.ui.theme.DesignTokens
 
 /**
  * Stage 16 — Mesh v2 offline P2P. Pick a role (Main holds the till / Receiver
@@ -75,30 +67,30 @@ fun MeshScreen(viewModel: MeshViewModel = hiltViewModel()) {
         modifier = Modifier
             .fillMaxSize()
             .screenEnter()
-            .background(BgBlack)
+            .background(DesignTokens.LocalBingwaRoles.current.bg)
     ) {
         Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Rounded.DeviceHub, contentDescription = null, tint = AccentBlue, modifier = Modifier.size(22.dp))
+                Icon(Icons.Rounded.DeviceHub, contentDescription = null, tint = DesignTokens.LocalBingwaRoles.current.brand, modifier = Modifier.size(22.dp))
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Bingwa Mesh", color = TextWhite, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                Text("Bingwa Mesh", color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 22.sp, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.weight(1f))
                 if (queueSize > 0) {
                     Text(
                         "$queueSize queued",
-                        color = FailRed,
+                        color = DesignTokens.LocalBingwaRoles.current.error,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.SemiBold,
                         modifier = Modifier
                             .clip(RoundedCornerShape(10.dp))
-                            .background(FailRed.copy(alpha = 0.14f))
+                            .background(DesignTokens.LocalBingwaRoles.current.error.copy(alpha = 0.14f))
                             .padding(horizontal = 10.dp, vertical = 4.dp)
                     )
                 }
             }
             Text(
                 "Offline P2P — payments route to a Receiver with no internet.",
-                color = TextWhite.copy(alpha = 0.5f),
+                color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.5f),
                 fontSize = 12.sp
             )
         }
@@ -119,7 +111,7 @@ fun MeshScreen(viewModel: MeshViewModel = hiltViewModel()) {
 @Composable
 private fun RolePicker(role: MeshCore.Role, onPick: (MeshCore.Role) -> Unit) {
     BubbleCard(modifier = Modifier.fillMaxWidth()) {
-        Text("THIS DEVICE", color = TextFaint, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+        Text("THIS DEVICE", color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
         Spacer(modifier = Modifier.height(10.dp))
         Row(modifier = Modifier.fillMaxWidth()) {
             RoleChip(
@@ -146,13 +138,13 @@ private fun RoleChip(title: String, subtitle: String, selected: Boolean, modifie
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(14.dp))
-            .background(if (selected) AccentBlue.copy(alpha = 0.16f) else Bubble)
-            .border(1.dp, if (selected) AccentBlue.copy(alpha = 0.6f) else Hairline, RoundedCornerShape(14.dp))
+            .background(if (selected) DesignTokens.LocalBingwaRoles.current.brand.copy(alpha = 0.16f) else DesignTokens.LocalBingwaRoles.current.card)
+            .border(1.dp, if (selected) DesignTokens.LocalBingwaRoles.current.brand.copy(alpha = 0.6f) else DesignTokens.LocalBingwaRoles.current.border, RoundedCornerShape(14.dp))
             .clickable { onClick() }
             .padding(horizontal = 12.dp, vertical = 12.dp)
     ) {
-        Text(title, color = if (selected) AccentBlue else TextWhite, fontSize = 15.sp, fontWeight = FontWeight.Bold)
-        Text(subtitle, color = TextWhite.copy(alpha = 0.5f), fontSize = 11.sp)
+        Text(title, color = if (selected) DesignTokens.LocalBingwaRoles.current.brand else DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+        Text(subtitle, color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.5f), fontSize = 11.sp)
     }
 }
 
@@ -160,10 +152,10 @@ private fun RoleChip(title: String, subtitle: String, selected: Boolean, modifie
 @Composable
 private fun DevicesCard(devices: List<MeshCore.Device>) {
     BubbleCard(modifier = Modifier.fillMaxWidth()) {
-        Text("LINKED DEVICES", color = TextFaint, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+        Text("LINKED DEVICES", color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
         Spacer(modifier = Modifier.height(10.dp))
         if (devices.isEmpty()) {
-            Text("No devices linked yet.", color = TextFaint, fontSize = 13.sp)
+            Text("No devices linked yet.", color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f), fontSize = 13.sp)
         } else {
             devices.forEach { device ->
                 Row(
@@ -171,10 +163,10 @@ private fun DevicesCard(devices: List<MeshCore.Device>) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(device.name, color = TextWhite, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                        Text(device.name, color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                         Text(
                             if (device.role == MeshCore.Role.MAIN) "Main" else "Receiver",
-                            color = TextWhite.copy(alpha = 0.5f),
+                            color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.5f),
                             fontSize = 11.sp
                         )
                     }
@@ -189,9 +181,9 @@ private fun DevicesCard(devices: List<MeshCore.Device>) {
 @Composable
 private fun SignalDots(link: MeshCore.LinkState) {
     val (lit, color) = when (link) {
-        MeshCore.LinkState.CONNECTED -> 3 to TickGreen
-        MeshCore.LinkState.WEAK -> 2 to PendGrey
-        MeshCore.LinkState.DOWN -> 0 to FailRed
+        MeshCore.LinkState.CONNECTED -> 3 to DesignTokens.LocalBingwaRoles.current.success
+        MeshCore.LinkState.WEAK -> 2 to DesignTokens.LocalBingwaRoles.current.textSecondary
+        MeshCore.LinkState.DOWN -> 0 to DesignTokens.LocalBingwaRoles.current.error
     }
     Row(verticalAlignment = Alignment.CenterVertically) {
         (1..3).forEach { i ->
@@ -200,7 +192,7 @@ private fun SignalDots(link: MeshCore.LinkState) {
                     .padding(start = 3.dp)
                     .size(8.dp)
                     .clip(CircleShape)
-                    .background(if (i <= lit) color else Hairline)
+                    .background(if (i <= lit) color else DesignTokens.LocalBingwaRoles.current.border)
             )
         }
     }
@@ -218,13 +210,13 @@ private fun RoutingCard(
     var target by remember { mutableStateOf(devices.firstOrNull()?.id ?: "") }
 
     BubbleCard(modifier = Modifier.fillMaxWidth()) {
-        Text("ROUTING TABLE", color = TextFaint, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+        Text("ROUTING TABLE", color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
         Spacer(modifier = Modifier.height(4.dp))
-        Text("Payments of an amount route to its Receiver.", color = TextWhite.copy(alpha = 0.5f), fontSize = 11.sp)
+        Text("Payments of an amount route to its Receiver.", color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.5f), fontSize = 11.sp)
         Spacer(modifier = Modifier.height(12.dp))
 
         if (routes.isEmpty()) {
-            Text("No routes yet — add one below.", color = TextFaint, fontSize = 12.sp)
+            Text("No routes yet — add one below.", color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f), fontSize = 12.sp)
         } else {
             routes.forEach { route ->
                 val deviceName = devices.firstOrNull { it.id == route.deviceId }?.name ?: route.deviceId
@@ -232,9 +224,9 @@ private fun RoutingCard(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Ksh ${route.amount}", color = TextWhite, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-                    Text("→ $deviceName", color = TextWhite.copy(alpha = 0.6f), fontSize = 12.sp, modifier = Modifier.weight(1f))
-                    Text("Remove", color = FailRed, fontSize = 12.sp, modifier = Modifier.clickable { onRemove(route.amount) })
+                    Text("Ksh ${route.amount}", color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                    Text("→ $deviceName", color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f), fontSize = 12.sp, modifier = Modifier.weight(1f))
+                    Text("Remove", color = DesignTokens.LocalBingwaRoles.current.error, fontSize = 12.sp, modifier = Modifier.clickable { onRemove(route.amount) })
                 }
             }
         }
@@ -245,18 +237,18 @@ private fun RoutingCard(
                 modifier = Modifier
                     .weight(1f)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(Bubble)
+                    .background(DesignTokens.LocalBingwaRoles.current.card)
                     .padding(horizontal = 12.dp, vertical = 10.dp)
             ) {
                 BasicTextField(
                     value = amount,
                     onValueChange = { amount = it.filter { ch -> ch.isDigit() } },
                     singleLine = true,
-                    textStyle = TextStyle(color = TextWhite, fontSize = 14.sp),
-                    cursorBrush = SolidColor(AccentBlue),
+                    textStyle = TextStyle(color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 14.sp),
+                    cursorBrush = SolidColor(DesignTokens.LocalBingwaRoles.current.brand),
                     modifier = Modifier.fillMaxWidth()
                 )
-                if (amount.isEmpty()) Text("Amount", color = TextFaint, fontSize = 14.sp)
+                if (amount.isEmpty()) Text("Amount", color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f), fontSize = 14.sp)
             }
             Spacer(modifier = Modifier.width(10.dp))
             LazyRow(modifier = Modifier.weight(1f)) {
@@ -264,12 +256,12 @@ private fun RoutingCard(
                     val sel = target == device.id
                     Text(
                         device.name,
-                        color = if (sel) AccentBlue else TextWhite,
+                        color = if (sel) DesignTokens.LocalBingwaRoles.current.brand else DesignTokens.LocalBingwaRoles.current.textPrimary,
                         fontSize = 12.sp,
                         modifier = Modifier
                             .padding(end = 6.dp)
                             .clip(RoundedCornerShape(10.dp))
-                            .background(if (sel) AccentBlue.copy(alpha = 0.16f) else Bubble)
+                            .background(if (sel) DesignTokens.LocalBingwaRoles.current.brand.copy(alpha = 0.16f) else DesignTokens.LocalBingwaRoles.current.card)
                             .clickable { target = device.id }
                             .padding(horizontal = 10.dp, vertical = 6.dp)
                     )
@@ -294,37 +286,37 @@ private fun TestPulseCard(result: String?, onPulse: (Int) -> Unit, onClear: () -
     var amount by remember { mutableStateOf("19") }
     BubbleCard(modifier = Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Rounded.Payments, contentDescription = null, tint = AccentBlue, modifier = Modifier.size(20.dp))
+            Icon(Icons.Rounded.Payments, contentDescription = null, tint = DesignTokens.LocalBingwaRoles.current.brand, modifier = Modifier.size(20.dp))
             Spacer(modifier = Modifier.width(8.dp))
-            Text("Test pulse", color = TextWhite, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+            Text("Test pulse", color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 15.sp, fontWeight = FontWeight.Bold)
         }
         Spacer(modifier = Modifier.height(4.dp))
-        Text("Fire a synthetic payment and watch it route + sync back.", color = TextWhite.copy(alpha = 0.5f), fontSize = 11.sp)
+        Text("Fire a synthetic payment and watch it route + sync back.", color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.5f), fontSize = 11.sp)
         Spacer(modifier = Modifier.height(12.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier = Modifier
                     .weight(1f)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(Bubble)
+                    .background(DesignTokens.LocalBingwaRoles.current.card)
                     .padding(horizontal = 12.dp, vertical = 10.dp)
             ) {
                 BasicTextField(
                     value = amount,
                     onValueChange = { amount = it.filter { ch -> ch.isDigit() } },
                     singleLine = true,
-                    textStyle = TextStyle(color = TextWhite, fontSize = 14.sp),
-                    cursorBrush = SolidColor(AccentBlue),
+                    textStyle = TextStyle(color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 14.sp),
+                    cursorBrush = SolidColor(DesignTokens.LocalBingwaRoles.current.brand),
                     modifier = Modifier.fillMaxWidth()
                 )
-                if (amount.isEmpty()) Text("Amount", color = TextFaint, fontSize = 14.sp)
+                if (amount.isEmpty()) Text("Amount", color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f), fontSize = 14.sp)
             }
             Spacer(modifier = Modifier.width(10.dp))
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .clip(RoundedCornerShape(12.dp))
-                    .background(AccentBlue)
+                    .background(DesignTokens.LocalBingwaRoles.current.brand)
                     .clickable { onPulse(amount.toIntOrNull() ?: 0) }
                     .padding(horizontal = 14.dp, vertical = 10.dp)
             ) {
@@ -336,7 +328,7 @@ private fun TestPulseCard(result: String?, onPulse: (Int) -> Unit, onClear: () -
         val r = result
         if (r != null) {
             Spacer(modifier = Modifier.height(10.dp))
-            Text(r, color = if (r.startsWith("Pulse OK")) TickGreen else FailRed, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+            Text(r, color = if (r.startsWith("Pulse OK")) DesignTokens.LocalBingwaRoles.current.success else DesignTokens.LocalBingwaRoles.current.error, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
         }
     }
 }

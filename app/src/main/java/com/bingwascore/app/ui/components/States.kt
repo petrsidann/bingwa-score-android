@@ -19,6 +19,7 @@ import androidx.compose.material.icons.rounded.Inbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -41,6 +42,7 @@ fun GlassEmptyState(
     action: (@Composable () -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
+    val roles = DesignTokens.LocalBingwaRoles.current
     Box(modifier = modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(vertical = DesignTokens.Spacing.Lg),
@@ -50,20 +52,20 @@ fun GlassEmptyState(
                 modifier = Modifier
                     .size(DesignTokens.Spacing.EmptyIconSize)
                     .clip(CircleShape)
-                    .background(DesignTokens.Color.Brand.Primary.copy(alpha = DesignTokens.Spacing.EmptyIconAlpha)),
+                    .background(roles.brand.copy(alpha = DesignTokens.Spacing.EmptyIconAlpha)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = DesignTokens.Color.Brand.Primary,
+                    tint = roles.brand,
                     modifier = Modifier.size(32.dp)
                 )
             }
             Spacer(modifier = Modifier.height(DesignTokens.Spacing.Md))
             Text(
                 text = title,
-                color = DesignTokens.Color.Ink,
+                color = roles.textPrimary,
                 fontSize = DesignTokens.Typography.Headline,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center
@@ -72,7 +74,7 @@ fun GlassEmptyState(
                 Spacer(modifier = Modifier.height(DesignTokens.Spacing.Xs))
                 Text(
                     text = message,
-                    color = DesignTokens.Color.Ink.copy(alpha = 0.7f),
+                    color = roles.textSecondary.copy(alpha = 0.7f),
                     fontSize = DesignTokens.Typography.Caption,
                     lineHeight = 18.sp,
                     textAlign = TextAlign.Center
@@ -102,6 +104,7 @@ fun GlassErrorState(
     onRetry: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val roles = DesignTokens.LocalBingwaRoles.current
     Box(modifier = modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(vertical = DesignTokens.Spacing.Lg),
@@ -111,13 +114,13 @@ fun GlassErrorState(
                 modifier = Modifier
                     .size(DesignTokens.Spacing.EmptyIconSize)
                     .clip(CircleShape)
-                    .background(DesignTokens.Color.Brand.Error.copy(alpha = DesignTokens.Spacing.EmptyIconAlpha)),
+                    .background(roles.error.copy(alpha = DesignTokens.Spacing.EmptyIconAlpha)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = DesignTokens.Color.Brand.Error,
+                    tint = roles.error,
                     modifier = Modifier.size(32.dp)
                 )
             }
@@ -138,11 +141,11 @@ fun GlassErrorState(
                     onClick = onRetry,
                     fillMaxWidth = false,
                     height = 44.dp,
-                    fill = DesignTokens.Color.Brand.Error
+                    fill = roles.brand
                 ) {
                     Text(
                         text = "Retry",
-                        color = Color.White,
+                        color = roles.onBrand,
                         fontSize = DesignTokens.Typography.Caption,
                         fontWeight = FontWeight.SemiBold
                     )

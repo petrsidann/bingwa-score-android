@@ -25,6 +25,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onSizeChanged
 import com.bingwascore.app.ui.theme.Motion
 import com.bingwascore.app.ui.theme.isPorcelain
+import com.bingwascore.app.ui.theme.DesignTokens
 
 /**
  * Moving white highlight that sweeps left→right infinitely. Apply to a balance
@@ -43,6 +44,7 @@ fun Modifier.shimmer(): Modifier {
     )
 
     val width = if (size.width > 0) size.width.toFloat() else 1f
+    val roles = DesignTokens.LocalBingwaRoles.current
 
     return this
         .onSizeChanged { size = it }
@@ -50,7 +52,7 @@ fun Modifier.shimmer(): Modifier {
             Brush.linearGradient(
                 colors = listOf(
                     Color.Transparent,
-                    if (isPorcelain) Color(0xFF0F172A).copy(alpha = 0.25f) else Color.White.copy(alpha = 0.35f),
+                    if (isPorcelain) roles.bg.copy(alpha = 0.25f) else roles.textPrimary.copy(alpha = 0.35f),
                     Color.Transparent
                 ),
                 // Highlight sweeps from off-screen-left to off-screen-right
@@ -78,13 +80,14 @@ fun ShimmerBlock(
     modifier: Modifier = Modifier,
     cornerRadius: Dp = 12.dp
 ) {
+    val roles = DesignTokens.LocalBingwaRoles.current
     Box(
         modifier = modifier
             .height(14.dp)
             .clip(RoundedCornerShape(cornerRadius))
             .background(
-                if (isPorcelain) Color(0xFF0F172A).copy(alpha = 0.06f)
-                else Color.White.copy(alpha = 0.08f)
+                if (isPorcelain) roles.bg.copy(alpha = 0.06f)
+                else roles.textPrimary.copy(alpha = 0.08f)
             )
             .shimmer()
     )
