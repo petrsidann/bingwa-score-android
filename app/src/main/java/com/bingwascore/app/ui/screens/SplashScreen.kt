@@ -48,12 +48,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.bingwascore.app.ui.brand.BrandWordmark
 import com.bingwascore.app.ui.components.Monogram
-import com.bingwascore.app.ui.theme.AccentBlue
-import com.bingwascore.app.ui.theme.BgBlack
+import com.bingwascore.app.ui.theme.DesignTokens
 import com.bingwascore.app.ui.theme.BingwaType
 import com.bingwascore.app.ui.theme.Motion
 import com.bingwascore.app.ui.theme.TextGrey
-import com.bingwascore.app.ui.theme.TextWhite
 import com.bingwascore.app.ui.theme.isPorcelain
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
@@ -74,10 +72,10 @@ object SplashBrand {
  * Stage 43 — the splash ink, per theme:
  * white ink on obsidian, #1E293B ink on dim porcelain.
  */
-internal fun splashInk(dark: Boolean): Color = if (dark) Color(0xFFFFFFFF) else SplashDimInk
+internal fun splashInk(roles: DesignTokens.Role.ThemeRoles): Color = roles.textPrimary
 
 /** Stage 43 — canvas color per theme: #0F172A on Obsidian, #EAF0F6 on Dim. */
-internal fun splashCanvas(dark: Boolean): Color = if (dark) ObsidianBg else SplashDimBg
+internal fun splashCanvas(roles: DesignTokens.Role.ThemeRoles): Color = roles.bg
 
 /**
  * Stage 21/43 — the resting halo behind the monogram.
@@ -85,12 +83,12 @@ internal fun splashCanvas(dark: Boolean): Color = if (dark) ObsidianBg else Spla
 internal fun splashGlowAlpha(dark: Boolean): Float = if (dark) 0.35f else 0.45f
 
 /** Stage 43 — radial glow color: #2563EB on Obsidian, pastel-blue on Dim. */
-internal fun splashGlowColor(dark: Boolean): Color = if (dark) Color(0xFF2563EB) else SplashDimPastelBlue
+internal fun splashGlowColor(roles: DesignTokens.Role.ThemeRoles): Color = roles.brand
 
 /** Stage 20 — soft blue radial glow behind the monogram, both themes. */
-internal val splashGlow: Brush
-    get() = Brush.radialGradient(
-        colors = listOf(AccentBlue.copy(alpha = 0.24f), Color.Transparent)
+internal fun splashGlow(roles: DesignTokens.Role.ThemeRoles): Brush =
+    Brush.radialGradient(
+        colors = listOf(roles.brand.copy(alpha = 0.24f), Color.Transparent)
     )
 
 /**
@@ -284,9 +282,10 @@ private fun SplashStageSnap(
     screenAlpha: Float,
     skipReady: Boolean
 ) {
-    val canvasBg = splashCanvas(isDark)
-    val glowColor = splashGlowColor(isDark)
-    val ink = splashInk(dark = isDark)
+    val roles = DesignTokens.LocalBingwaRoles.current
+    val canvasBg = splashCanvas(roles)
+    val glowColor = splashGlowColor(roles)
+    val ink = splashInk(roles)
     val density = LocalDensity.current.density
 
     Box(
@@ -350,7 +349,7 @@ private fun SplashStageSnap(
             Text(
                 text = SplashBrand.TAGLINE,
                 // STAGE 44 — Dim tagline ink #475569 (slate-600); Obsidian slate-400.
-                color = if (isDark) Color(0xFF94A3B8) else Color(0xFF475569),
+                color = if (isDark) roles.textSecondary else roles.border,
                 fontSize = BingwaType.Footnote,
                 fontWeight = FontWeight.Medium,
                 modifier = Modifier
@@ -434,7 +433,7 @@ internal fun wordmarkAlphas(text: String, progress: Float): List<Float> {
  * letter, so a refactor that sliced the text fails the regression test.
  */
 @Composable
-private fun StaggeredWordmark(text: String, clock: Float, ink: Color = TextWhite) {
+private fun StaggeredWordmark(text: String, clock: Float, ink: Color = Color.White) {
     // The clock runs across the wordmark window; map it onto 0..1.
     val windowMillis = Motion.SPLASH_TAGLINE_START - Motion.SPLASH_WORDMARK_START
     val elapsed = (clock * windowMillis).toInt()
@@ -474,7 +473,7 @@ private fun DrawScope.drawTravelingTip(fraction: Float, ink: Color) {
     val zoom = size.minDimension / 108f
     drawCircle(
         brush = Brush.radialGradient(
-            colors = listOf(ink, AccentBlue.copy(alpha = 0.9f), Color.Transparent),
+            colors = listOf(ink, ink.copy(alpha = 0.9f), Color.Transparent),
             center = Offset(pos.x * zoom, pos.y * zoom),
             radius = 14f * zoom
         ),
@@ -491,7 +490,7 @@ private fun DrawScope.drawTravelingTip(fraction: Float, ink: Color) {
  * (a rectangle sweep leaves a visible box edge on the canvas) and it burns
  * only while the glow pulses.
  */
-private fun DrawScope.drawMonogram(fraction: Float, pulse: Float = 0f, ink: Color = TextWhite) {
+private fun DrawScope.drawMonogram(fraction: Float, pulse: Float = 0f, ink: Color = Color.White) {
     val measure = PathMeasure().apply { setPath(Monogram.path, false) }
     val segment = Path()
     measure.getSegment(0f, measure.length * fraction.coerceIn(0f, 1f), segment, true)
@@ -513,11 +512,11 @@ private fun DrawScope.drawMonogram(fraction: Float, pulse: Float = 0f, ink: Colo
             drawPath(
                 path = segment,
                 brush = Brush.linearGradient(
-                    colors = listOf(
-                        Color.Transparent,
-                        AccentBlue.copy(alpha = 0.9f * pulse),
-                        Color.Transparent
-                    ),
+colors = listOf(
+                    Color.Transparent,
+                    ink.copy(alpha = 0.9f * pulse),
+                    Color.Transparent
+                ),
                     start = Offset(0f, 108f),
                     end = Offset(108f, 0f)
                 ),

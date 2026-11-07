@@ -35,7 +35,7 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import com.bingwascore.app.ui.theme.AccentBlue
+import com.bingwascore.app.ui.theme.DesignTokens
 import com.bingwascore.app.ui.theme.IosMaterialFill
 import com.bingwascore.app.ui.theme.isPorcelain
 
@@ -71,7 +71,7 @@ private val paintSetRenderEffect: java.lang.reflect.Method? by lazy {
 
 /** Compose-only vibrancy tint (kept out of MaterialSpec so JVM tests stay pure). */
 @Composable
-internal fun materialVibrancyTint(): Color = AccentBlue.copy(alpha = MaterialSpec.VIBRANCY_ALPHA)
+internal fun materialVibrancyTint(): Color = DesignTokens.LocalBingwaRoles.current.brand.copy(alpha = MaterialSpec.VIBRANCY_ALPHA)
 
 /** True when the running device can render the real backdrop-blur chain. */
 val canMaterialBlur: Boolean get() = MaterialSpec.canBlur(Build.VERSION.SDK_INT)

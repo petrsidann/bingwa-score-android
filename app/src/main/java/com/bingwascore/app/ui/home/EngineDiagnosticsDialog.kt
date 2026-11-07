@@ -30,11 +30,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bingwascore.app.services.EngineDiagnostics
-import com.bingwascore.app.ui.theme.AccentBlue
-import com.bingwascore.app.ui.theme.Bubble
+import com.bingwascore.app.ui.theme.DesignTokens
 import com.bingwascore.app.ui.theme.StatusColors
-import com.bingwascore.app.ui.theme.TextGrey
-import com.bingwascore.app.ui.theme.TextWhite
 import com.bingwascore.app.ui.components.GlassDialog
 
 /**
@@ -79,8 +76,8 @@ fun EngineDiagnosticsDialog(onDismiss: () -> Unit) {
                         )
                         Spacer(modifier = Modifier.width(10.dp))
                         Column {
-                            Text(check.name, color = TextWhite, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                            Text(check.detail, color = TextGrey, fontSize = 11.sp)
+                            Text(check.name, color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                            Text(check.detail, color = DesignTokens.LocalBingwaRoles.current.textSecondary, fontSize = 11.sp)
                         }
                     }
                 }
@@ -88,7 +85,7 @@ fun EngineDiagnosticsDialog(onDismiss: () -> Unit) {
                 Text(
                     pingLine ?: if (pingStarted) "Silent USSD ping running…" else
                         "Run a silent *144# ping to prove the radio answers.",
-                    color = if (pingLine?.contains("PASS") == true) StatusColors.Success else TextGrey,
+                    color = if (pingLine?.contains("PASS") == true) StatusColors.Success else DesignTokens.LocalBingwaRoles.current.textSecondary,
                     fontSize = 12.sp
                 )
                 if (!pingStarted) {
@@ -97,7 +94,7 @@ fun EngineDiagnosticsDialog(onDismiss: () -> Unit) {
                         EngineDiagnostics.pingUssd(context) { _, ok, detail ->
                             pingLine = (if (ok) "USSD PASS" else "USSD FAIL") + " — $detail"
                         }
-                    }) { Text("Run USSD ping", color = AccentBlue, fontSize = 14.sp) }
+                    }) { Text("Run USSD ping", color = DesignTokens.LocalBingwaRoles.current.brand, fontSize = 14.sp) }
                 }
             }
         },

@@ -138,19 +138,12 @@ import androidx.compose.material.icons.rounded.Campaign
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.EmojiEvents
 import com.bingwascore.app.ui.theme.DesignTokens
-import com.bingwascore.app.ui.theme.Hairline
-import com.bingwascore.app.ui.theme.Bubble
-import com.bingwascore.app.ui.theme.PendGrey
 import com.bingwascore.app.ui.theme.BingwaType
-import com.bingwascore.app.ui.theme.TextGrey
 import com.bingwascore.app.ui.showcase.DemoChip
-import com.bingwascore.app.ui.theme.AccentBlue
 import com.bingwascore.app.ui.theme.Motion
-import com.bingwascore.app.ui.theme.BgBlack
 import com.bingwascore.app.ui.theme.DisplayModeState
 import com.bingwascore.app.domain.ThemeMode
 import com.bingwascore.app.ui.theme.Raised
-import com.bingwascore.app.ui.theme.TextWhite
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -356,7 +349,7 @@ fun MainScreen(remoteHttpClient: RemoteHttpClient) {
         CompositionLocalProvider(LocalGlassBackdrop provides glassBackdrop) {
             Scaffold(
                 modifier = Modifier.fillMaxSize(),
-                containerColor = BgBlack,
+                containerColor = DesignTokens.LocalBingwaRoles.current.bg,
                 contentWindowInsets = WindowInsets.safeDrawing.only(
                     WindowInsetsSides.Top + WindowInsetsSides.Horizontal
                 ),
@@ -416,7 +409,7 @@ fun MainScreen(remoteHttpClient: RemoteHttpClient) {
                 // Stage 10 — flat canvas, no orbs: grouped cards carry the design.
                 // Stage 18 — glassSource records this content as the backdrop the
                 // pill/drawer blur passes replay (transactions move blurred behind).
-                Box(modifier = Modifier.glassSource(glassBackdrop).fillMaxSize().background(BgBlack)) {
+                Box(modifier = Modifier.glassSource(glassBackdrop).fillMaxSize().background(DesignTokens.LocalBingwaRoles.current.bg)) {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()

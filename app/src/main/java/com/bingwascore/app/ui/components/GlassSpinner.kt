@@ -32,8 +32,10 @@ import com.bingwascore.app.ui.theme.DesignTokens
 @Composable
 fun GlassSpinner(
     modifier: Modifier = Modifier,
-    color: Color = DesignTokens.Color.Brand.Primary
+    color: Color = Color.Unspecified,
 ) {
+    val roles = DesignTokens.LocalBingwaRoles.current
+    val resolvedColor = if (color == Color.Unspecified) roles.brand else color
     val transition = rememberInfiniteTransition()
     val rotation by transition.animateFloat(
         initialValue = 0f,
@@ -72,7 +74,7 @@ fun GlassSpinner(
             val cy = size.height / 2f
             val radius = (size.minDimension - strokeWidth) / 2f
             drawArc(
-                brush = SolidColor(color.copy(alpha = glow)),
+                brush = SolidColor(resolvedColor.copy(alpha = glow)),
                 startAngle = -90f,
                 sweepAngle = 270f,
                 useCenter = false,

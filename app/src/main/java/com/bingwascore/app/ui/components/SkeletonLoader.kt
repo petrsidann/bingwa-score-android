@@ -62,9 +62,9 @@ fun SkeletonLoader(
             .background(
                 Brush.linearGradient(
                     colors = listOf(
-                        DesignTokens.Color.Obsidian.Card,
-                        DesignTokens.Color.Obsidian.Elevated,
-                        DesignTokens.Color.Obsidian.Card
+                        DesignTokens.LocalBingwaRoles.current.card,
+                        DesignTokens.LocalBingwaRoles.current.elevated,
+                        DesignTokens.LocalBingwaRoles.current.card
                     ),
                     start = Offset((x * 2f - 1f) * width, 0f),
                     end = Offset(x * 2f * width, 0f)

@@ -40,13 +40,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bingwascore.app.ui.components.BubbleCard
-import com.bingwascore.app.ui.theme.AccentBlue
+import com.bingwascore.app.ui.theme.DesignTokens
 import com.bingwascore.app.ui.theme.ChartBlue
 import com.bingwascore.app.ui.theme.Hairline
 import com.bingwascore.app.ui.theme.Motion
 import com.bingwascore.app.ui.theme.Raised
-import com.bingwascore.app.ui.theme.TextDim
-import com.bingwascore.app.ui.theme.TextWhite
 import com.bingwascore.app.util.rememberHaptics
 import kotlinx.coroutines.delay
 import java.util.Calendar
@@ -125,14 +123,14 @@ fun CommissionChartCard(series: List<Double>) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 "Commission this week",
-                color = TextWhite,
+                color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.weight(1f)
             )
             Text(
                 "Ksh ${money(series.sum())}",
-                color = AccentBlue,
+                color = DesignTokens.LocalBingwaRoles.current.brand,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -146,8 +144,8 @@ fun CommissionChartCard(series: List<Double>) {
                 verticalArrangement = Arrangement.SpaceBetween,
                 horizontalAlignment = Alignment.End
             ) {
-                Text(formatShort(series.maxOrNull() ?: 0.0), color = TextDim, fontSize = 10.sp)
-                Text("0", color = TextDim, fontSize = 10.sp)
+                Text(formatShort(series.maxOrNull() ?: 0.0), color = DesignTokens.LocalBingwaRoles.current.textSecondary, fontSize = 10.sp)
+                Text("0", color = DesignTokens.LocalBingwaRoles.current.textSecondary, fontSize = 10.sp)
             }
             Spacer(modifier = Modifier.width(8.dp))
             SmoothCommissionCurve(
@@ -328,11 +326,11 @@ private fun DayLetter(
 ) {
     val shape = RoundedCornerShape(50)
     val fill = when {
-        isToday -> AccentBlue
-        isSelected -> AccentBlue.copy(alpha = 0.22f)
+        isToday -> DesignTokens.LocalBingwaRoles.current.brand
+        isSelected -> DesignTokens.LocalBingwaRoles.current.brand.copy(alpha = 0.22f)
         else -> Color.Transparent
     }
-    val ink = if (isToday || isSelected) TextWhite else TextDim
+    val ink = if (isToday || isSelected) DesignTokens.LocalBingwaRoles.current.textPrimary else DesignTokens.LocalBingwaRoles.current.textSecondary
 
     Box(
         contentAlignment = Alignment.Center,
@@ -342,7 +340,7 @@ private fun DayLetter(
             .background(fill)
             .then(
                 if (isSelected && !isToday) {
-                    Modifier.border(1.dp, AccentBlue.copy(alpha = 0.6f), shape)
+                    Modifier.border(1.dp, DesignTokens.LocalBingwaRoles.current.brand.copy(alpha = 0.6f), shape)
                 } else {
                     Modifier
                 }
@@ -376,7 +374,7 @@ private fun TooltipBubble(text: String, modifier: Modifier = Modifier) {
     ) {
         Text(
             text = text,
-            color = TextWhite,
+            color = DesignTokens.LocalBingwaRoles.current.textPrimary,
             fontSize = 10.sp,
             fontWeight = FontWeight.SemiBold
         )

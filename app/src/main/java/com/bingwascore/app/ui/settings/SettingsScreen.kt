@@ -156,8 +156,9 @@ fun PremiumToggle(
     val trackHeightPx = with(density) { trackHeight.toPx() }
     val shadowY = with(density) { DesignTokens.Elevation.Level1.first().offsetY.toPx() }
     val shadowColor = DesignTokens.Elevation.Level1.first().color
-    val borderColor = DesignTokens.Color.Obsidian.Border.copy(alpha = 0.5f)
+    val borderColor = DesignTokens.LocalBingwaRoles.current.border.copy(alpha = 0.5f)
     val trackShape = RoundedCornerShape(DesignTokens.Shape.RadiusFull)
+    val brand = DesignTokens.LocalBingwaRoles.current.brand
 
     Box(
         modifier = modifier
@@ -169,7 +170,7 @@ fun PremiumToggle(
                 onCheckedChange(!checked)
             })
             .drawBehind {
-                val fill = if (checked) DesignTokens.Color.Brand.Primary else Color.Transparent
+                val fill = if (checked) brand else Color.Transparent
                 drawRoundRect(
                     brush = SolidColor(fill),
                     cornerRadius = CornerRadius(radiusPx, radiusPx)
@@ -180,7 +181,7 @@ fun PremiumToggle(
             modifier = Modifier
                 .size(thumbSize, thumbSize)
                 .clip(CircleShape)
-                .background(DesignTokens.Color.Ink)
+                .background(DesignTokens.LocalBingwaRoles.current.textPrimary)
                 .graphicsLayer {
                     translationX = with(density) { thumbX.toPx() }
                     translationY = with(density) { ((trackHeight - thumbSize) / 2).toPx() }
@@ -237,7 +238,7 @@ private fun GroupSeparator() {
             .fillMaxWidth()
             .padding(horizontal = 20.dp)
             .height(1.dp)
-            .background(DesignTokens.Color.Obsidian.Border.copy(alpha = 0.1f))
+            .background(DesignTokens.LocalBingwaRoles.current.border.copy(alpha = 0.1f))
     )
 }
 
@@ -246,7 +247,7 @@ private fun GroupSeparator() {
 private fun SectionLabel(label: String) {
     Text(
         text = label.uppercase(),
-        color = DesignTokens.Color.Ink.copy(alpha = 0.4f),
+        color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.4f),
         fontSize = 11.sp,
         fontWeight = FontWeight.SemiBold,
         modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp)
@@ -266,10 +267,10 @@ private fun SettingsSwitchRow(
 ) {
     PressableGlassRow(onClick = { onCheckedChange(!checked) }) {
         Column(modifier = Modifier.weight(1f)) {
-            Text(title, color = DesignTokens.Color.Ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+            Text(title, color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
             Text(
                 subtitle,
-                color = DesignTokens.Color.Ink.copy(alpha = 0.5f),
+                color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.5f),
                 fontSize = 11.sp
             )
         }
@@ -297,21 +298,21 @@ private fun SettingsRow(
             modifier = Modifier
                 .size(40.dp)
                 .clip(CircleShape)
-                .background(DesignTokens.Color.Brand.Primary.copy(alpha = 0.12f)),
+                .background(DesignTokens.LocalBingwaRoles.current.brand.copy(alpha = 0.12f)),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = DesignTokens.Color.Brand.Primary,
+                tint = DesignTokens.LocalBingwaRoles.current.brand,
                 modifier = Modifier.size(20.dp)
             )
         }
         Spacer(modifier = Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(title, color = DesignTokens.Color.Ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+            Text(title, color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
             Spacer(modifier = Modifier.height(1.dp))
-            Text(subtitle, color = DesignTokens.Color.Ink.copy(alpha = 0.5f), fontSize = 11.sp)
+            Text(subtitle, color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.5f), fontSize = 11.sp)
         }
         Spacer(modifier = Modifier.width(8.dp))
         if (trailing != null) {
@@ -320,7 +321,7 @@ private fun SettingsRow(
             Icon(
                 imageVector = Icons.Rounded.ChevronRight,
                 contentDescription = null,
-                tint = DesignTokens.Color.Obsidian.Ink.copy(alpha = 0.4f),
+                tint = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.4f),
                 modifier = Modifier.size(20.dp)
             )
         }
@@ -333,12 +334,12 @@ private fun SettingsRow(
 private fun DevChip() {
     Text(
         text = "DEV",
-        color = DesignTokens.Color.Ink,
+        color = DesignTokens.LocalBingwaRoles.current.textPrimary,
         fontSize = 10.sp,
         fontWeight = FontWeight.Bold,
         modifier = Modifier
             .clip(CircleShape)
-            .background(DesignTokens.Color.Brand.Primary)
+            .background(DesignTokens.LocalBingwaRoles.current.brand)
             .padding(horizontal = 8.dp, vertical = 3.dp)
     )
 }
@@ -375,7 +376,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
             modifier = Modifier
                 .fillMaxSize()
                 .screenEnter()
-                .background(DesignTokens.Color.Bg)
+                .background(DesignTokens.LocalBingwaRoles.current.bg)
         ) {
             PageHeader(title = page.title, onBack = { currentPage = null })
             Column(
@@ -404,7 +405,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
             modifier = Modifier
                 .fillMaxSize()
                 .screenEnter()
-                .background(DesignTokens.Color.Bg)
+                .background(DesignTokens.LocalBingwaRoles.current.bg)
                 .verticalScroll(rememberScrollState())
         ) {
             Column(
@@ -414,13 +415,13 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
             ) {
                 Text(
                     text = "Settings",
-                    color = DesignTokens.Color.Ink,
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                     fontSize = DesignTokens.Typography.Headline,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
                     text = "Tune how Bingwa Score behaves",
-                    color = DesignTokens.Color.Ink.copy(alpha = 0.5f),
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.5f),
                     fontSize = DesignTokens.Typography.Caption
                 )
             }
@@ -631,7 +632,7 @@ private fun ThemeIconPreview(isDark: Boolean) {
         modifier = Modifier
             .size(28.dp)
             .clip(CircleShape)
-            .background(DesignTokens.Color.Brand.Primary.copy(alpha = 0.12f))
+            .background(DesignTokens.LocalBingwaRoles.current.brand.copy(alpha = 0.12f))
             .clickable(onClick = {
                 rotation = if (rotation == 0f) 180f else 0f
             })
@@ -641,7 +642,7 @@ private fun ThemeIconPreview(isDark: Boolean) {
         Icon(
             imageVector = icon,
             contentDescription = if (isDark) "Dark theme" else "Light theme",
-            tint = DesignTokens.Color.Brand.Primary,
+            tint = DesignTokens.LocalBingwaRoles.current.brand,
             modifier = Modifier.size(18.dp)
         )
     }
@@ -660,7 +661,7 @@ private fun CannotCheckDialog(
             Text(
                 text = "Bingwa Score can't reach the release server at the moment. " +
                     "Check your connection and try again.",
-                color = DesignTokens.Color.Ink.copy(alpha = 0.6f),
+                color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f),
                 fontSize = 13.sp
             )
         },
@@ -684,7 +685,7 @@ private fun CrashReportDialog(
             val body = report ?: "No crash report on file yet."
             Text(
                 text = body,
-                color = DesignTokens.Color.Ink.copy(alpha = 0.7f),
+                color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.7f),
                 fontSize = 12.sp,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -714,7 +715,7 @@ private fun PageHeader(title: String, onBack: () -> Unit) {
         Icon(
             imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
             contentDescription = "Back",
-            tint = DesignTokens.Color.Ink,
+            tint = DesignTokens.LocalBingwaRoles.current.textPrimary,
             modifier = Modifier
                 .clip(CircleShape)
                 .clickable(onClick = onBack)
@@ -722,7 +723,7 @@ private fun PageHeader(title: String, onBack: () -> Unit) {
                 .size(22.dp)
         )
         Spacer(modifier = Modifier.width(6.dp))
-        Text(title, color = DesignTokens.Color.Ink, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        Text(title, color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 20.sp, fontWeight = FontWeight.Bold)
     }
 }
 
@@ -734,7 +735,7 @@ private fun PageHeader(title: String, onBack: () -> Unit) {
 private fun PageTitle(title: String) {
     Text(
         text = title,
-        color = DesignTokens.Color.Ink,
+        color = DesignTokens.LocalBingwaRoles.current.textPrimary,
         fontSize = 16.sp,
         fontWeight = FontWeight.SemiBold,
         modifier = Modifier.padding(bottom = 8.dp)
@@ -745,7 +746,7 @@ private fun PageTitle(title: String) {
 private fun PageIntro(text: String) {
     Text(
         text = text,
-        color = DesignTokens.Color.Ink.copy(alpha = 0.55f),
+        color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.55f),
         fontSize = 12.sp,
         modifier = Modifier.padding(bottom = 12.dp)
     )
@@ -757,7 +758,7 @@ private fun PolicyBody(title: String, paragraphs: List<String>) {
     BubbleCard(modifier = Modifier.fillMaxWidth()) {
         paragraphs.forEachIndexed { index, paragraph ->
             if (index > 0) Spacer(modifier = Modifier.height(10.dp))
-            Text(paragraph, color = DesignTokens.Color.Ink.copy(alpha = 0.7f), fontSize = 13.sp)
+            Text(paragraph, color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.7f), fontSize = 13.sp)
         }
     }
 }
@@ -778,14 +779,14 @@ private fun AppearancePage(viewModel: SettingsViewModel) {
         ) {
             Text(
                 text = "Theme",
-                color = DesignTokens.Color.Ink,
+                color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.SemiBold
             )
             Spacer(modifier = Modifier.width(12.dp))
             Text(
                 text = themeMode.label,
-                color = DesignTokens.Color.Ink.copy(alpha = 0.5f),
+                color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.5f),
                 fontSize = 13.sp
             )
             Spacer(modifier = Modifier.weight(1f))
@@ -838,22 +839,22 @@ private fun ServerPage(viewModel: SettingsViewModel) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
-                    .background(DesignTokens.Color.Card)
-                    .border(1.dp, if (errorState.value != null) DesignTokens.Color.Brand.Error else DesignTokens.Color.Border, RoundedCornerShape(16.dp))
+                    .background(DesignTokens.LocalBingwaRoles.current.card)
+                    .border(1.dp, if (errorState.value != null) DesignTokens.LocalBingwaRoles.current.error else DesignTokens.LocalBingwaRoles.current.border, RoundedCornerShape(16.dp))
                     .padding(horizontal = 14.dp, vertical = 13.dp)
             ) {
                 BasicTextField(
                     value = input,
                     onValueChange = { input = it },
                     singleLine = true,
-                    textStyle = TextStyle(color = DesignTokens.Color.Ink, fontSize = 14.sp),
-                    cursorBrush = SolidColor(DesignTokens.Color.Brand.Primary),
+                    textStyle = TextStyle(color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 14.sp),
+                    cursorBrush = SolidColor(DesignTokens.LocalBingwaRoles.current.brand),
                     modifier = Modifier.fillMaxWidth()
                 )
                 if (input.isEmpty()) {
                     Text(
                         text = "https://api.example.com",
-                        color = DesignTokens.Color.Ink.copy(alpha = 0.5f),
+                        color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.5f),
                         fontSize = 14.sp
                     )
                 }
@@ -861,7 +862,7 @@ private fun ServerPage(viewModel: SettingsViewModel) {
             if (errorState.value != null) {
                 Text(
                     text = errorState.value!!,
-                    color = DesignTokens.Color.Brand.Error,
+                    color = DesignTokens.LocalBingwaRoles.current.error,
                     fontSize = 12.sp,
                     modifier = Modifier.padding(horizontal = 14.dp).padding(top = 6.dp)
                 )
@@ -880,12 +881,12 @@ private fun ServerPage(viewModel: SettingsViewModel) {
                 input = serverUrl
                 viewModel.resetServerUrl()
             }) {
-                Text("Reset to default", color = DesignTokens.Color.Brand.Primary, fontWeight = FontWeight.SemiBold)
+                Text("Reset to default", color = DesignTokens.LocalBingwaRoles.current.brand, fontWeight = FontWeight.SemiBold)
             }
             Spacer(modifier = Modifier.height(10.dp))
             Text(
                 text = "Effective URL: $effectiveUrl",
-                color = DesignTokens.Color.Ink.copy(alpha = 0.5f),
+                color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.5f),
                 fontSize = 12.sp
             )
         }
@@ -937,15 +938,15 @@ private fun SimulatePaymentPage(viewModel: SettingsViewModel) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = "DEV",
-                color = DesignTokens.Color.Bg,
+                color = DesignTokens.LocalBingwaRoles.current.bg,
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.clip(CircleShape).background(DesignTokens.Color.Brand.Primary).padding(horizontal = 8.dp, vertical = 3.dp)
+                modifier = Modifier.clip(CircleShape).background(DesignTokens.LocalBingwaRoles.current.brand).padding(horizontal = 8.dp, vertical = 3.dp)
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = "Test Drive",
-                color = DesignTokens.Color.Ink,
+                color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.SemiBold
             )
@@ -953,7 +954,7 @@ private fun SimulatePaymentPage(viewModel: SettingsViewModel) {
         Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = "Phone, payer name and amount become a fake \"received from\" SMS. The engine matches an offer, dials, updates status and replies — exactly like a real payment.",
-            color = DesignTokens.Color.Ink.copy(alpha = 0.55f),
+            color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.55f),
             fontSize = 12.sp
         )
         Spacer(modifier = Modifier.height(14.dp))
@@ -973,7 +974,7 @@ private fun SimulatePaymentPage(viewModel: SettingsViewModel) {
             Spacer(modifier = Modifier.height(12.dp))
             Text(
                 text = it,
-                color = if (simulateFailed) DesignTokens.Color.Brand.Error else DesignTokens.Color.Brand.Success,
+                color = if (simulateFailed) DesignTokens.LocalBingwaRoles.current.error else DesignTokens.LocalBingwaRoles.current.success,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold
             )
@@ -988,20 +989,20 @@ private fun SimulateField(value: String, onValueChange: (String) -> Unit, hint: 
         modifier = Modifier
             .fillMaxWidth()
             .clip(shape)
-            .background(DesignTokens.Color.Card)
-            .border(1.dp, DesignTokens.Color.Border, shape)
+            .background(DesignTokens.LocalBingwaRoles.current.card)
+            .border(1.dp, DesignTokens.LocalBingwaRoles.current.border, shape)
             .padding(horizontal = 14.dp, vertical = 13.dp)
     ) {
         BasicTextField(
             value = value,
             onValueChange = onValueChange,
             singleLine = true,
-            textStyle = TextStyle(color = DesignTokens.Color.Ink, fontSize = 14.sp),
-            cursorBrush = SolidColor(DesignTokens.Color.Brand.Primary),
+            textStyle = TextStyle(color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 14.sp),
+            cursorBrush = SolidColor(DesignTokens.LocalBingwaRoles.current.brand),
             modifier = Modifier.fillMaxWidth()
         )
         if (value.isEmpty()) {
-            Text(hint, color = DesignTokens.Color.Ink.copy(alpha = 0.5f), fontSize = 14.sp)
+            Text(hint, color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.5f), fontSize = 14.sp)
         }
     }
 }
@@ -1037,11 +1038,11 @@ private fun BackupRestorePage(viewModel: SettingsViewModel) {
     PageIntro("Export your transactions, offers, customers and auto-replies to a JSON file, or restore them later. Restoring replaces all current data.")
 
     BubbleCard(modifier = Modifier.fillMaxWidth()) {
-        Text("Export", color = DesignTokens.Color.Ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+        Text("Export", color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
         Spacer(modifier = Modifier.height(2.dp))
         Text(
             text = "Save all your app data to a JSON file in Bingwa Score/backups.",
-            color = DesignTokens.Color.Ink.copy(alpha = 0.55f),
+            color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.55f),
             fontSize = 12.sp
         )
         Spacer(modifier = Modifier.height(14.dp))
@@ -1061,11 +1062,11 @@ private fun BackupRestorePage(viewModel: SettingsViewModel) {
     Spacer(modifier = Modifier.height(12.dp))
 
     BubbleCard(modifier = Modifier.fillMaxWidth()) {
-        Text("Import", color = DesignTokens.Color.Ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+        Text("Import", color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
         Spacer(modifier = Modifier.height(2.dp))
         Text(
             text = "Restore from a previously exported JSON backup. This clears current data first.",
-            color = DesignTokens.Color.Ink.copy(alpha = 0.55f),
+            color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.55f),
             fontSize = 12.sp
         )
         Spacer(modifier = Modifier.height(14.dp))
@@ -1079,7 +1080,7 @@ private fun BackupRestorePage(viewModel: SettingsViewModel) {
         Spacer(modifier = Modifier.height(12.dp))
         Text(
             text = result,
-            color = if (result.contains("successful") || result.contains("saved")) DesignTokens.Color.Brand.Success else DesignTokens.Color.Ink,
+            color = if (result.contains("successful") || result.contains("saved")) DesignTokens.LocalBingwaRoles.current.success else DesignTokens.LocalBingwaRoles.current.textPrimary,
             fontSize = 13.sp,
             fontWeight = FontWeight.SemiBold
         )
@@ -1110,7 +1111,7 @@ private fun UpdateResultSheet(
         ) {
             Text(
                 text = if (state.upToDate) "You're up to date" else "Update available",
-                color = DesignTokens.Color.Ink,
+                color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                 fontWeight = FontWeight.Bold,
                 fontSize = DesignTokens.Typography.Subhead
             )
@@ -1131,7 +1132,7 @@ private fun UpdateResultSheet(
                         }
                     }
                 },
-                color = DesignTokens.Color.Ink.copy(alpha = 0.7f),
+                color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.7f),
                 fontSize = DesignTokens.Typography.Body
             )
             Spacer(modifier = Modifier.height(20.dp))
@@ -1171,18 +1172,18 @@ private fun AboutPage(viewModel: SettingsViewModel) {
     PageTitle("About")
     PageIntro("What Bingwa Score is and which build is installed.")
     BubbleCard(modifier = Modifier.fillMaxWidth()) {
-        Text("Bingwa Score", color = DesignTokens.Color.Ink, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+        Text("Bingwa Score", color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 18.sp, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(2.dp))
         Text(
             text = "Version ${viewModel.appVersion}",
-            color = DesignTokens.Color.Ink.copy(alpha = 0.5f),
+            color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.5f),
             fontSize = 12.sp
         )
         Spacer(modifier = Modifier.height(10.dp))
         Text(
             text = "Bingwa Score helps airtime agents sell Safaricom bundles faster: one-tap dialing, " +
                 "auto renewals, smart follow-up and commission tracking — all on your phone.",
-            color = DesignTokens.Color.Ink.copy(alpha = 0.6f),
+            color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f),
             fontSize = 13.sp
         )
     }
@@ -1234,16 +1235,16 @@ private fun ShowcaseActionRow(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = title,
-                    color = DesignTokens.Color.Ink,
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold
                 )
-                Text(subtitle, color = DesignTokens.Color.Ink.copy(alpha = 0.6f), fontSize = 12.sp)
+                Text(subtitle, color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f), fontSize = 12.sp)
             }
             if (destructive) {
                 Text(
                     text = "Exit",
-                    color = DesignTokens.Color.Brand.Error,
+                    color = DesignTokens.LocalBingwaRoles.current.error,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -1276,13 +1277,13 @@ private fun ShowcasePage() {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = "Demo data + live simulator",
-                    color = DesignTokens.Color.Ink,
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(
                     text = if (enabled) "On — using ${DbNameHolder.DEMO_DB}" else "Off — using ${DbNameHolder.REAL_DB}",
-                    color = DesignTokens.Color.Ink.copy(alpha = 0.5f),
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.5f),
                     fontSize = 12.sp
                 )
             }
@@ -1327,7 +1328,7 @@ private fun ShowcasePage() {
     Text(
         text = "Demo traffic is generated on this device only: no USSD is dialled, no " +
             "SMS is sent, and nothing leaves the phone.",
-        color = DesignTokens.Color.Ink.copy(alpha = 0.5f),
+        color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.5f),
         fontSize = 12.sp
     )
 
@@ -1340,7 +1341,7 @@ private fun ShowcasePage() {
                 Text(
                     text = "Showcase Mode switches to a different database, so Bingwa Score " +
                         "needs to restart before the change takes effect.",
-                    color = DesignTokens.Color.Ink.copy(alpha = 0.7f),
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.7f),
                     fontSize = 14.sp
                 )
             },
@@ -1382,7 +1383,7 @@ fun FirstLaunchShowcaseOffer(onDecided: () -> Unit) {
                 text = "Showcase Mode fills a separate demo database with customers, offers " +
                     "and transactions, then keeps them moving while you watch. Your " +
                     "real data stays untouched and you can switch off any time.",
-                color = DesignTokens.Color.Ink.copy(alpha = 0.7f),
+                color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.7f),
                 fontSize = 14.sp
             )
         },
@@ -1409,16 +1410,16 @@ private fun OptionCard(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(title, color = DesignTokens.Color.Ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                Text(title, color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                 Spacer(modifier = Modifier.height(2.dp))
-                Text(description, color = DesignTokens.Color.Ink.copy(alpha = 0.55f), fontSize = 12.sp)
+                Text(description, color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.55f), fontSize = 12.sp)
             }
             Spacer(modifier = Modifier.width(12.dp))
             if (selected) {
                 Icon(
                     imageVector = Icons.Rounded.CheckCircle,
                     contentDescription = "Selected",
-                    tint = DesignTokens.Color.Brand.Primary,
+                    tint = DesignTokens.LocalBingwaRoles.current.brand,
                     modifier = Modifier.size(22.dp)
                 )
             } else {
@@ -1426,7 +1427,7 @@ private fun OptionCard(
                     modifier = Modifier
                         .size(22.dp)
                         .clip(CircleShape)
-                        .background(DesignTokens.Color.Card)
+                        .background(DesignTokens.LocalBingwaRoles.current.card)
                 )
             }
         }

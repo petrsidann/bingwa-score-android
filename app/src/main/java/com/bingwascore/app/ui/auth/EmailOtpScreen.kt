@@ -40,14 +40,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bingwascore.app.data.auth.AuthConstants
 import com.bingwascore.app.ui.components.BubbleCard
 import com.bingwascore.app.ui.components.PrimaryButton
-import com.bingwascore.app.ui.theme.AccentBlue
-import com.bingwascore.app.ui.theme.TickGreen
-import com.bingwascore.app.ui.theme.FailRed
-import com.bingwascore.app.ui.theme.Hairline
-import com.bingwascore.app.ui.theme.Bubble
-import com.bingwascore.app.ui.theme.BgBlack
-import com.bingwascore.app.ui.theme.TextFaint
-import com.bingwascore.app.ui.theme.TextWhite
+import com.bingwascore.app.ui.theme.DesignTokens
 import com.bingwascore.app.util.screenEnter
 
 /**
@@ -79,7 +72,7 @@ fun EmailOtpScreen(
         modifier = Modifier
             .fillMaxSize()
             .screenEnter()
-            .background(BgBlack)
+            .background(DesignTokens.LocalBingwaRoles.current.bg)
     ) {
 
         Column(
@@ -92,14 +85,14 @@ fun EmailOtpScreen(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     "Verify your email",
-                    color = TextWhite,
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.weight(1f)
                 )
                 Text(
                     "Back",
-                    color = TextWhite.copy(alpha = 0.6f),
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f),
                     fontSize = 13.sp,
                     modifier = Modifier
                         .clip(RoundedCornerShape(10.dp))
@@ -115,7 +108,7 @@ fun EmailOtpScreen(
                 } else {
                     "Enter your email and we'll send a one-time code."
                 },
-                color = TextWhite.copy(alpha = 0.5f),
+                color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.5f),
                 fontSize = 13.sp
             )
 
@@ -142,13 +135,13 @@ fun EmailOtpScreen(
                         Icon(
                             Icons.Rounded.MarkEmailRead,
                             contentDescription = null,
-                            tint = TickGreen,
+                            tint = DesignTokens.LocalBingwaRoles.current.success,
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             "Code expires in ${state.countdownText}",
-                            color = TickGreen,
+                            color = DesignTokens.LocalBingwaRoles.current.success,
                             fontSize = 12.sp
                         )
                     }
@@ -156,7 +149,7 @@ fun EmailOtpScreen(
 
                 state.errorMessage?.let { message ->
                     Spacer(modifier = Modifier.height(10.dp))
-                    Text(message, color = FailRed, fontSize = 12.sp)
+                    Text(message, color = DesignTokens.LocalBingwaRoles.current.error, fontSize = 12.sp)
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -197,8 +190,8 @@ private fun OtpField(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
-            .background(Bubble)
-            .border(1.dp, Hairline, RoundedCornerShape(14.dp))
+            .background(DesignTokens.LocalBingwaRoles.current.card)
+            .border(1.dp, DesignTokens.LocalBingwaRoles.current.border, RoundedCornerShape(14.dp))
             .padding(horizontal = 14.dp, vertical = 14.dp)
     ) {
         BasicTextField(
@@ -206,18 +199,18 @@ private fun OtpField(
             onValueChange = onValueChange,
             singleLine = true,
             textStyle = TextStyle(
-                color = TextWhite,
+                color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                 fontSize = 16.sp,
                 letterSpacing = if (numeric) 4.sp else 1.sp
             ),
             keyboardOptions = KeyboardOptions(
                 keyboardType = if (numeric) KeyboardType.NumberPassword else KeyboardType.Email
             ),
-            cursorBrush = SolidColor(AccentBlue),
+            cursorBrush = SolidColor(DesignTokens.LocalBingwaRoles.current.brand),
             modifier = Modifier.fillMaxWidth()
         )
         if (value.isEmpty()) {
-            Text(placeholder, color = TextFaint, fontSize = 16.sp)
+            Text(placeholder, color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f), fontSize = 16.sp)
         }
     }
 }

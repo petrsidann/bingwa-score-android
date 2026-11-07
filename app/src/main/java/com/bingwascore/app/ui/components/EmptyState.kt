@@ -22,7 +22,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bingwascore.app.ui.theme.PendGrey
-import com.bingwascore.app.ui.theme.TextWhite
+import com.bingwascore.app.ui.theme.DesignTokens
 
 /**
  * Parity E — friendly empty state used by every list screen.
@@ -64,7 +64,7 @@ fun EmptyState(
             Spacer(modifier = Modifier.height(16.dp))
             Text(
                 title,
-                color = TextWhite,
+                color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center
@@ -73,7 +73,7 @@ fun EmptyState(
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     message,
-                    color = TextWhite.copy(alpha = 0.6f),
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f),
                     fontSize = 14.sp,
                     lineHeight = 20.sp,
                     textAlign = TextAlign.Center

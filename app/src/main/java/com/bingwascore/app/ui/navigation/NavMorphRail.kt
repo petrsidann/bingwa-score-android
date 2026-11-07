@@ -46,9 +46,8 @@ import com.bingwascore.app.ui.components.pressScale
 import com.bingwascore.app.ui.glass.GlassSpec
 import com.bingwascore.app.ui.glass.canMaterialBlur
 import com.bingwascore.app.ui.glass.iosMaterial
-import com.bingwascore.app.ui.theme.AccentBlue
+import com.bingwascore.app.ui.theme.DesignTokens
 import com.bingwascore.app.ui.theme.Motion
-import com.bingwascore.app.ui.theme.TextGrey
 import com.bingwascore.app.ui.theme.isPorcelain
 import com.bingwascore.app.util.rememberHaptics
 
@@ -80,7 +79,7 @@ fun SharedNavTab(
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val tint by animateColorAsState(
-        targetValue = if (selected) AccentBlue else TextGrey,
+        targetValue = if (selected) DesignTokens.LocalBingwaRoles.current.brand else DesignTokens.LocalBingwaRoles.current.textSecondary,
         animationSpec = spring(dampingRatio = Motion.DAMPING),
         label = "navTint"
     )

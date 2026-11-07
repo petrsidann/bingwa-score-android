@@ -48,12 +48,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bingwascore.app.ui.brand.BrandWordmark
 import com.bingwascore.app.ui.components.PrimaryButton
-import com.bingwascore.app.ui.theme.AccentBlue
-import com.bingwascore.app.ui.theme.BgBlack
-import com.bingwascore.app.ui.theme.Bubble
-import com.bingwascore.app.ui.theme.TextDim
-import com.bingwascore.app.ui.theme.TextGrey
-import com.bingwascore.app.ui.theme.TextWhite
+import com.bingwascore.app.ui.theme.DesignTokens
 import com.bingwascore.app.ui.theme.accentBrush
 import kotlinx.coroutines.launch
 import kotlin.math.abs
@@ -279,7 +274,7 @@ fun OnboardingCarouselContent(
         }
     }
 
-    BoxWithConstraints(modifier = Modifier.fillMaxSize().background(BgBlack)) {
+    BoxWithConstraints(modifier = Modifier.fillMaxSize().background(DesignTokens.LocalBingwaRoles.current.bg)) {
         // Stage 21 — one layout for every screen: a short screen (landscape,
         // a small phone) drops the tagline and shrinks the card; a tall
         // screen keeps the full stack.
@@ -296,7 +291,7 @@ fun OnboardingCarouselContent(
             Spacer(modifier = Modifier.height(if (tight) 8.dp else 40.dp))
             Text(
                 BrandWordmark.TEXT,
-                color = TextWhite,
+                color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                 fontSize = if (tight) 20.sp else 24.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -304,7 +299,7 @@ fun OnboardingCarouselContent(
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     "Your bundle business, automated.",
-                    color = TextGrey,
+                    color = DesignTokens.LocalBingwaRoles.current.textSecondary,
                     fontSize = 13.sp
                 )
             }
@@ -358,7 +353,7 @@ fun OnboardingCarouselContent(
                             .width((8f + 12f * weight).dp)
                             .height(8.dp)
                             .clip(CircleShape)
-                            .background(if (weight > 0.02f) AccentBlue else TextDim)
+                            .background(if (weight > 0.02f) DesignTokens.LocalBingwaRoles.current.brand else DesignTokens.LocalBingwaRoles.current.textSecondary)
                     )
                 }
             }
@@ -422,7 +417,7 @@ private fun OnboardingPage(
             .height(height)
             .graphicsLayer { alpha = OnboardingPager.pageAlpha(offset) }
             .clip(RoundedCornerShape(OnboardingPager.CARD_RADIUS_DP.dp))
-            .background(Bubble),
+            .background(DesignTokens.LocalBingwaRoles.current.card),
         contentAlignment = Alignment.Center
     ) {
         FittedContent(
@@ -446,7 +441,7 @@ private fun OnboardingPage(
                 Spacer(modifier = Modifier.height(if (compact) 12.dp else 20.dp))
                 Text(
                     title,
-                    color = TextWhite.copy(alpha = textAlpha),
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = textAlpha),
                     fontSize = if (compact) 17.sp else 20.sp,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center
@@ -454,7 +449,7 @@ private fun OnboardingPage(
                 Spacer(modifier = Modifier.height(if (compact) 4.dp else 10.dp))
                 Text(
                     body,
-                    color = TextGrey.copy(alpha = textAlpha),
+                    color = DesignTokens.LocalBingwaRoles.current.textSecondary.copy(alpha = textAlpha),
                     fontSize = if (compact) 12.sp else 13.sp,
                     textAlign = TextAlign.Center
                 )
@@ -473,7 +468,7 @@ private fun OnboardingGlyph(icon: ImageVector, size: Dp) {
         Icon(
             icon,
             contentDescription = null,
-            tint = BgBlack,
+            tint = DesignTokens.LocalBingwaRoles.current.bg,
             modifier = Modifier.size(size * 0.5f)
         )
     }
@@ -542,6 +537,6 @@ private fun OnboardingGhostButton(
             .padding(horizontal = 16.dp, vertical = 10.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(text, color = TextGrey, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+        Text(text, color = DesignTokens.LocalBingwaRoles.current.textSecondary, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
     }
 }

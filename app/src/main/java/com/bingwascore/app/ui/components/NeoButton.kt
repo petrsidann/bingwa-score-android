@@ -43,9 +43,11 @@ fun NeoButton(
     pressScale: Float = 0.98f,
     height: Dp = 56.dp,
     fillMaxWidth: Boolean = true,
-    fill: Color = DesignTokens.Color.Brand.Primary,
+    fill: Color = Color.Unspecified,
     content: @Composable () -> Unit
 ) {
+    val roles = DesignTokens.LocalBingwaRoles.current
+    val resolvedFill = if (fill == Color.Unspecified) roles.brand else fill
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
@@ -63,8 +65,8 @@ fun NeoButton(
             .height(height)
             .clip(RoundedCornerShape(DesignTokens.Shape.RadiusMd))
             .background(
-                if (enabled) fill
-                else fill.copy(alpha = 0.5f)
+                if (enabled) resolvedFill
+                else resolvedFill.copy(alpha = 0.5f)
             )
             .graphicsLayer { scaleX = scale; scaleY = scale }
             .clickable(

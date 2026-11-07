@@ -86,7 +86,7 @@ fun SetupChecklistScreen(
         modifier = Modifier
             .fillMaxSize()
             .screenEnter()
-            .background(DesignTokens.Color.Obsidian.Bg)
+            .background(DesignTokens.LocalBingwaRoles.current.bg)
             .verticalScroll(rememberScrollState())
             .navigationBarsPadding()
             .padding(horizontal = 20.dp, vertical = 24.dp)
@@ -187,13 +187,13 @@ private fun ChecklistRow(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(RoundedCornerShape(DesignTokens.Shape.RadiusMd))
-                    .background(DesignTokens.Color.Brand.Primary.copy(alpha = 0.1f)),
+                    .background(DesignTokens.LocalBingwaRoles.current.brand.copy(alpha = 0.1f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = DesignTokens.Color.Brand.Primary,
+                    tint = DesignTokens.LocalBingwaRoles.current.brand,
                     modifier = Modifier.size(22.dp)
                 )
             }
@@ -215,7 +215,7 @@ private fun ChecklistRow(
             if (done) {
                 StatusPill(
                     text = "DONE",
-                    color = DesignTokens.Color.Brand.Success,
+                    color = DesignTokens.LocalBingwaRoles.current.success,
                     showCheckmark = true
                 )
             } else {
@@ -274,7 +274,7 @@ private fun StatusAction(onClick: () -> Unit) {
         pressScale = 0.98f,
         height = 28.dp,
         fillMaxWidth = false,
-        fill = DesignTokens.Color.Obsidian.Elevated,
+        fill = DesignTokens.LocalBingwaRoles.current.elevated,
         modifier = Modifier.width(64.dp)
     ) {
         Text(

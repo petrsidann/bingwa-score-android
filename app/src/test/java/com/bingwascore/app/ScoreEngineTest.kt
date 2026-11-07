@@ -6,10 +6,7 @@ import com.bingwascore.app.domain.TransactionStatus
 import com.bingwascore.app.domain.score.ScoreEngine
 import com.bingwascore.app.engagebot.BotLogKind
 import com.bingwascore.app.ui.engagebot.botLogColor
-import com.bingwascore.app.ui.theme.PendGrey
-import com.bingwascore.app.ui.theme.TickGreen
-import com.bingwascore.app.ui.theme.FailRed
-import com.bingwascore.app.ui.theme.PendGrey
+import com.bingwascore.app.ui.theme.DesignTokens
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -68,9 +65,15 @@ class ScoreEngineTest {
 
     @Test
     fun botLogColor_mapping() {
-        assertEquals(PendGrey, botLogColor(BotLogKind.ENGAGE))
-        assertEquals(TickGreen, botLogColor(BotLogKind.SUCCESS))
-        assertEquals(PendGrey, botLogColor(BotLogKind.INVALID))
-        assertEquals(FailRed, botLogColor(BotLogKind.ERROR))
+        val obsidian = DesignTokens.Role.Obsidian
+        val dim = DesignTokens.Role.Dim
+        assertEquals(obsidian.textSecondary, botLogColor(BotLogKind.ENGAGE, obsidian))
+        assertEquals(obsidian.success, botLogColor(BotLogKind.SUCCESS, obsidian))
+        assertEquals(obsidian.textSecondary, botLogColor(BotLogKind.INVALID, obsidian))
+        assertEquals(obsidian.error, botLogColor(BotLogKind.ERROR, obsidian))
+        assertEquals(dim.textSecondary, botLogColor(BotLogKind.ENGAGE, dim))
+        assertEquals(dim.success, botLogColor(BotLogKind.SUCCESS, dim))
+        assertEquals(dim.textSecondary, botLogColor(BotLogKind.INVALID, dim))
+        assertEquals(dim.error, botLogColor(BotLogKind.ERROR, dim))
     }
 }

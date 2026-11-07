@@ -35,8 +35,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.bingwascore.app.ui.theme.AccentBlue
-import com.bingwascore.app.ui.theme.BgBlack
+import com.bingwascore.app.ui.theme.DesignTokens
 import com.bingwascore.app.ui.theme.Bubble
 import com.bingwascore.app.ui.theme.BingwaType
 import com.bingwascore.app.ui.theme.CtaBorder
@@ -259,9 +258,9 @@ fun HapticSwitch(
  */
 @Composable
 fun statusSwitchColors(): SwitchColors = SwitchDefaults.colors(
-    checkedThumbColor = BgBlack,
-    checkedTrackColor = AccentBlue,
-    checkedBorderColor = AccentBlue,
+    checkedThumbColor = DesignTokens.LocalBingwaRoles.current.bg,
+    checkedTrackColor = DesignTokens.LocalBingwaRoles.current.brand,
+    checkedBorderColor = DesignTokens.LocalBingwaRoles.current.brand,
     uncheckedThumbColor = DisabledInk,
     uncheckedTrackColor = Raised,
     uncheckedBorderColor = Hairline

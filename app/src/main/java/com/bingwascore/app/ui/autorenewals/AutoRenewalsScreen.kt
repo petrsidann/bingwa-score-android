@@ -114,7 +114,7 @@ fun AutoRenewalsScreen(viewModel: SelfRenewalViewModel = hiltViewModel()) {
         modifier = Modifier
             .fillMaxSize()
             .screenEnter()
-            .background(DesignTokens.Color.Bg)
+            .background(DesignTokens.LocalBingwaRoles.current.bg)
     ) {
         Row(
             modifier = Modifier
@@ -125,27 +125,27 @@ fun AutoRenewalsScreen(viewModel: SelfRenewalViewModel = hiltViewModel()) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     "Auto-Renewals",
-                    color = DesignTokens.Color.Ink,
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                     fontSize = DesignTokens.Typography.Headline,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
                     "${scheduled.size} scheduled renewal(s)",
-                    color = DesignTokens.Color.Ink.copy(alpha = 0.6f),
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f),
                     fontSize = DesignTokens.Typography.Caption
                 )
             }
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(DesignTokens.Shape.RadiusFull))
-                    .background(DesignTokens.Color.Brand.Primary)
+                    .background(DesignTokens.LocalBingwaRoles.current.brand)
                     .clickable { showComposer = true }
                     .padding(horizontal = 14.dp, vertical = 8.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Rounded.Add, contentDescription = null, tint = DesignTokens.Color.Ink, modifier = Modifier.size(16.dp))
+                    Icon(Icons.Rounded.Add, contentDescription = null, tint = DesignTokens.LocalBingwaRoles.current.textPrimary, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Schedule", color = DesignTokens.Color.Ink, fontSize = DesignTokens.Typography.Caption, fontWeight = FontWeight.SemiBold)
+                    Text("Schedule", color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = DesignTokens.Typography.Caption, fontWeight = FontWeight.SemiBold)
                 }
             }
         }
@@ -154,7 +154,7 @@ fun AutoRenewalsScreen(viewModel: SelfRenewalViewModel = hiltViewModel()) {
 
         Text(
             "Scheduled",
-            color = DesignTokens.Color.Ink,
+            color = DesignTokens.LocalBingwaRoles.current.textPrimary,
             fontSize = DesignTokens.Typography.Headline,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(horizontal = 20.dp)
@@ -206,20 +206,20 @@ private fun AutomationEmptyState() {
             Icon(
                 imageVector = Icons.Rounded.Autorenew,
                 contentDescription = null,
-                tint = DesignTokens.Color.Brand.Primary.copy(alpha = 0.2f),
+                tint = DesignTokens.LocalBingwaRoles.current.brand.copy(alpha = 0.2f),
                 modifier = Modifier.size(48.dp)
             )
             Spacer(modifier = Modifier.height(12.dp))
             Text(
                 "No automations yet",
-                color = DesignTokens.Color.Ink,
+                color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                 fontSize = DesignTokens.Typography.Body,
                 fontWeight = FontWeight.SemiBold
             )
             Spacer(modifier = Modifier.height(6.dp))
             Text(
                 "Schedule an offer and it dials itself when the moment comes.",
-                color = DesignTokens.Color.Ink.copy(alpha = 0.6f),
+                color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f),
                 fontSize = DesignTokens.Typography.Caption
             )
         }
@@ -253,14 +253,14 @@ private fun AutomationCard(
                 Icon(
                     imageVector = Icons.Rounded.Autorenew,
                     contentDescription = null,
-                    tint = DesignTokens.Color.Brand.Primary,
+                    tint = DesignTokens.LocalBingwaRoles.current.brand,
                     modifier = Modifier.size(24.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         tx.offerName,
-                        color = DesignTokens.Color.Ink,
+                        color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                         fontSize = DesignTokens.Typography.Body,
                         fontWeight = FontWeight.SemiBold,
                         maxLines = 1
@@ -272,7 +272,7 @@ private fun AutomationCard(
             Spacer(modifier = Modifier.height(10.dp))
             Text(
                 "${tx.phoneNumber}  •  ${dateFmt.format(Date(fireAt))}",
-                color = DesignTokens.Color.Ink.copy(alpha = 0.7f),
+                color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.7f),
                 fontSize = DesignTokens.Typography.Caption,
                 maxLines = 2
             )
@@ -302,16 +302,16 @@ private fun ScheduleComposer(
             .padding(horizontal = 20.dp)
             .padding(top = 18.dp, bottom = 12.dp)
     ) {
-        Text("Schedule a renewal", color = DesignTokens.Color.Ink, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        Text("Schedule a renewal", color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 20.sp, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(4.dp))
         Text(
             "It dials itself at the time you pick — no reminders needed.",
-            color = DesignTokens.Color.Ink.copy(alpha = 0.5f),
+            color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.5f),
             fontSize = 12.sp
         )
         Spacer(modifier = Modifier.height(16.dp))
 
-        Text("OFFER", color = DesignTokens.Color.Ink.copy(alpha = 0.5f), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+        Text("OFFER", color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.5f), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
         Spacer(modifier = Modifier.height(8.dp))
         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             items(offers, key = { it.id }) { offer ->
@@ -325,12 +325,12 @@ private fun ScheduleComposer(
         }
 
         Spacer(modifier = Modifier.height(16.dp))
-        Text("PHONE", color = DesignTokens.Color.Ink.copy(alpha = 0.5f), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+        Text("PHONE", color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.5f), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
         Spacer(modifier = Modifier.height(8.dp))
         GlassField(value = phone, onValueChange = { phone = it }, placeholder = "0712 345 678")
 
         Spacer(modifier = Modifier.height(16.dp))
-        Text("DAY", color = DesignTokens.Color.Ink.copy(alpha = 0.5f), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+        Text("DAY", color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.5f), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
         Spacer(modifier = Modifier.height(8.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             DayChip("Today", 0, dayOffset) { dayOffset = 0 }
@@ -339,7 +339,7 @@ private fun ScheduleComposer(
         }
 
         Spacer(modifier = Modifier.height(16.dp))
-        Text("TIME", color = DesignTokens.Color.Ink.copy(alpha = 0.5f), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+        Text("TIME", color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.5f), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
         Spacer(modifier = Modifier.height(8.dp))
         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             items(HOURS, key = { it }) { h ->
@@ -354,7 +354,7 @@ private fun ScheduleComposer(
 
         if (error != null) {
             Spacer(modifier = Modifier.height(12.dp))
-            Text(error, color = DesignTokens.Color.Brand.Error, fontSize = 12.sp)
+            Text(error, color = DesignTokens.LocalBingwaRoles.current.error, fontSize = 12.sp)
         }
 
         Spacer(modifier = Modifier.height(18.dp))
@@ -386,8 +386,8 @@ private fun ChoiceChip(
     selected: Boolean,
     onClick: () -> Unit
 ) {
-    val bg = if (selected) DesignTokens.Color.Brand.Primary.copy(alpha = 0.16f) else DesignTokens.Color.Card.copy(alpha = 0.08f)
-    val border = if (selected) DesignTokens.Color.Brand.Primary.copy(alpha = 0.6f) else DesignTokens.Color.Border
+    val bg = if (selected) DesignTokens.LocalBingwaRoles.current.brand.copy(alpha = 0.16f) else DesignTokens.LocalBingwaRoles.current.card.copy(alpha = 0.08f)
+    val border = if (selected) DesignTokens.LocalBingwaRoles.current.brand.copy(alpha = 0.6f) else DesignTokens.LocalBingwaRoles.current.border
     Column(
         modifier = Modifier
             .clip(RoundedCornerShape(14.dp))
@@ -398,13 +398,13 @@ private fun ChoiceChip(
     ) {
         Text(
             label,
-            color = if (selected) DesignTokens.Color.Brand.Primary else DesignTokens.Color.Ink,
+            color = if (selected) DesignTokens.LocalBingwaRoles.current.brand else DesignTokens.LocalBingwaRoles.current.textPrimary,
             fontSize = 13.sp,
             fontWeight = FontWeight.SemiBold,
             maxLines = 1
         )
         if (sublabel != null) {
-            Text(sublabel, color = DesignTokens.Color.Ink.copy(alpha = 0.5f), fontSize = 11.sp)
+            Text(sublabel, color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.5f), fontSize = 11.sp)
         }
     }
 }
@@ -421,8 +421,8 @@ private fun GlassField(value: String, onValueChange: (String) -> Unit, placehold
         modifier = Modifier
             .fillMaxWidth()
             .clip(shape)
-            .background(DesignTokens.Color.Card.copy(alpha = 0.08f))
-            .border(1.dp, DesignTokens.Color.Border, shape)
+            .background(DesignTokens.LocalBingwaRoles.current.card.copy(alpha = 0.08f))
+            .border(1.dp, DesignTokens.LocalBingwaRoles.current.border, shape)
             .padding(horizontal = 14.dp, vertical = 13.dp)
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
@@ -430,12 +430,12 @@ private fun GlassField(value: String, onValueChange: (String) -> Unit, placehold
                 value = value,
                 onValueChange = onValueChange,
                 singleLine = true,
-                textStyle = TextStyle(color = DesignTokens.Color.Ink, fontSize = 15.sp),
-                cursorBrush = SolidColor(DesignTokens.Color.Brand.Primary),
+                textStyle = TextStyle(color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 15.sp),
+                cursorBrush = SolidColor(DesignTokens.LocalBingwaRoles.current.brand),
                 modifier = Modifier.fillMaxWidth()
             )
             if (value.isEmpty()) {
-                Text(placeholder, color = DesignTokens.Color.Ink.copy(alpha = 0.5f), fontSize = 15.sp)
+                Text(placeholder, color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.5f), fontSize = 15.sp)
             }
         }
     }

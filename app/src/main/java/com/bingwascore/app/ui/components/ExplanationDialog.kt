@@ -12,8 +12,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bingwascore.app.ui.theme.Bubble
-import com.bingwascore.app.ui.theme.AccentBlue
-import com.bingwascore.app.ui.theme.TextWhite
+import com.bingwascore.app.ui.theme.DesignTokens
 
 /**
  * A Material-3 [AlertDialog] themed as a solid bubble panel:
@@ -40,7 +39,7 @@ fun ExplanationDialog(
         body = {
             Text(
                 message,
-                color = TextWhite.copy(alpha = 0.8f),
+                color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.8f),
                 fontSize = 14.sp,
                 modifier = Modifier.fillMaxWidth()
             )

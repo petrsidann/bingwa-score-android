@@ -42,12 +42,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bingwascore.app.ui.components.EmptyState
 import com.bingwascore.app.ui.components.BubbleCard
 import com.bingwascore.app.ui.components.ShimmerBlock
+import com.bingwascore.app.ui.theme.DesignTokens
 import com.bingwascore.app.ui.theme.PendGrey
-import com.bingwascore.app.ui.theme.AccentBlue
 import com.bingwascore.app.ui.theme.BingwaType
 import com.bingwascore.app.ui.theme.TickGreen
-import com.bingwascore.app.ui.theme.BgBlack
-import com.bingwascore.app.ui.theme.TextWhite
 import com.bingwascore.app.util.screenEnter
 
 /**
@@ -98,7 +96,7 @@ fun QrScannerScreen(viewModel: QrScannerViewModel = hiltViewModel()) {
         modifier = Modifier
             .fillMaxSize()
             .screenEnter()
-            .background(BgBlack)
+            .background(DesignTokens.LocalBingwaRoles.current.bg)
     ) {
 
         Column(modifier = Modifier.fillMaxSize()) {
@@ -107,10 +105,10 @@ fun QrScannerScreen(viewModel: QrScannerViewModel = hiltViewModel()) {
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp, vertical = 16.dp)
             ) {
-                Text("QR Scanner", color = TextWhite, style = BingwaType.headlineStyle)
+                Text("QR Scanner", color = DesignTokens.LocalBingwaRoles.current.textPrimary, style = BingwaType.headlineStyle)
                 Text(
                     "Scan a code or pick a contact to add them to your book",
-                    color = TextWhite.copy(alpha = 0.5f),
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.5f),
                     style = BingwaType.captionStyle
                 )
             }
@@ -143,7 +141,7 @@ fun QrScannerScreen(viewModel: QrScannerViewModel = hiltViewModel()) {
             if (!statusText.isNullOrBlank()) {
                 Text(
                     statusText,
-                    color = if (imported.isNotEmpty()) TickGreen else TextWhite.copy(alpha = 0.7f),
+                    color = if (imported.isNotEmpty()) TickGreen else DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.7f),
                     style = BingwaType.captionStyle,
                     modifier = Modifier.padding(horizontal = 20.dp)
                 )
@@ -200,9 +198,9 @@ private fun ImportTile(
     BubbleCard(modifier = modifier, cornerRadius = 18.dp, onClick = onClick) {
         Icon(imageVector = icon, contentDescription = null, tint = PendGrey, modifier = Modifier.size(26.dp))
         Spacer(modifier = Modifier.height(10.dp))
-        Text(title, color = TextWhite, style = BingwaType.labelStyle)
+        Text(title, color = DesignTokens.LocalBingwaRoles.current.textPrimary, style = BingwaType.labelStyle)
         Spacer(modifier = Modifier.height(3.dp))
-        Text(subtitle, color = TextWhite.copy(alpha = 0.5f), style = BingwaType.microStyle)
+        Text(subtitle, color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.5f), style = BingwaType.microStyle)
     }
 }
 
@@ -219,21 +217,21 @@ private fun ImportedRow(entry: ImportedContact, enterDelayMillis: Int) {
                 modifier = Modifier
                     .size(42.dp)
                     .clip(CircleShape)
-                    .background(Brush.horizontalGradient(listOf(AccentBlue, PendGrey))),
+                    .background(Brush.horizontalGradient(listOf(DesignTokens.LocalBingwaRoles.current.brand, PendGrey))),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Rounded.Check,
                     contentDescription = null,
-                    tint = BgBlack,
+                    tint = DesignTokens.LocalBingwaRoles.current.bg,
                     modifier = Modifier.size(20.dp)
                 )
             }
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(entry.name, color = TextWhite, style = BingwaType.labelStyle)
+                Text(entry.name, color = DesignTokens.LocalBingwaRoles.current.textPrimary, style = BingwaType.labelStyle)
                 Spacer(modifier = Modifier.height(3.dp))
-                Text(entry.phone, color = TextWhite.copy(alpha = 0.5f), style = BingwaType.captionStyle)
+                Text(entry.phone, color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.5f), style = BingwaType.captionStyle)
             }
             Text(
                 "Saved",

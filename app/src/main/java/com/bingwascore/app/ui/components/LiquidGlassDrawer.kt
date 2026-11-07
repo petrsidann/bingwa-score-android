@@ -137,7 +137,7 @@ fun LiquidGlassDrawer(
                     ) {
                         Text(
                             text = "B",
-                            color = DesignTokens.Color.Ink,
+                            color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                             fontSize = DesignTokens.Typography.Caption,
                             fontWeight = FontWeight.Bold
                         )
@@ -146,14 +146,14 @@ fun LiquidGlassDrawer(
                     Column {
                         Text(
                             text = "Bingwa User",
-                            color = DesignTokens.Color.Ink,
+                            color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                             fontSize = DesignTokens.Typography.Headline,
                             fontWeight = FontWeight.Bold
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
                             text = "+254 7XXXX XXX",
-                            color = DesignTokens.Color.Ink.copy(alpha = 0.6f),
+                            color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f),
                             fontSize = DesignTokens.Typography.Caption
                         )
                     }
@@ -164,7 +164,7 @@ fun LiquidGlassDrawer(
                 drawerEntries.forEachIndexed { index, entry ->
                     val selected = selectedIndex == index
                     val interactionSource = remember { MutableInteractionSource() }
-                    val tint = if (selected) DesignTokens.Color.Brand.Primary else DesignTokens.Color.Ink
+                    val tint = if (selected) DesignTokens.LocalBingwaRoles.current.brand else DesignTokens.LocalBingwaRoles.current.textPrimary
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()

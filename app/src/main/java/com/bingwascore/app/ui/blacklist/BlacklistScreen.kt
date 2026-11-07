@@ -38,12 +38,8 @@ import com.bingwascore.app.data.local.Customer
 import com.bingwascore.app.ui.components.EmptyState
 import com.bingwascore.app.ui.components.BubbleCard
 import com.bingwascore.app.util.screenEnter
-import com.bingwascore.app.ui.theme.TickGreen
-import com.bingwascore.app.ui.theme.TextWhite
-import com.bingwascore.app.ui.theme.accentBrush
-import com.bingwascore.app.ui.theme.BgBlack
-import com.bingwascore.app.ui.theme.ChartBlue
-import com.bingwascore.app.ui.theme.TextWhite
+import com.bingwascore.app.ui.theme.DesignTokens
+import com.bingwascore.app.ui.theme.DesignTokens.LocalBingwaRoles
 
 /** Blacklist: customers blocked from offers and bot messages. */
 @Composable
@@ -54,17 +50,17 @@ fun BlacklistScreen(viewModel: BlacklistViewModel = hiltViewModel()) {
         modifier = Modifier
             .fillMaxSize()
             .screenEnter()
-            .background(BgBlack)
+            .background(DesignTokens.LocalBingwaRoles.current.bg)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp, vertical = 16.dp)
         ) {
-            Text("Blocked Contacts", color = TextWhite, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Text("Blocked Contacts", color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 22.sp, fontWeight = FontWeight.Bold)
             Text(
                 "${blacklisted.size} blocked customer(s)",
-                color = TextWhite.copy(alpha = 0.5f),
+                color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.5f),
                 fontSize = 12.sp
             )
         }
@@ -105,12 +101,12 @@ private fun BlacklistRow(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(CircleShape)
-                    .background(accentBrush()),
+                    .background(DesignTokens.LocalBingwaRoles.current.brand),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     (customer.name ?: customer.phoneNumber).take(1).uppercase(),
-                    color = TextWhite,
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -119,14 +115,14 @@ private fun BlacklistRow(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     customer.name ?: customer.phoneNumber,
-                    color = TextWhite,
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     customer.phoneNumber,
-                    color = TextWhite.copy(alpha = 0.5f),
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.5f),
                     fontSize = 11.sp
                 )
             }
@@ -134,13 +130,13 @@ private fun BlacklistRow(
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(12.dp))
-                    .border(1.dp, TickGreen.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+                    .border(1.dp, DesignTokens.LocalBingwaRoles.current.success.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
                     .clickable(onClick = onUnblock)
                     .padding(horizontal = 14.dp, vertical = 8.dp)
             ) {
                 Text(
                     "Unblock",
-                    color = TickGreen,
+                    color = DesignTokens.LocalBingwaRoles.current.success,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold
                 )

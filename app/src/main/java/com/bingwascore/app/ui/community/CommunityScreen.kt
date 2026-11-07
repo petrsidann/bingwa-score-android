@@ -40,14 +40,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bingwascore.app.ui.components.EmptyState
 import com.bingwascore.app.ui.components.BubbleCard
 import com.bingwascore.app.ui.components.ShimmerBlock
+import com.bingwascore.app.ui.theme.DesignTokens
+import com.bingwascore.app.ui.theme.DesignTokens.LocalBingwaRoles
 import com.bingwascore.app.ui.theme.PendGrey
 import com.bingwascore.app.ui.theme.BingwaType
-import com.bingwascore.app.ui.theme.AccentBlue
-import com.bingwascore.app.ui.theme.TickGreen
-import com.bingwascore.app.ui.theme.BgBlack
 import com.bingwascore.app.ui.theme.OfferTags
 import com.bingwascore.app.ui.theme.TextFaint
-import com.bingwascore.app.ui.theme.TextWhite
+import com.bingwascore.app.ui.theme.ChartBlue
+import com.bingwascore.app.ui.theme.accentBrush
 import com.bingwascore.app.util.screenEnter
 
 /**
@@ -67,7 +67,7 @@ fun CommunityScreen(viewModel: CommunityViewModel = hiltViewModel()) {
         modifier = Modifier
             .fillMaxSize()
             .screenEnter()
-            .background(BgBlack)
+            .background(DesignTokens.LocalBingwaRoles.current.bg)
     ) {
 
         Column(modifier = Modifier.fillMaxSize()) {
@@ -76,10 +76,10 @@ fun CommunityScreen(viewModel: CommunityViewModel = hiltViewModel()) {
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp, vertical = 16.dp)
             ) {
-                Text("Community", color = TextWhite, style = BingwaType.headlineStyle)
+                Text("Community", color = DesignTokens.LocalBingwaRoles.current.textPrimary, style = BingwaType.headlineStyle)
                 Text(
                     "${listings.size} listing(s) from agents on the relay",
-                    color = TextWhite.copy(alpha = 0.5f),
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.5f),
                     style = BingwaType.captionStyle
                 )
             }
@@ -141,10 +141,10 @@ private fun CommunityCard(listing: CommunityListing, enterDelayMillis: Int) {
                     .clip(RoundedCornerShape(14.dp))
                     .background(
                         if (listing.isVerified) {
-                            Brush.horizontalGradient(listOf(PendGrey, AccentBlue))
+                            Brush.horizontalGradient(listOf(PendGrey, DesignTokens.LocalBingwaRoles.current.brand))
                         } else {
                             Brush.horizontalGradient(
-                                listOf(TextWhite.copy(alpha = 0.18f), TextWhite.copy(alpha = 0.08f))
+                                listOf(DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.18f), DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.08f))
                             )
                         }
                     ),
@@ -153,20 +153,20 @@ private fun CommunityCard(listing: CommunityListing, enterDelayMillis: Int) {
                 Icon(
                     imageVector = if (listing.isVerified) Icons.Rounded.Verified else Icons.Rounded.Storefront,
                     contentDescription = null,
-                    tint = if (listing.isVerified) BgBlack else TextWhite.copy(alpha = 0.8f),
+                    tint = if (listing.isVerified) DesignTokens.LocalBingwaRoles.current.bg else DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.8f),
                     modifier = Modifier.size(24.dp)
                 )
             }
             Spacer(modifier = Modifier.width(14.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(listing.name, color = TextWhite, style = BingwaType.labelStyle)
+                Text(listing.name, color = DesignTokens.LocalBingwaRoles.current.textPrimary, style = BingwaType.labelStyle)
                 Spacer(modifier = Modifier.height(3.dp))
-                Text(listing.seller, color = TextWhite.copy(alpha = 0.5f), style = BingwaType.captionStyle)
+                Text(listing.seller, color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.5f), style = BingwaType.captionStyle)
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text(
                     "Ksh ${listing.price}",
-                    color = if (listing.isVerified) PendGrey else TextWhite,
+                    color = if (listing.isVerified) PendGrey else DesignTokens.LocalBingwaRoles.current.textPrimary,
                     style = BingwaType.labelStyle
                 )
                 Spacer(modifier = Modifier.height(3.dp))
@@ -181,8 +181,8 @@ private fun CommunityCard(listing: CommunityListing, enterDelayMillis: Int) {
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            MetaPill(text = "${listing.validityHours}h data", tint = TextWhite.copy(alpha = 0.7f))
-            if (listing.autoRenewable) MetaPill(text = "Auto-renew", tint = TickGreen)
+            MetaPill(text = "${listing.validityHours}h data", tint = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.7f))
+            if (listing.autoRenewable) MetaPill(text = "Auto-renew", tint = DesignTokens.LocalBingwaRoles.current.success)
             if (listing.silentEligible) MetaPill(text = "Ghost Queue", tint = PendGrey)
         }
     }
@@ -208,17 +208,17 @@ private fun MetaPill(text: String, tint: Color) {
 private fun CommunityFilterChip(label: String, selected: Boolean, onClick: () -> Unit) {
     Text(
         label,
-        color = if (selected) BgBlack else TextWhite.copy(alpha = 0.7f),
+        color = if (selected) DesignTokens.LocalBingwaRoles.current.bg else DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.7f),
         style = BingwaType.captionStyle,
         fontWeight = FontWeight.SemiBold,
         modifier = Modifier
             .clip(CircleShape)
             .background(
                 if (selected) {
-                    Brush.horizontalGradient(listOf(AccentBlue, PendGrey))
+                    Brush.horizontalGradient(listOf(DesignTokens.LocalBingwaRoles.current.brand, PendGrey))
                 } else {
                     Brush.horizontalGradient(
-                        listOf(TextWhite.copy(alpha = 0.12f), TextWhite.copy(alpha = 0.06f))
+                        listOf(DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.12f), DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.06f))
                     )
                 }
             )

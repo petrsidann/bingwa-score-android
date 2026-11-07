@@ -115,6 +115,7 @@ fun ProfileScreen(
     onSettings: () -> Unit = {},
     onAbout: () -> Unit = {}
 ) {
+    val roles = DesignTokens.LocalBingwaRoles.current
     val userName by viewModel.userName.collectAsStateWithLifecycle()
     val accountType by viewModel.accountType.collectAsStateWithLifecycle()
     val phone by viewModel.phone.collectAsStateWithLifecycle()
@@ -167,6 +168,7 @@ fun ProfileScreenContent(
     state: ProfileScreenState,
     callbacks: ProfileScreenCallbacks = ProfileScreenCallbacks()
 ) {
+    val roles = DesignTokens.LocalBingwaRoles.current
     val scoreAlpha by animateFloatAsState(
         targetValue = 1f,
         animationSpec = spring(
@@ -225,8 +227,8 @@ fun ProfileScreenContent(
                                     .background(
                                         Brush.linearGradient(
                                             colors = listOf(
-                                                DesignTokens.Color.Brand.Primary,
-                                                DesignTokens.Color.Brand.DimAccent
+                                                roles.brand,
+                                                roles.brand
                                             )
                                         )
                                     ),
@@ -262,7 +264,7 @@ fun ProfileScreenContent(
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(6.dp))
-                                    .background(DesignTokens.Color.Brand.Primary)
+                                    .background(roles.brand)
                                     .padding(horizontal = 6.dp, vertical = 2.dp)
                             ) {
                                 Text(
@@ -318,7 +320,7 @@ fun ProfileScreenContent(
                                 EngineState.STOPPED -> "Stopped"
                             },
                             color = when (state.engineState) {
-                                EngineState.RUNNING -> DesignTokens.Color.Brand.Success
+                                EngineState.RUNNING -> DesignTokens.LocalBingwaRoles.current.success
                                 EngineState.PAUSED -> DesignTokens.Color.Ink.copy(alpha = 0.7f)
                                 EngineState.STOPPED -> DesignTokens.Color.Ink.copy(alpha = 0.5f)
                             },
@@ -367,12 +369,13 @@ fun ProfileScreenContent(
 
 @Composable
 private fun TierBadge(levelName: String) {
+    val roles = DesignTokens.LocalBingwaRoles.current
     val color = when (levelName) {
         "Bronze" -> Bronze
         "Silver" -> Silver
         "Gold" -> Gold
         "Platinum" -> Platinum
-        else -> DesignTokens.Color.Brand.Primary
+        else -> roles.brand
     }
     val density = LocalDensity.current
     val radiusPx = with(density) { DesignTokens.Shape.RadiusMd.toPx() }
@@ -382,8 +385,9 @@ private fun TierBadge(levelName: String) {
             .background(color)
             .padding(horizontal = 10.dp, vertical = 5.dp)
             .drawBehind {
+                val textPrimaryGlow = roles.textPrimary.copy(alpha = 0.10f)
                 drawRoundRect(
-                    brush = SolidColor(DesignTokens.Color.Obsidian.Ink.copy(alpha = 0.10f)),
+                    brush = SolidColor(textPrimaryGlow),
                     cornerRadius = CornerRadius(radiusPx, radiusPx)
                 )
             }
@@ -402,6 +406,7 @@ private fun IdentityCard(
     state: ProfileScreenState,
     callbacks: ProfileScreenCallbacks
 ) {
+    val roles = DesignTokens.LocalBingwaRoles.current
     GlassCard(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp)
     ) {
@@ -420,6 +425,7 @@ private fun ReadOnlyIdentity(
     state: ProfileScreenState,
     callbacks: ProfileScreenCallbacks
 ) {
+    val roles = DesignTokens.LocalBingwaRoles.current
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
             text = state.userName,
@@ -431,7 +437,7 @@ private fun ReadOnlyIdentity(
         Box(
             modifier = Modifier
                 .clip(RoundedCornerShape(6.dp))
-                .background(DesignTokens.Color.Brand.Primary)
+                .background(roles.brand)
                 .padding(horizontal = 6.dp, vertical = 2.dp)
         ) {
             Text(
@@ -469,8 +475,9 @@ private fun ReadOnlyIdentity(
 @Composable
 private fun EditForm(
     state: ProfileScreenState,
-    callbacks: ProfileScreenCallbacks
+    callbacks: ProfileScreenCallbacks = ProfileScreenCallbacks()
 ) {
+    val roles = DesignTokens.LocalBingwaRoles.current
     Column {
         ProfileField(
             label = "Account Type",
@@ -500,7 +507,7 @@ private fun EditForm(
         state.editState.errorMessage?.let {
             Text(
                 text = it,
-                color = DesignTokens.Color.Brand.Error,
+                color = DesignTokens.LocalBingwaRoles.current.error,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Medium
             )
@@ -509,7 +516,7 @@ private fun EditForm(
         state.editState.savedMessage?.let {
             Text(
                 text = it,
-                color = DesignTokens.Color.Brand.Success,
+                color = DesignTokens.LocalBingwaRoles.current.success,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Medium
             )
@@ -590,6 +597,7 @@ private fun ProfileField(
     onValueChange: (String) -> Unit,
     isPassword: Boolean = false
 ) {
+    val roles = DesignTokens.LocalBingwaRoles.current
     Column {
         Text(
             text = label,
@@ -603,7 +611,7 @@ private fun ProfileField(
             singleLine = true,
             textStyle = TextStyle(color = DesignTokens.Color.Ink, fontSize = 14.sp),
             visualTransformation = if (isPassword) androidx.compose.ui.text.input.PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
-            cursorBrush = SolidColor(DesignTokens.Color.Brand.Primary),
+            cursorBrush = SolidColor(roles.brand),
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(10.dp))
@@ -620,6 +628,7 @@ private fun GlassMenuRow(
     onClick: () -> Unit,
     last: Boolean
 ) {
+    val roles = DesignTokens.LocalBingwaRoles.current
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
@@ -630,7 +639,7 @@ private fun GlassMenuRow(
         ),
         label = "GlassMenuRowPress"
     )
-    val separator = DesignTokens.Color.Obsidian.Border.copy(alpha = 0.1f)
+    val separator = roles.border.copy(alpha = 0.1f)
 
     Box(
         modifier = Modifier
@@ -645,7 +654,7 @@ private fun GlassMenuRow(
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = DesignTokens.Color.Brand.Primary,
+                    tint = roles.brand,
                     modifier = Modifier.size(22.dp)
                 )
                 Spacer(modifier = Modifier.width(14.dp))
@@ -660,7 +669,7 @@ private fun GlassMenuRow(
                 Icon(
                     imageVector = Icons.Rounded.ChevronRight,
                     contentDescription = null,
-                    tint = DesignTokens.Color.Obsidian.Ink.copy(alpha = 0.4f),
+                    tint = roles.textPrimary.copy(alpha = 0.4f),
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -687,6 +696,7 @@ private fun PremiumToggle(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit
 ) {
+    val roles = DesignTokens.LocalBingwaRoles.current
     val density = LocalDensity.current
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
@@ -719,7 +729,7 @@ private fun PremiumToggle(
     val trackHeightPx = with(density) { trackHeight.toPx() }
     val shadowY = with(density) { DesignTokens.Elevation.Level1.first().offsetY.toPx() }
     val shadowColor = DesignTokens.Elevation.Level1.first().color
-    val borderColor = DesignTokens.Color.Obsidian.Border.copy(alpha = 0.5f)
+    val borderColor = roles.border.copy(alpha = 0.5f)
     val trackShape = RoundedCornerShape(DesignTokens.Shape.RadiusFull)
 
     Box(
@@ -732,7 +742,8 @@ private fun PremiumToggle(
                 onCheckedChange(!checked)
             })
             .drawBehind {
-                val fill = if (checked) DesignTokens.Color.Brand.Primary else Color.Transparent
+                val brand = roles.brand
+                val fill = if (checked) brand else Color.Transparent
                 drawRoundRect(
                     brush = SolidColor(fill),
                     cornerRadius = CornerRadius(radiusPx, radiusPx)

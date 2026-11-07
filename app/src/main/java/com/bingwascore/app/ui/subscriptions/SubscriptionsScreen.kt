@@ -29,13 +29,8 @@ import androidx.compose.ui.unit.sp
 import com.bingwascore.app.ui.components.EmptyState
 import com.bingwascore.app.ui.components.BubbleCard
 import com.bingwascore.app.util.screenEnter
-import com.bingwascore.app.ui.theme.Bubble
-import com.bingwascore.app.ui.theme.TickGreen
-import com.bingwascore.app.ui.theme.FailRed
-import com.bingwascore.app.ui.theme.BgBlack
-import com.bingwascore.app.ui.theme.PendGrey
+import com.bingwascore.app.ui.theme.DesignTokens
 import com.bingwascore.app.ui.theme.ChartBlue
-import com.bingwascore.app.ui.theme.TextWhite
 
 private data class SubscriptionRow(
     val id: String,
@@ -64,17 +59,17 @@ fun SubscriptionsScreen() {
         modifier = Modifier
             .fillMaxSize()
             .screenEnter()
-            .background(BgBlack)
+            .background(DesignTokens.LocalBingwaRoles.current.bg)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp, vertical = 16.dp)
         ) {
-            Text("Subscriptions", color = TextWhite, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Text("Subscriptions", color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 22.sp, fontWeight = FontWeight.Bold)
             Text(
                 "${subscriptions.size} subscription(s)",
-                color = TextWhite.copy(alpha = 0.5f),
+                color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.5f),
                 fontSize = 12.sp
             )
         }
@@ -114,14 +109,14 @@ private fun SubscriptionCard(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     subscription.offerName,
-                    color = TextWhite,
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     subscription.phone,
-                    color = TextWhite.copy(alpha = 0.5f),
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.5f),
                     fontSize = 11.sp
                 )
                 Spacer(modifier = Modifier.height(8.dp))
@@ -134,7 +129,7 @@ private fun SubscriptionCard(
             Spacer(modifier = Modifier.width(12.dp))
             Text(
                 "Ksh ${subscription.price}",
-                color = TextWhite.copy(alpha = 0.7f),
+                color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.7f),
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold
             )
@@ -146,12 +141,12 @@ private fun SubscriptionCard(
 private fun CountdownChip(label: String) {
     Text(
         label,
-        color = PendGrey,
+        color = DesignTokens.LocalBingwaRoles.current.textSecondary,
         fontSize = 11.sp,
         fontWeight = FontWeight.SemiBold,
         modifier = Modifier
             .clip(RoundedCornerShape(10.dp))
-            .background(Bubble)
+            .background(DesignTokens.LocalBingwaRoles.current.card)
             .padding(horizontal = 10.dp, vertical = 4.dp)
     )
 }
@@ -160,12 +155,12 @@ private fun CountdownChip(label: String) {
 private fun AutoRenewChip(autoRenew: Boolean) {
     Text(
         if (autoRenew) "Auto-renew ON" else "Auto-renew OFF",
-        color = if (autoRenew) TickGreen else FailRed,
+        color = if (autoRenew) DesignTokens.LocalBingwaRoles.current.success else DesignTokens.LocalBingwaRoles.current.error,
         fontSize = 10.sp,
         fontWeight = FontWeight.SemiBold,
         modifier = Modifier
             .clip(RoundedCornerShape(10.dp))
-            .background(Bubble)
+            .background(DesignTokens.LocalBingwaRoles.current.card)
             .padding(horizontal = 8.dp, vertical = 4.dp)
     )
 }

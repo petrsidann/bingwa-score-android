@@ -40,13 +40,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bingwascore.app.ui.components.EmptyState
 import com.bingwascore.app.ui.components.BubbleCard
 import com.bingwascore.app.ui.components.PrimaryButton
-import com.bingwascore.app.ui.theme.AccentBlue
-import com.bingwascore.app.ui.theme.TickGreen
-import com.bingwascore.app.ui.theme.FailRed
-import com.bingwascore.app.ui.theme.Bubble
-import com.bingwascore.app.ui.theme.BgBlack
-import com.bingwascore.app.ui.theme.TextFaint
-import com.bingwascore.app.ui.theme.TextWhite
+import com.bingwascore.app.ui.theme.DesignTokens
 import com.bingwascore.app.util.rememberHaptics
 import com.bingwascore.app.util.screenEnter
 
@@ -82,7 +76,7 @@ fun RedeemCouponScreen(
         modifier = Modifier
             .fillMaxSize()
             .screenEnter()
-            .background(BgBlack)
+            .background(DesignTokens.LocalBingwaRoles.current.bg)
     ) {
 
         Column(
@@ -95,14 +89,14 @@ fun RedeemCouponScreen(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     "Redeem Coupon",
-                    color = TextWhite,
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.weight(1f)
                 )
                 Text(
                     "Back",
-                    color = TextWhite.copy(alpha = 0.6f),
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f),
                     fontSize = 13.sp,
                     modifier = Modifier
                         .clip(RoundedCornerShape(10.dp))
@@ -114,7 +108,7 @@ fun RedeemCouponScreen(
             Spacer(modifier = Modifier.height(6.dp))
             Text(
                 "Enter a promo code to unlock a bundle.",
-                color = TextWhite.copy(alpha = 0.5f),
+                color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.5f),
                 fontSize = 13.sp
             )
 
@@ -125,7 +119,7 @@ fun RedeemCouponScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(14.dp))
-                        .background(Bubble)
+                        .background(DesignTokens.LocalBingwaRoles.current.card)
                         .padding(horizontal = 14.dp, vertical = 14.dp)
                 ) {
                     BasicTextField(
@@ -135,15 +129,15 @@ fun RedeemCouponScreen(
                             viewModel.clearResult()
                         },
                         singleLine = true,
-                        textStyle = TextStyle(color = TextWhite, fontSize = 16.sp, letterSpacing = 2.sp),
+                        textStyle = TextStyle(color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 16.sp, letterSpacing = 2.sp),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
-                        cursorBrush = SolidColor(AccentBlue),
+                        cursorBrush = SolidColor(DesignTokens.LocalBingwaRoles.current.brand),
                         modifier = Modifier.fillMaxWidth()
                     )
                     if (code.isEmpty()) {
                         Text(
                             "Promo code",
-                            color = TextFaint,
+                            color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f),
                             fontSize = 16.sp
                         )
                     }
@@ -157,17 +151,17 @@ fun RedeemCouponScreen(
                             Icon(
                                 Icons.Rounded.CheckCircle,
                                 contentDescription = null,
-                                tint = TickGreen,
+                                tint = DesignTokens.LocalBingwaRoles.current.success,
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text(current.message, color = TickGreen, fontSize = 13.sp)
+                            Text(current.message, color = DesignTokens.LocalBingwaRoles.current.success, fontSize = 13.sp)
                         }
                     }
 
                     is RedeemResult.Invalid -> {
                         Spacer(modifier = Modifier.height(10.dp))
-                        Text(current.message, color = FailRed, fontSize = 13.sp)
+                        Text(current.message, color = DesignTokens.LocalBingwaRoles.current.error, fontSize = 13.sp)
                     }
 
                     null -> Unit
@@ -194,7 +188,7 @@ fun RedeemCouponScreen(
             } else {
                 Text(
                     "Available with a coupon",
-                    color = TextWhite.copy(alpha = 0.7f),
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.7f),
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -209,20 +203,20 @@ fun RedeemCouponScreen(
                             Icon(
                                 Icons.Rounded.Redeem,
                                 contentDescription = null,
-                                tint = AccentBlue,
+                                tint = DesignTokens.LocalBingwaRoles.current.brand,
                                 modifier = Modifier.size(20.dp)
                             )
                             Spacer(modifier = Modifier.width(12.dp))
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     offer.name,
-                                    color = TextWhite,
+                                    color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.SemiBold
                                 )
                                 Text(
                                     "Ksh ${offer.price}",
-                                    color = TextWhite.copy(alpha = 0.55f),
+                                    color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.55f),
                                     fontSize = 12.sp
                                 )
                             }

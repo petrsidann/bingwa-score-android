@@ -160,7 +160,7 @@ private fun FloatingGlassTab(
     activeY: Dp,
     onClick: () -> Unit
 ) {
-    val tint = if (active) DesignTokens.Color.Brand.Primary else DesignTokens.Color.Ink.copy(alpha = 0.5f)
+    val tint = if (active) DesignTokens.LocalBingwaRoles.current.brand else DesignTokens.LocalBingwaRoles.current.textSecondary.copy(alpha = 0.5f)
     val interactionSource = remember { MutableInteractionSource() }
     val modifier = Modifier
         .size(52.dp)

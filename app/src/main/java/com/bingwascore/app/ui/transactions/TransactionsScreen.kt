@@ -68,7 +68,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.offset
 import com.bingwascore.app.ui.components.BubbleCard
 import com.bingwascore.app.ui.components.LocalPremiumToastManager
-import com.bingwascore.app.ui.theme.Raised
 import com.bingwascore.app.ui.components.ToastType
 import androidx.compose.material3.SnackbarHostState
 import kotlin.math.roundToInt
@@ -112,11 +111,7 @@ import com.bingwascore.app.ui.components.rememberAction
 import com.bingwascore.app.ui.showcase.DemoChip
 import com.bingwascore.app.ui.theme.BingwaType
 import com.bingwascore.app.ui.theme.DesignTokens
-import com.bingwascore.app.ui.theme.BgBlack
-import com.bingwascore.app.ui.theme.Bubble
-import com.bingwascore.app.ui.theme.Hairline
 import com.bingwascore.app.ui.theme.Motion
-import com.bingwascore.app.ui.theme.SelectTint
 import com.bingwascore.app.ui.theme.StatusColors
 import com.bingwascore.app.util.formatCustomerName
 import com.bingwascore.app.util.rememberHaptics
@@ -339,7 +334,7 @@ fun TransactionsScreenContent(
 ) {
     val scope = rememberCoroutineScope()
 
-    Box(modifier = Modifier.fillMaxSize().background(BgBlack)) {
+    Box(modifier = Modifier.fillMaxSize().background(DesignTokens.LocalBingwaRoles.current.bg)) {
         Column(modifier = Modifier.fillMaxSize().screenEnter()) {
             TransactionsTopBar(
                 selecting = state.hasSelection,
@@ -438,7 +433,7 @@ fun TransactionsScreenContent(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(BgBlack.copy(alpha = dim * 0.92f))
+                    .background(DesignTokens.LocalBingwaRoles.current.bg.copy(alpha = dim * 0.92f))
                     .clickable(
                         indication = null,
                         interactionSource = remember { MutableInteractionSource() }
@@ -452,7 +447,7 @@ fun TransactionsScreenContent(
                     .fillMaxHeight(0.85f)
                     .offset { IntOffset(0, sheetOffset.value.roundToInt()) }
                     .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
-                    .background(Raised)
+                    .background(DesignTokens.LocalBingwaRoles.current.elevated)
                     .pointerInput(Unit) {
                         val heightPx = size.height.toFloat()
                         detectVerticalDragGestures(
@@ -495,7 +490,7 @@ fun TransactionsScreenContent(
                             .width(40.dp)
                             .height(4.dp)
                             .clip(RoundedCornerShape(2.dp))
-                            .background(Hairline)
+                            .background(DesignTokens.LocalBingwaRoles.current.border)
                     )
                 }
 
@@ -565,14 +560,14 @@ private fun TransactionBody(
                     ) {
                         Text(
                             "$phoneFilter",
-                            color = DesignTokens.Color.Ink,
+                            color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                             fontSize = BingwaType.Label,
                             fontWeight = FontWeight.SemiBold,
                             modifier = Modifier.weight(1f)
                         )
                         Text(
                             "Clear search",
-                            color = DesignTokens.Color.Ink.copy(alpha = 0.6f),
+                            color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f),
                             fontSize = DesignTokens.Typography.Caption,
                             modifier = Modifier
                                 .clip(RoundedCornerShape(8.dp))
@@ -683,7 +678,7 @@ private fun TransactionsTopBar(
                 enter = fadeIn(tween(Motion.FADE)) + scaleIn(initialScale = 0.5f),
                 exit = fadeOut(tween(Motion.FADE)) + scaleOut(targetScale = 0.5f)
             ) {
-                BarIconButton(Icons.Rounded.Close, "Exit selection", DesignTokens.Color.Ink, onExit)
+                BarIconButton(Icons.Rounded.Close, "Exit selection", DesignTokens.LocalBingwaRoles.current.textPrimary, onExit)
             }
 
             Column(
@@ -696,11 +691,11 @@ private fun TransactionsTopBar(
             ) {
                 Text(
                     "Transactions",
-                    color = DesignTokens.Color.Ink,
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                     fontSize = DesignTokens.Typography.Headline,
                     fontWeight = FontWeight.Bold
                 )
-                Text("$recordCount record(s)", color = DesignTokens.Color.Ink.copy(alpha = 0.6f), fontSize = DesignTokens.Typography.Caption)
+                Text("$recordCount record(s)", color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f), fontSize = DesignTokens.Typography.Caption)
             }
 
             AnimatedVisibility(
@@ -715,7 +710,7 @@ private fun TransactionsTopBar(
                     BarIconButton(
                         Icons.Rounded.Search,
                         "Search transactions",
-                        DesignTokens.Color.Ink,
+                        DesignTokens.LocalBingwaRoles.current.textPrimary,
                         onClick = { openRequested = true }
                     )
                 }
@@ -734,7 +729,7 @@ private fun TransactionsTopBar(
                 enter = fadeIn(tween(Motion.FADE)) + scaleIn(initialScale = 0.5f),
                 exit = fadeOut(tween(Motion.FADE)) + scaleOut(targetScale = 0.5f)
             ) {
-                BarIconButton(Icons.Rounded.Delete, "Delete selected", DesignTokens.Color.Brand.Error, onDelete)
+                BarIconButton(Icons.Rounded.Delete, "Delete selected", DesignTokens.LocalBingwaRoles.current.error, onDelete)
             }
 
             AnimatedVisibility(
@@ -748,7 +743,7 @@ private fun TransactionsTopBar(
                     TextButton(onClick = onExport) {
                         Text(
                             "Export",
-                            color = DesignTokens.Color.Brand.Primary,
+                            color = DesignTokens.LocalBingwaRoles.current.brand,
                             fontSize = BingwaType.Label,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -789,23 +784,24 @@ private fun GlassSearchBar(
     val glowRadius = with(LocalDensity.current) { DesignTokens.Shape.RadiusMd.toPx() }
     val focusRequester = remember { FocusRequester() }
     var focused by remember { mutableStateOf(false) }
+    val brand = DesignTokens.LocalBingwaRoles.current.brand
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth(progress.coerceIn(0.001f, 1f))
             .clip(shape)
-            .background(DesignTokens.Color.Obsidian.Card.copy(alpha = 0.8f))
+            .background(DesignTokens.LocalBingwaRoles.current.card.copy(alpha = 0.8f))
             .blur(12.dp)
             .border(
                 if (focused) 1.dp else 0.dp,
-                DesignTokens.Color.Brand.Primary,
+                brand,
                 shape
             )
             .drawBehind {
                 if (focused) {
                     drawRoundRect(
-                        brush = SolidColor(DesignTokens.Color.Brand.Primary.copy(alpha = 0.18f)),
+                        brush = SolidColor(brand.copy(alpha = 0.18f)),
                         cornerRadius = CornerRadius(glowRadius, glowRadius)
                     )
                 }
@@ -817,7 +813,7 @@ private fun GlassSearchBar(
         Icon(
             imageVector = Icons.Rounded.Search,
             contentDescription = null,
-            tint = if (focused) DesignTokens.Color.Brand.Primary else DesignTokens.Color.Ink,
+            tint = if (focused) DesignTokens.LocalBingwaRoles.current.brand else DesignTokens.LocalBingwaRoles.current.textPrimary,
             modifier = Modifier.size(17.dp)
         )
         Spacer(modifier = Modifier.width(8.dp))
@@ -825,7 +821,7 @@ private fun GlassSearchBar(
             if (query.isEmpty()) {
                 Text(
                     "Name, phone or transaction ID",
-                    color = DesignTokens.Color.Ink.copy(alpha = 0.6f),
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f),
                     fontSize = DesignTokens.Typography.Body,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -835,8 +831,8 @@ private fun GlassSearchBar(
                 value = query,
                 onValueChange = onQueryChange,
                 singleLine = true,
-                textStyle = TextStyle(color = DesignTokens.Color.Ink, fontSize = 14.sp),
-                cursorBrush = SolidColor(DesignTokens.Color.Brand.Primary),
+                textStyle = TextStyle(color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 14.sp),
+                cursorBrush = SolidColor(DesignTokens.LocalBingwaRoles.current.brand),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
                 modifier = Modifier
                     .fillMaxWidth()
@@ -853,7 +849,7 @@ private fun GlassSearchBar(
             Icon(
                 imageVector = Icons.Rounded.Close,
                 contentDescription = "Cancel search",
-                tint = DesignTokens.Color.Ink.copy(alpha = 0.6f),
+                tint = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f),
                 modifier = Modifier.size(18.dp)
             )
         }
@@ -919,7 +915,7 @@ private fun CountBubble(count: Int) {
         modifier = Modifier
             .padding(horizontal = 4.dp)
             .clip(RoundedCornerShape(12.dp))
-            .background(Bubble)
+            .background(DesignTokens.LocalBingwaRoles.current.card)
             .graphicsLayer {
                 scaleX = pop.value
                 scaleY = pop.value
@@ -928,7 +924,7 @@ private fun CountBubble(count: Int) {
     ) {
         Text(
             "$count Selected",
-            color = DesignTokens.Color.Ink,
+            color = DesignTokens.LocalBingwaRoles.current.textPrimary,
             fontSize = DesignTokens.Typography.Caption,
             fontWeight = FontWeight.SemiBold
         )
@@ -953,7 +949,7 @@ private fun SelectionBottomBar(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(BgBlack)
+            .background(DesignTokens.LocalBingwaRoles.current.bg)
             .navigationBarsPadding()
             .padding(horizontal = 20.dp, vertical = 14.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -982,13 +978,13 @@ private fun DayHeader(day: String) {
             .padding(top = 14.dp, bottom = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(day, color = DesignTokens.Color.Ink.copy(alpha = 0.6f), fontSize = DesignTokens.Typography.Caption, fontWeight = FontWeight.SemiBold)
+        Text(day, color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f), fontSize = DesignTokens.Typography.Caption, fontWeight = FontWeight.SemiBold)
         Spacer(modifier = Modifier.width(10.dp))
         Box(
             modifier = Modifier
                 .weight(1f)
                 .height(1.dp)
-                .background(Hairline)
+                .background(DesignTokens.LocalBingwaRoles.current.border)
         )
     }
 }
@@ -997,13 +993,13 @@ private fun DayHeader(day: String) {
 @Composable
 private fun FilterPill(label: String, selected: Boolean, onClick: () -> Unit) {
     GlassPill(
-        fill = if (selected) DesignTokens.Color.Brand.Primary else Color.Transparent,
+        fill = if (selected) DesignTokens.LocalBingwaRoles.current.brand else Color.Transparent,
         pressScale = 1.05f,
         onClick = onClick
     ) {
         Text(
             label,
-            color = if (selected) DesignTokens.Color.Ink else DesignTokens.Color.Obsidian.Ink.copy(alpha = 0.6f),
+            color = if (selected) DesignTokens.LocalBingwaRoles.current.textPrimary else DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f),
             fontSize = BingwaType.Label,
             fontWeight = FontWeight.SemiBold
         )
@@ -1066,10 +1062,10 @@ private fun TransactionRow(
     val isFailed = status == TransactionStatus.FAILED.value || status == TransactionStatus.FAILED_ALREADY_RECOMMENDED.value
     val isQueued = status == TransactionStatus.PENDING.value || status == TransactionStatus.PROCESSING.value
     val statusColor = when {
-        status == TransactionStatus.SUCCESSFUL.value -> DesignTokens.Color.Brand.Success
-        isFailed -> DesignTokens.Color.Brand.Error
-        isQueued || status == TransactionStatus.SCHEDULED.value -> DesignTokens.Color.Brand.Primary
-        else -> DesignTokens.Color.Ink.copy(alpha = 0.5f)
+        status == TransactionStatus.SUCCESSFUL.value -> DesignTokens.LocalBingwaRoles.current.success
+        isFailed -> DesignTokens.LocalBingwaRoles.current.error
+        isQueued || status == TransactionStatus.SCHEDULED.value -> DesignTokens.LocalBingwaRoles.current.brand
+        else -> DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.5f)
     }
     val statusIcon = when {
         status == TransactionStatus.SUCCESSFUL.value -> Icons.Rounded.CheckCircle
@@ -1089,12 +1085,12 @@ private fun TransactionRow(
         label = "tickMorph"
     )
     val rowFill by animateColorAsState(
-        targetValue = if (selected) SelectTint else Bubble,
+        targetValue = if (selected) DesignTokens.LocalBingwaRoles.current.elevated else DesignTokens.LocalBingwaRoles.current.card,
         animationSpec = MORPH_SPRING_COLOR,
         label = "rowFill"
     )
 
-    val amountColor = if (isFailed || transaction.amount < 0) DesignTokens.Color.Brand.Error else DesignTokens.Color.Brand.Success
+    val amountColor = if (isFailed || transaction.amount < 0) DesignTokens.LocalBingwaRoles.current.error else DesignTokens.LocalBingwaRoles.current.success
 
     val pulseTarget = if (isQueued) 1.1f else 1f
     val pulse by animateFloatAsState(
@@ -1150,7 +1146,7 @@ private fun TransactionRow(
                         Icon(
                             imageVector = Icons.Rounded.CheckCircle,
                             contentDescription = null,
-                            tint = DesignTokens.Color.Brand.Success,
+                            tint = DesignTokens.LocalBingwaRoles.current.success,
                             modifier = Modifier.size(22.dp)
                         )
                     }
@@ -1175,7 +1171,7 @@ private fun TransactionRow(
                             Icon(
                                 imageVector = statusIcon,
                                 contentDescription = null,
-                                tint = DesignTokens.Color.Ink,
+                                tint = DesignTokens.LocalBingwaRoles.current.textPrimary,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -1186,7 +1182,7 @@ private fun TransactionRow(
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             formatCustomerName(transaction.customerName).ifBlank { transaction.phoneNumber },
-                            color = DesignTokens.Color.Ink,
+                            color = DesignTokens.LocalBingwaRoles.current.textPrimary,
                             fontSize = BingwaType.Label,
                             fontWeight = FontWeight.SemiBold,
                             maxLines = 1,
@@ -1194,7 +1190,7 @@ private fun TransactionRow(
                         )
                         Text(
                             "${transaction.offerName} · ${relativeTime(transaction.createdAt)}",
-                            color = DesignTokens.Color.Ink.copy(alpha = 0.6f),
+                            color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f),
                             fontSize = DesignTokens.Typography.Caption,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
