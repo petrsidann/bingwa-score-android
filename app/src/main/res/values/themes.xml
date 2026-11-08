@@ -5,4 +5,12 @@
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">true</item>
     </style>
+
+    <style name="Theme.BingwaScore.Splash" parent="Theme.BingwaScore">
+        <item name="android:windowBackground">@drawable/launch_bg</item>
+        <item name="android:statusBarColor">@color/launch_lime</item>
+        <item name="android:navigationBarColor">@color/launch_lime</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+    </style>
 </resources>

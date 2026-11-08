@@ -25,4 +25,9 @@ class ContrastGuardTest {
         assertTrue(ratio(textPrimary, elevated) >= 4.5f); assertTrue(ratio(textSecondary, bg) >= 4.5f)
         assertTrue(ratio(keypadDigit, keypadKey) >= 4.5f); assertTrue(ratio(onBrand, brand) >= 4.5f)
         assertTrue(ratio(onSuccess, success) >= 4.5f); assertTrue(ratio(onError, error) >= 4.5f) } }
+    @Test fun launch_pairs() { with(DesignTokens.Launch) {
+        assertTrue(ratio(violet, lime) >= 4.5f)
+        assertTrue(ratio(lime, violet) >= 4.5f)
+        assertTrue(ratio(lime, ink) >= 4.5f)
+        assertTrue(ratio(ink, lime) >= 4.5f) } }
 }
