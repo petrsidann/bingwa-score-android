@@ -6,4 +6,5 @@
     <color name="ic_launcher_foreground">#FFFFFF</color>
     <color name="brand_background">#000000</color>
     <color name="brand_accent">#2962FF</color>
+    <color name="launch_lime">#A4F510</color>
 </resources>

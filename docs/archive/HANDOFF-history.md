@@ -1,24 +1,10 @@
-# HANDOFF History — superseded STEP 0 blocks
+# HANDOFF history — superseded STEP 0 blocks
 
-## STEP 0 resume state (Stage 44 shipped; next = Stage 45 design pass)
+## STEP 0 resume state (Stage 57 — geometry & logic reckoning, branch stage-57-shapes from origin/main post-56)
 
-- **Current state**: Stage 44 shipped (stability + input truth).
-  - **COLD-PATH LAW**: Application.onCreate, BootReceiver and WatchdogWorker no longer start the engine directly; they enqueue the EngineStartWorker one-shot, which retries until an Activity is visible (`Result.retry`, not silent success). `EngineService` promotion order unchanged (Stage 38/41).
-  - **Login**: PIN cap 4 (5th press = inline "PIN is 4 digits"), phone cap 10 (11th = inline "Phone number is 10 digits"); focus routing + auto-jump kept; no system keyboard.
-  - **Signup**: Individual/Business toggle DELETED — one account type AGENT (`AuthConstants.ACCOUNT_TYPE_AGENT`); single "Your name or business name" field; PIN + Confirm PIN keypad-only (4-dot readouts, cap 4, inline mismatch); inline email reason; Create Account disabled with visible reason.
-  - **Splash**: retimed to the 1600ms device-law floor (`SPLASH_TOTAL = 1600`); hand-off only after choreography; Dim tagline ink #475569.
-  - **Tests**: `Stage44ColdPathBanTest`, `Stage44InputTruthTest`, `Stage44SplashGoldensTest` (0.4/0.9/1.5s × both themes); `Stage43SplashDurationTest` updated to the 1600ms floor / 2.0s budget contract.
-- **Next**: Stage 45 design pass — goldens × both themes × viewed; archive older HANDOFF blocks to docs/archive/.
+Superseded: Stage 57 was merged to origin/main (d0f5491, PR #42) before Stage 58 work began. Block retained for audit only.
 
-## STEP 0 resume state (Stage 43 shipped; next = FEATURE FREEZE -> full phone walk -> owner tags v2.0.0)
-
-- **Current state**: Stage 43 shipped (aurora snap splash).
-  - Aurora snap splash duration <= 1.3s (Motion.SPLASH_TOTAL = 1300ms).
-  - 0.0–0.2s: Aurora glow fades in (Obsidian: #0F172A canvas + #2563EB radial glow; Dim: #EAF0F6 canvas + pastel-blue #93C5FD glow).
-  - 0.2–0.5s: 'B' monogram snaps in with spring overshoot + micro-ripple ring.
-  - 0.5–0.8s: Monogram fills (white ink on Obsidian / #1E293B ink on Dim) + tagline "Your bundle business, automated." fades up.
-  - 0.8–1.3s: Whole screen scales 1.0 -> 1.04 + cross-fades to next screen.
-  - Goldens recorded and committed in `docs/gate/` for 0.3s, 0.6s, 1.0s x both themes (Obsidian and Porcelain Dim).
-  - Test coverage: `Stage43SplashDurationTest`, `Stage43SplashSnapshotTest`, `Stage11LaunchCinematicTest`, `Stage36TraceFixTest`, `SplashChoreographyTest`, `Stage21FirstRunTruthTest` all pass; `:app:assembleDebug` + `:app:testDebugUnitTest` green.
-- **Roadmap / Next stages**:
-  - **Next**: FEATURE FREEZE -> full phone walk -> owner tags v2.0.0.
+- **Current state (at handoff time)**: Stage 57 implemented end-to-end, NOT yet committed/pushed (awaiting owner "push").
+- **Workstreams**: A NeoButton, B FloatingGlassTabBar, C GlassInputField, D KeypadKey, E GlassDialog actions row, F PinErrorLogic + PinErrorLogicTest. Call sites adapted across LoginScreen/PinSetupScreen/DialerScreen/ProfileScreen/SetupChecklistScreen/States.kt/CustomersScreen.
+- **Verification**: compileDebugKotlin zero `e: file:` lines; assembleDebug green; testDebugUnitTest 493 completed / 22 failed — all pre-existing/environmental; zero regressions.
+- **Git**: branch stage-57-shapes from origin/main; 11 modified + 4 new files; full diff reviewed (1632 lines).

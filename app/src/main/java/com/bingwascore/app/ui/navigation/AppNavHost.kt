@@ -97,6 +97,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import com.bingwascore.app.BuildConfig
+import com.bingwascore.app.data.preferences.UserPreferences
 import com.bingwascore.app.ui.autorenewals.AutoRenewalsScreen
 import com.bingwascore.app.ui.autoreplies.AutoRepliesScreen
 import com.bingwascore.app.ui.components.FloatingGlassTabBar
@@ -116,7 +117,7 @@ import com.bingwascore.app.ui.myplan.MyPlanScreen
 import com.bingwascore.app.ui.mystore.MyStoreScreen
 import com.bingwascore.app.ui.offers.OffersScreen
 import com.bingwascore.app.ui.screens.LoginScreen
-import com.bingwascore.app.ui.screens.SplashScreen
+import com.bingwascore.app.ui.splash.LaunchScreen
 import com.bingwascore.app.ui.onboarding.SetupChecklistScreen
 import com.bingwascore.app.ui.settings.SettingsScreen
 import com.bingwascore.app.ui.transactions.TransactionFilter
@@ -132,7 +133,7 @@ import com.bingwascore.app.announcements.AnnouncementsScreen
 import com.bingwascore.app.ui.auth.EmailOtpScreen
 import com.bingwascore.app.ui.auth.PinSetupScreen
 import com.bingwascore.app.ui.coupons.RedeemCouponScreen
-import com.bingwascore.app.ui.onboarding.OnboardingCarousel
+import com.bingwascore.app.ui.onboarding.OnboardingSlides
 import androidx.compose.material.icons.rounded.Redeem
 import androidx.compose.material.icons.rounded.Campaign
 import androidx.compose.material.icons.rounded.Share
@@ -146,11 +147,11 @@ import com.bingwascore.app.domain.ThemeMode
 import com.bingwascore.app.ui.theme.Raised
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
-import com.bingwascore.app.ui.home.HomePreWarmViewModel
 
 object Routes {
+    const val LAUNCH = "launch"
     const val SPLASH = "splash"
     const val ONBOARDING = "onboarding"
     const val LOGIN = "login"
@@ -161,54 +162,58 @@ object Routes {
 }
 
 @Composable
-fun AppNavHost(remoteHttpClient: RemoteHttpClient) {
+fun AppNavHost(remoteHttpClient: RemoteHttpClient, userPreferences: UserPreferences) {
     val navController = rememberNavController()
-    val splashViewModel: SplashViewModel = hiltViewModel()
-    // Stage 11 — open Room (first snapshot) during the splash cinematic so the
-    // sign-in → home hand-off lands on warm data, never a blank frame.
-    val homePreWarm: HomePreWarmViewModel = hiltViewModel()
     val scope = rememberCoroutineScope()
-    val startDestination by splashViewModel.startDestination.collectAsState(initial = null)
 
     NavHost(
         navController = navController,
-        startDestination = Routes.SPLASH,
-        // Stage 11 — 200ms crossfade on every hand-off: the outgoing route
-        // fades out while the incoming one fades in, so no frame ever renders
-        // between two destinations (the sign-in → home black gap, gone).
+        startDestination = Routes.LAUNCH,
+        // Stage 11 — 200ms crossfade on every hand-off so no frame ever renders
+        // between two destinations. Route.Launch below overrides to 250ms.
         enterTransition = { fadeIn(tween(Motion.NAV_CROSSFADE)) },
         exitTransition = { fadeOut(tween(Motion.NAV_CROSSFADE)) },
         popEnterTransition = { fadeIn(tween(Motion.NAV_CROSSFADE)) },
         popExitTransition = { fadeOut(tween(Motion.NAV_CROSSFADE)) }
     ) {
-        composable(Routes.SPLASH) {
-            // Single decision point: splash -> onboarding (first launch only) -> login -> main.
-            val targetRoute = when (startDestination) {
-                StartDestination.Onboarding -> Routes.ONBOARDING
-                StartDestination.Login -> Routes.LOGIN
-                StartDestination.SetupChecklist -> Routes.SETUP_CHECKLIST
-                StartDestination.Main -> Routes.MAIN
-                null -> null
-            }
-            SplashScreen(target = targetRoute, onFinish = { route ->
-                navController.navigate(route) {
-                    popUpTo(Routes.SPLASH) { inclusive = true }
-                    launchSingleTop = true
+        composable(
+            route = Routes.LAUNCH,
+            enterTransition = { fadeIn(tween(250)) },
+            exitTransition = { fadeOut(tween(250)) },
+            popEnterTransition = { fadeIn(tween(250)) },
+            popExitTransition = { fadeOut(tween(250)) }
+        ) {
+            val onboardingDone by userPreferences.onboardingDone.collectAsState(initial = false)
+            val isLoggedIn by userPreferences.isLoggedIn.collectAsState(initial = false)
+            LaunchScreen(onFinished = {
+                val dest = decideStartDestination(firstLaunch = !onboardingDone, signedIn = isLoggedIn)
+                val targetRoute = when (dest) {
+                    StartDestination.Onboarding -> Routes.ONBOARDING
+                    StartDestination.Login -> Routes.LOGIN
+                    StartDestination.Main -> Routes.MAIN
+                    StartDestination.SetupChecklist -> Routes.SETUP_CHECKLIST
+                }
+                navController.navigate(targetRoute) {
+                    popUpTo(Routes.LAUNCH) { inclusive = true }
                 }
             })
         }
         composable(Routes.ONBOARDING) {
-            var page by remember { mutableStateOf(0) }
-            OnboardingCarousel(
-                onGetStarted = {
-                    scope.launch { splashViewModel.markOnboardingDone() }
+            OnboardingSlides(
+                onSignIn = {
+                    scope.launch { userPreferences.setOnboardingDone(true) }
                     navController.navigate(Routes.LOGIN) {
                         popUpTo(Routes.ONBOARDING) { inclusive = true }
                         launchSingleTop = true
                     }
                 },
-                page = page,
-                onPageChange = { page = it }
+                onSignUp = {
+                    scope.launch { userPreferences.setOnboardingDone(true) }
+                    navController.navigate(Routes.PIN_SETUP) {
+                        popUpTo(Routes.ONBOARDING) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
             )
         }
         composable(Routes.LOGIN) {

@@ -1,6 +1,7 @@
 package com.bingwascore.app.ui.theme
 
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Color as ComposeColor
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
@@ -105,7 +106,7 @@ object DesignTokens {
             textSecondary = ComposeColor(0xFF475569),
             brand = ComposeColor(0xFF2F6AE0),
             onBrand = ComposeColor(0xFFFFFFFF),
-            success = ComposeColor(0xFF059669),
+            success = ComposeColor(0xFF047857),
             onSuccess = ComposeColor(0xFFFFFFFF),
             error = ComposeColor(0xFFDC2626),
             onError = ComposeColor(0xFFFFFFFF),
@@ -216,5 +217,11 @@ object DesignTokens {
         val Body: TextUnit get() = BingwaType.Body
         /** Metadata, labels, captions. */
         val Caption: TextUnit get() = BingwaType.Caption
+    }
+
+    object Launch {
+        val lime = Color(0xFFA4F510)
+        val violet = Color(0xFF5B21D6)
+        val ink = Color(0xFF101014)
     }
 }

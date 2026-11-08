@@ -7,6 +7,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.getValue
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.bingwascore.app.R
 import com.bingwascore.app.data.preferences.UserPreferences
 import com.bingwascore.app.data.remote.RemoteHttpClient
 import com.bingwascore.app.domain.ThemeMode
@@ -26,6 +27,7 @@ class MainActivity : FragmentActivity() {
     lateinit var remoteHttpClient: RemoteHttpClient
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        setTheme(R.style.Theme_BingwaScore)
         super.onCreate(savedInstanceState)
         // Edge-to-edge: transparent system bars, content draws behind them and
         // each screen respects the insets via the scaffold padding below.
@@ -37,7 +39,7 @@ class MainActivity : FragmentActivity() {
             val themeMode: ThemeMode by userPreferences.themeMode
                 .collectAsStateWithLifecycle(initialValue = ThemeMode.PORCELAIN_DIM)
             BingwaScoreTheme(themeMode = themeMode) {
-                AppNavHost(remoteHttpClient)
+                AppNavHost(remoteHttpClient, userPreferences)
                 // SHOWCASE S1 — first ever launch offers the demo reel.
                 FirstLaunchShowcaseOffer(onDecided = {})
             }
