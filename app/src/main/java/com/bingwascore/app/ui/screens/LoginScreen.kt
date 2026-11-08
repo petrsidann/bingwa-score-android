@@ -365,7 +365,7 @@ fun LoginScreen(
             Text(
                 "Welcome back",
                 color = DesignTokens.LocalBingwaRoles.current.textPrimary,
-                fontSize = DesignTokens.Typography.Display,
+                style = DesignTokens.Typography.Display,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.combinedClickable(onLongClick = { showCrashReport = true }, onClick = {})
             )
@@ -523,7 +523,7 @@ fun LoginScreen(
                     Text(
                         "Verified!",
                         color = DesignTokens.LocalBingwaRoles.current.success,
-                        fontSize = DesignTokens.Typography.Headline,
+                        style = DesignTokens.Typography.Headline,
                         fontWeight = FontWeight.Bold
                     )
                 }

@@ -66,7 +66,7 @@ fun GlassEmptyState(
             Text(
                 text = title,
                 color = roles.textPrimary,
-                fontSize = DesignTokens.Typography.Headline,
+                style = DesignTokens.Typography.Headline,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center
             )

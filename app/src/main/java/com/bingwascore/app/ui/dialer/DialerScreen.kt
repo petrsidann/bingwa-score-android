@@ -223,7 +223,7 @@ fun DialerScreenContent(
                 Text(
                     "Quick dial",
                     color = DesignTokens.LocalBingwaRoles.current.textPrimary,
-                    fontSize = DesignTokens.Typography.Headline,
+                    style = DesignTokens.Typography.Headline,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
@@ -265,7 +265,7 @@ fun DialerScreenContent(
                 Text(
                     text = if (display.isNotBlank()) display else "07XX XXX XXX",
                     color = if (display.isNotBlank()) DesignTokens.LocalBingwaRoles.current.textPrimary else DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.35f),
-                    fontSize = DesignTokens.Typography.Display,
+                    style = DesignTokens.Typography.Display,
                     fontWeight = FontWeight.Bold,
                     fontFamily = FontFamily.Monospace
                 )
@@ -527,7 +527,7 @@ private fun DialNowButton(
             Text(
                 text = if (loading) "Dialing…" else "Dial Now",
                 color = DesignTokens.LocalBingwaRoles.current.textPrimary,
-                fontSize = DesignTokens.Typography.Headline,
+                style = DesignTokens.Typography.Headline,
                 fontWeight = FontWeight.Bold
             )
         }

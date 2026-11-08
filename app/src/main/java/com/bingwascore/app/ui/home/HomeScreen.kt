@@ -648,7 +648,7 @@ private fun HeroBar(
                                 label = "Current balance",
                                 value = if (valuesVisible) "Ksh ${money(balance ?: 0.0)}" else MASK,
                                 valueColor = DesignTokens.LocalBingwaRoles.current.textPrimary,
-                                valueSize = DesignTokens.Typography.Display,
+                                valueSize = DesignTokens.Typography.Display.fontSize ?: 32.sp,
                                 valueWeight = FontWeight.Bold
                             )
                         }

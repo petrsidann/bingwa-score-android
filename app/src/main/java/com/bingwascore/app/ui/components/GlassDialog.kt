@@ -152,7 +152,7 @@ fun GlassDialog(
                     Text(
                         text = title,
                         color = roles.textPrimary,
-                        fontSize = DesignTokens.Typography.Headline,
+                        style = DesignTokens.Typography.Headline,
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.height(DesignTokens.Spacing.Sm))

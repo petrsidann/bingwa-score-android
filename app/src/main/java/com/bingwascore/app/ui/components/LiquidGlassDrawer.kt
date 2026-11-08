@@ -147,7 +147,7 @@ fun LiquidGlassDrawer(
                         Text(
                             text = "Bingwa User",
                             color = DesignTokens.LocalBingwaRoles.current.textPrimary,
-                            fontSize = DesignTokens.Typography.Headline,
+                            style = DesignTokens.Typography.Headline,
                             fontWeight = FontWeight.Bold
                         )
                         Spacer(modifier = Modifier.height(2.dp))

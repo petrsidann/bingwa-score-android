@@ -3,9 +3,12 @@ package com.bingwascore.app.ui.theme
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Color as ComposeColor
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 /**
  * Stage 48 — Elite Design System Foundation.
@@ -175,6 +178,14 @@ object DesignTokens {
         const val PressScale: Float = 0.98f
     }
 
+    // ─── Launch (Stage 58.1) ────────────────────────────────────────────────
+
+    object Launch {
+        val lime = ComposeColor(0xFFA4F510)
+        val violet = ComposeColor(0xFF5B21D6)
+        val ink = ComposeColor(0xFF101014)
+    }
+
     // ─── Glass ────────────────────────────────────────────────────────────────
 
     object Glass {
@@ -208,20 +219,14 @@ object DesignTokens {
 
     object Typography {
         /** Hero balance / display numerals. */
-        val Display: TextUnit get() = BingwaType.Display
+        val Display: TextStyle get() = TextStyle(fontSize = 32.sp, lineHeight = 40.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = (-0.5).sp)
         /** Screen and section headers. */
-        val Headline: TextUnit get() = BingwaType.Headline
+        val Headline: TextStyle get() = TextStyle(fontSize = 20.sp, lineHeight = 28.sp, fontWeight = FontWeight.Bold)
         /** Section and card titles. */
         val Subhead: TextUnit get() = BingwaType.Subhead
         /** Body copy. */
         val Body: TextUnit get() = BingwaType.Body
         /** Metadata, labels, captions. */
         val Caption: TextUnit get() = BingwaType.Caption
-    }
-
-    object Launch {
-        val lime = Color(0xFFA4F510)
-        val violet = Color(0xFF5B21D6)
-        val ink = Color(0xFF101014)
     }
 }

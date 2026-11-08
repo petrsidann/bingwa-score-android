@@ -95,7 +95,7 @@ fun AutoRepliesScreen(viewModel: AutoRepliesViewModel = hiltViewModel()) {
             Text(
                 "Smart Follow-Up",
                 color = DesignTokens.LocalBingwaRoles.current.textPrimary,
-                fontSize = DesignTokens.Typography.Headline,
+                style = DesignTokens.Typography.Headline,
                 fontWeight = FontWeight.Bold
             )
             Text(
@@ -124,7 +124,7 @@ fun AutoRepliesScreen(viewModel: AutoRepliesViewModel = hiltViewModel()) {
             Text(
                 "Templates",
                 color = DesignTokens.LocalBingwaRoles.current.textPrimary,
-                fontSize = DesignTokens.Typography.Headline,
+                style = DesignTokens.Typography.Headline,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(horizontal = 20.dp)
             )
@@ -148,7 +148,7 @@ fun AutoRepliesScreen(viewModel: AutoRepliesViewModel = hiltViewModel()) {
             Text(
                 "Bot Activity",
                 color = DesignTokens.LocalBingwaRoles.current.textPrimary,
-                fontSize = DesignTokens.Typography.Headline,
+                style = DesignTokens.Typography.Headline,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(horizontal = 20.dp)
             )
