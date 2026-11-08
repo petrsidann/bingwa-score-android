@@ -17,14 +17,14 @@ import androidx.compose.ui.unit.sp
 object BingwaType {
 
     // ── The ramp (docs/DESIGN.md) ────────────────────────────────────────────
-    /** Display — splash wordmark, 48sp Bold. */
-    val Display: TextUnit = 48.sp
+    /** Display — splash wordmark, 32sp ExtraBold. */
+    val Display: TextUnit = 32.sp
 
     /** Title 1 — screen heroes, 32sp Bold. */
     val Title: TextUnit = 32.sp
 
-    /** Title 2 — screen headers ("Offers", "Profile"), 24sp Bold. */
-    val Headline: TextUnit = 24.sp
+    /** Title 2 — screen headers ("Offers", "Profile"), 20sp Bold. */
+    val Headline: TextUnit = 20.sp
 
     /** Title 3 — section headers, card titles, 20sp Bold. */
     val Subhead: TextUnit = 20.sp
@@ -50,13 +50,13 @@ object BingwaType {
     // ── Ready-made styles ─────────────────────────────────────────────────────
 
     /** Large hero numerals (stat tiles, balance). */
-    val displayStyle = TextStyle(fontSize = Display, fontWeight = FontWeight.Bold, lineHeight = 56.sp)
+    val displayStyle = TextStyle(fontSize = Display, fontWeight = FontWeight.ExtraBold, lineHeight = 40.sp, letterSpacing = (-0.5).sp)
 
     /** Screen hero. */
     val titleStyle = TextStyle(fontSize = Title, fontWeight = FontWeight.Bold, lineHeight = 38.sp)
 
     /** Screen header. */
-    val headlineStyle = TextStyle(fontSize = Headline, fontWeight = FontWeight.Bold, lineHeight = 30.sp)
+    val headlineStyle = TextStyle(fontSize = Headline, fontWeight = FontWeight.Bold, lineHeight = 28.sp)
 
     /** Section / card header. */
     val subheadStyle = TextStyle(fontSize = Subhead, fontWeight = FontWeight.Bold, lineHeight = 25.sp)

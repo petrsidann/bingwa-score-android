@@ -110,7 +110,7 @@ fun PinSetupScreen(
                 Text(
                     "Create Account",
                     color = DesignTokens.Color.Ink,
-                    fontSize = DesignTokens.Typography.Display,
+                    style = DesignTokens.Typography.Display,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.weight(1f)
                 )

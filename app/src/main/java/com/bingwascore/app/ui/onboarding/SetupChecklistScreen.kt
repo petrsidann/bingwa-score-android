@@ -94,7 +94,7 @@ fun SetupChecklistScreen(
         Text(
             "Finish setup — let's lock in your engine",
             color = DesignTokens.Color.Ink,
-            fontSize = DesignTokens.Typography.Display,
+            style = DesignTokens.Typography.Display,
             fontWeight = FontWeight.Bold
         )
         Spacer(modifier = Modifier.height(4.dp))

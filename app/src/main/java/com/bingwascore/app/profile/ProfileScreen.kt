@@ -201,8 +201,7 @@ fun ProfileScreenContent(
                 Text(
                     text = "Profile",
                     color = DesignTokens.Color.Ink,
-                    fontSize = DesignTokens.Typography.Headline,
-                    fontWeight = FontWeight.Bold
+                    style = DesignTokens.Typography.Headline
                 )
                 Text(
                     text = "Your agent account",
@@ -280,10 +279,7 @@ fun ProfileScreenContent(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             text = "Score: ${state.score} pts",
-                            style = TextStyle(
-                                fontSize = DesignTokens.Typography.Headline,
-                                fontWeight = FontWeight.Bold
-                            ),
+                            style = DesignTokens.Typography.Headline,
                             color = DesignTokens.Color.Ink,
                             modifier = Modifier.graphicsLayer {
                                 alpha = scoreAlpha

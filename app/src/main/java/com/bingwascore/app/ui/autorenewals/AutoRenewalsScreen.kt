@@ -126,7 +126,7 @@ fun AutoRenewalsScreen(viewModel: SelfRenewalViewModel = hiltViewModel()) {
                 Text(
                     "Auto-Renewals",
                     color = DesignTokens.LocalBingwaRoles.current.textPrimary,
-                    fontSize = DesignTokens.Typography.Headline,
+                    style = DesignTokens.Typography.Headline,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
@@ -155,7 +155,7 @@ fun AutoRenewalsScreen(viewModel: SelfRenewalViewModel = hiltViewModel()) {
         Text(
             "Scheduled",
             color = DesignTokens.LocalBingwaRoles.current.textPrimary,
-            fontSize = DesignTokens.Typography.Headline,
+            style = DesignTokens.Typography.Headline,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(horizontal = 20.dp)
         )

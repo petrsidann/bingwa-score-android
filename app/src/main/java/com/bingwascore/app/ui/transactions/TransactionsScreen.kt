@@ -692,7 +692,7 @@ private fun TransactionsTopBar(
                 Text(
                     "Transactions",
                     color = DesignTokens.LocalBingwaRoles.current.textPrimary,
-                    fontSize = DesignTokens.Typography.Headline,
+                    style = DesignTokens.Typography.Headline,
                     fontWeight = FontWeight.Bold
                 )
                 Text("$recordCount record(s)", color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f), fontSize = DesignTokens.Typography.Caption)
@@ -1203,7 +1203,7 @@ private fun TransactionRow(
                         Text(
                             "Ksh ${money(transaction.amount)}",
                             color = amountColor,
-                            fontSize = DesignTokens.Typography.Headline,
+                            style = DesignTokens.Typography.Headline,
                             fontWeight = FontWeight.Bold
                         )
                         Text(

@@ -108,7 +108,7 @@ fun CustomersScreen(viewModel: CustomersViewModel = hiltViewModel()) {
             Text(
                 "Customers",
                 color = DesignTokens.LocalBingwaRoles.current.textPrimary,
-                fontSize = DesignTokens.Typography.Headline,
+                style = DesignTokens.Typography.Headline,
                 fontWeight = FontWeight.Bold
             )
             Text(

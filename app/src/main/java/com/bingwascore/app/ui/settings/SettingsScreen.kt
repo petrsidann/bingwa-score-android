@@ -416,7 +416,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
                 Text(
                     text = "Settings",
                     color = DesignTokens.LocalBingwaRoles.current.textPrimary,
-                    fontSize = DesignTokens.Typography.Headline,
+                    style = DesignTokens.Typography.Headline,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
@@ -1351,52 +1351,6 @@ private fun ShowcasePage() {
         )
     }
 }
-
-/**
- * SHOWCASE S1 — first ever launch. Offer the demo reel before the agent commits
- * to an empty app; "No" simply leaves the flag off forever after.
- */
-@Composable
-fun FirstLaunchShowcaseOffer(onDecided: () -> Unit) {
-    val context = LocalContext.current
-    val haptics = rememberHaptics()
-
-    var show by remember {
-        mutableStateOf(DbNameHolder.isFirstEverLaunch(context))
-    }
-
-    if (!show) {
-        LaunchedEffect(Unit) { onDecided() }
-        return
-    }
-
-    GlassDialog(
-        visible = true,
-        onDismiss = {
-            DbNameHolder.markFirstLaunchSeen(context)
-            show = false
-            onDecided()
-        },
-        title = "Explore with live demo data first?",
-        body = {
-            Text(
-                text = "Showcase Mode fills a separate demo database with customers, offers " +
-                    "and transactions, then keeps them moving while you watch. Your " +
-                    "real data stays untouched and you can switch off any time.",
-                color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.7f),
-                fontSize = 14.sp
-            )
-        },
-        dismissLabel = "No thanks",
-        confirmLabel = "Yes, show me",
-        onConfirm = {
-            DbNameHolder.markFirstLaunchSeen(context)
-            ShowcaseController.setEnabled(context, true)
-            show = false
-            ShowcaseController.restart(context)
-        }
-        )
-    }
 
 @Composable
 private fun OptionCard(
