@@ -42,14 +42,15 @@ fun LaunchScreen(onFinished: () -> Unit) {
         delay(1400L)
         onFinished()
     }
+    // BURST ANIMATION: Faster fade, spring from smaller scale with less damping
     val alpha by animateFloatAsState(
-        if (entered.value) 1f else 0f, 
-        tween(300), 
+        if (entered.value) 1f else 0f,
+        tween(durationMillis = 200),
         label = "launchAlpha"
     )
     val scale by animateFloatAsState(
-        if (entered.value) 1f else 0.92f,
-        spring(dampingRatio = 0.86f, stiffness = 380f), 
+        if (entered.value) 1f else 0.5f,
+        spring(dampingRatio = 0.7f, stiffness = 400f),
         label = "launchScale"
     )
     Box(
@@ -66,10 +67,10 @@ fun LaunchScreen(onFinished: () -> Unit) {
             textAlign = TextAlign.Center,
             modifier = Modifier
                 .padding(horizontal = 24.dp)
-                .graphicsLayer { 
+                .graphicsLayer {
                     this.alpha = alpha
                     scaleX = scale
-                    scaleY = scale 
+                    scaleY = scale
                 }
         )
     }
