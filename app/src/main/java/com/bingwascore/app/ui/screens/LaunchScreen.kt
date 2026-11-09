@@ -14,6 +14,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
@@ -63,7 +64,7 @@ fun LaunchScreen(onFinished: () -> Unit) {
 @Composable
 private fun SideEffectLightStatusBars() {
     val view = LocalView.current
-    androidx.compose.runtime.SideEffect {
+    SideEffect {
         (view.context as? Activity)?.window?.let { w ->
             WindowCompat.getInsetsController(w, view).isAppearanceLightStatusBars = true
         }
