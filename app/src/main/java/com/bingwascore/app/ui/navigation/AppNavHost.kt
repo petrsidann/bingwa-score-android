@@ -200,22 +200,20 @@ fun AppNavHost(remoteHttpClient: RemoteHttpClient) {
         composable(Routes.ONBOARDING) {
             var page by remember { mutableStateOf(0) }
             OnboardingSlides(
-                onGetStarted = {
+                onCreateAccount = {
+                    scope.launch { splashViewModel.markOnboardingDone() }
+                    navController.navigate(Routes.PIN_SETUP) {
+                        popUpTo(Routes.ONBOARDING) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                },
+                onSignIn = {
                     scope.launch { splashViewModel.markOnboardingDone() }
                     navController.navigate(Routes.LOGIN) {
                         popUpTo(Routes.ONBOARDING) { inclusive = true }
                         launchSingleTop = true
                     }
-                },
-                onSkip = {
-                    scope.launch { splashViewModel.markOnboardingDone() }
-                    navController.navigate(Routes.LOGIN) {
-                        popUpTo(Routes.ONBOARDING) { inclusive = true }
-                        launchSingleTop = true
-                    }
-                },
-                page = page,
-                onPageChange = { page = it }
+                }
             )
         }
         composable(Routes.LOGIN) {

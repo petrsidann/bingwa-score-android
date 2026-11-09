@@ -36,6 +36,7 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -83,6 +84,7 @@ fun OnboardingSlides(onCreateAccount: () -> Unit, onSignIn: () -> Unit) {
     val scope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
     val view = LocalView.current
+    val context = LocalContext.current
     val lightIcons = pagerState.currentPage != 0
     SideEffect {
         (view.context as? Activity)?.window?.let { w ->
@@ -92,9 +94,7 @@ fun OnboardingSlides(onCreateAccount: () -> Unit, onSignIn: () -> Unit) {
     LaunchedEffect(pagerState.currentPage) {
         if (pagerState.currentPage > 0) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
     }
-    BackHandler(enabled = pagerState.currentPage == 0) {
-        (LocalContext.current as? Activity)?.finish()
-    }
+    BackHandler(enabled = pagerState.currentPage == 0) { (context as? Activity)?.finish() }
     Box(Modifier.fillMaxSize().background(slides[pagerState.currentPage].bg)) {
         HorizontalPager(state = pagerState, pageSize = PageSize.Fill, modifier = Modifier.fillMaxSize()) { page ->
             SlidePage(slides[page], page, pagerState, scope, onCreateAccount, onSignIn)
@@ -113,7 +113,7 @@ private fun SlidePage(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
-                .padding(horizontal = 32.dp, bottom = 108.dp),
+                .padding(start = 32.dp, end = 32.dp, bottom = 108.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             if (s.header) {
