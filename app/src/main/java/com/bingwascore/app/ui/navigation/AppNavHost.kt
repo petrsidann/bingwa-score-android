@@ -152,6 +152,7 @@ import com.bingwascore.app.ui.home.HomePreWarmViewModel
 
 object Routes {
     const val SPLASH = "splash"
+    const val LAUNCH = "launch"
     const val ONBOARDING = "onboarding"
     const val LOGIN = "login"
     const val EMAIL_OTP = "email_otp"
@@ -172,7 +173,7 @@ fun AppNavHost(remoteHttpClient: RemoteHttpClient) {
 
     NavHost(
         navController = navController,
-        startDestination = Routes.SPLASH,
+        startDestination = Routes.LAUNCH,
         // Stage 11 — 200ms crossfade on every hand-off: the outgoing route
         // fades out while the incoming one fades in, so no frame ever renders
         // between two destinations (the sign-in → home black gap, gone).
@@ -181,37 +182,32 @@ fun AppNavHost(remoteHttpClient: RemoteHttpClient) {
         popEnterTransition = { fadeIn(tween(Motion.NAV_CROSSFADE)) },
         popExitTransition = { fadeOut(tween(Motion.NAV_CROSSFADE)) }
     ) {
-        composable(Routes.SPLASH) {
-            // Single decision point: launch -> onboarding (first launch only) -> login -> main.
-            val targetRoute = when (startDestination) {
-                StartDestination.Onboarding -> Routes.ONBOARDING
-                StartDestination.Login -> Routes.LOGIN
-                StartDestination.SetupChecklist -> Routes.SETUP_CHECKLIST
-                StartDestination.Main -> Routes.MAIN
-                null -> Routes.MAIN
-            }
+        composable(Routes.LAUNCH) {
             LaunchScreen(onFinished = {
-                navController.navigate(targetRoute) {
-                    popUpTo(Routes.SPLASH) { inclusive = true }
-                    launchSingleTop = true
+                val destRoute = when (startDestination) {
+                    StartDestination.Onboarding -> Routes.ONBOARDING
+                    StartDestination.Login -> Routes.LOGIN
+                    StartDestination.SetupChecklist -> Routes.SETUP_CHECKLIST
+                    StartDestination.Main -> Routes.MAIN
+                    null -> Routes.MAIN
+                }
+                navController.navigate(destRoute) {
+                    popUpTo(Routes.LAUNCH) { inclusive = true }
                 }
             })
         }
         composable(Routes.ONBOARDING) {
-            var page by remember { mutableStateOf(0) }
             OnboardingSlides(
                 onCreateAccount = {
                     scope.launch { splashViewModel.markOnboardingDone() }
                     navController.navigate(Routes.PIN_SETUP) {
                         popUpTo(Routes.ONBOARDING) { inclusive = true }
-                        launchSingleTop = true
                     }
                 },
                 onSignIn = {
                     scope.launch { splashViewModel.markOnboardingDone() }
                     navController.navigate(Routes.LOGIN) {
                         popUpTo(Routes.ONBOARDING) { inclusive = true }
-                        launchSingleTop = true
                     }
                 }
             )

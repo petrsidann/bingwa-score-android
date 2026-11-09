@@ -11,10 +11,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
@@ -30,17 +30,27 @@ import kotlinx.coroutines.delay
 @Composable
 fun LaunchScreen(onFinished: () -> Unit) {
     val view = LocalView.current
-    SideEffectLightStatusBars()
+    SideEffect {
+        val window = (view.context as? Activity)?.window
+        if (window != null) {
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = true
+        }
+    }
     val entered = remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         entered.value = true
         delay(1400L)
         onFinished()
     }
-    val alpha by animateFloatAsState(if (entered.value) 1f else 0f, tween(300), label = "launchAlpha")
+    val alpha by animateFloatAsState(
+        if (entered.value) 1f else 0f, 
+        tween(300), 
+        label = "launchAlpha"
+    )
     val scale by animateFloatAsState(
         if (entered.value) 1f else 0.92f,
-        spring(dampingRatio = 0.86f, stiffness = 380f), label = "launchScale"
+        spring(dampingRatio = 0.86f, stiffness = 380f), 
+        label = "launchScale"
     )
     Box(
         modifier = Modifier.fillMaxSize().background(DesignTokens.Launch.lime),
@@ -56,17 +66,11 @@ fun LaunchScreen(onFinished: () -> Unit) {
             textAlign = TextAlign.Center,
             modifier = Modifier
                 .padding(horizontal = 24.dp)
-                .graphicsLayer { this.alpha = alpha; scaleX = scale; scaleY = scale }
+                .graphicsLayer { 
+                    this.alpha = alpha
+                    scaleX = scale
+                    scaleY = scale 
+                }
         )
-    }
-}
-
-@Composable
-private fun SideEffectLightStatusBars() {
-    val view = LocalView.current
-    SideEffect {
-        (view.context as? Activity)?.window?.let { w ->
-            WindowCompat.getInsetsController(w, view).isAppearanceLightStatusBars = true
-        }
     }
 }
