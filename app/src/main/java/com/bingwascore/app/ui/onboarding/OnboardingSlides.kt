@@ -21,13 +21,14 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PageSize
+import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.rounded.Cached
 import androidx.compose.material.icons.rounded.EmojiEvents
-import androidx.compose.material.icons.rounded.Upload
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -50,96 +51,15 @@ import androidx.compose.ui.unit.sp
 import androidx.activity.compose.BackHandler
 import androidx.core.view.WindowCompat
 import com.bingwascore.app.ui.theme.DesignTokens
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
-// EYE-INSIDE-TOGGLE ICON - 160dp circle with toggle containing eye
-@Composable
-fun EyeToggleIcon(modifier: Modifier = Modifier, bgColor: Color, fgColor: Color) {
-    Box(
-        modifier.size(160.dp).clip(CircleShape).background(bgColor),
-        contentAlignment = Alignment.Center
-    ) {
-        // Toggle track (pill shape, 100dp wide, 56dp tall)
-        Box(
-            Modifier
-                .size(width = 100.dp, height = 56.dp)
-                .clip(RoundedCornerShape(28.dp))
-                .background(fgColor.copy(alpha = 0.3f))
-        )
-        // Toggle thumb (circle on right, 48dp) with EYE inside
-        Box(
-            Modifier
-                .padding(end = 4.dp)
-                .size(48.dp)
-                .clip(CircleShape)
-                .background(fgColor),
-            contentAlignment = Alignment.Center
-        ) {
-            Box(
-                Modifier
-                    .size(24.dp)
-                    .clip(CircleShape)
-                    .background(bgColor),
-                contentAlignment = Alignment.Center
-            ) {
-                Box(
-                    Modifier.size(10.dp).clip(CircleShape).background(fgColor)
-                )
-            }
-        }
-    }
-}
-
-// CSV ICON - Custom draw for slide 4
-@Composable
-fun CsvUploadIcon(modifier: Modifier = Modifier, bgColor: Color, fgColor: Color) {
-    Box(
-        modifier.size(160.dp).clip(CircleShape).background(bgColor),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            // Document icon (simplified as stacked lines)
-            Box(
-                Modifier
-                    .width(64.dp)
-                    .height(72.dp)
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(fgColor.copy(alpha = 0.2f))
-            ) {
-                // Lines representing CSV data
-                Column(
-                    modifier = Modifier
-                        .padding(12.dp)
-                        .align(Alignment.TopStart),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Box(Modifier.width(40.dp).height(4.dp).background(fgColor))
-                    Box(Modifier.width(32.dp).height(4.dp).background(fgColor))
-                    Box(Modifier.width(36.dp).height(4.dp).background(fgColor))
-                    Box(Modifier.width(28.dp).height(4.dp).background(fgColor))
-                }
-            }
-            // CSV badge
-            Box(
-                Modifier
-                    .padding(top = 8.dp)
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(fgColor)
-                    .padding(horizontal = 12.dp, vertical = 4.dp)
-            ) {
-                Text("CSV", color = bgColor, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-            }
-        }
-    }
-}
+private val CsvBlue = Color(0xFF1E3A8A)
 
 private data class Slide(
     val bg: Color,
     val fg: Color,
     val body: Color,
-    val iconBg: Color,
-    val iconTint: Color,
-    val icon: androidx.compose.ui.graphics.vector.ImageVector,
     val title: String,
     val text: String,
     val ctaBg: Color,
@@ -152,102 +72,59 @@ fun OnboardingSlides(onCreateAccount: () -> Unit, onSignIn: () -> Unit) {
     val lime = DesignTokens.Launch.lime
     val violet = DesignTokens.Launch.violet
     val ink = DesignTokens.Launch.ink
-    val darkBlue = Color(0xFF1e3a8a) // Deep blue for CSV slide
-
     val slides = listOf(
-        Slide(
-            bg = lime,
-            fg = violet,
-            body = violet.copy(alpha = 0.7f),
-            iconBg = violet,
-            iconTint = lime,
-            icon = Icons.Rounded.Cached,
-            title = "Auto-pilot payments",
-            text = "Bingwa Score watches for M-Pesa confirmations and dials bundles automatically.",
-            ctaBg = violet,
-            ctaFg = lime,
-            header = true
-        ),
-        Slide(
-            bg = violet,
-            fg = lime,
-            body = lime.copy(alpha = 0.8f),
-            iconBg = lime,
-            iconTint = violet,
-            icon = Icons.Rounded.Cached,
-            title = "Smart retries & fallbacks",
-            text = "Failed transaction? We retry with fallbacks so your customers stay happy.",
-            ctaBg = lime,
-            ctaFg = violet,
-            header = false
-        ),
-        Slide(
-            bg = ink,
-            fg = lime,
-            body = Color.White.copy(alpha = 0.7f),
-            iconBg = lime,
-            iconTint = Color.Black,
-            icon = Icons.Rounded.EmojiEvents,
-            title = "Score, streaks & rewards",
-            text = "Earn points for every sale, build streaks and unlock achievements as you grow.",
-            ctaBg = lime,
-            ctaFg = Color.Black,
-            header = false
-        ),
-        Slide(
-            bg = darkBlue,
-            fg = lime,
-            body = lime.copy(alpha = 0.8f),
-            iconBg = lime,
-            iconTint = darkBlue,
-            icon = Icons.Rounded.Upload,
-            title = "Import your customers",
-            text = "Upload a CSV file with saved phone numbers to restore your customer data and USSD plans.",
-            ctaBg = lime,
-            ctaFg = darkBlue,
-            header = false
-        )
+        Slide(lime, violet, violet.copy(alpha = 0.7f), "Auto-pilot payments", "Bingwa Score watches for M-Pesa confirmations and dials bundles automatically.", violet, lime, header = true),
+        Slide(violet, lime, lime.copy(alpha = 0.8f), "Smart retries & fallbacks", "Failed transaction? We retry with fallbacks so your customers stay happy.", lime, violet, header = false),
+        Slide(ink, lime, Color.White.copy(alpha = 0.7f), "Score, streaks & rewards", "Earn points for every sale, build streaks and unlock achievements as you grow.", lime, ink, header = false),
+        Slide(CsvBlue, lime, Color.White.copy(alpha = 0.7f), "Import your customers", "Upload a CSV of your saved contacts to restore your customers, offers and USSD plans in one tap.", lime, CsvBlue, header = false)
     )
-
     val pagerState = rememberPagerState(pageCount = { slides.size })
     val scope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
     val view = LocalView.current
-
-    val lightIcons = pagerState.currentPage != 0 && pagerState.currentPage != 3
+    val context = LocalContext.current
     SideEffect {
         (view.context as? Activity)?.window?.let { w ->
-            WindowCompat.getInsetsController(w, view).isAppearanceLightStatusBars = !lightIcons
+            WindowCompat.getInsetsController(w, view).isAppearanceLightStatusBars = pagerState.currentPage != 0
         }
     }
-
     LaunchedEffect(pagerState.currentPage) {
-        if (pagerState.currentPage > 0) {
-            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+        if (pagerState.currentPage > 0) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+    }
+    BackHandler(enabled = pagerState.currentPage == 0) { (context as? Activity)?.finish() }
+    Box(Modifier.fillMaxSize().background(slides[pagerState.currentPage].bg)) {
+        HorizontalPager(state = pagerState, pageSize = PageSize.Fill, modifier = Modifier.fillMaxSize()) { page ->
+            SlidePage(slides[page], page, pagerState, scope, onCreateAccount, onSignIn)
         }
     }
+}
 
-    val context = LocalContext.current
-    BackHandler(enabled = pagerState.currentPage == 0) {
-        (context as? Activity)?.finish()
+@Composable
+private fun EyeToggleIcon(bgColor: Color, fgColor: Color) {
+    Box(Modifier.size(160.dp).clip(CircleShape).background(bgColor), contentAlignment = Alignment.Center) {
+        Box(Modifier.size(width = 96.dp, height = 52.dp).clip(RoundedCornerShape(26.dp)).background(fgColor), contentAlignment = Alignment.CenterEnd) {
+            Box(Modifier.padding(end = 4.dp).size(44.dp).clip(CircleShape).background(bgColor), contentAlignment = Alignment.Center) {
+                Icon(Icons.Filled.Visibility, contentDescription = null, tint = fgColor, modifier = Modifier.size(28.dp))
+            }
+        }
     }
+}
 
-    Box(
-        Modifier.fillMaxSize().background(slides[pagerState.currentPage].bg)
-    ) {
-        HorizontalPager(
-            state = pagerState,
-            pageSize = PageSize.Fill,
-            modifier = Modifier.fillMaxSize()
-        ) { page ->
-            SlidePage(
-                slide = slides[page],
-                page = page,
-                pagerState = pagerState,
-                scope = scope,
-                onCreateAccount = onCreateAccount,
-                onSignIn = onSignIn
-            )
+@Composable
+private fun CsvUploadIcon(circleColor: Color, docColor: Color, inkColor: Color) {
+    Box(Modifier.size(160.dp).clip(CircleShape).background(circleColor), contentAlignment = Alignment.Center) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Box(Modifier.size(width = 72.dp, height = 84.dp).clip(RoundedCornerShape(6.dp)).background(docColor)) {
+                Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Box(Modifier.width(44.dp).height(4.dp).background(inkColor))
+                    Box(Modifier.width(52.dp).height(4.dp).background(inkColor))
+                    Box(Modifier.width(48.dp).height(4.dp).background(inkColor))
+                    Box(Modifier.width(36.dp).height(4.dp).background(inkColor))
+                }
+            }
+            Box(Modifier.padding(top = 6.dp).clip(RoundedCornerShape(4.dp)).background(inkColor).padding(horizontal = 10.dp, vertical = 3.dp)) {
+                Text("CSV", color = circleColor, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            }
         }
     }
 }
@@ -256,13 +133,12 @@ fun OnboardingSlides(onCreateAccount: () -> Unit, onSignIn: () -> Unit) {
 private fun SlidePage(
     slide: Slide,
     page: Int,
-    pagerState: androidx.compose.foundation.pager.PagerState,
-    scope: kotlinx.coroutines.CoroutineScope,
+    pagerState: PagerState,
+    scope: CoroutineScope,
     onCreateAccount: () -> Unit,
     onSignIn: () -> Unit
 ) {
     val haptic = LocalHapticFeedback.current
-
     Box(Modifier.fillMaxSize().background(slide.bg)) {
         Column(
             modifier = Modifier
@@ -273,92 +149,31 @@ private fun SlidePage(
         ) {
             if (slide.header) {
                 Spacer(Modifier.height(24.dp))
-                Text(
-                    "Bingwa Score",
-                    color = slide.fg,
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    letterSpacing = (-0.5).sp,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                Text("Bingwa Score", color = slide.fg, fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = (-0.5).sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
                 Spacer(Modifier.height(8.dp))
-                Text(
-                    "Your bundle business, automated.",
-                    color = slide.fg.copy(alpha = 0.7f),
-                    fontSize = 15.sp,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                Text("Your bundle business, automated.", color = slide.fg.copy(alpha = 0.7f), fontSize = 15.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
             }
-
             Spacer(Modifier.weight(1f))
-
-            // CUSTOM ICONS FOR SLIDES 1 AND 4, STANDARD FOR 2 AND 3
             when (page) {
-                0 -> EyeToggleIcon(bgColor = slide.iconBg, fgColor = slide.iconTint)
-                3 -> CsvUploadIcon(bgColor = slide.iconBg, fgColor = slide.iconTint)
-                else -> {
-                    Box(
-                        Modifier.size(160.dp).clip(CircleShape).background(slide.iconBg),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            slide.icon,
-                            contentDescription = null,
-                            tint = slide.iconTint,
-                            modifier = Modifier.size(72.dp)
-                        )
-                    }
+                0 -> EyeToggleIcon(bgColor = DesignTokens.Launch.violet, fgColor = DesignTokens.Launch.lime)
+                3 -> CsvUploadIcon(circleColor = DesignTokens.Launch.lime, docColor = Color.White, inkColor = CsvBlue)
+                else -> Box(Modifier.size(160.dp).clip(CircleShape).background(DesignTokens.Launch.lime), contentAlignment = Alignment.Center) {
+                    Icon(if (page == 1) Icons.Rounded.Cached else Icons.Rounded.EmojiEvents, contentDescription = null, tint = if (page == 1) DesignTokens.Launch.violet else Color.Black, modifier = Modifier.size(72.dp))
                 }
             }
-
             Spacer(Modifier.height(28.dp))
-            Text(
-                slide.title,
-                color = slide.fg,
-                fontSize = 26.sp,
-                fontWeight = FontWeight.ExtraBold,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
-
+            Text(slide.title, color = slide.fg, fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.height(12.dp))
-            Text(
-                slide.text,
-                color = slide.body,
-                fontSize = 15.sp,
-                lineHeight = 24.sp,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
-
+            Text(slide.text, color = slide.body, fontSize = 15.sp, lineHeight = 24.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.weight(1f))
-
-            // Page indicator (4 dots now)
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 repeat(4) { i ->
                     val active = i == page
-                    val w by animateDpAsState(
-                        if (active) 24.dp else 8.dp,
-                        spring(dampingRatio = 0.86f, stiffness = 380f),
-                        label = "dot$i"
-                    )
-                    Box(
-                        Modifier
-                            .height(8.dp)
-                            .width(w)
-                            .clip(RoundedCornerShape(50))
-                            .background(slide.fg.copy(alpha = if (active) 1f else 0.35f))
-                    )
+                    val w by animateDpAsState(if (active) 24.dp else 8.dp, spring(dampingRatio = 0.86f, stiffness = 380f), label = "dot$i")
+                    Box(Modifier.height(8.dp).width(w).clip(RoundedCornerShape(50)).background(slide.fg.copy(alpha = if (active) 1f else 0.35f)))
                 }
             }
         }
-
-        // Bottom buttons
         Row(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -369,66 +184,14 @@ private fun SlidePage(
             verticalAlignment = Alignment.CenterVertically
         ) {
             if (page < 3) {
-                Text(
-                    "Skip",
-                    color = slide.fg.copy(alpha = 0.7f),
-                    fontSize = 16.sp,
-                    modifier = Modifier
-                        .padding(8.dp)
-                        .clickable {
-                            scope.launch {
-                                pagerState.animateScrollToPage(3)
-                            }
-                        }
-                )
-                Box(
-                    Modifier
-                        .widthIn(min = 200.dp)
-                        .height(64.dp)
-                        .clip(RoundedCornerShape(999.dp))
-                        .background(slide.ctaBg)
-                        .clickable {
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            scope.launch {
-                                pagerState.animateScrollToPage(page + 1)
-                            }
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        "Next",
-                        color = slide.ctaFg,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
+                Text("Skip", color = slide.fg.copy(alpha = 0.7f), fontSize = 16.sp, modifier = Modifier.padding(8.dp).clickable { scope.launch { pagerState.animateScrollToPage(3) } })
+                Box(Modifier.widthIn(min = 200.dp).height(64.dp).clip(RoundedCornerShape(999.dp)).background(slide.ctaBg).clickable { haptic.performHapticFeedback(HapticFeedbackType.LongPress); scope.launch { pagerState.animateScrollToPage(page + 1) } }, contentAlignment = Alignment.Center) {
+                    Text("Next", color = slide.ctaFg, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
                 }
             } else {
-                Text(
-                    "Sign in",
-                    color = slide.fg.copy(alpha = 0.8f),
-                    fontSize = 16.sp,
-                    modifier = Modifier
-                        .padding(8.dp)
-                        .clickable { onSignIn() }
-                )
-                Box(
-                    Modifier
-                        .widthIn(min = 200.dp)
-                        .height(64.dp)
-                        .clip(RoundedCornerShape(999.dp))
-                        .background(slide.ctaBg)
-                        .clickable {
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            onCreateAccount()
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        "Create Account",
-                        color = slide.ctaFg,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                Text("Sign in", color = slide.fg.copy(alpha = 0.8f), fontSize = 16.sp, modifier = Modifier.padding(8.dp).clickable { onSignIn() })
+                Box(Modifier.widthIn(min = 200.dp).height(64.dp).clip(RoundedCornerShape(999.dp)).background(slide.ctaBg).clickable { haptic.performHapticFeedback(HapticFeedbackType.LongPress); onCreateAccount() }, contentAlignment = Alignment.Center) {
+                    Text("Create Account", color = slide.ctaFg, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }

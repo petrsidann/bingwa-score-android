@@ -2,7 +2,7 @@ package com.bingwascore.app.ui.screens
 
 import android.app.Activity
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.keyframes
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -31,30 +31,35 @@ import kotlinx.coroutines.delay
 fun LaunchScreen(onFinished: () -> Unit) {
     val view = LocalView.current
     SideEffect {
-        val window = (view.context as? Activity)?.window
-        if (window != null) {
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = true
+        (view.context as? Activity)?.window?.let { w ->
+            WindowCompat.getInsetsController(w, view).isAppearanceLightStatusBars = true
         }
     }
     val entered = remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         entered.value = true
-        delay(1400L)
+        delay(1600L)
         onFinished()
     }
-    // BURST ANIMATION: Start from 0.3 scale, snap to 1.0 with minimal damping
     val alpha by animateFloatAsState(
-        if (entered.value) 1f else 0f,
-        tween(durationMillis = 150),
+        targetValue = if (entered.value) 1f else 0f,
+        animationSpec = tween(durationMillis = 120),
         label = "launchAlpha"
     )
     val scale by animateFloatAsState(
-        if (entered.value) 1f else 0.3f,
-        spring(dampingRatio = 0.5f, stiffness = 400f),
+        targetValue = if (entered.value) 1f else 0.4f,
+        animationSpec = keyframes {
+            durationMillis = 420
+            0.4f at 0
+            1.12f at 260
+            1.0f at 420
+        },
         label = "launchScale"
     )
     Box(
-        modifier = Modifier.fillMaxSize().background(DesignTokens.Launch.lime),
+        modifier = Modifier
+            .fillMaxSize()
+            .background(DesignTokens.Launch.lime),
         contentAlignment = Alignment.Center
     ) {
         Text(
