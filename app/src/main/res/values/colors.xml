@@ -7,4 +7,5 @@
     <color name="brand_background">#000000</color>
     <color name="brand_accent">#2962FF</color>
     <color name="launch_lime">#A4F510</color>
+    <color name="launch_violet_window">#5B21D6</color>
 </resources>
