@@ -39,6 +39,12 @@
             android:exported="true"
             android:theme="@style/Theme.BingwaScore.Splash"
             android:windowSoftInputMode="stateAlwaysHidden|adjustNothing">
+        </activity>
+
+        <activity
+            android:name=".ui.screens.LaunchActivity"
+            android:exported="true"
+            android:theme="@style/Theme.BingwaScore.Launch">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
