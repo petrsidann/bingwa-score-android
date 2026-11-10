@@ -42,15 +42,15 @@ fun LaunchScreen(onFinished: () -> Unit) {
         delay(1400L)
         onFinished()
     }
-    // BURST: Fast alpha, snappy spring from 0.5 scale
+    // BURST ANIMATION: Start from 0.3 scale, snap to 1.0 with minimal damping
     val alpha by animateFloatAsState(
-        if (entered.value) 1f else 0f, 
-        tween(durationMillis = 200), 
+        if (entered.value) 1f else 0f,
+        tween(durationMillis = 150),
         label = "launchAlpha"
     )
     val scale by animateFloatAsState(
-        if (entered.value) 1f else 0.5f,
-        spring(dampingRatio = 0.6f, stiffness = 500f), 
+        if (entered.value) 1f else 0.3f,
+        spring(dampingRatio = 0.5f, stiffness = 400f),
         label = "launchScale"
     )
     Box(
@@ -67,10 +67,10 @@ fun LaunchScreen(onFinished: () -> Unit) {
             textAlign = TextAlign.Center,
             modifier = Modifier
                 .padding(horizontal = 24.dp)
-                .graphicsLayer { 
+                .graphicsLayer {
                     this.alpha = alpha
                     scaleX = scale
-                    scaleY = scale 
+                    scaleY = scale
                 }
         )
     }
