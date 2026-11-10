@@ -2,7 +2,6 @@ package com.bingwascore.app.ui.screens
 
 import android.app.Activity
 import androidx.compose.animation.core.FastOutLinearInEasing
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.keyframes
 import androidx.compose.animation.core.tween
@@ -42,14 +41,16 @@ fun LaunchScreen(onFinished: () -> Unit) {
     LaunchedEffect(Unit) {
         delay(1400L)
         phase = 1
-        delay(600L)
+        delay(350L)
         phase = 2
-        delay(200L)
+        delay(500L)
+        phase = 3
+        delay(250L)
         onFinished()
     }
     SideEffect {
         (view.context as? Activity)?.window?.let { w ->
-            WindowCompat.getInsetsController(w, view).isAppearanceLightStatusBars = phase < 1
+            WindowCompat.getInsetsController(w, view).isAppearanceLightStatusBars = phase == 0
         }
     }
     val alpha by animateFloatAsState(
@@ -67,16 +68,16 @@ fun LaunchScreen(onFinished: () -> Unit) {
         },
         label = "launchScale"
     )
-    val wordmarkColor by animateColorAsState(
-        targetValue = if (phase >= 1) DesignTokens.Launch.lime else DesignTokens.Launch.violet,
-        animationSpec = tween(durationMillis = 200),
-        label = "wordmarkColor"
-    )
     val circleScale by animateFloatAsState(
-        targetValue = if (phase >= 1) 1f else 0f,
-        animationSpec = tween(durationMillis = 600, easing = FastOutLinearInEasing),
+        targetValue = when {
+            phase == 0 -> 0f
+            phase == 1 -> 0.14f
+            else -> 1f
+        },
+        animationSpec = if (phase == 1) tween(durationMillis = 260) else tween(durationMillis = 500, easing = FastOutLinearInEasing),
         label = "circleScale"
     )
+    val wordmarkColor = if (phase >= 1) DesignTokens.Launch.lime else DesignTokens.Launch.violet
     Box(
         modifier = Modifier
             .fillMaxSize()
