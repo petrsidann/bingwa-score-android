@@ -6,19 +6,19 @@
         <item name="android:windowLightStatusBar">true</item>
         <item name="android:windowBackground">@color/launch_violet_window</item>
     </style>
-
     <style name="Theme.BingwaScore.Launch" parent="Theme.BingwaScore">
         <item name="android:windowBackground">@drawable/launch_bg</item>
         <item name="android:statusBarColor">@color/launch_lime</item>
         <item name="android:navigationBarColor">@color/launch_lime</item>
         <item name="android:windowLightStatusBar">true</item>
     </style>
-
+    <!-- Stage 59: MainActivity's starting window is violet so the LaunchActivity
+         reveal hands off seamlessly into the violet LAUNCH route — no lime void. -->
     <style name="Theme.BingwaScore.Splash" parent="Theme.BingwaScore">
-        <item name="android:windowBackground">@drawable/launch_bg</item>
-        <item name="android:statusBarColor">@color/launch_lime</item>
-        <item name="android:navigationBarColor">@color/launch_lime</item>
-        <item name="android:windowLightStatusBar">true</item>
-        <item name="android:windowLightNavigationBar">true</item>
+        <item name="android:windowBackground">@color/launch_violet_window</item>
+        <item name="android:statusBarColor">@color/launch_violet_window</item>
+        <item name="android:navigationBarColor">@color/launch_violet_window</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
     </style>
 </resources>
