@@ -1,137 +1,105 @@
-# Bingwa Score — Design Constitution (v3)
+# Bingwa Score — Design Constitution (v4 · Stage 60)
 
-Anti-slop reference for every stage that touches the UI. When this doc and the
-code disagree, the code wins only after a deliberate update to this doc.
+Anti-slop reference for every stage that touches UI. When this doc and the code
+disagree, the code wins only after a deliberate update to this doc.
 
-Tokens only. No raw literals, no placeholder rectangles, no ambient blobs,
-no clear glass without shadow, no dull greys, no unstyled bands.
+Tokens only. No raw literals, no placeholder rectangles, no ambient blobs, no
+clear glass without shadow, no dull greys, no unstyled bands, no white-on-light.
+
+Canonical token source: `ui/theme/DesignTokens.kt` (Role / Launch / Motion /
+Glass / Spacing / Typography). Type ramp: `BingwaType` in `ui/theme/Type.kt`.
+`Color.kt` and `StatusColors.kt` are legacy shims — read them, never add new
+literals there. Semantic roles are consumed via `DesignTokens.LocalBingwaRoles`.
 
 ## 1. Themes (exactly two)
+- Obsidian (`ThemeMode.DARK`): bg #0F172A, card #1E293B, elevated #334155, border #475569, ink #F8FAFC.
+- Porcelain Dim (`ThemeMode.PORCELAIN_DIM`, default): bg #EAF0F6, card #FFFFFF, elevated #F8FAFC, border #CBD5E1, ink #1E293B, secondary #475569.
+- No third mode (Grayscale/Silica retired; `ThemeMode.fromValue` maps them to Dim).
+- Both-themes parity: every surface/token/motion renders identically in structure.
 
-- **Obsidian** (`ThemeMode.DARK`): bg `#0F172A`, card `#1E293B`, elevated
-  `#334155`, borders `#475569`, white/light ink.
-- **Porcelain Dim** (`ThemeMode.PORCELAIN_DIM`, **default**): bg `#F1F5F9`,
-  card `#FFFFFF`, elevated `#F8FAFC`, borders `#CBD5E1`, near-black ink
-  `#0F172A`, secondary `#475569`.
-- There is NO third mode: no Grayscale, no Silica, no light/white mode beyond
-  Porcelain Dim. Blur lives ONLY in `ui/glass/` (nav bars + sheets). Never on
-  cards.
-- `ThemeMode.fromValue` maps every retired stored value to Porcelain Dim.
+## 2. Semantic roles (Stage 56 — ContrastGuardTest pins these)
+| Role | Obsidian | Porcelain Dim |
+|---|---|---|
+| brand | #2563EB | #2F6AE0 |
+| onBrand | #FFFFFF | #FFFFFF |
+| success | #34D399 | #047857 |
+| onSuccess | #06281A | #FFFFFF |
+| error | #F87171 | #DC2626 |
+| onError | #2A0A0A | #FFFFFF |
+| textPrimary | #F8FAFC | #1E293B |
+| textSecondary | #94A3B8 | #475569 |
+| keypadKey | #334155 | #FFFFFF |
+| keypadDigit | #F8FAFC | #1E293B |
 
-## 2. Colours
+Contrast law: text/background pairs >= 4.5:1 both directions (ContrastGuardTest).
+Forbidden: orange/amber literals, raw blobs, placeholder rectangles, clear glass
+without shadow, dull greys, unstyled bands, white-on-light.
 
-| Role | Hex | Use |
-|------|-----|-----|
-| Primary / BrandBlue | `#2563EB` | brand, CTAs, links, active states |
-| Success | `#10B981` | done states, ticks, confirm CTAs |
-| Error | `#EF4444` | failures, destructive actions, validation errors |
-| Warning | `#F59E0B` | cautions, attention states |
-| Obsidian bg/card/elevated/border | `#0F172A` / `#1E293B` / `#334155` / `#475569` | dark surfaces |
-| Porcelain Dim bg/card/elevated/border | `#F1F5F9` / `#FFFFFF` / `#F8FAFC` / `#CBD5E1` | light surfaces |
-| Text primary (dark) | `#0F172A` | all text on Porcelain Dim |
-| Text secondary (dark) | `#475569` | helper text on Porcelain Dim |
-| Text primary (dark theme) | `#FFFFFF` | all text on Obsidian |
-| Status done | `#2563EB` | both themes |
-| Status failed | `#DC2626` (dim) / `#EF4444` (obsidian) | both themes |
-| Status queued | `#6B7280` | neutral, both themes |
+## 3. Launch palette (Stage 58/59 — the only place these live)
+`DesignTokens.Launch`: lime #A4F510, violet #5B21D6, ink #101014. Used ONLY by
+the Launch reveal + Onboarding slides. violet<->lime and lime<->ink must clear
+4.5:1 (ContrastGuardTest launch_pairs). Not a theme; never leak into app chrome.
 
-Read every colour from `ui/theme/Color.kt`. `TextWhite` / `TextGrey` / `TextDim`
-resolve to dark ink in Porcelain Dim and light ink in Obsidian — zero
-white-on-light anywhere.
+## 4. Type (4-step law)
+Display / Headline / Body / Caption only (DesignTokens.Typography -> BingwaType).
+Display 32sp ExtraBold -0.5sp; Headline 20sp Bold; Body 16sp; Caption 12sp.
+The Launch wordmark is the single code-dictated exception: 40sp ExtraBold -1sp.
+No random literals.
 
-**Forbidden:** orange/amber (`U4ThemesTest` guards the palette), raw blobs,
-placeholder rectangles, clear glass without shadow, dull greys, unstyled bands,
-system keyboard over phone/PIN fields (custom keypad only).
+## 5. 8pt grid
+Spacing/padding/gaps/radii/icons are multiples of 8 (4dp half-step allowed):
+4, 8, 16, 24, 32, 40, 48. Card radius 12, chip 8, button 12, CTA height 48-64.
+Launch/Onboarding are full-bleed behind system bars (deliberate exception).
 
-## 3. Type scale (sp)
+## 6. Motion
+- Springs from DesignTokens.Motion: enter stiffness 380 / damping 0.86 (slight
+  overshoot); exit stiffness 500 / damping 1.0 (90-120ms, no overshoot).
+- Durations 150 / 250 / 400ms. Never LinearEasing for surfaces. Nothing loops
+  forever; one breath per surface max.
+- Nav crossfade 200ms (`Motion.NAV_CROSSFADE`, pinned). Morph 220ms; drawer < 300ms.
+- Legacy Aurora token `Motion.SPLASH_TOTAL` stays in the 1600-2000ms window
+  (Stage43SplashDurationTest). It is UNROUTED — retained for source-guard tests only.
+- Reduced motion: when system "remove animations" is on, springs/reveals collapse
+  to instant (<=1ms crossfade); Launch shows its landed frame and hands off early.
 
-| Role | Size | Weight | Use |
-|------|------|--------|-----|
-| Display | 48 | Bold | Splash wordmark |
-| Title | 32 | Bold | Screen heroes |
-| Headline | 24 | Bold | Screen headers |
-| Subhead | 20 | Bold | Section headers, card titles |
-| Body | 16 | Regular | Body copy |
-| Callout | 16 | Regular | Dialog body, reading size |
-| Label | 14 | SemiBold | Row titles, buttons |
-| Footnote | 14 | Regular | Secondary copy |
-| Caption | 12 | Regular | Metadata, subtitles |
-| Micro | 12 | Regular | Nav labels |
+## 7. Launch & Onboarding (Stage 59 — InstanT-style reveal)
+Route: launcher `ui/screens/LaunchActivity` -> `MainActivity` LAUNCH bridge ->
+Onboarding / Login / SetupChecklist / Main (decideStartDestination).
+Choreography (~1.94s, all beats in `LaunchChoreography`):
+1. 0-420ms lime field; violet wordmark springs in (0.4 -> 1.12 -> 1.0).
+2. 420-680ms wordmark yields; 28dp violet seed dot pops at centre (overshoot 1.15).
+3. 680-900ms seed holds (the "lil circle" beat).
+4. 900-1520ms TRUE-CIRCLE reveal (Canvas.drawCircle, radius 14dp -> screen
+   half-diagonal, CubicBezier(0.3,0,0.2,1)). Never a clipped box (oval bug).
+5. ~1330-1490ms lime wordmark reborn on violet (fade + 6dp rise).
+6. 1520-1940ms hold full violet; bar icons flip light; hand off.
+Handoff: MainActivity window is violet (`Theme.BingwaScore.Splash` ->
+launch_violet_window) so there is NO lime void; the LAUNCH bridge holds 350ms
+then crossfades 200ms to the destination. Onboarding = 4 code-dictated slides
+(lime/violet/ink/CSV-blue), full-bleed, parallax + spring dot indicator.
+The old Aurora `SplashScreen.kt` is retained ONLY for legacy source-guard tests;
+it is not routed and must not be "restored".
 
-Never random literals: read from `BingwaType` (`ui/theme/Type.kt`).
+## 8. Frosted glass (Stage 55 standing law)
+Sanctioned ONLY via GlassSpec in ui/glass/ (nav bars, sheets, dialogs). Never on
+cards. Optics: blur 24dp + tint 70% + saturation +10% + 1dp top specular (Ink 12%).
+Max ONE glass layer per region; never glass-on-glass. Shadows are layered stacks
+(1px border-shadow + ambient + 1dp top specular), never single elevation.
 
-## 4. 8pt grid
+## 9. Haptics & states
+- Light/TextHandleMove = select/navigate/toggle; LongPress/Heavy = commit/destructive.
+- Every list/screen ships 4 states: loading (skeleton), empty, error(retry),
+  success. No bare spinner, no bare blank.
 
-All spacing, padding, gaps, corner radii and icon sizes are multiples of 8dp:
-- Screen padding: 20dp horizontal
-- Card radius: 12dp
-- Chip radius: 8dp
-- Button radius: 12dp
-- Spacer steps: 4, 8, 12, 16, 20, 24, 32, 40, 48dp
-- Icon: 20dp rows, 22dp nav, 26dp fingerprint, 32dp status
-- Keypad keys: 64dp, 3×4 grid, 20sp SemiBold digits
-- CTA height: 48–56dp
-- PIN readout: exactly 4 dots, 12dp
+## 10. FORBIDDEN (test-guarded where possible)
+1. No orange/amber literals. 2. No third theme. 3. No blur outside ui/glass/.
+4. PIN exactly 4 digits. 5. No system keyboard on phone/PIN fields.
+6. No "Verified!" without relay verification. 7. No local credential verification
+substituting the relay. 8. Showcase Mode is the ONLY local-data path ("Demo data").
+9. No machine paths in gradle.properties; no secrets in repo. 10. In-app wordmark
+is ALWAYS BrandWordmark.TEXT (Launch/Onboarding use the code-dictated wordmark).
+11. No white rectangles, grey blobs, white-on-light. 12. No clipped-box "circles".
 
-## 5. Motion (`ui/theme/Motion.kt`)
-
-- Spring: response 0.35 / damping 0.86; press scale 0.98
-- Durations: 150ms / 250ms / 400ms (fade, slide, step)
-- Splash total: <= 2000ms (`Motion.SPLASH_TOTAL`), skippable after 1000ms
-- Nav crossfade: 200ms; morph: 220ms; drawer spring < 300ms
-
-Nothing loops forever. Nothing bounces. One breath per surface max.
-
-## 6. Components
-
-### Card (`BubbleCard`)
-- Surface fill, 12dp radius, fillMaxWidth, 1dp hairline border where specified.
-- Soft shadow: 0 4px 12px rgba(0,0,0,0.08) on elevated surfaces.
-
-### Chip
-- 8dp radius, text 10sp SemiBold, status-tinted fill at 14% alpha.
-
-### Buttons
-- Primary: brand-blue fill, white ink, 12dp radius, 48–56dp height, press
-  scale 0.98, disabled pair clears AA in both themes.
-- Secondary: transparent fill, hairline border.
-
-### Keypad
-- 3×4 grid of 64dp round keys, 20sp SemiBold digits, PIN readout of exactly
-  4 dots. Drives phone + PIN fields; system keyboard MUST NOT rise
-  (`LocalSoftwareKeyboardController.hide()` on focus). Backspace works.
-
-### Dialog
-- Card surface, dark/light ink per theme, 16sp max body, monospace for crash
-  reports. Blue confirm + grey dismiss. Frosted glass header + shadow depth
-  where specified (MyPlan header, nav pill).
-
-## 7. Splash (<= 1.3s, skippable after 900ms) — Stage 43 Aurora Snap
-
-1. **0.0–0.2s**: Aurora glow fades in (Obsidian: `#0F172A` canvas + `#2563EB` radial glow; Dim: `#EAF0F6` canvas + pastel-blue `#93C5FD` glow).
-2. **0.2–0.5s**: 'B' monogram snaps in with spring overshoot + micro-ripple ring.
-3. **0.5–0.8s**: Monogram fills (white ink on Obsidian / `#1E293B` ink on Dim) + tagline "Your bundle business, automated." fades up.
-4. **0.8–1.3s**: Whole screen scales 1.0 -> 1.04 + cross-fades to next screen.
-
-Obsidian: #0F172A canvas + #2563EB glow. Porcelain Dim: #EAF0F6 canvas + pastel-blue glow + #1E293B ink.
-
-## 8. FORBIDDEN (lint/test-guarded where possible)
-
-1. No orange/amber literals anywhere.
-2. No `ThemeMode.PORCELAIN` / third light mode.
-3. No blur outside `ui/glass/`.
-4. No PIN other than exactly 4 digits (sign-up enforces 4 + confirm match).
-5. No system keyboard on phone/PIN fields.
-6. No "Verified!" without relay verification.
-7. No local credential verification as a substitute for the relay.
-8. Showcase Mode is the ONLY local-data path, explicitly labelled "Demo data".
-9. No machine paths in `gradle.properties`; no secrets/tokens in repo.
-10. No half-drawn wordmarks: the wordmark is ALWAYS `BrandWordmark.TEXT`.
-11. No white rectangles, grey placeholder blobs, or white-on-light text.
-
-## 9. Compliance
-
-AGENTS.md references this doc. Every future stage must:
-- Add/modify tokens in `ui/theme/` only (no literals).
-- Add goldens for new screens × both themes.
-- Update this doc before introducing a new component or motion value.
+## 11. Compliance
+Every UI stage: tokens only; goldens for new screens x both themes; update this
+doc before introducing a new component/motion value; run the design-pass skill.
