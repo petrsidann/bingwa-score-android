@@ -1,17 +1,17 @@
 # HANDOFF — Live Session State
 
-## STEP 0 resume state (Stage 59 — InstanT-style circular reveal launch)
+## STEP 0 resume state (Stage 59.3 — definitive InstanT launch reveal)
 
-- **Current state**: Stage 59 applied on branch `stage-59-instant-launch-reveal` from origin/main (Stage 58-ARCH). PR open, awaiting owner merge.
+- **Current state**: Stage 59.3 applied on branch `stage-59.3-definitive-instant-reveal` from origin/main. PHASE 2 CORRECT applied (LaunchActivity.kt rewritten to FILE A contract; themes.xml `Theme.BingwaScore.Launch` windowBackground → `@drawable/launch_window`; new `res/drawable/launch_window.xml`). PHASE 3/4 (build, targeted tests, adb proof) pending.
 - **What changed (3 files)**:
-  - `ui/screens/LaunchActivity.kt` — rewritten. The launch reveal is now a TRUE CIRCLE via `Canvas.drawCircle` (radius animates 14dp → screen half-diagonal), replacing the old clipped-box approach that produced an oval and a 1200ms dead beat. Choreography (~1.94s) lives in `private object LaunchChoreography`: wordmark spring-in (0–420ms) → 28dp violet seed-dot pop + hold (420–900ms) → circular sweep (900–1520ms, CubicBezier(0.3,0,0.2,1)) → lime wordmark reborn on violet (~1330–1490ms) → end hold (1520–1940ms) → handoff. Full-bleed via enableEdgeToEdge; bar icons flip light at 85% sweep. Reduced-motion (ANIMATOR_DURATION_SCALE=0) and LocalInspectionMode render the landed frame and hand off early.
-  - `res/values/themes.xml` — `Theme.BingwaScore.Splash` (MainActivity's manifest theme) windowBackground/status/nav now `@color/launch_violet_window` with light bars OFF, so MainActivity's starting window continues the violet instead of flashing lime. `Theme.BingwaScore.Launch` (LaunchActivity) stays lime. `Theme.BingwaScore` unchanged.
-  - `HANDOFF.md` — this block; prior STEP 0 archived to docs/archive/HANDOFF-history.md.
+  - `app/src/main/java/com/bingwascore/app/ui/screens/LaunchActivity.kt` — FILE A contract: `onSizeChanged` captures box size; `Canvas.drawCircle` true circle (14dp seed dot → screen half-diagonal, CubicBezier(0.3,0,0.2,1)); wordmark inverts violet→lime exactly as the circle's edge crosses it (WM_OFFSET 0.12 / WM_HALF 0.045); `BuildConfig.DEBUG` 's59.3' stamp bottom-right; bar icons flip light once sweep covers 49% of height; reduced-motion/inspection land immediately. ~1.94s choreography in `private object LaunchChoreography` (WORDMARK_IN 420 → DOT_HOLD 300 → REVEAL 620 → END_HOLD 420).
+  - `app/src/main/res/values/themes.xml` — `Theme.BingwaScore.Launch` windowBackground now `@drawable/launch_window` (lime field + centred 28dp violet seed dot, so a cold start never shows a blank lime void); `Theme.BingwaScore` / `Theme.BingwaScore.Splash` unchanged.
+  - `app/src/main/res/drawable/launch_window.xml` — NEW: layer-list lime field + centred 28dp violet oval (starting window only; the animated reveal itself is a true circle, never a clipped box).
 - **Untouched (guard-test safe)**: SplashScreen.kt (Aurora, unrouted, retained for Stage11/43 source guards), both LaunchScreen.kt files, AppNavHost.kt, MainActivity.kt, OnboardingSlides.kt, AndroidManifest.xml, DesignTokens.kt, Motion.kt (SPLASH_TOTAL=1600, NAV_CROSSFADE=200), all tests.
-- **Launch flow**: launcher LaunchActivity (lime→violet reveal) → MainActivity (violet window) → LAUNCH bridge (violet, 350ms) → decideStartDestination → Onboarding / Login / SetupChecklist / Main.
+- **Launch flow**: launcher LaunchActivity (lime→violet true-circle reveal) → MainActivity (violet window) → LAUNCH bridge (violet, 350ms) → decideStartDestination → Onboarding / Login / SetupChecklist / Main.
 - **Verification**: compileDebugKotlin zero `e:`; assembleDebug + assembleRelease green (mirrors CI build-apk.yml); targeted tests green (StartDestinationTest, ContrastGuardTest, Stage11LaunchCinematicTest, Stage43SplashDurationTest). Full testDebugUnitTest NOT run — pre-existing environmental executor crash; Paparazzi not re-recorded (no golden renders LaunchAnimation).
 - **Known follow-up (not this stage)**: AppNavHost LAUNCH route maps `startDestination == null → Routes.MAIN`; a slow cold DataStore read could skip onboarding for a first-launch user. Candidate hardening stage.
-- **Git**: branch stage-59-instant-launch-reveal; commit "Stage 59: InstanT-style circular reveal launch"; PR same title; owner merges. DONE only when hash is on origin/main.
+- **Git**: branch stage-59.3-definitive-instant-reveal; commit "Stage 59.3: definitive InstanT launch reveal"; PR same title; owner merges. DONE only when hash is on origin/main.
 
 ## Rules of Engagement
 - Anti-skip law: exactly one stage per session; never self-descope.
