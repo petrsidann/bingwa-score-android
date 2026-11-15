@@ -7,6 +7,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.keyframes
@@ -27,7 +28,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Outline
@@ -56,16 +56,17 @@ import kotlinx.coroutines.delay
 import kotlin.math.hypot
 
 /**
- * Stage 59.4 — EXACT InstanT reveal.
- * The wordmark stays dead-centre. A violet seed dot pops at its centre, then a
- * TRUE circle sweeps to full-bleed. The lime copy of the wordmark is clipped to
- * that same circle, so the circle carries the inversion: each letter flips
- * violet -> lime exactly as the edge passes it. One continuous motion.
+ * Stage 59.6 — FINAL InstanT reveal: appear + bounce + spread, ZERO blink.
+ * The dot is present from the first instant (the theme starting window shows the
+ * same 28dp dot, so cold start has no void and no appear/disappear/reappear).
+ * The bounce is a settle overshoot 1 -> 1.16 -> 1 (NEVER 0), so the dot never
+ * vanishes. Then a TRUE circle sweeps to full-bleed; the lime wordmark is clipped
+ * to that same circle so the inversion rides the edge letter-by-letter.
  */
 private object LaunchChoreography {
     const val WORDMARK_IN = 420L
-    const val DOT_POP = 260L
-    const val DOT_HOLD = 240L
+    const val DOT_HOLD = 300L
+    const val BOUNCE = 320L
     const val REVEAL = 620L
     const val END_HOLD = 420L
     const val DOT_RADIUS_DP = 14f
@@ -90,8 +91,7 @@ class LaunchActivity : ComponentActivity() {
     }
 }
 
-/** A circle of [radius] px centred on the composable's own centre. Used to clip
- *  the lime wordmark so the inversion rides the reveal edge. */
+/** Circle of [radius] px centred on the composable's centre; clips the lime wordmark. */
 private class CircleRevealShape(private val radius: Float) : Shape {
     override fun createOutline(size: Size, layoutDirection: LayoutDirection, density: Density): Outline {
         val cx = size.width / 2f
@@ -112,16 +112,30 @@ private fun LaunchAnimation(onComplete: () -> Unit) {
     }
     val landed = inspection || reducedMotion
 
-    // phase 0 wordmark-in · 1 dot pop+hold · 2 reveal · 3 end hold
-    var phase by remember { mutableStateOf(if (landed) 3 else 0) }
+    // phase 0 = appear+bounce+wordmark-in+hold · 1 = reveal · 2 = end hold
+    var phase by remember { mutableStateOf(if (landed) 2 else 0) }
     var boxSize by remember { mutableStateOf(IntSize.Zero) }
+
+    // Bounce: starts at 1 (present), overshoots, settles to 1. NEVER 0 => no blink.
+    val dotScale = remember { Animatable(1f) }
+    LaunchedEffect(Unit) {
+        if (inspection || reducedMotion) return@LaunchedEffect
+        dotScale.animateTo(
+            targetValue = 1f,
+            animationSpec = keyframes {
+                durationMillis = LaunchChoreography.BOUNCE.toInt()
+                1f at 0
+                1.16f at 150
+                1f at LaunchChoreography.BOUNCE.toInt()
+            }
+        )
+    }
 
     LaunchedEffect(Unit) {
         if (inspection) return@LaunchedEffect
         if (reducedMotion) { delay(900L); onComplete(); return@LaunchedEffect }
-        delay(LaunchChoreography.WORDMARK_IN); phase = 1
-        delay(LaunchChoreography.DOT_POP + LaunchChoreography.DOT_HOLD); phase = 2
-        delay(LaunchChoreography.REVEAL); phase = 3
+        delay(LaunchChoreography.WORDMARK_IN + LaunchChoreography.DOT_HOLD); phase = 1
+        delay(LaunchChoreography.REVEAL); phase = 2
         delay(LaunchChoreography.END_HOLD); onComplete()
     }
 
@@ -136,15 +150,8 @@ private fun LaunchAnimation(onComplete: () -> Unit) {
             0.4f at 0; 1.12f at 260; 1.0f at LaunchChoreography.WORDMARK_IN.toInt()
         }, label = "wmS"
     )
-    val dotScale by animateFloatAsState(
-        targetValue = if (phase >= 1) 1f else 0f,
-        animationSpec = if (inspection) snap() else keyframes {
-            durationMillis = LaunchChoreography.DOT_POP.toInt()
-            0f at 0; 1.15f at 160; 1f at LaunchChoreography.DOT_POP.toInt()
-        }, label = "dot"
-    )
     val reveal by animateFloatAsState(
-        targetValue = if (phase >= 2) 1f else 0f,
+        targetValue = if (phase >= 1) 1f else 0f,
         animationSpec = if (inspection) snap() else tween(LaunchChoreography.REVEAL.toInt(), easing = LaunchChoreography.RevealEasing),
         label = "reveal"
     )
@@ -156,10 +163,10 @@ private fun LaunchAnimation(onComplete: () -> Unit) {
     val w = boxSize.width.toFloat()
     val h = boxSize.height.toFloat()
     val maxR = if (w > 0f && h > 0f) hypot(w, h) / 2f + 2f else 0f
+    // Dot present from frame 0 (matches starting window); bounce scales it; sweep grows it.
     val radius = when {
         landed -> maxR
-        phase < 1 -> 0f
-        phase < 2 -> dotPx * dotScale
+        phase < 1 -> dotPx * dotScale.value
         else -> lerp(dotPx, maxR, reveal)
     }
     val barsCovered = h > 0f && radius >= h * 0.49f
@@ -177,11 +184,9 @@ private fun LaunchAnimation(onComplete: () -> Unit) {
         Modifier.fillMaxSize().background(lime).onSizeChanged { boxSize = it },
         contentAlignment = Alignment.Center
     ) {
-        // The true circle (seed dot -> full bleed). Never a clipped box.
         Canvas(Modifier.fillMaxSize()) {
             if (radius > 0f) drawCircle(color = violet, radius = radius, center = center)
         }
-        // Violet wordmark, dead centre (the reference still).
         Text(
             text = "Bingwa Score", color = violet, fontSize = 40.sp, fontWeight = FontWeight.ExtraBold,
             letterSpacing = (-1).sp, maxLines = 1, textAlign = TextAlign.Center,
@@ -190,7 +195,6 @@ private fun LaunchAnimation(onComplete: () -> Unit) {
                 scaleX = wordmarkInScale; scaleY = wordmarkInScale
             }
         )
-        // Lime wordmark, clipped to the SAME circle: the inversion rides the edge.
         Text(
             text = "Bingwa Score", color = lime, fontSize = 40.sp, fontWeight = FontWeight.ExtraBold,
             letterSpacing = (-1).sp, maxLines = 1, textAlign = TextAlign.Center,
@@ -202,7 +206,7 @@ private fun LaunchAnimation(onComplete: () -> Unit) {
         )
         if (BuildConfig.DEBUG) {
             Text(
-                text = "s59.4", fontSize = 10.sp, fontWeight = FontWeight.Bold,
+                text = "s59.6", fontSize = 10.sp, fontWeight = FontWeight.Bold,
                 color = if (barsCovered) lime else violet,
                 modifier = Modifier.align(Alignment.BottomEnd).padding(12.dp)
             )
