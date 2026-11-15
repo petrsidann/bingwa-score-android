@@ -1,8 +1,6 @@
 package com.bingwascore.app.ui.screens
 
 import android.app.Activity
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -11,12 +9,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -34,11 +28,12 @@ fun LaunchScreen(onFinished: () -> Unit) {
             WindowCompat.getInsetsController(w, view).isAppearanceLightStatusBars = false
         }
     }
-    val entered = remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { entered.value = true; delay(350L); onFinished() }
-    val alpha by animateFloatAsState(if (entered.value) 1f else 0f, tween(150), label = "holdAlpha")
+    LaunchedEffect(Unit) { delay(350L); onFinished() }
     Box(Modifier.fillMaxSize().background(DesignTokens.Launch.violet), contentAlignment = Alignment.Center) {
-        Text("Bingwa Score", color = DesignTokens.Launch.lime, fontSize = 40.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = (-1).sp, maxLines = 1, textAlign = TextAlign.Center,
-            modifier = Modifier.padding(horizontal = 24.dp).graphicsLayer { this.alpha = alpha })
+        Text(
+            text = "Bingwa Score", color = DesignTokens.Launch.lime, fontSize = 40.sp,
+            fontWeight = FontWeight.ExtraBold, letterSpacing = (-1).sp, maxLines = 1,
+            textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 24.dp)
+        )
     }
 }
