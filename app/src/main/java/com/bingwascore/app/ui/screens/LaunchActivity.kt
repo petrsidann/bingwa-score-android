@@ -28,6 +28,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Path
@@ -93,8 +94,10 @@ class LaunchActivity : ComponentActivity() {
  *  the lime wordmark so the inversion rides the reveal edge. */
 private class CircleRevealShape(private val radius: Float) : Shape {
     override fun createOutline(size: Size, layoutDirection: LayoutDirection, density: Density): Outline {
+        val cx = size.width / 2f
+        val cy = size.height / 2f
         val path = Path()
-        path.addCircle(Offset(size.width / 2f, size.height / 2f), radius)
+        path.addOval(Rect(cx - radius, cy - radius, cx + radius, cy + radius))
         return Outline.Generic(path)
     }
 }
