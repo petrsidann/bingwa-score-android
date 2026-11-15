@@ -55,20 +55,15 @@ import com.bingwascore.app.ui.theme.DesignTokens
 import kotlinx.coroutines.delay
 import kotlin.math.hypot
 
-/**
- * Stage 59.7 — TRUE InstanT reveal.
- * The dot is BORN FROM NOTHING: absent in the starting window and at frame 0,
- * then pops (fast expand), resists (contract) and settles (the bounce), holds,
- * then a TRUE circle spreads to full-bleed. The lime wordmark is clipped to the
- * same circle so the inversion rides the edge letter-by-letter.
- */
 private object LaunchChoreography {
-    const val WORDMARK_IN = 420L
-    const val POP = 360L          // born-from-nothing: fast expand + resist + settle
-    const val DOT_HOLD = 220L
-    const val REVEAL = 620L
-    const val END_HOLD = 420L
+    const val WORDMARK_IN = 300L
+    const val POP = 360L
+    const val DOT_HOLD = 200L
+    const val REVEAL = 600L
+    const val END_HOLD = 400L
     const val DOT_RADIUS_DP = 16f
+    const val OVERSHOOT = 1.28f
+    const val RESIST = 0.92f
     val RevealEasing = CubicBezierEasing(0.3f, 0f, 0.2f, 1f)
 }
 
@@ -90,7 +85,6 @@ class LaunchActivity : ComponentActivity() {
     }
 }
 
-/** Circle of [radius] px centred on the composable's centre; clips the lime wordmark. */
 private class CircleRevealShape(private val radius: Float) : Shape {
     override fun createOutline(size: Size, layoutDirection: LayoutDirection, density: Density): Outline {
         val cx = size.width / 2f
@@ -110,12 +104,9 @@ private fun LaunchAnimation(onComplete: () -> Unit) {
         Settings.Global.getFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f
     }
     val landed = inspection || reducedMotion
-
-    // phase 0 = pop+bounce+wordmark-in+hold · 1 = spread · 2 = end hold
     var phase by remember { mutableStateOf(if (landed) 2 else 0) }
     var boxSize by remember { mutableStateOf(IntSize.Zero) }
 
-    // Born from NOTHING (0). Fast expand -> overshoot -> resist -> settle. Never pre-shown.
     val dotScale = remember { Animatable(0f) }
     LaunchedEffect(Unit) {
         if (inspection || reducedMotion) return@LaunchedEffect
@@ -124,25 +115,21 @@ private fun LaunchAnimation(onComplete: () -> Unit) {
             animationSpec = keyframes {
                 durationMillis = LaunchChoreography.POP.toInt()
                 0f at 0
-                1.28f at 120
-                0.92f at 240
+                LaunchChoreography.OVERSHOOT at (LaunchChoreography.POP / 3).toInt()
+                LaunchChoreography.RESIST at (LaunchChoreography.POP * 2 / 3).toInt()
                 1f at LaunchChoreography.POP.toInt()
             }
         )
     }
-
     LaunchedEffect(Unit) {
         if (inspection) return@LaunchedEffect
         if (reducedMotion) { delay(900L); onComplete(); return@LaunchedEffect }
-        delay(LaunchChoreography.WORDMARK_IN + LaunchChoreography.DOT_HOLD); phase = 1
+        delay(LaunchChoreography.WORDMARK_IN + LaunchChoreography.POP + LaunchChoreography.DOT_HOLD); phase = 1
         delay(LaunchChoreography.REVEAL); phase = 2
         delay(LaunchChoreography.END_HOLD); onComplete()
     }
 
-    val wordmarkInAlpha by animateFloatAsState(
-        targetValue = 1f,
-        animationSpec = if (inspection) snap() else tween(150), label = "wmA"
-    )
+    val wordmarkInAlpha by animateFloatAsState(targetValue = 1f, animationSpec = if (inspection) snap() else tween(150), label = "wmA")
     val wordmarkInScale by animateFloatAsState(
         targetValue = 1f,
         animationSpec = if (inspection) snap() else keyframes {
@@ -159,18 +146,14 @@ private fun LaunchAnimation(onComplete: () -> Unit) {
     val lime = DesignTokens.Launch.lime
     val violet = DesignTokens.Launch.violet
     val dotPx = with(LocalDensity.current) { LaunchChoreography.DOT_RADIUS_DP.dp.toPx() }
-
-    val w = boxSize.width.toFloat()
-    val h = boxSize.height.toFloat()
+    val w = boxSize.width.toFloat(); val h = boxSize.height.toFloat()
     val maxR = if (w > 0f && h > 0f) hypot(w, h) / 2f + 2f else 0f
-    // 0 at frame 0 (nothing) -> pop/bounce -> spread.
     val radius = when {
         landed -> maxR
         phase < 1 -> dotPx * dotScale.value
         else -> lerp(dotPx, maxR, reveal)
     }
     val barsCovered = h > 0f && radius >= h * 0.49f
-
     SideEffect {
         (view.context as? android.app.Activity)?.window?.let { cw ->
             WindowCompat.getInsetsController(cw, view).apply {
@@ -180,20 +163,12 @@ private fun LaunchAnimation(onComplete: () -> Unit) {
         }
     }
 
-    Box(
-        Modifier.fillMaxSize().background(lime).onSizeChanged { boxSize = it },
-        contentAlignment = Alignment.Center
-    ) {
-        Canvas(Modifier.fillMaxSize()) {
-            if (radius > 0f) drawCircle(color = violet, radius = radius, center = center)
-        }
+    Box(Modifier.fillMaxSize().background(lime).onSizeChanged { boxSize = it }, contentAlignment = Alignment.Center) {
+        Canvas(Modifier.fillMaxSize()) { if (radius > 0f) drawCircle(color = violet, radius = radius, center = center) }
         Text(
             text = "Bingwa Score", color = violet, fontSize = 40.sp, fontWeight = FontWeight.ExtraBold,
             letterSpacing = (-1).sp, maxLines = 1, textAlign = TextAlign.Center,
-            modifier = Modifier.padding(horizontal = 24.dp).graphicsLayer {
-                alpha = wordmarkInAlpha
-                scaleX = wordmarkInScale; scaleY = wordmarkInScale
-            }
+            modifier = Modifier.padding(horizontal = 24.dp).graphicsLayer { alpha = wordmarkInAlpha; scaleX = wordmarkInScale; scaleY = wordmarkInScale }
         )
         Text(
             text = "Bingwa Score", color = lime, fontSize = 40.sp, fontWeight = FontWeight.ExtraBold,
@@ -205,11 +180,7 @@ private fun LaunchAnimation(onComplete: () -> Unit) {
             }
         )
         if (BuildConfig.DEBUG) {
-            Text(
-                text = "s59.7", fontSize = 10.sp, fontWeight = FontWeight.Bold,
-                color = if (barsCovered) lime else violet,
-                modifier = Modifier.align(Alignment.BottomEnd).padding(12.dp)
-            )
+            Text(text = "s59.9", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = if (barsCovered) lime else violet, modifier = Modifier.align(Alignment.BottomEnd).padding(12.dp))
         }
     }
 }
