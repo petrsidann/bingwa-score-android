@@ -56,20 +56,19 @@ import kotlinx.coroutines.delay
 import kotlin.math.hypot
 
 /**
- * Stage 59.6 — FINAL InstanT reveal: appear + bounce + spread, ZERO blink.
- * The dot is present from the first instant (the theme starting window shows the
- * same 28dp dot, so cold start has no void and no appear/disappear/reappear).
- * The bounce is a settle overshoot 1 -> 1.16 -> 1 (NEVER 0), so the dot never
- * vanishes. Then a TRUE circle sweeps to full-bleed; the lime wordmark is clipped
- * to that same circle so the inversion rides the edge letter-by-letter.
+ * Stage 59.7 — TRUE InstanT reveal.
+ * The dot is BORN FROM NOTHING: absent in the starting window and at frame 0,
+ * then pops (fast expand), resists (contract) and settles (the bounce), holds,
+ * then a TRUE circle spreads to full-bleed. The lime wordmark is clipped to the
+ * same circle so the inversion rides the edge letter-by-letter.
  */
 private object LaunchChoreography {
     const val WORDMARK_IN = 420L
-    const val DOT_HOLD = 300L
-    const val BOUNCE = 320L
+    const val POP = 360L          // born-from-nothing: fast expand + resist + settle
+    const val DOT_HOLD = 220L
     const val REVEAL = 620L
     const val END_HOLD = 420L
-    const val DOT_RADIUS_DP = 14f
+    const val DOT_RADIUS_DP = 16f
     val RevealEasing = CubicBezierEasing(0.3f, 0f, 0.2f, 1f)
 }
 
@@ -112,21 +111,22 @@ private fun LaunchAnimation(onComplete: () -> Unit) {
     }
     val landed = inspection || reducedMotion
 
-    // phase 0 = appear+bounce+wordmark-in+hold · 1 = reveal · 2 = end hold
+    // phase 0 = pop+bounce+wordmark-in+hold · 1 = spread · 2 = end hold
     var phase by remember { mutableStateOf(if (landed) 2 else 0) }
     var boxSize by remember { mutableStateOf(IntSize.Zero) }
 
-    // Bounce: starts at 1 (present), overshoots, settles to 1. NEVER 0 => no blink.
-    val dotScale = remember { Animatable(1f) }
+    // Born from NOTHING (0). Fast expand -> overshoot -> resist -> settle. Never pre-shown.
+    val dotScale = remember { Animatable(0f) }
     LaunchedEffect(Unit) {
         if (inspection || reducedMotion) return@LaunchedEffect
         dotScale.animateTo(
             targetValue = 1f,
             animationSpec = keyframes {
-                durationMillis = LaunchChoreography.BOUNCE.toInt()
-                1f at 0
-                1.16f at 150
-                1f at LaunchChoreography.BOUNCE.toInt()
+                durationMillis = LaunchChoreography.POP.toInt()
+                0f at 0
+                1.28f at 120
+                0.92f at 240
+                1f at LaunchChoreography.POP.toInt()
             }
         )
     }
@@ -163,7 +163,7 @@ private fun LaunchAnimation(onComplete: () -> Unit) {
     val w = boxSize.width.toFloat()
     val h = boxSize.height.toFloat()
     val maxR = if (w > 0f && h > 0f) hypot(w, h) / 2f + 2f else 0f
-    // Dot present from frame 0 (matches starting window); bounce scales it; sweep grows it.
+    // 0 at frame 0 (nothing) -> pop/bounce -> spread.
     val radius = when {
         landed -> maxR
         phase < 1 -> dotPx * dotScale.value
@@ -206,7 +206,7 @@ private fun LaunchAnimation(onComplete: () -> Unit) {
         )
         if (BuildConfig.DEBUG) {
             Text(
-                text = "s59.6", fontSize = 10.sp, fontWeight = FontWeight.Bold,
+                text = "s59.7", fontSize = 10.sp, fontWeight = FontWeight.Bold,
                 color = if (barsCovered) lime else violet,
                 modifier = Modifier.align(Alignment.BottomEnd).padding(12.dp)
             )
