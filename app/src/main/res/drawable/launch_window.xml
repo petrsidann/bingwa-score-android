@@ -1,9 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Starting window is PLAIN LIME: the dot must be born from nothing in Compose,
+     so it must NOT be pre-shown here. -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:drawable="@color/launch_lime" />
-    <item android:gravity="center" android:width="28dp" android:height="28dp">
-        <shape android:shape="oval">
-            <solid android:color="@color/launch_violet_window" />
-        </shape>
-    </item>
 </layer-list>
