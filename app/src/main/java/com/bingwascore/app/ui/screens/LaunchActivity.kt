@@ -56,12 +56,12 @@ import kotlinx.coroutines.delay
 import kotlin.math.hypot
 
 private object LaunchChoreography {
-    const val WORDMARK_IN = 300L
-    const val POP = 360L
-    const val DOT_HOLD = 200L
-    const val REVEAL = 600L
-    const val END_HOLD = 400L
-    const val DOT_RADIUS_DP = 16f
+    const val WORDMARK_IN = 420L
+    const val POP = 480L
+    const val DOT_HOLD = 300L
+    const val REVEAL = 620L
+    const val END_HOLD = 420L
+    const val DOT_RADIUS_DP = 14f
     const val OVERSHOOT = 1.28f
     const val RESIST = 0.92f
     val RevealEasing = CubicBezierEasing(0.3f, 0f, 0.2f, 1f)
