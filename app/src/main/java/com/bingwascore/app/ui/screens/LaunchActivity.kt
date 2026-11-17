@@ -7,10 +7,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.keyframes
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -28,6 +26,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Outline
@@ -53,17 +52,26 @@ import com.bingwascore.app.R
 import com.bingwascore.app.ui.MainActivity
 import com.bingwascore.app.ui.theme.DesignTokens
 import kotlinx.coroutines.delay
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.exp
 import kotlin.math.hypot
+import kotlin.math.sin
+import kotlin.math.sqrt
 
 private object LaunchChoreography {
-    const val WORDMARK_IN = 420L
-    const val POP = 480L
-    const val DOT_HOLD = 300L
-    const val REVEAL = 620L
-    const val END_HOLD = 420L
-    const val DOT_RADIUS_DP = 14f
-    const val OVERSHOOT = 1.28f
-    const val RESIST = 0.92f
+    const val WORDMARK_IN = 180L
+    const val POP = 700L
+    const val DOT_HOLD = 80L
+    const val REVEAL = 420L
+    const val END_HOLD = 180L
+    const val DOT_RADIUS_DP = 16f
+    const val NATURAL_PERIOD = 340L
+    const val DAMPING_RATIO = 0.20f
+    const val OVERSHOOT = 1.32f
+    const val SQUASH = 0.38f
+    const val SCALE_LAG = 180L
+    const val ASPECT_LAG = 240L
     val RevealEasing = CubicBezierEasing(0.3f, 0f, 0.2f, 1f)
 }
 
@@ -85,12 +93,12 @@ class LaunchActivity : ComponentActivity() {
     }
 }
 
-private class CircleRevealShape(private val radius: Float) : Shape {
+private class OvalRevealShape(private val rx: Float, private val ry: Float) : Shape {
     override fun createOutline(size: Size, layoutDirection: LayoutDirection, density: Density): Outline {
         val cx = size.width / 2f
         val cy = size.height / 2f
         val path = Path()
-        path.addOval(Rect(cx - radius, cy - radius, cx + radius, cy + radius))
+        path.addOval(Rect(cx - rx, cy - ry, cx + rx, cy + ry))
         return Outline.Generic(path)
     }
 }
@@ -104,23 +112,12 @@ private fun LaunchAnimation(onComplete: () -> Unit) {
         Settings.Global.getFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f
     }
     val landed = inspection || reducedMotion
+
     var phase by remember { mutableStateOf(if (landed) 2 else 0) }
     var boxSize by remember { mutableStateOf(IntSize.Zero) }
+    var physicsScale by remember { mutableStateOf(0f) }
+    var physicsAspect by remember { mutableStateOf(1f) }
 
-    val dotScale = remember { Animatable(0f) }
-    LaunchedEffect(Unit) {
-        if (inspection || reducedMotion) return@LaunchedEffect
-        dotScale.animateTo(
-            targetValue = 1f,
-            animationSpec = keyframes {
-                durationMillis = LaunchChoreography.POP.toInt()
-                0f at 0
-                LaunchChoreography.OVERSHOOT at (LaunchChoreography.POP / 3).toInt()
-                LaunchChoreography.RESIST at (LaunchChoreography.POP * 2 / 3).toInt()
-                1f at LaunchChoreography.POP.toInt()
-            }
-        )
-    }
     LaunchedEffect(Unit) {
         if (inspection) return@LaunchedEffect
         if (reducedMotion) { delay(900L); onComplete(); return@LaunchedEffect }
@@ -129,13 +126,49 @@ private fun LaunchAnimation(onComplete: () -> Unit) {
         delay(LaunchChoreography.END_HOLD); onComplete()
     }
 
+    LaunchedEffect(Unit) {
+        if (inspection || reducedMotion) return@LaunchedEffect
+        val wn = 2f * PI.toFloat() / (LaunchChoreography.NATURAL_PERIOD / 1000f)
+        val z = LaunchChoreography.DAMPING_RATIO
+        val target = LaunchChoreography.OVERSHOOT
+        val wd = wn * sqrt(1f - z * z)
+        val maxV = (wn * target * 0.4f).coerceAtLeast(0.0001f)
+        val popSec = LaunchChoreography.POP / 1000f
+        val lagS = LaunchChoreography.SCALE_LAG / 1000f
+        val lagA = LaunchChoreography.ASPECT_LAG / 1000f
+        var t = 0f
+        var smoothS = 0f
+        var smoothA = 1f
+
+        fun raw(u: Float): Float {
+            if (u <= 0f) return 0f
+            return target * (1f - exp(-z * wn * u) * (cos(wd * u) + (z * wn / wd) * sin(wd * u)))
+        }
+
+        while (t < popSec) {
+            val r = raw(t)
+            val alphaS = 1f - exp(-t / lagS)
+            smoothS = lerp(smoothS, r, alphaS)
+            val tNext = (t + 0.004f).coerceAtMost(popSec)
+            val v = (raw(tNext) - r) / (tNext - t + 0.0001f)
+            val k = (v / maxV).coerceIn(-1.5f, 1.5f)
+            val rawAspect = 1f + LaunchChoreography.SQUASH * k
+            val alphaA = 1f - exp(-t / lagA)
+            smoothA = lerp(smoothA, rawAspect, alphaA).coerceIn(0.3f, 2.2f)
+            physicsScale = smoothS
+            physicsAspect = smoothA
+            t += 1f / 60f
+            delay(16)
+        }
+        physicsScale = 1f
+        physicsAspect = 1f
+    }
+
     val wordmarkInAlpha by animateFloatAsState(targetValue = 1f, animationSpec = if (inspection) snap() else tween(150), label = "wmA")
     val wordmarkInScale by animateFloatAsState(
         targetValue = 1f,
-        animationSpec = if (inspection) snap() else keyframes {
-            durationMillis = LaunchChoreography.WORDMARK_IN.toInt()
-            0.4f at 0; 1.12f at 260; 1.0f at LaunchChoreography.WORDMARK_IN.toInt()
-        }, label = "wmS"
+        animationSpec = if (inspection) snap() else tween(LaunchChoreography.WORDMARK_IN.toInt()),
+        label = "wmS"
     )
     val reveal by animateFloatAsState(
         targetValue = if (phase >= 1) 1f else 0f,
@@ -146,14 +179,20 @@ private fun LaunchAnimation(onComplete: () -> Unit) {
     val lime = DesignTokens.Launch.lime
     val violet = DesignTokens.Launch.violet
     val dotPx = with(LocalDensity.current) { LaunchChoreography.DOT_RADIUS_DP.dp.toPx() }
-    val w = boxSize.width.toFloat(); val h = boxSize.height.toFloat()
+    val w = boxSize.width.toFloat()
+    val h = boxSize.height.toFloat()
     val maxR = if (w > 0f && h > 0f) hypot(w, h) / 2f + 2f else 0f
+
     val radius = when {
         landed -> maxR
-        phase < 1 -> dotPx * dotScale.value
+        phase < 1 -> dotPx * physicsScale
         else -> lerp(dotPx, maxR, reveal)
     }
+    val aspect = if (phase < 1) physicsAspect else 1f
+    val rx = radius * aspect
+    val ry = radius / aspect
     val barsCovered = h > 0f && radius >= h * 0.49f
+
     SideEffect {
         (view.context as? android.app.Activity)?.window?.let { cw ->
             WindowCompat.getInsetsController(cw, view).apply {
@@ -163,8 +202,13 @@ private fun LaunchAnimation(onComplete: () -> Unit) {
         }
     }
 
-    Box(Modifier.fillMaxSize().background(lime).onSizeChanged { boxSize = it }, contentAlignment = Alignment.Center) {
-        Canvas(Modifier.fillMaxSize()) { if (radius > 0f) drawCircle(color = violet, radius = radius, center = center) }
+    Box(
+        Modifier.fillMaxSize().background(lime).onSizeChanged { boxSize = it },
+        contentAlignment = Alignment.Center
+    ) {
+        Canvas(Modifier.fillMaxSize()) {
+            if (radius > 0f) drawOval(color = violet, topLeft = Offset(center.x - rx, center.y - ry), size = Size(rx * 2f, ry * 2f))
+        }
         Text(
             text = "Bingwa Score", color = violet, fontSize = 40.sp, fontWeight = FontWeight.ExtraBold,
             letterSpacing = (-1).sp, maxLines = 1, textAlign = TextAlign.Center,
@@ -176,11 +220,11 @@ private fun LaunchAnimation(onComplete: () -> Unit) {
             modifier = Modifier.padding(horizontal = 24.dp).graphicsLayer {
                 alpha = if (radius > 0f) 1f else 0f
                 clip = radius > 0f
-                shape = CircleRevealShape(radius)
+                shape = OvalRevealShape(rx, ry)
             }
         )
         if (BuildConfig.DEBUG) {
-            Text(text = "s59.9", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = if (barsCovered) lime else violet, modifier = Modifier.align(Alignment.BottomEnd).padding(12.dp))
+            Text(text = "s59.10", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = if (barsCovered) lime else violet, modifier = Modifier.align(Alignment.BottomEnd).padding(12.dp))
         }
     }
 }
