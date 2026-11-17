@@ -127,6 +127,7 @@ private fun LaunchAnimation(onComplete: () -> Unit) {
         delay(LaunchChoreography.END_HOLD); onComplete()
     }
 
+    // Physics loop for the soft-body jiggle
     LaunchedEffect(Unit) {
         if (inspection || reducedMotion) return@LaunchedEffect
         val wn = 2.0 * PI / (LaunchChoreography.NATURAL_PERIOD / 1000.0)
@@ -161,6 +162,7 @@ private fun LaunchAnimation(onComplete: () -> Unit) {
             t += 1.0 / 60.0
             delay(16)
         }
+        // Settle to 1.0
         physicsScale = 1f
         physicsAspect = 1f
     }
@@ -208,7 +210,7 @@ private fun LaunchAnimation(onComplete: () -> Unit) {
         contentAlignment = Alignment.Center
     ) {
         Canvas(Modifier.fillMaxSize()) {
-            if (radius > 0f) drawOval(color = violet, topLeft = Offset(center.x - rx, center.y - ry), size = Size(rx * 2f, ry * 2f))
+            if (radius > 0f) drawOval(color = violet, topLeft = Offset(center.x - rx, center.y - ry), size = androidx.compose.ui.geometry.Size(rx * 2, ry * 2))
         }
         Text(
             text = "Bingwa Score", color = violet, fontSize = 40.sp, fontWeight = FontWeight.ExtraBold,
