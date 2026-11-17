@@ -1,6 +1,7 @@
 package com.bingwascore.app.ui.screens
 
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.ComponentActivity
@@ -53,8 +54,10 @@ import com.bingwascore.app.ui.MainActivity
 import com.bingwascore.app.ui.theme.DesignTokens
 import kotlinx.coroutines.delay
 import kotlin.math.PI
+import kotlin.math.cos
 import kotlin.math.exp
 import kotlin.math.hypot
+import kotlin.math.sin
 import kotlin.math.sqrt
 
 private object LaunchChoreography {
@@ -84,7 +87,7 @@ class LaunchActivity : ComponentActivity() {
         setContent {
             LaunchAnimation(onComplete = {
                 startActivity(Intent(this, MainActivity::class.java))
-                overridePendingTransition(0, 0)
+                if (Build.VERSION.SDK_INT >= 34) overrideActivityTransition(OVERRIDE_TRANSITION_OPEN, 0, 0) else @Suppress("DEPRECATION") overridePendingTransition(0, 0)
                 finish()
             })
         }
@@ -127,37 +130,37 @@ private fun LaunchAnimation(onComplete: () -> Unit) {
     // Physics loop for the soft-body jiggle
     LaunchedEffect(Unit) {
         if (inspection || reducedMotion) return@LaunchedEffect
-        val wn = 2f * PI / (LaunchChoreography.NATURAL_PERIOD / 1000f)
-        val z = LaunchChoreography.DAMPING_RATIO
-        val target = LaunchChoreography.OVERSHOOT
-        val wd = wn * sqrt(1f - z * z)
-        val maxV = wn * target * 0.4f
-        val popSec = LaunchChoreography.POP / 1000f
-        var t = 0f
-        var smoothS = 0f
-        var smoothA = 1f
-        val dt = 1f / 60f // ~60fps step
+        val wn = 2.0 * PI / (LaunchChoreography.NATURAL_PERIOD / 1000.0)
+        val z = LaunchChoreography.DAMPING_RATIO.toDouble()
+        val target = LaunchChoreography.OVERSHOOT.toDouble()
+        val wd = wn * sqrt(1.0 - z * z)
+        val maxV = (wn * target * 0.4).coerceAtLeast(0.0001)
+        val popSec = LaunchChoreography.POP / 1000.0
+        val lagS = LaunchChoreography.SCALE_LAG / 1000.0
+        val lagA = LaunchChoreography.ASPECT_LAG / 1000.0
+        var t = 0.0
+        var smoothS = 0.0
+        var smoothA = 1.0
+
+        fun raw(u: Double): Double {
+            if (u <= 0.0) return 0.0
+            return target * (1.0 - exp(-z * wn * u) * (cos(wd * u) + (z * wn / wd) * sin(wd * u)))
+        }
 
         while (t < popSec) {
-            // Soft spring
-            val raw = target * (1f - exp(-z * wn * t) * (kotlin.math.cos(wd * t) + (z * wn / wd) * kotlin.math.sin(wd * t)))
-            // Scale lag
-            val alphaS = 1f - exp(-t / (LaunchChoreography.SCALE_LAG / 1000f))
-            smoothS = lerp(smoothS, raw, alphaS)
-            // Velocity for aspect
-            val tNext = (t + 0.004f).coerceAtMost(popSec)
-            val rawNext = target * (1f - exp(-z * wn * tNext) * (kotlin.math.cos(wd * tNext) + (z * wn / wd) * kotlin.math.sin(wd * tNext)))
-            val v = (rawNext - raw) / 0.008f
-            val k = (v / maxV).coerceIn(-1.5f, 1.5f)
-            val rawAspect = 1f + LaunchChoreography.SQUASH * k
-            // Aspect lag
-            val alphaA = 1f - exp(-t / (LaunchChoreography.ASPECT_LAG / 1000f))
-            smoothA = lerp(smoothA, rawAspect, alphaA).coerceIn(0.3f, 2.2f)
-
-            physicsScale = smoothS
-            physicsAspect = smoothA
-            t += dt
-            kotlinx.coroutines.delay(16)
+            val r = raw(t)
+            val alphaS = 1.0 - exp(-t / lagS)
+            smoothS += (r - smoothS) * alphaS
+            val tNext = (t + 0.004).coerceAtMost(popSec)
+            val v = (raw(tNext) - r) / (tNext - t + 0.0001)
+            val k = (v / maxV).coerceIn(-1.5, 1.5)
+            val rawAspect = 1.0 + LaunchChoreography.SQUASH.toDouble() * k
+            val alphaA = 1.0 - exp(-t / lagA)
+            smoothA = (smoothA + (rawAspect - smoothA) * alphaA).coerceIn(0.3, 2.2)
+            physicsScale = smoothS.toFloat()
+            physicsAspect = smoothA.toFloat()
+            t += 1.0 / 60.0
+            delay(16)
         }
         // Settle to 1.0
         physicsScale = 1f
