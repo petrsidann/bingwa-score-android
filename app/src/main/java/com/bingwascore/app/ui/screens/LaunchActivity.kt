@@ -1,6 +1,7 @@
 package com.bingwascore.app.ui.screens
 
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.ComponentActivity
@@ -86,7 +87,7 @@ class LaunchActivity : ComponentActivity() {
         setContent {
             LaunchAnimation(onComplete = {
                 startActivity(Intent(this, MainActivity::class.java))
-                overridePendingTransition(0, 0)
+                if (Build.VERSION.SDK_INT >= 34) overrideActivityTransition(OVERRIDE_TRANSITION_OPEN, 0, 0) else @Suppress("DEPRECATION") overridePendingTransition(0, 0)
                 finish()
             })
         }
