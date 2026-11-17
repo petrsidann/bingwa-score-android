@@ -53,10 +53,8 @@ import com.bingwascore.app.ui.MainActivity
 import com.bingwascore.app.ui.theme.DesignTokens
 import kotlinx.coroutines.delay
 import kotlin.math.PI
-import kotlin.math.cos
 import kotlin.math.exp
 import kotlin.math.hypot
-import kotlin.math.sin
 import kotlin.math.sqrt
 
 private object LaunchChoreography {
@@ -126,40 +124,42 @@ private fun LaunchAnimation(onComplete: () -> Unit) {
         delay(LaunchChoreography.END_HOLD); onComplete()
     }
 
+    // Physics loop for the soft-body jiggle
     LaunchedEffect(Unit) {
         if (inspection || reducedMotion) return@LaunchedEffect
-        val wn = 2f * PI.toFloat() / (LaunchChoreography.NATURAL_PERIOD / 1000f)
+        val wn = 2f * PI / (LaunchChoreography.NATURAL_PERIOD / 1000f)
         val z = LaunchChoreography.DAMPING_RATIO
         val target = LaunchChoreography.OVERSHOOT
         val wd = wn * sqrt(1f - z * z)
-        val maxV = (wn * target * 0.4f).coerceAtLeast(0.0001f)
+        val maxV = wn * target * 0.4f
         val popSec = LaunchChoreography.POP / 1000f
-        val lagS = LaunchChoreography.SCALE_LAG / 1000f
-        val lagA = LaunchChoreography.ASPECT_LAG / 1000f
         var t = 0f
         var smoothS = 0f
         var smoothA = 1f
-
-        fun raw(u: Float): Float {
-            if (u <= 0f) return 0f
-            return target * (1f - exp(-z * wn * u) * (cos(wd * u) + (z * wn / wd) * sin(wd * u)))
-        }
+        val dt = 1f / 60f // ~60fps step
 
         while (t < popSec) {
-            val r = raw(t)
-            val alphaS = 1f - exp(-t / lagS)
-            smoothS = lerp(smoothS, r, alphaS)
+            // Soft spring
+            val raw = target * (1f - exp(-z * wn * t) * (kotlin.math.cos(wd * t) + (z * wn / wd) * kotlin.math.sin(wd * t)))
+            // Scale lag
+            val alphaS = 1f - exp(-t / (LaunchChoreography.SCALE_LAG / 1000f))
+            smoothS = lerp(smoothS, raw, alphaS)
+            // Velocity for aspect
             val tNext = (t + 0.004f).coerceAtMost(popSec)
-            val v = (raw(tNext) - r) / (tNext - t + 0.0001f)
+            val rawNext = target * (1f - exp(-z * wn * tNext) * (kotlin.math.cos(wd * tNext) + (z * wn / wd) * kotlin.math.sin(wd * tNext)))
+            val v = (rawNext - raw) / 0.008f
             val k = (v / maxV).coerceIn(-1.5f, 1.5f)
             val rawAspect = 1f + LaunchChoreography.SQUASH * k
-            val alphaA = 1f - exp(-t / lagA)
+            // Aspect lag
+            val alphaA = 1f - exp(-t / (LaunchChoreography.ASPECT_LAG / 1000f))
             smoothA = lerp(smoothA, rawAspect, alphaA).coerceIn(0.3f, 2.2f)
+
             physicsScale = smoothS
             physicsAspect = smoothA
-            t += 1f / 60f
-            delay(16)
+            t += dt
+            kotlinx.coroutines.delay(16)
         }
+        // Settle to 1.0
         physicsScale = 1f
         physicsAspect = 1f
     }
@@ -207,7 +207,7 @@ private fun LaunchAnimation(onComplete: () -> Unit) {
         contentAlignment = Alignment.Center
     ) {
         Canvas(Modifier.fillMaxSize()) {
-            if (radius > 0f) drawOval(color = violet, topLeft = Offset(center.x - rx, center.y - ry), size = Size(rx * 2f, ry * 2f))
+            if (radius > 0f) drawOval(color = violet, topLeft = Offset(center.x - rx, center.y - ry), size = androidx.compose.ui.geometry.Size(rx * 2, ry * 2))
         }
         Text(
             text = "Bingwa Score", color = violet, fontSize = 40.sp, fontWeight = FontWeight.ExtraBold,
