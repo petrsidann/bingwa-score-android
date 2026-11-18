@@ -32,7 +32,6 @@ import androidx.compose.foundation.focusable
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Backspace
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.rounded.Fingerprint
@@ -51,23 +50,23 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.fragment.app.FragmentActivity
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
@@ -77,10 +76,10 @@ import com.bingwascore.app.data.auth.AuthConstants
 import com.bingwascore.app.data.auth.AuthRepository
 import com.bingwascore.app.data.preferences.UserPreferences
 import com.bingwascore.app.data.remote.RemoteResult
-import com.bingwascore.app.ui.components.GlassCard
 import com.bingwascore.app.ui.components.GlassInputField
-import com.bingwascore.app.ui.components.KeypadKey
 import com.bingwascore.app.ui.components.NeoButton
+import com.bingwascore.app.ui.glass.PhaseKeypad
+import com.bingwascore.app.ui.glass.PhasePinDots
 import com.bingwascore.app.ui.theme.DesignTokens
 import com.bingwascore.app.util.CrashHandler
 import com.bingwascore.app.util.rememberHaptics
@@ -103,6 +102,8 @@ enum class LoginField {
 
 const val MAX_PHONE_LENGTH = 10
 
+private enum class EntryMode { TEXT, PIN }
+
 data class LoginUiState(
     val phone: String = "",
     val pin: String = "",
@@ -110,7 +111,8 @@ data class LoginUiState(
     val errorMessage: String? = null,
     val failedAttempts: Int = 0,
     val cooldownSeconds: Int = 0,
-    val isSuccess: Boolean = false
+    val isSuccess: Boolean = false,
+    val offlineSignIn: Boolean = false
 ) {
     val isSubmittable: Boolean
         get() = phone.length >= AuthConstants.MIN_PHONE_DIGITS && pin.length == AuthConstants.MIN_PIN_LENGTH
@@ -213,7 +215,8 @@ class LoginViewModel @Inject constructor(
                     _state.value = _state.value.copy(
                         isLoading = false,
                         isSuccess = true,
-                        failedAttempts = 0
+                        failedAttempts = 0,
+                        offlineSignIn = result is RemoteResult.Offline
                     )
                     delay(800)
                     onSuccess()
@@ -269,9 +272,10 @@ fun LoginScreen(
     val phone = state.phone
     val pin = state.pin
 
-    var focusedField by remember { mutableStateOf(LoginField.PHONE) }
+    var mode by remember { mutableStateOf(EntryMode.TEXT) }
     val phoneFocusRequester = remember { FocusRequester() }
-    val pinFocusRequester = remember { FocusRequester() }
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
 
     LaunchedEffect(Unit) {
         var lastPhone = ""
@@ -339,9 +343,10 @@ fun LoginScreen(
     LaunchedEffect(Unit) {
         snapshotFlow { phone.length }
             .collect { len ->
-                if (len >= 10 && focusedField == LoginField.PHONE) {
-                    focusedField = LoginField.PIN
-                    runCatching { pinFocusRequester.requestFocus() }
+                if (len >= 10 && mode == EntryMode.TEXT) {
+                    mode = EntryMode.PIN
+                    focusManager.clearFocus()
+                    keyboardController?.hide()
                 }
             }
     }
@@ -426,37 +431,44 @@ fun LoginScreen(
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
-            GlassCard(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(DesignTokens.Shape.RadiusMd)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(DesignTokens.Shape.RadiusMd))
+                    .background(DesignTokens.LocalBingwaRoles.current.card)
+                    .border(1.dp, DesignTokens.LocalBingwaRoles.current.border.copy(alpha = 0.2f), RoundedCornerShape(DesignTokens.Shape.RadiusMd))
             ) {
                 Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 20.dp)) {
                     GlassInputField(
                         value = phone,
                         onValueChange = viewModel::updatePhone,
                         placeholder = "Phone (e.g. 0712345678)",
-                        focused = focusedField == LoginField.PHONE,
-                        readOnly = true,
+                        focused = mode == EntryMode.TEXT,
+                        readOnly = false,
                         focusRequester = phoneFocusRequester,
-                        onClick = {
-                            focusedField = LoginField.PHONE
-                            phoneFocusRequester.requestFocus()
-                        }
+                        onClick = { mode = EntryMode.TEXT },
+                        modifier = Modifier.onFocusChanged {
+                            if (it.hasFocus) mode = EntryMode.TEXT
+                        },
+                        focusedBorderColor = DesignTokens.Launch.lime
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    GlassInputField(
-                        value = pin,
-                        onValueChange = viewModel::updatePin,
-                        placeholder = "PIN",
-                        focused = focusedField == LoginField.PIN,
-                        readOnly = true,
-                        isPassword = true,
-                        focusRequester = pinFocusRequester,
-                        onClick = {
-                            focusedField = LoginField.PIN
-                            pinFocusRequester.requestFocus()
+                    Text(
+                        "PIN",
+                        color = DesignTokens.LocalBingwaRoles.current.textSecondary.copy(alpha = 0.6f),
+                        fontSize = DesignTokens.Typography.Caption,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    PhasePinDots(
+                        count = pin.length,
+                        active = mode == EntryMode.PIN,
+                        onTap = {
+                            mode = EntryMode.PIN
+                            focusManager.clearFocus()
+                            keyboardController?.hide()
                         }
                     )
 
@@ -485,23 +497,13 @@ fun LoginScreen(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    TactileKeypad(
-                        pin = pin,
-                        onDigit = { digit ->
-                            when (focusedField) {
-                                LoginField.PHONE -> viewModel.appendPhoneDigit(digit)
-                                LoginField.PIN -> viewModel.appendPinDigit(digit)
-                            }
-                        },
-                        onBackspace = {
-                            when (focusedField) {
-                                LoginField.PHONE -> viewModel.backspacePhone()
-                                LoginField.PIN -> viewModel.backspacePin()
-                            }
-                        }
-                    )
+                    if (mode == EntryMode.PIN) {
+                        Spacer(modifier = Modifier.height(24.dp))
+                        PhaseKeypad(
+                            onDigit = { viewModel.appendPinDigit(it) },
+                            onBackspace = { viewModel.backspacePin() }
+                        )
+                    }
                 }
             }
 
@@ -521,7 +523,7 @@ fun LoginScreen(
                     )
                     Spacer(modifier = Modifier.width(10.dp))
                     Text(
-                        "Verified!",
+                        if (state.offlineSignIn) "Signed in (offline)" else "Verified!",
                         color = DesignTokens.LocalBingwaRoles.current.success,
                         style = DesignTokens.Typography.Headline,
                         fontWeight = FontWeight.Bold
@@ -584,66 +586,4 @@ private fun CrashReportDialog(onDismiss: () -> Unit, context: Context) {
         confirmLabel = "OK",
         onConfirm = onDismiss
     )
-}
-
-/**
- * Tactile keypad: 3x4 grid of KeypadKey keys plus a 4-dot PIN readout.
- * KeypadKey carries the TextHandleMove haptic internally; the system keyboard
- * never rises — PIN and phone fields are driven only by the keypad.
- */
-@Composable
-private fun TactileKeypad(
-    pin: String,
-    onDigit: (Char) -> Unit,
-    onBackspace: () -> Unit
-) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            repeat(MAX_PIN_LENGTH) { index ->
-                val filled = index < pin.length
-                Box(
-                    modifier = Modifier
-                        .size(12.dp)
-                        .clip(CircleShape)
-                        .background(if (filled) DesignTokens.LocalBingwaRoles.current.brand else DesignTokens.LocalBingwaRoles.current.card)
-                        .border(1.dp, DesignTokens.LocalBingwaRoles.current.border.copy(alpha = 0.2f), CircleShape)
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(18.dp))
-
-        val rows = listOf(
-            listOf("1", "2", "3"),
-            listOf("4", "5", "6"),
-            listOf("7", "8", "9")
-        )
-        rows.forEach { row ->
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                row.forEach { digit ->
-                    KeypadKey(
-                        d = digit,
-                        onKey = { onDigit(digit.first()) }
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.height(12.dp))
-        }
-
-        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            Spacer(modifier = Modifier.size(64.dp))
-            KeypadKey(
-                d = "0",
-                onKey = { onDigit('0') }
-            )
-            KeypadKey(
-                d = "",
-                icon = Icons.Rounded.Backspace,
-                onKey = { onBackspace() }
-            )
-        }
-    }
 }

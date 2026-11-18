@@ -27,7 +27,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Backspace
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -40,29 +39,22 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.bingwascore.app.ui.components.GlassCard
-import com.bingwascore.app.ui.components.GlassInputField
-import com.bingwascore.app.ui.components.KeypadKey
 import com.bingwascore.app.ui.components.NeoButton
+import com.bingwascore.app.ui.glass.PhaseKeypad
+import com.bingwascore.app.ui.glass.PhasePinDots
 import com.bingwascore.app.ui.theme.DesignTokens
 import com.bingwascore.app.util.rememberHaptics
 import com.bingwascore.app.util.screenEnter
@@ -84,6 +76,11 @@ fun PinSetupScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val completed by viewModel.completed.collectAsStateWithLifecycle()
+    var mode by remember { mutableStateOf(EntryMode.PIN) }
+    var focusedPinField by remember { mutableStateOf(SignUpPinField.PIN) }
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+
     val haptics = rememberHaptics()
 
     LaunchedEffect(completed) {
@@ -139,9 +136,12 @@ fun PinSetupScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            GlassCard(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(DesignTokens.Shape.RadiusMd)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(DesignTokens.Shape.RadiusMd))
+                    .background(DesignTokens.LocalBingwaRoles.current.card)
+                    .border(1.dp, DesignTokens.LocalBingwaRoles.current.border.copy(alpha = 0.2f), RoundedCornerShape(DesignTokens.Shape.RadiusMd))
             ) {
                 Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 20.dp)) {
                     Text(
@@ -154,7 +154,8 @@ fun PinSetupScreen(
                     GlassInputField(
                         value = state.name,
                         onValueChange = viewModel::updateName,
-                        placeholder = "e.g. Jane Doe or Bingwa Telecoms"
+                        placeholder = "e.g. Jane Doe or Bingwa Telecoms",
+                        onFocusChange = { if (it) mode = EntryMode.TEXT }
                     )
 
                     Spacer(modifier = Modifier.height(14.dp))
@@ -169,7 +170,8 @@ fun PinSetupScreen(
                     GlassInputField(
                         value = state.phone,
                         onValueChange = viewModel::updatePhone,
-                        placeholder = "0712345678"
+                        placeholder = "0712345678",
+                        onFocusChange = { if (it) mode = EntryMode.TEXT }
                     )
                     state.phoneError?.let { message ->
                         Spacer(modifier = Modifier.height(6.dp))
@@ -193,7 +195,8 @@ fun PinSetupScreen(
                     GlassInputField(
                         value = state.email,
                         onValueChange = viewModel::updateEmail,
-                        placeholder = "agent@example.com"
+                        placeholder = "agent@example.com",
+                        onFocusChange = { if (it) mode = EntryMode.TEXT }
                     )
                     state.emailError?.let { message ->
                         Spacer(modifier = Modifier.height(6.dp))
@@ -207,13 +210,22 @@ fun PinSetupScreen(
 
                     Spacer(modifier = Modifier.height(14.dp))
 
-                    var focusedPinField by remember { mutableStateOf(SignUpPinField.PIN) }
-
-                    PinDotInput(
-                        label = "PIN (4 digits)",
-                        value = state.pin,
-                        isFocused = focusedPinField == SignUpPinField.PIN,
-                        onClick = { focusedPinField = SignUpPinField.PIN }
+                    Text(
+                        text = "PIN (4 digits)",
+                        color = DesignTokens.LocalBingwaRoles.current.textSecondary.copy(alpha = 0.6f),
+                        fontSize = DesignTokens.Typography.Caption,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    PhasePinDots(
+                        count = state.pin.length,
+                        active = mode == EntryMode.PIN && focusedPinField == SignUpPinField.PIN,
+                        onTap = {
+                            focusedPinField = SignUpPinField.PIN
+                            mode = EntryMode.PIN
+                            focusManager.clearFocus()
+                            keyboardController?.hide()
+                        }
                     )
                     state.pinError?.let { message ->
                         Spacer(modifier = Modifier.height(6.dp))
@@ -227,11 +239,22 @@ fun PinSetupScreen(
 
                     Spacer(modifier = Modifier.height(14.dp))
 
-                    PinDotInput(
-                        label = "Confirm PIN",
-                        value = state.confirmPin,
-                        isFocused = focusedPinField == SignUpPinField.CONFIRM,
-                        onClick = { focusedPinField = SignUpPinField.CONFIRM }
+                    Text(
+                        text = "Confirm PIN",
+                        color = DesignTokens.LocalBingwaRoles.current.textSecondary.copy(alpha = 0.6f),
+                        fontSize = DesignTokens.Typography.Caption,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    PhasePinDots(
+                        count = state.confirmPin.length,
+                        active = mode == EntryMode.PIN && focusedPinField == SignUpPinField.CONFIRM,
+                        onTap = {
+                            focusedPinField = SignUpPinField.CONFIRM
+                            mode = EntryMode.PIN
+                            focusManager.clearFocus()
+                            keyboardController?.hide()
+                        }
                     )
                     state.confirmPinError?.let { message ->
                         Spacer(modifier = Modifier.height(6.dp))
@@ -252,22 +275,23 @@ fun PinSetupScreen(
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    TactileKeypad(
-                        onDigit = { digit ->
-                            when (focusedPinField) {
-                                SignUpPinField.PIN -> viewModel.appendPinDigit(digit)
-                                SignUpPinField.CONFIRM -> viewModel.appendConfirmPinDigit(digit)
+                    if (mode == EntryMode.PIN) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        PhaseKeypad(
+                            onDigit = { digit ->
+                                when (focusedPinField) {
+                                    SignUpPinField.PIN -> viewModel.appendPinDigit(digit)
+                                    SignUpPinField.CONFIRM -> viewModel.appendConfirmPinDigit(digit)
+                                }
+                            },
+                            onBackspace = {
+                                when (focusedPinField) {
+                                    SignUpPinField.PIN -> viewModel.backspacePin()
+                                    SignUpPinField.CONFIRM -> viewModel.backspaceConfirmPin()
+                                }
                             }
-                        },
-                        onBackspace = {
-                            when (focusedPinField) {
-                                SignUpPinField.PIN -> viewModel.backspacePin()
-                                SignUpPinField.CONFIRM -> viewModel.backspaceConfirmPin()
-                            }
-                        }
-                    )
+                        )
+                    }
 
                     state.errorMessage?.let { message ->
                         Spacer(modifier = Modifier.height(12.dp))
@@ -338,6 +362,8 @@ fun PinSetupScreen(
 /** STAGE 44 — which PIN readout the keypad is writing to. */
 private enum class SignUpPinField { PIN, CONFIRM }
 
+private enum class EntryMode { TEXT, PIN }
+
 /**
  * One labelled glass input with a label above the field. ReadOnly — the system
  * keyboard never rises; phone/PIN are driven by TactileKeypad, name/email are
@@ -345,12 +371,16 @@ private enum class SignUpPinField { PIN, CONFIRM }
  */
 @Composable
 private fun GlassInputField(
-    label: String,
+    label: String = "",
     value: String,
     onValueChange: (String) -> Unit,
     placeholder: String,
-    isPassword: Boolean = false
+    isPassword: Boolean = false,
+    onFocusChange: (Boolean) -> Unit = {}
 ) {
+    var focused by remember { mutableStateOf(false) }
+    val borderColor = if (focused) DesignTokens.Launch.lime else DesignTokens.LocalBingwaRoles.current.border.copy(alpha = 0.2f)
+    val borderWidth = if (focused) 1.5.dp else 1.dp
     Column {
         Text(
             label,
@@ -364,7 +394,7 @@ private fun GlassInputField(
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(DesignTokens.Shape.RadiusMd))
                 .background(DesignTokens.LocalBingwaRoles.current.card)
-                .border(1.dp, DesignTokens.LocalBingwaRoles.current.border.copy(alpha = 0.2f), RoundedCornerShape(DesignTokens.Shape.RadiusMd))
+                .border(borderWidth, borderColor, RoundedCornerShape(DesignTokens.Shape.RadiusMd))
                 .padding(horizontal = 14.dp, vertical = 14.dp)
         ) {
             BasicTextField(
@@ -377,7 +407,10 @@ private fun GlassInputField(
                     fontSize = DesignTokens.Typography.Body
                 ),
                 visualTransformation = if (isPassword) androidx.compose.ui.text.input.PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth().onFocusChanged {
+                    focused = it.isFocused
+                    onFocusChange(it.isFocused)
+                }
             )
             if (value.isEmpty()) {
                 Text(
@@ -386,118 +419,6 @@ private fun GlassInputField(
                     fontSize = DesignTokens.Typography.Body
                 )
             }
-        }
-    }
-}
-
-/**
- * 4-dot PIN readout inside a GlassCard. Keypad-driven only; tapping focuses it.
- * The system keyboard never appears.
- */
-@Composable
-private fun PinDotInput(
-    label: String,
-    value: String,
-    isFocused: Boolean,
-    onClick: () -> Unit
-) {
-    val density = LocalDensity.current
-    val glow by animateFloatAsState(
-        targetValue = if (isFocused) 1f else 0f,
-        animationSpec = spring(
-            stiffness = DesignTokens.Motion.SpringStiffness,
-            dampingRatio = DesignTokens.Motion.SpringDamping
-        ),
-        label = "PinDotFocusGlow"
-    )
-
-    val baseBorder = DesignTokens.LocalBingwaRoles.current.border.copy(alpha = 0.2f)
-    val focusedBorder = DesignTokens.LocalBingwaRoles.current.brand.copy(alpha = 0.8f)
-    val borderColor = Color(
-        red = baseBorder.red + (focusedBorder.red - baseBorder.red) * glow,
-        green = baseBorder.green + (focusedBorder.green - baseBorder.green) * glow,
-        blue = baseBorder.blue + (focusedBorder.blue - baseBorder.blue) * glow,
-        alpha = baseBorder.alpha + (focusedBorder.alpha - baseBorder.alpha) * glow
-    )
-
-    Column {
-        Text(
-            label,
-            color = DesignTokens.Color.Ink.copy(alpha = 0.6f),
-            fontSize = DesignTokens.Typography.Caption,
-            fontWeight = FontWeight.Medium
-        )
-        Spacer(modifier = Modifier.height(6.dp))
-        GlassCard(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(DesignTokens.Shape.RadiusMd)
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 14.dp, vertical = 14.dp)
-                    .border(1.dp, borderColor, RoundedCornerShape(DesignTokens.Shape.RadiusMd))
-                    .clickable { onClick() }
-            ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    repeat(4) { index ->
-                        val filled = index < value.length
-                        Box(
-                            modifier = Modifier
-                                .size(12.dp)
-                                .clip(CircleShape)
-                                .background(if (filled) DesignTokens.LocalBingwaRoles.current.brand else DesignTokens.LocalBingwaRoles.current.card)
-                                .border(1.dp, DesignTokens.LocalBingwaRoles.current.border.copy(alpha = 0.2f), CircleShape)
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-/**
- * Tactile keypad: 3x4 grid of NeoButton keys (scale 0.95f on press, LongPress
- * haptic) using Obsidian.card with Elevation.Level1. Backspace has a distinct
- * icon. Drives PIN + Confirm PIN fields; system keyboard never rises.
- */
-@Composable
-private fun TactileKeypad(
-    onDigit: (Char) -> Unit,
-    onBackspace: () -> Unit
-) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        val rows = listOf(
-            listOf("1", "2", "3"),
-            listOf("4", "5", "6"),
-            listOf("7", "8", "9")
-        )
-        rows.forEach { row ->
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                row.forEach { digit ->
-                    KeypadKey(
-                        d = digit,
-                        onKey = { onDigit(digit.first()) }
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.height(12.dp))
-        }
-
-        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            Spacer(modifier = Modifier.size(64.dp))
-            KeypadKey(
-                d = "0",
-                onKey = { onDigit('0') }
-            )
-            KeypadKey(
-                d = "",
-                icon = Icons.Rounded.Backspace,
-                onKey = { onBackspace() }
-            )
         }
     }
 }
