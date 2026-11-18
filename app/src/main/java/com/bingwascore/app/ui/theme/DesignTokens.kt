@@ -90,31 +90,31 @@ object DesignTokens {
             border = ComposeColor(0xFF475569),
             textPrimary = ComposeColor(0xFFF8FAFC),
             textSecondary = ComposeColor(0xFF94A3B8),
-            brand = ComposeColor(0xFF2563EB),
+            brand = ComposeColor(0xFF5B21D6),
             onBrand = ComposeColor(0xFFFFFFFF),
-            success = ComposeColor(0xFF34D399),
-            onSuccess = ComposeColor(0xFF06281A),
-            error = ComposeColor(0xFFF87171),
-            onError = ComposeColor(0xFF2A0A0A),
+            success = ComposeColor(0xFFA4F510),
+            onSuccess = ComposeColor(0xFF000000),
+            error = ComposeColor(0xFFBE123C),
+            onError = ComposeColor(0xFFFFFFFF),
             keypadKey = ComposeColor(0xFF334155),
             keypadDigit = ComposeColor(0xFFF8FAFC)
         )
 
         val Dim = ThemeRoles(
-            bg = ComposeColor(0xFFEAF0F6),
+            bg = ComposeColor(0xFFE9EDF2),
             card = ComposeColor(0xFFFFFFFF),
             elevated = ComposeColor(0xFFF8FAFC),
             border = ComposeColor(0xFFCBD5E1),
-            textPrimary = ComposeColor(0xFF1E293B),
-            textSecondary = ComposeColor(0xFF475569),
-            brand = ComposeColor(0xFF2F6AE0),
+            textPrimary = ComposeColor(0xFF0B0B10),
+            textSecondary = ComposeColor(0xFF5B6472),
+            brand = ComposeColor(0xFF5B21D6),
             onBrand = ComposeColor(0xFFFFFFFF),
-            success = ComposeColor(0xFF047857),
-            onSuccess = ComposeColor(0xFFFFFFFF),
-            error = ComposeColor(0xFFDC2626),
+            success = ComposeColor(0xFF84CC16),
+            onSuccess = ComposeColor(0xFF000000),
+            error = ComposeColor(0xFF7F0D2F),
             onError = ComposeColor(0xFFFFFFFF),
             keypadKey = ComposeColor(0xFFFFFFFF),
-            keypadDigit = ComposeColor(0xFF1E293B)
+            keypadDigit = ComposeColor(0xFF0B0B10)
         )
     }
 
