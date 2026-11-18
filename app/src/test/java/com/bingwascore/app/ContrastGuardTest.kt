@@ -16,15 +16,23 @@ class ContrastGuardTest {
         return (l1 + 0.05f) / (l2 + 0.05f)
     }
     @Test fun obsidian_pairs() { with(DesignTokens.Role.Obsidian) {
-        assertTrue(ratio(textPrimary, bg) >= 4.5f); assertTrue(ratio(textPrimary, card) >= 4.5f)
-        assertTrue(ratio(textPrimary, elevated) >= 4.5f); assertTrue(ratio(textSecondary, bg) >= 4.5f)
-        assertTrue(ratio(keypadDigit, keypadKey) >= 4.5f); assertTrue(ratio(onBrand, brand) >= 4.5f)
-        assertTrue(ratio(onSuccess, success) >= 4.5f); assertTrue(ratio(onError, error) >= 4.5f) } }
+        assertTrue("textPrimary/bg ${ratio(textPrimary, bg)}", ratio(textPrimary, bg) >= 4.5f)
+        assertTrue("textPrimary/card ${ratio(textPrimary, card)}", ratio(textPrimary, card) >= 4.5f)
+        assertTrue("textPrimary/elevated ${ratio(textPrimary, elevated)}", ratio(textPrimary, elevated) >= 4.5f)
+        assertTrue("textSecondary/bg ${ratio(textSecondary, bg)}", ratio(textSecondary, bg) >= 4.5f)
+        assertTrue("keypadDigit/keypadKey ${ratio(keypadDigit, keypadKey)}", ratio(keypadDigit, keypadKey) >= 4.5f)
+        assertTrue("onBrand/brand ${ratio(onBrand, brand)}", ratio(onBrand, brand) >= 4.5f)
+        assertTrue("onSuccess/success ${ratio(onSuccess, success)}", ratio(onSuccess, success) >= 4.5f)
+        assertTrue("onError/error ${ratio(onError, error)}", ratio(onError, error) >= 4.5f) } }
     @Test fun dim_pairs() { with(DesignTokens.Role.Dim) {
-        assertTrue(ratio(textPrimary, bg) >= 4.5f); assertTrue(ratio(textPrimary, card) >= 4.5f)
-        assertTrue(ratio(textPrimary, elevated) >= 4.5f); assertTrue(ratio(textSecondary, bg) >= 4.5f)
-        assertTrue(ratio(keypadDigit, keypadKey) >= 4.5f); assertTrue(ratio(onBrand, brand) >= 4.5f)
-        assertTrue(ratio(onSuccess, success) >= 4.5f); assertTrue(ratio(onError, error) >= 4.5f) } }
+        assertTrue("textPrimary/bg ${ratio(textPrimary, bg)}", ratio(textPrimary, bg) >= 4.5f)
+        assertTrue("textPrimary/card ${ratio(textPrimary, card)}", ratio(textPrimary, card) >= 4.5f)
+        assertTrue("textPrimary/elevated ${ratio(textPrimary, elevated)}", ratio(textPrimary, elevated) >= 4.5f)
+        assertTrue("textSecondary/bg ${ratio(textSecondary, bg)}", ratio(textSecondary, bg) >= 4.5f)
+        assertTrue("keypadDigit/keypadKey ${ratio(keypadDigit, keypadKey)}", ratio(keypadDigit, keypadKey) >= 4.5f)
+        assertTrue("onBrand/brand ${ratio(onBrand, brand)}", ratio(onBrand, brand) >= 4.5f)
+        assertTrue("onSuccess/success ${ratio(onSuccess, success)}", ratio(onSuccess, success) >= 4.5f)
+        assertTrue("onError/error ${ratio(onError, error)}", ratio(onError, error) >= 4.5f) } }
     @Test fun launch_pairs() { with(DesignTokens.Launch) {
         assertTrue(ratio(violet, lime) >= 4.5f)
         assertTrue(ratio(lime, violet) >= 4.5f)
