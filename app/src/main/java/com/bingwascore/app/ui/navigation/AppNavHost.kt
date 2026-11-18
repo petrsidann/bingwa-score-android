@@ -99,7 +99,7 @@ import androidx.compose.animation.fadeOut
 import com.bingwascore.app.BuildConfig
 import com.bingwascore.app.ui.autorenewals.AutoRenewalsScreen
 import com.bingwascore.app.ui.autoreplies.AutoRepliesScreen
-import com.bingwascore.app.ui.components.FloatingGlassTabBar
+import com.bingwascore.app.ui.glass.LensTabBar
 import com.bingwascore.app.ui.components.LiquidGlassDrawer
 import com.bingwascore.app.ui.components.LocalPremiumToastManager
 import com.bingwascore.app.ui.components.PremiumToastHost
@@ -317,6 +317,7 @@ fun MainScreen(remoteHttpClient: RemoteHttpClient) {
     var drawerOpen by remember { mutableStateOf(false) }
     var showDialer by remember { mutableStateOf(false) }
     var showReferral by remember { mutableStateOf(false) }
+    var showTransactions by remember { mutableStateOf(false) }
     // R2: Home counters hand a status filter over to the Transactions tab.
     var transactionFilter by remember { mutableStateOf(TransactionFilter.ALL) }
     val scope = rememberCoroutineScope()
@@ -335,12 +336,13 @@ fun MainScreen(remoteHttpClient: RemoteHttpClient) {
     // Stage 25 — System back handling across sheets, drawers, secondary routes, and tabs.
     // Zero dead ends: close active drawer/sheets first, return secondary drawer routes
     // or referral back to main, or return non-Home main tabs to Home (0).
-    val hasBackAction = drawerOpen || showDialer || showReferral || selectedDrawerIndex != -1 || selectedTab != 0
+    val hasBackAction = drawerOpen || showDialer || showReferral || showTransactions || selectedDrawerIndex != -1 || selectedTab != 0
     BackHandler(enabled = hasBackAction) {
         when {
             drawerOpen -> drawerOpen = false
             showDialer -> showDialer = false
             showReferral -> showReferral = false
+            showTransactions -> showTransactions = false
             selectedDrawerIndex != -1 -> selectedDrawerIndex = -1
             selectedTab != 0 -> selectedTab = 0
         }
@@ -355,18 +357,23 @@ fun MainScreen(remoteHttpClient: RemoteHttpClient) {
                 ),
                 snackbarHost = { PremiumToastHost() },
                 bottomBar = {
-                    FloatingGlassTabBar(
-                        selected = selectedTab,
-                        onSelect = {
-                            selectedTab = it
+                    LensTabBar(
+                        selectedIndex = selectedTab,
+                        onSelect = { i ->
+                            selectedTab = i
                             drawerOpen = false
                             showDialer = false
-                        }
+                            showTransactions = false
+                        },
+                        modifier = Modifier
+                            .padding(horizontal = 14.dp)
+                            .padding(bottom = 14.dp)
                     )
                 }
             ) { innerPadding ->
                 val destination = when {
                     showDialer -> "dialer"
+                    showTransactions -> "transactions"
                     selectedDrawerIndex == CUSTOMERS_DRAWER_INDEX -> "customers"
                     selectedDrawerIndex == AUTO_RENEWALS_DRAWER_INDEX -> "autorenewals"
                     selectedDrawerIndex == SMART_FOLLOW_UP_DRAWER_INDEX -> "smartfollowup"
@@ -382,9 +389,10 @@ fun MainScreen(remoteHttpClient: RemoteHttpClient) {
                     selectedDrawerIndex == DIPLOMATICS_DRAWER_INDEX -> "diplomatics"
                     else -> when (selectedTab) {
                         0 -> "home"
-                        1 -> "offers"
-                        3 -> "transactions"
-                        else -> "profile"
+                        1 -> "agentportal"
+                        2 -> "settings"
+                        3 -> "community"
+                        else -> "home"
                     }
                 }
 
@@ -420,7 +428,8 @@ fun MainScreen(remoteHttpClient: RemoteHttpClient) {
                                 "home" -> HomeScreen(
                                     onOpenTransactions = { status ->
                                         transactionFilter = TransactionFilter.fromStatus(status)
-                                        selectedTab = 3
+                                        showTransactions = true
+                                        selectedTab = 0
                                         selectedDrawerIndex = -1
                                     },
                                     onOpenMyPlan = { selectedDrawerIndex = MY_PLAN_DRAWER_INDEX },
