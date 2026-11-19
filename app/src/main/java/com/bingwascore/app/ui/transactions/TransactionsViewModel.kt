@@ -42,6 +42,9 @@ import javax.inject.Inject
 internal val transactionFilterChips: List<TransactionFilter>
     get() = TransactionFilter.entries.toList()
 
+internal val transactionRangeChips: List<TransactionRange>
+    get() = TransactionRange.entries.toList()
+
 /** Filter chips shown on the Transactions screen. */
 enum class TransactionFilter(val label: String) {
     ALL("All"),
@@ -73,6 +76,21 @@ enum class TransactionFilter(val label: String) {
     }
 }
 
+/** S69 — time range chips. */
+enum class TransactionRange(val label: String) {
+    ONE_WEEK("1W"),
+    FOUR_MONTHS("4M"),
+    EIGHT_MONTHS("8M"),
+    ALL("All");
+
+    fun startTime(now: Long): Long = when (this) {
+        ONE_WEEK -> now - 7 * 24 * 60 * 60 * 1000L
+        FOUR_MONTHS -> now - 4L * 30 * 24 * 60 * 60 * 1000L
+        EIGHT_MONTHS -> now - 8L * 30 * 24 * 60 * 60 * 1000L
+        ALL -> 0L
+    }
+}
+
 @HiltViewModel
 class TransactionsViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
@@ -82,15 +100,19 @@ class TransactionsViewModel @Inject constructor(
     private val _filter = MutableStateFlow(TransactionFilter.ALL)
     val filter: StateFlow<TransactionFilter> = _filter.asStateFlow()
 
+    private val _range = MutableStateFlow(TransactionRange.ALL)
+    val range: StateFlow<TransactionRange> = _range.asStateFlow()
+
     // Parity E — rows shimmer (skeleton) until the first Room emission lands.
     private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
     /** Live (soft-delete-safe) rows: a swiped-away tombstone disappears. */
     val transactions: StateFlow<List<Transaction>> =
-        combine(transactionRepository.liveTransactions, _filter) { list, filter ->
+        combine(transactionRepository.liveTransactions, _filter, _range) { list, filter, range ->
             val now = System.currentTimeMillis()
-            list.filter { filter.matches(it, now) }
+            val rangeStart = range.startTime(now)
+            list.filter { it.createdAt >= rangeStart && filter.matches(it, now) }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     private val _events = MutableSharedFlow<String>(extraBufferCapacity = 1)
@@ -175,6 +197,10 @@ class TransactionsViewModel @Inject constructor(
 
     fun setFilter(filter: TransactionFilter) {
         _filter.value = filter
+    }
+
+    fun setRange(range: TransactionRange) {
+        _range.value = range
     }
 
     /**
