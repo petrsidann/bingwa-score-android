@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -18,7 +19,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.CheckCircle
-import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.rounded.Fingerprint
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -32,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.fragment.app.FragmentActivity
@@ -102,18 +103,18 @@ class LoginViewModel @Inject constructor(
     }
 
     fun updatePhone(value: String) {
-        _state.value = _state.value.copy(phone = value.filter { it.isDigit() }, errorMessage = null)
+        _state.value = _state.value.copy(phone = value)
     }
 
     fun updatePin(value: String) {
-        _state.value = _state.value.copy(pin = value.filter { it.isDigit() }, errorMessage = null)
+        _state.value = _state.value.copy(pin = value)
     }
 
     fun appendPhoneDigit(digit: Char) {
         val current = _state.value
         if (current.cooldownSeconds > 0 || current.isLoading || current.isSuccess) return
         if (current.phone.length < MAX_PHONE_LENGTH) {
-            _state.value = current.copy(phone = current.phone + digit, errorMessage = null)
+            _state.value = current.copy(phone = current.phone + digit)
         } else {
             _state.value = current.copy(errorMessage = "Phone number is 10 digits")
         }
@@ -123,7 +124,7 @@ class LoginViewModel @Inject constructor(
         val current = _state.value
         if (current.cooldownSeconds > 0 || current.isLoading || current.isSuccess) return
         if (current.phone.isNotEmpty()) {
-            _state.value = current.copy(phone = current.phone.dropLast(1), errorMessage = null)
+            _state.value = current.copy(phone = current.phone.dropLast(1))
         }
     }
 
@@ -131,7 +132,7 @@ class LoginViewModel @Inject constructor(
         val current = _state.value
         if (current.cooldownSeconds > 0 || current.isLoading || current.isSuccess) return
         if (current.pin.length < AuthConstants.MIN_PIN_LENGTH) {
-            _state.value = current.copy(pin = current.pin + digit, errorMessage = null)
+            _state.value = current.copy(pin = current.pin + digit)
         } else {
             _state.value = current.copy(errorMessage = "PIN is 4 digits")
         }
@@ -141,7 +142,7 @@ class LoginViewModel @Inject constructor(
         val current = _state.value
         if (current.cooldownSeconds > 0 || current.isLoading || current.isSuccess) return
         if (current.pin.isNotEmpty()) {
-            _state.value = current.copy(pin = current.pin.dropLast(1), errorMessage = null)
+            _state.value = current.copy(pin = current.pin.dropLast(1))
         }
     }
 
@@ -153,12 +154,12 @@ class LoginViewModel @Inject constructor(
         val current = _state.value
         if (current.cooldownSeconds > 0 || current.isLoading || current.isSuccess) return
 
-        if (current.phone.length < AuthConstants.MIN_PHONE_DIGITS) {
+        if (current.phone.length < 9) {
             _state.value = current.copy(errorMessage = "Enter a valid phone number")
             return
         }
-        if (current.pin.length != AuthConstants.MIN_PIN_LENGTH) {
-            _state.value = current.copy(errorMessage = "PIN must be exactly ${AuthConstants.MIN_PIN_LENGTH} digits")
+        if (current.pin.length != 4) {
+            _state.value = current.copy(errorMessage = "PIN must be exactly 4 digits")
             return
         }
 
@@ -277,7 +278,6 @@ fun LoginScreen(
         mode == LoginField.PHONE -> "Enter your 10-digit phone number"
         else -> "Enter your 4-digit PIN"
     }
-    val hintBad = state.cooldownSeconds > 0 || !state.errorMessage.isNullOrBlank()
 
     PhaseScreen {
         Row(
@@ -292,7 +292,9 @@ fun LoginScreen(
                 fontWeight = FontWeight.ExtraBold,
                 modifier = Modifier.combinedClickable(onLongClick = { showCrashReport = true }, onClick = {})
             )
-            Box(Modifier.padding(horizontal = 10.dp, vertical = 6.dp)) {
+            Box(
+                Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+            ) {
                 Text(
                     if (mode == LoginField.PHONE) "PHONE" else "PIN",
                     color = PhaseSurface.Mut,
@@ -311,7 +313,7 @@ fun LoginScreen(
                 value = displayPhone(state.phone),
                 placeholder = "0712345678",
                 hint = hint,
-                hintBad = hintBad,
+                hintBad = state.cooldownSeconds > 0 || !state.errorMessage.isNullOrBlank(),
                 showCaret = state.phone.isNotEmpty()
             )
         } else {
@@ -320,7 +322,7 @@ fun LoginScreen(
                 value = "",
                 placeholder = "",
                 hint = hint,
-                hintBad = hintBad,
+                hintBad = state.cooldownSeconds > 0 || !state.errorMessage.isNullOrBlank(),
                 showCaret = false,
                 pinCount = state.pin.length
             )
@@ -336,6 +338,7 @@ fun LoginScreen(
 
         Spacer(Modifier.height(24.dp))
 
+        val utilityIcon = Icons.Rounded.Fingerprint
         if (!state.isSuccess) {
             PhaseKeypad(
                 onDigit = {
@@ -357,7 +360,7 @@ fun LoginScreen(
                 onNext = { mode = if (mode == LoginField.PHONE) LoginField.PIN else LoginField.PHONE },
                 submitEnabled = ready,
                 onUtil = if (biometricAvailable) ({ launchBiometric() }) else null,
-                utilIcon = Icons.Rounded.Fingerprint
+                utilityIcon = utilityIcon
             )
         } else {
             Box(Modifier.fillMaxWidth().height(180.dp), contentAlignment = Alignment.Center) {
@@ -371,62 +374,35 @@ fun LoginScreen(
                         fontWeight = FontWeight.ExtraBold
                     )
                 }
-            },
-            onSubmit = { viewModel.signIn(onSignIn) },
-            onNext = {
-                if (mode == LoginField.PHONE && state.phone.length >= AuthConstants.MIN_PHONE_DIGITS) {
-                    mode = LoginField.PIN
-                    focusManager.clearFocus()
-                    keyboardController?.hide()
-                }
-            },
-            onUtilityClick = { launchBiometric() },
-            utilityIcon = Icons.Rounded.Fingerprint,
-            submitEnabled = state.isSubmittable && state.cooldownSeconds == 0 && !state.isLoading
-        )
-
-        Spacer(Modifier.height(32.dp))
-
-        if (state.isSuccess) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.CheckCircle,
-                    contentDescription = "Success",
-                    tint = PhaseSurface.Lime,
-                    modifier = Modifier.size(32.dp)
-                )
-                Spacer(Modifier.width(10.dp))
-                Text(
-                    if (state.offlineSignIn) "Signed in (offline)" else "Verified!",
-                    color = PhaseSurface.Lime,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold
-                )
             }
             LaunchedEffect(Unit) { haptics.tick() }
         }
 
         Spacer(Modifier.height(24.dp))
 
-        PhaseCta(
-            label = if (state.isLoading) "Verifying…" else if (state.cooldownSeconds > 0) "Cooldown (${state.cooldownSeconds}s)" else "Sign in",
-            ready = state.isSubmittable && state.cooldownSeconds == 0 && !state.isLoading,
-            onClick = { viewModel.signIn(onSignIn) }
-        )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(start = 16.dp, end = 16.dp, bottom = 14.dp)
+        ) {
+            PhaseCta(
+                label = if (state.isLoading) "Verifying…" else if (state.cooldownSeconds > 0) "Cooldown (${state.cooldownSeconds}s)" else "Sign in",
+                ready = ready,
+                onClick = { viewModel.signIn(onSignIn) }
+            )
 
-        Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(10.dp))
 
-        Text(
-            "Create account",
-            color = PhaseSurface.Mut,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.combinedClickable(onClick = { onCreateAccount() }, onLongClick = null)
-        )
+            Text(
+                "Create account",
+                color = PhaseSurface.Mut,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth().combinedClickable(onClick = { onCreateAccount() }, onLongClick = null)
+            )
+        }
 
         if (showCrashReport) {
             CrashReportDialog(onDismiss = { showCrashReport = false }, context = context)
