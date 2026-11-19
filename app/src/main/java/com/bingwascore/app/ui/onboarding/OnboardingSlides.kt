@@ -76,7 +76,7 @@ fun OnboardingSlides(onCreateAccount: () -> Unit, onSignIn: () -> Unit) {
         Slide(lime, violet, violet.copy(alpha = 0.7f), "Auto-pilot payments", "Bingwa Score watches for M-Pesa confirmations and dials bundles automatically.", violet, lime, header = true),
         Slide(violet, lime, lime.copy(alpha = 0.8f), "Smart retries & fallbacks", "Failed transaction? We retry with fallbacks so your customers stay happy.", lime, violet, header = false),
         Slide(ink, lime, Color.White.copy(alpha = 0.7f), "Score, streaks & rewards", "Earn points for every sale, build streaks and unlock achievements as you grow.", lime, ink, header = false),
-        Slide(CsvBlue, lime, Color.White.copy(alpha = 0.7f), "Import your customers", "Upload a CSV of your saved contacts to restore your customers, offers and USSD plans in one tap.", lime, CsvBlue, header = false)
+        Slide(DesignTokens.Launch.ink, lime, Color.White.copy(alpha = 0.7f), "Import your customers", "Upload a CSV of your saved contacts to restore your customers, offers and USSD plans in one tap.", lime, CsvBlue, header = false)
     )
     val pagerState = rememberPagerState(pageCount = { slides.size })
     val scope = rememberCoroutineScope()

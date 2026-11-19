@@ -367,6 +367,7 @@ fun MainScreen(remoteHttpClient: RemoteHttpClient) {
                         },
                         modifier = Modifier
                             .padding(horizontal = 14.dp)
+                            .navigationBarsPadding()
                             .padding(bottom = 14.dp)
                     )
                 }
