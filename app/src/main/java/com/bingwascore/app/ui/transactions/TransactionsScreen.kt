@@ -349,6 +349,14 @@ fun TransactionsScreenContent(
                 onExport = callbacks.onExport
             )
 
+            StatsTiles(transactions = state.transactions)
+
+            if (state.transactions.any { it.status == TransactionStatus.FAILED.value || it.status == TransactionStatus.FAILED_ALREADY_RECOMMENDED.value }) {
+                RecoveryCard(onRecover = {
+                    callbacks.onFilterSelect(TransactionFilter.FAILED)
+                })
+            }
+
             LazyRow(
                 contentPadding = PaddingValues(horizontal = 20.dp, vertical = 2.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -1255,5 +1263,84 @@ private fun relativeTime(millis: Long): String {
         minutes < 1440 -> "${minutes / 60}h ago"
         minutes < 10080 -> "${minutes / 1440}d ago"
         else -> dayFormat.format(Date(millis))
+    }
+}
+
+@Composable
+private fun StatsTiles(transactions: List<Transaction>) {
+    val completed = transactions.count { it.status == TransactionStatus.SUCCESSFUL.value }
+    val pending = transactions.count { it.status == TransactionStatus.PENDING.value || it.status == TransactionStatus.PROCESSING.value || it.status == TransactionStatus.SCHEDULED.value }
+    val failed = transactions.count { it.status == TransactionStatus.FAILED.value || it.status == TransactionStatus.FAILED_ALREADY_RECOMMENDED.value }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        SemanticTile(value = completed, label = "Completed", color = DesignTokens.Semantic.complete, modifier = Modifier.weight(1f))
+        SemanticTile(value = pending, label = "Queued", color = DesignTokens.Semantic.scheduled, modifier = Modifier.weight(1f))
+        SemanticTile(value = failed, label = "Failed", color = DesignTokens.Semantic.failed, modifier = Modifier.weight(1f))
+    }
+}
+
+@Composable
+private fun SemanticTile(value: Int, label: String, color: Color, modifier: Modifier = Modifier) {
+    GlassCard(modifier = modifier) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Text(
+                text = "$value",
+                color = color,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = label,
+                color = DesignTokens.LocalBingwaRoles.current.textPrimary,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+    }
+}
+
+@Composable
+private fun RecoveryCard(onRecover: () -> Unit) {
+    GlassCard(modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp)) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp)
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Recover failures",
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = "Some transactions failed — retry them.",
+                    color = DesignTokens.LocalBingwaRoles.current.textSecondary,
+                    fontSize = 12.sp
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(50))
+                    .background(DesignTokens.Semantic.complete)
+                    .clickable(onClick = onRecover)
+                    .padding(horizontal = 12.dp, vertical = 6.dp)
+            ) {
+                Text(
+                    text = "Recover",
+                    color = DesignTokens.LocalBingwaRoles.current.onSuccess,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
     }
 }
