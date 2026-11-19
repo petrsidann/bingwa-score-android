@@ -1,7 +1,12 @@
 package com.bingwascore.app.ui.glass
 
-import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -28,8 +33,11 @@ import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -37,9 +45,12 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlin.math.roundToInt
 
 /** Glass-system constants. Owned here per spec section 0 (glass lives only in ui/glass/). */
 private val LensPill = Color(0xFF0B0B10)
@@ -67,15 +78,24 @@ fun LensTabBar(
 ) {
     val outerHeight = 82.dp
     val pillHeight = 64.dp
+    val density = LocalDensity.current
     BoxWithConstraints(modifier = modifier.fillMaxWidth().height(outerHeight)) {
         val tabWidth = maxWidth / BingwaLensTabs.size
         val lensWidth = minOf(88.dp, tabWidth + 4.dp)
-        val target = tabWidth * selectedIndex + (tabWidth - lensWidth) / 2
-        val lensLeft by animateDpAsState(
-            targetValue = target,
-            animationSpec = spring(dampingRatio = 0.62f, stiffness = 380f),
-            label = "lensLeft"
-        )
+        val targetPx = with(density) { (tabWidth * selectedIndex + (tabWidth - lensWidth) / 2).toPx() }
+        val lensX = remember { Animatable(0f) }
+        var primed by remember { mutableStateOf(false) }
+        LaunchedEffect(targetPx) {
+            if (!primed) {
+                lensX.snapTo(targetPx)
+                primed = true
+            } else {
+                lensX.animateTo(
+                    targetPx,
+                    spring(dampingRatio = 0.86f, stiffness = 260f, visibilityThreshold = 0.5f)
+                )
+            }
+        }
 
         Box(
             Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(pillHeight)
@@ -85,7 +105,14 @@ fun LensTabBar(
         )
 
         Box(
-            Modifier.offset(x = lensLeft, y = 9.dp).width(lensWidth).height(outerHeight)
+            Modifier
+                .offset {
+                    IntOffset(
+                        lensX.value.roundToInt(),
+                        with(density) { 9.dp.toPx() }.roundToInt()
+                    )
+                }
+                .width(lensWidth).height(outerHeight)
                 .shadow(14.dp, RoundedCornerShape(26.dp), clip = false)
                 .clip(RoundedCornerShape(26.dp))
                 .background(Color.White.copy(alpha = 0.08f))
@@ -107,6 +134,11 @@ fun LensTabBar(
         Row(Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(pillHeight)) {
             BingwaLensTabs.forEachIndexed { i, tab ->
                 val on = i == selectedIndex
+                val tint by animateColorAsState(
+                    targetValue = if (on) Color.White else LensIdle,
+                    animationSpec = tween(180),
+                    label = "tabTint"
+                )
                 Column(
                     modifier = Modifier.weight(1f).fillMaxHeight().clickable(
                         interactionSource = remember { MutableInteractionSource() },
@@ -118,20 +150,30 @@ fun LensTabBar(
                     Icon(
                         imageVector = tab.icon,
                         contentDescription = tab.label,
-                        tint = if (on) Color.White else LensIdle,
+                        tint = tint,
                         modifier = Modifier.size(20.dp)
                     )
-                    if (on) {
-                        Spacer(Modifier.height(3.dp))
-                        Text(
-                            text = tab.label,
-                            color = Color.White,
-                            fontSize = 9.5.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
+                    TabLabel(label = tab.label, visible = on)
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun TabLabel(label: String, visible: Boolean) {
+    Box(Modifier.height(12.dp), contentAlignment = Alignment.TopCenter) {
+        AnimatedVisibility(
+            visible = visible,
+            enter = fadeIn(tween(140)),
+            exit = fadeOut(tween(100))
+        ) {
+            Text(
+                text = label,
+                color = Color.White,
+                fontSize = 9.5.sp,
+                fontWeight = FontWeight.Bold
+            )
         }
     }
 }

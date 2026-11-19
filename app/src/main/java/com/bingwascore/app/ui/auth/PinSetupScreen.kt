@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -58,10 +59,14 @@ fun PinSetupScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val completed by viewModel.completed.collectAsStateWithLifecycle()
     val haptics = rememberHaptics()
-    var step by remember { mutableStateOf(SetupStep.IDENTITY) }
-    var focusedPinField by remember { mutableStateOf(SignUpPinField.PIN) }
 
     LaunchedEffect(completed) { if (completed) onComplete() }
+
+    val title = when (step) {
+        SetupStep.IDENTITY -> "Create Account"
+        SetupStep.PHONE -> "Phone Number"
+        SetupStep.SECURE -> "Create PIN"
+    }
 
     PhaseScreen {
         Row(
@@ -74,16 +79,12 @@ fun PinSetupScreen(
                 contentDescription = "Back",
                 tint = PhaseSurface.Ink,
                 modifier = Modifier.size(24.dp).clickable {
-                    if (step == SetupStep.IDENTITY) onBack() else {
-                        step = SetupStep.values()[step.ordinal - 1]
-                    }
+                    if (step == SetupStep.IDENTITY) onBack() else step = SetupStep.values()[step.ordinal - 1]
                 }
             )
-            Box(
-                Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-            ) {
+            Box(Modifier.padding(horizontal = 10.dp, vertical = 6.dp)) {
                 Text(
-                    step.name,
+                    step.name.uppercase(),
                     color = PhaseSurface.Mut,
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Black,
@@ -106,26 +107,9 @@ fun PinSetupScreen(
         Spacer(Modifier.height(24.dp))
 
         when (step) {
-            SetupStep.IDENTITY -> IdentityStep(
-                state = state,
-                viewModel = viewModel,
-                onContinue = { step = SetupStep.PHONE }
-            )
-            SetupStep.PHONE -> PhoneStep(
-                state = state,
-                viewModel = viewModel,
-                onContinue = { step = SetupStep.SECURE }
-            )
-            SetupStep.SECURE -> SecureStep(
-                state = state,
-                viewModel = viewModel,
-                focusedPinField = focusedPinField,
-                onFocusedPinFieldChange = { focusedPinField = it },
-                onSubmit = {
-                    haptics.press()
-                    viewModel.submit()
-                }
-            )
+            SetupStep.IDENTITY -> IdentityStep(state, viewModel) { step = SetupStep.PHONE }
+            SetupStep.PHONE -> PhoneStep(state, viewModel) { step = SetupStep.SECURE }
+            SetupStep.SECURE -> SecureStep(state, viewModel, focusedPinField, { focusedPinField = it })
         }
 
         if (state.isSuccess) {
@@ -145,8 +129,6 @@ fun PinSetupScreen(
             }
             LaunchedEffect(Unit) { haptics.tick() }
         }
-    }
-}
 
 @Composable
 private fun IdentityStep(
@@ -155,14 +137,26 @@ private fun IdentityStep(
     onContinue: () -> Unit
 ) {
     Column {
+        Text(
+            "Create Account",
+            color = PhaseSurface.Ink,
+            fontSize = 23.sp,
+            fontWeight = FontWeight.ExtraBold
+        )
+        Spacer(Modifier.height(6.dp))
+        Text(
+            "Sign up as an agent. Your PIN unlocks transactions on this device.",
+            color = PhaseSurface.Mut,
+            fontSize = 13.sp
+        )
+        Spacer(Modifier.height(24.dp))
         PhaseTextField(
             label = "Name or business name",
             value = state.name,
             onValueChange = viewModel::updateName,
             placeholder = "e.g. Jane Doe or Bingwa Telecoms",
             isError = false,
-            errorMsg = "",
-            keyboardType = KeyboardType.Text
+            errorMsg = ""
         )
         Spacer(Modifier.height(16.dp))
         PhaseTextField(
