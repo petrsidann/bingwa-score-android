@@ -90,6 +90,13 @@ class UserPreferences @Inject constructor(
         val PLAN_PULLS_LEFT = intPreferencesKey("plan_pulls_left")
         val PLAN_UNLIMITED = booleanPreferencesKey("plan_unlimited")
         val PLAN_EXPIRES_AT = longPreferencesKey("plan_expires_at")
+        // ── S68 — activation ladder flags (DataStore-persisted) ──
+        val LADDER_ENGINE_ARMED = booleanPreferencesKey("ladder_engine_armed")
+        val LADDER_TEST_DRIVE_DONE = booleanPreferencesKey("ladder_test_drive_done")
+        val LADDER_IMPORT_BOOK_DONE = booleanPreferencesKey("ladder_import_book_done")
+        val LADDER_RECOVER_FAILURE_DONE = booleanPreferencesKey("ladder_recover_failure_done")
+        val LAST_CLEARED_FAILED_AT = longPreferencesKey("last_cleared_failed_at")
+
         // ── Stage 14 — customers autosave book ──
         /** Master switch for the Customers autosave (every SUCCESSFUL tx upserts a customer). */
         val CUSTOMERS_AUTOSAVE = booleanPreferencesKey("customers_autosave")
@@ -224,6 +231,19 @@ class UserPreferences @Inject constructor(
         context.dataStore.data.map { it[Keys.CUSTOMERS_AUTOSAVE] ?: true }
 
     suspend fun setCustomersAutosave(value: Boolean) = edit { it[Keys.CUSTOMERS_AUTOSAVE] = value }
+
+    // ── S68 — activation ladder read/write ──
+    val ladderEngineArmed: Flow<Boolean> = context.dataStore.data.map { it[Keys.LADDER_ENGINE_ARMED] ?: false }
+    val ladderTestDriveDone: Flow<Boolean> = context.dataStore.data.map { it[Keys.LADDER_TEST_DRIVE_DONE] ?: false }
+    val ladderImportBookDone: Flow<Boolean> = context.dataStore.data.map { it[Keys.LADDER_IMPORT_BOOK_DONE] ?: false }
+    val ladderRecoverFailureDone: Flow<Boolean> = context.dataStore.data.map { it[Keys.LADDER_RECOVER_FAILURE_DONE] ?: false }
+    val lastClearedFailedAt: Flow<Long> = context.dataStore.data.map { it[Keys.LAST_CLEARED_FAILED_AT] ?: 0L }
+
+    suspend fun setLadderEngineArmed(value: Boolean) = edit { it[Keys.LADDER_ENGINE_ARMED] = value }
+    suspend fun setLadderTestDriveDone(value: Boolean) = edit { it[Keys.LADDER_TEST_DRIVE_DONE] = value }
+    suspend fun setLadderImportBookDone(value: Boolean) = edit { it[Keys.LADDER_IMPORT_BOOK_DONE] = value }
+    suspend fun setLadderRecoverFailureDone(value: Boolean) = edit { it[Keys.LADDER_RECOVER_FAILURE_DONE] = value }
+    suspend fun setLastClearedFailedAt(value: Long) = edit { it[Keys.LAST_CLEARED_FAILED_AT] = value }
 
     /**
      * MEGA A — cold-start gate. `STATE_RUNNING` only once the Setup Checklist

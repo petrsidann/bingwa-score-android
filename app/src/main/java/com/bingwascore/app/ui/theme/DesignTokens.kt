@@ -186,6 +186,24 @@ object DesignTokens {
         val ink = ComposeColor(0xFF101014)
     }
 
+    // ─── Hero surface (Phase 1 spec 4) ───────────────────────────────────────
+
+    object Hero {
+        val surface = ComposeColor(0xFF0B0B10)
+        val ink = ComposeColor(0xFFF8FAFC)
+    }
+
+    // ─── Semantic status colours (Phase 1 spec 1) ───────────────────────────
+
+    object Semantic {
+        val complete = ComposeColor(0xFFA4F510)
+        val scheduled = ComposeColor(0xFF8B5CF6)
+        val awaiting = ComposeColor(0xFFFDE68A)
+        val failed = ComposeColor(0xFFFDA4AF)
+        val unmatched = ComposeColor(0xFF64748B)
+        val info = ComposeColor(0xFF0EA5E9)
+    }
+
     // ─── Glass ────────────────────────────────────────────────────────────────
 
     object Glass {
