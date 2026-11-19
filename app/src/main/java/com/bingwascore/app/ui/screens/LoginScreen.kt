@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.rounded.Fingerprint
@@ -30,11 +31,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.automirrored.rounded.Backspace
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -48,6 +44,7 @@ import com.bingwascore.app.data.auth.AuthRepository
 import com.bingwascore.app.data.preferences.UserPreferences
 import com.bingwascore.app.data.remote.RemoteResult
 import com.bingwascore.app.ui.components.GlassDialog
+import com.bingwascore.app.ui.glass.PhaseChips
 import com.bingwascore.app.ui.glass.PhaseCta
 import com.bingwascore.app.ui.glass.PhaseDisplay
 import com.bingwascore.app.ui.glass.PhaseKeypad
@@ -226,20 +223,7 @@ fun LoginScreen(
     var showCrashReport by remember { mutableStateOf(false) }
     val state by viewModel.state.collectAsStateWithLifecycle()
 
-    val phone = state.phone
-    val pin = state.pin
-
     var mode by remember { mutableStateOf(LoginField.PHONE) }
-    val focusManager = LocalFocusManager.current
-    val keyboardController = LocalSoftwareKeyboardController.current
-
-    LaunchedEffect(phone.length) {
-        if (phone.length >= MAX_PHONE_LENGTH && mode == LoginField.PHONE) {
-            mode = LoginField.PIN
-            focusManager.clearFocus()
-            keyboardController?.hide()
-        }
-    }
 
     val activity = context as? FragmentActivity
     val biometricAvailable = remember {
@@ -285,11 +269,13 @@ fun LoginScreen(
         if (biometricAvailable) launchBiometric()
     }
 
+    val ready = state.isSubmittable && state.cooldownSeconds == 0 && !state.isLoading
+
     val hint = when {
-        state.cooldownSeconds > 0 -> "Try again in \u00A0${state.cooldownSeconds}s"
-        state.errorMessage != null -> state.errorMessage ?: ""
-        mode == LoginField.PHONE -> "Enter your phone number"
-        else -> "Enter your PIN"
+        state.cooldownSeconds > 0 -> "Too many failed attempts. Try again in ${state.cooldownSeconds}s"
+        !state.errorMessage.isNullOrBlank() -> state.errorMessage.orEmpty()
+        mode == LoginField.PHONE -> "Enter your 10-digit phone number"
+        else -> "Enter your 4-digit PIN"
     }
     val hintBad = state.cooldownSeconds > 0 || !state.errorMessage.isNullOrBlank()
 
@@ -342,23 +328,48 @@ fun LoginScreen(
 
         Spacer(Modifier.height(16.dp))
 
-        PhaseKeypad(
-            onDigit = {
-                when (mode) {
-                    LoginField.PHONE -> viewModel.appendPhoneDigit(it)
-                    LoginField.PIN -> viewModel.appendPinDigit(it)
-                }
-            },
-            onBackspace = {
-                when (mode) {
-                    LoginField.PHONE -> viewModel.backspacePhone()
-                    LoginField.PIN -> viewModel.backspacePin()
-                }
-            },
-            onClear = {
-                when (mode) {
-                    LoginField.PHONE -> viewModel.updatePhone("")
-                    LoginField.PIN -> viewModel.updatePin("")
+        PhaseChips(
+            labels = listOf("Phone", "PIN"),
+            selected = if (mode == LoginField.PHONE) 0 else 1,
+            onSelect = { mode = if (it == 0) LoginField.PHONE else LoginField.PIN }
+        )
+
+        Spacer(Modifier.height(24.dp))
+
+        if (!state.isSuccess) {
+            PhaseKeypad(
+                onDigit = {
+                    when (mode) {
+                        LoginField.PHONE -> viewModel.appendPhoneDigit(it)
+                        LoginField.PIN -> viewModel.appendPinDigit(it)
+                    }
+                },
+                onBackspace = {
+                    when (mode) {
+                        LoginField.PHONE -> viewModel.backspacePhone()
+                        LoginField.PIN -> viewModel.backspacePin()
+                    }
+                },
+                onClear = {
+                    if (mode == LoginField.PHONE) viewModel.updatePhone("") else viewModel.updatePin("")
+                },
+                onSubmit = { viewModel.signIn(onSignIn) },
+                onNext = { mode = if (mode == LoginField.PHONE) LoginField.PIN else LoginField.PHONE },
+                submitEnabled = ready,
+                onUtil = if (biometricAvailable) ({ launchBiometric() }) else null,
+                utilIcon = Icons.Rounded.Fingerprint
+            )
+        } else {
+            Box(Modifier.fillMaxWidth().height(180.dp), contentAlignment = Alignment.Center) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Rounded.CheckCircle, null, tint = PhaseSurface.Lime, modifier = Modifier.size(32.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        if (state.offlineSignIn) "Signed in (offline)" else "Verified!",
+                        color = PhaseSurface.Lime,
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.ExtraBold
+                    )
                 }
             },
             onSubmit = { viewModel.signIn(onSignIn) },
