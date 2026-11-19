@@ -98,7 +98,7 @@ class SetupChecklistViewModel @Inject constructor(
             userPreferences.setSetupComplete(true)
         }
         // The engine must actually be running when the agent lands on Home;
-        // without this, "Finish setup" drops the user into an engine-less Home
+        // without this, setup drops the user into an engine-less Home
         // and every relaunch lands them back on this checklist.
         // STAGE 45 — foreground-only FGS law.
         if (AppForegroundGate.isForeground) {

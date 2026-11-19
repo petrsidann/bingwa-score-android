@@ -113,3 +113,9 @@ Setup Checklist: 4 grant rows with ACTION/DONE chips, "Start Earning" CTA, new p
 - Targeted tests green (StartDestinationTest, ContrastGuardTest + that screen's tests).
 - Paparazzi goldens re-recorded for changed Content; owner compares against `docs/preview/phase1.html`.
 - Owner smokes the APK. UI stages are never auto-merged.
+
+## 9.1 Entry-flow dark liquid glass (Stage 64)
+PhaseEntryKit components: PhaseScreen, PhaseDisplay, PhasePinReadout, PhaseKeypad, PhaseChips, PhaseCta, PhaseGrantRow, PhaseMedallion, PhaseSpringDots, PhaseTextField. All glass constants live in `ui/glass/PhaseKeypad.kt`.
+- Invariant: numeric fields are never text fields; IME and keypad are mutually exclusive per step. Text fields (name/email) only appear in the identity step of create-account and always use the system keyboard; all phone/PIN entry uses the custom keypad.
+- No em dashes in user copy.
+- Nothing loops forever: no infinite chevron march, no blinking caret.

@@ -1,8 +1,7 @@
 package com.bingwascore.app.ui.onboarding
 
 import android.app.Activity
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.spring
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -13,9 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
@@ -23,23 +20,21 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PageSize
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.rounded.Cached
+import androidx.compose.material.icons.rounded.CloudUpload
 import androidx.compose.material.icons.rounded.EmojiEvents
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -48,35 +43,28 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.activity.compose.BackHandler
 import androidx.core.view.WindowCompat
-import com.bingwascore.app.ui.theme.DesignTokens
+import com.bingwascore.app.ui.glass.PhaseCta
+import com.bingwascore.app.ui.glass.PhaseMedallion
+import com.bingwascore.app.ui.glass.PhaseSpringDots
+import com.bingwascore.app.ui.glass.PhaseSurface
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
-private val CsvBlue = Color(0xFF1E3A8A)
-
 private data class Slide(
-    val bg: Color,
-    val fg: Color,
-    val body: Color,
+    val icon: ImageVector,
     val title: String,
-    val text: String,
-    val ctaBg: Color,
-    val ctaFg: Color,
-    val header: Boolean
+    val body: String,
+    val violet: Boolean
 )
 
 @Composable
 fun OnboardingSlides(onCreateAccount: () -> Unit, onSignIn: () -> Unit) {
-    val lime = DesignTokens.Launch.lime
-    val violet = DesignTokens.Launch.violet
-    val ink = DesignTokens.Launch.ink
     val slides = listOf(
-        Slide(lime, violet, violet.copy(alpha = 0.7f), "Auto-pilot payments", "Bingwa Score watches for M-Pesa confirmations and dials bundles automatically.", violet, lime, header = true),
-        Slide(violet, lime, lime.copy(alpha = 0.8f), "Smart retries & fallbacks", "Failed transaction? We retry with fallbacks so your customers stay happy.", lime, violet, header = false),
-        Slide(ink, lime, Color.White.copy(alpha = 0.7f), "Score, streaks & rewards", "Earn points for every sale, build streaks and unlock achievements as you grow.", lime, ink, header = false),
-        Slide(CsvBlue, lime, Color.White.copy(alpha = 0.7f), "Import your customers", "Upload a CSV of your saved contacts to restore your customers, offers and USSD plans in one tap.", lime, CsvBlue, header = false)
+        Slide(Icons.Filled.Visibility, "Auto-pilot payments", "Bingwa Score watches for M-Pesa confirmations and dials bundles automatically.", false),
+        Slide(Icons.Rounded.Cached, "Smart retries & fallbacks", "Failed transaction? We retry with fallbacks so your customers stay happy.", true),
+        Slide(Icons.Rounded.EmojiEvents, "Score, streaks & rewards", "Earn points for every sale, build streaks and unlock achievements as you grow.", false),
+        Slide(Icons.Rounded.CloudUpload, "Import your customers", "Upload a CSV of your saved contacts to restore your customers, offers and USSD plans in one tap.", false)
     )
     val pagerState = rememberPagerState(pageCount = { slides.size })
     val scope = rememberCoroutineScope()
@@ -85,46 +73,17 @@ fun OnboardingSlides(onCreateAccount: () -> Unit, onSignIn: () -> Unit) {
     val context = LocalContext.current
     SideEffect {
         (view.context as? Activity)?.window?.let { w ->
-            WindowCompat.getInsetsController(w, view).isAppearanceLightStatusBars = pagerState.currentPage != 0
+            WindowCompat.getInsetsController(w, view).isAppearanceLightStatusBars = false
         }
     }
     LaunchedEffect(pagerState.currentPage) {
         if (pagerState.currentPage > 0) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
     }
     BackHandler(enabled = pagerState.currentPage == 0) { (context as? Activity)?.finish() }
-    Box(Modifier.fillMaxSize().background(slides[pagerState.currentPage].bg)) {
+
+    Box(Modifier.fillMaxSize().background(PhaseSurface.Bg)) {
         HorizontalPager(state = pagerState, pageSize = PageSize.Fill, modifier = Modifier.fillMaxSize()) { page ->
             SlidePage(slides[page], page, pagerState, scope, onCreateAccount, onSignIn)
-        }
-    }
-}
-
-@Composable
-private fun EyeToggleIcon(bgColor: Color, fgColor: Color) {
-    Box(Modifier.size(160.dp).clip(CircleShape).background(bgColor), contentAlignment = Alignment.Center) {
-        Box(Modifier.size(width = 96.dp, height = 52.dp).clip(RoundedCornerShape(26.dp)).background(fgColor), contentAlignment = Alignment.CenterEnd) {
-            Box(Modifier.padding(end = 4.dp).size(44.dp).clip(CircleShape).background(bgColor), contentAlignment = Alignment.Center) {
-                Icon(Icons.Filled.Visibility, contentDescription = null, tint = fgColor, modifier = Modifier.size(28.dp))
-            }
-        }
-    }
-}
-
-@Composable
-private fun CsvUploadIcon(circleColor: Color, docColor: Color, inkColor: Color) {
-    Box(Modifier.size(160.dp).clip(CircleShape).background(circleColor), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Box(Modifier.size(width = 72.dp, height = 84.dp).clip(RoundedCornerShape(6.dp)).background(docColor)) {
-                Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Box(Modifier.width(44.dp).height(4.dp).background(inkColor))
-                    Box(Modifier.width(52.dp).height(4.dp).background(inkColor))
-                    Box(Modifier.width(48.dp).height(4.dp).background(inkColor))
-                    Box(Modifier.width(36.dp).height(4.dp).background(inkColor))
-                }
-            }
-            Box(Modifier.padding(top = 6.dp).clip(RoundedCornerShape(4.dp)).background(inkColor).padding(horizontal = 10.dp, vertical = 3.dp)) {
-                Text("CSV", color = circleColor, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-            }
         }
     }
 }
@@ -139,59 +98,78 @@ private fun SlidePage(
     onSignIn: () -> Unit
 ) {
     val haptic = LocalHapticFeedback.current
-    Box(Modifier.fillMaxSize().background(slide.bg)) {
+    Box(Modifier.fillMaxSize().background(PhaseSurface.Bg)) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
-                .padding(start = 32.dp, end = 32.dp, bottom = 108.dp),
+                .padding(start = 24.dp, end = 24.dp, bottom = 108.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            if (slide.header) {
-                Spacer(Modifier.height(24.dp))
-                Text("Bingwa Score", color = slide.fg, fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = (-0.5).sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
-                Spacer(Modifier.height(8.dp))
-                Text("Your bundle business, automated.", color = slide.fg.copy(alpha = 0.7f), fontSize = 15.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                horizontalArrangement = Arrangement.End
+            ) {
+                Text(
+                    "Skip",
+                    color = PhaseSurface.Mut,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.clickable { scope.launch { pagerState.animateScrollToPage(pagerState.pageCount - 1) } }
+                )
             }
             Spacer(Modifier.weight(1f))
-            when (page) {
-                0 -> EyeToggleIcon(bgColor = DesignTokens.Launch.violet, fgColor = DesignTokens.Launch.lime)
-                3 -> CsvUploadIcon(circleColor = DesignTokens.Launch.lime, docColor = Color.White, inkColor = CsvBlue)
-                else -> Box(Modifier.size(160.dp).clip(CircleShape).background(DesignTokens.Launch.lime), contentAlignment = Alignment.Center) {
-                    Icon(if (page == 1) Icons.Rounded.Cached else Icons.Rounded.EmojiEvents, contentDescription = null, tint = if (page == 1) DesignTokens.Launch.violet else Color.Black, modifier = Modifier.size(72.dp))
-                }
-            }
+            PhaseMedallion(icon = slide.icon, violet = slide.violet)
             Spacer(Modifier.height(28.dp))
-            Text(slide.title, color = slide.fg, fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+            Text(
+                slide.title,
+                color = Color.White,
+                fontSize = 25.sp,
+                fontWeight = FontWeight.ExtraBold,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
             Spacer(Modifier.height(12.dp))
-            Text(slide.text, color = slide.body, fontSize = 15.sp, lineHeight = 24.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+            Text(
+                slide.body,
+                color = PhaseSurface.Mut,
+                fontSize = 13.sp,
+                lineHeight = 20.sp,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
             Spacer(Modifier.weight(1f))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                repeat(4) { i ->
-                    val active = i == page
-                    val w by animateDpAsState(if (active) 24.dp else 8.dp, spring(dampingRatio = 0.86f, stiffness = 380f), label = "dot$i")
-                    Box(Modifier.height(8.dp).width(w).clip(RoundedCornerShape(50)).background(slide.fg.copy(alpha = if (active) 1f else 0.35f)))
-                }
-            }
+            PhaseSpringDots(count = 4, selected = page)
         }
         Row(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .navigationBarsPadding()
                 .padding(horizontal = 24.dp, vertical = 20.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = if (page < 3) Arrangement.Center else Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             if (page < 3) {
-                Text("Skip", color = slide.fg.copy(alpha = 0.7f), fontSize = 16.sp, modifier = Modifier.padding(8.dp).clickable { scope.launch { pagerState.animateScrollToPage(3) } })
-                Box(Modifier.widthIn(min = 200.dp).height(64.dp).clip(RoundedCornerShape(999.dp)).background(slide.ctaBg).clickable { haptic.performHapticFeedback(HapticFeedbackType.LongPress); scope.launch { pagerState.animateScrollToPage(page + 1) } }, contentAlignment = Alignment.Center) {
-                    Text("Next", color = slide.ctaFg, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
-                }
+                PhaseCta(
+                    label = "Next",
+                    ready = true,
+                    onClick = { scope.launch { pagerState.animateScrollToPage(page + 1) } }
+                )
             } else {
-                Text("Sign in", color = slide.fg.copy(alpha = 0.8f), fontSize = 16.sp, modifier = Modifier.padding(8.dp).clickable { onSignIn() })
-                Box(Modifier.widthIn(min = 200.dp).height(64.dp).clip(RoundedCornerShape(999.dp)).background(slide.ctaBg).clickable { haptic.performHapticFeedback(HapticFeedbackType.LongPress); onCreateAccount() }, contentAlignment = Alignment.Center) {
-                    Text("Create Account", color = slide.ctaFg, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Text(
+                    "Sign in",
+                    color = PhaseSurface.Mut,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.clickable { onSignIn() }
+                )
+                Spacer(Modifier.width(12.dp))
+                Box(Modifier.widthIn(min = 200.dp)) {
+                    PhaseCta(
+                        label = "Create account",
+                        ready = true,
+                        onClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); onCreateAccount() }
+                    )
                 }
             }
         }
