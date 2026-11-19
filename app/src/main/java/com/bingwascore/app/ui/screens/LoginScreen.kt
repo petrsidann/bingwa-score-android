@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Fingerprint
 import androidx.compose.material3.Icon
@@ -28,19 +29,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -53,11 +42,13 @@ import com.bingwascore.app.data.auth.AuthConstants
 import com.bingwascore.app.data.auth.AuthRepository
 import com.bingwascore.app.data.preferences.UserPreferences
 import com.bingwascore.app.data.remote.RemoteResult
-import com.bingwascore.app.ui.components.GlassInputField
-import com.bingwascore.app.ui.components.NeoButton
+import com.bingwascore.app.ui.components.GlassDialog
+import com.bingwascore.app.ui.glass.PhaseChips
+import com.bingwascore.app.ui.glass.PhaseCta
+import com.bingwascore.app.ui.glass.PhaseDisplay
 import com.bingwascore.app.ui.glass.PhaseKeypad
-import com.bingwascore.app.ui.glass.PhasePinDots
-import com.bingwascore.app.ui.theme.DesignTokens
+import com.bingwascore.app.ui.glass.PhaseScreen
+import com.bingwascore.app.ui.glass.PhaseSurface
 import com.bingwascore.app.util.CrashHandler
 import com.bingwascore.app.util.rememberHaptics
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -75,8 +66,6 @@ enum class LoginField {
 }
 
 const val MAX_PHONE_LENGTH = 10
-
-private enum class EntryMode { TEXT, PIN }
 
 data class LoginUiState(
     val phone: String = "",
@@ -233,27 +222,7 @@ fun LoginScreen(
     var showCrashReport by remember { mutableStateOf(false) }
     val state by viewModel.state.collectAsStateWithLifecycle()
 
-    val phone = state.phone
-    val pin = state.pin
-
-    var mode by remember { mutableStateOf(EntryMode.TEXT) }
-    val phoneFocusRequester = remember { FocusRequester() }
-    val focusManager = LocalFocusManager.current
-    val keyboardController = LocalSoftwareKeyboardController.current
-
-    LaunchedEffect(Unit) {
-        var lastPhone = ""
-        var lastPin = ""
-        snapshotFlow { state }
-            .onEach { s ->
-                if (s.errorMessage != null && (s.phone != lastPhone || s.pin != lastPin)) {
-                    viewModel.clearError()
-                }
-                lastPhone = s.phone
-                lastPin = s.pin
-            }
-            .launchIn(this)
-    }
+    var mode by remember { mutableStateOf(LoginField.PHONE) }
 
     val activity = context as? FragmentActivity
     val biometricAvailable = remember {
@@ -299,15 +268,13 @@ fun LoginScreen(
         if (biometricAvailable) launchBiometric()
     }
 
-    LaunchedEffect(Unit) {
-        snapshotFlow { phone.length }
-            .collect { len ->
-                if (len >= 10 && mode == EntryMode.TEXT) {
-                    mode = EntryMode.PIN
-                    focusManager.clearFocus()
-                    keyboardController?.hide()
-                }
-            }
+    val ready = state.isSubmittable && state.cooldownSeconds == 0 && !state.isLoading
+
+    val hint = when {
+        state.cooldownSeconds > 0 -> "Too many failed attempts. Try again in ${state.cooldownSeconds}s"
+        !state.errorMessage.isNullOrBlank() -> state.errorMessage.orEmpty()
+        mode == LoginField.PHONE -> "Enter your 10-digit phone number"
+        else -> "Enter your 4-digit PIN"
     }
 
     PhaseScreen {
@@ -361,46 +328,13 @@ fun LoginScreen(
 
         Spacer(Modifier.height(16.dp))
 
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(DesignTokens.Shape.RadiusMd))
-                    .background(DesignTokens.LocalBingwaRoles.current.card)
-                    .border(1.dp, DesignTokens.LocalBingwaRoles.current.border.copy(alpha = 0.2f), RoundedCornerShape(DesignTokens.Shape.RadiusMd))
-            ) {
-                Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 20.dp)) {
-                    GlassInputField(
-                        value = phone,
-                        onValueChange = viewModel::updatePhone,
-                        placeholder = "Phone (e.g. 0712345678)",
-                        focused = mode == EntryMode.TEXT,
-                        readOnly = false,
-                        focusRequester = phoneFocusRequester,
-                        onClick = { mode = EntryMode.TEXT },
-                        modifier = Modifier.onFocusChanged {
-                            if (it.hasFocus) mode = EntryMode.TEXT
-                        },
-                        focusedBorderColor = DesignTokens.Launch.lime
-                    )
+        PhaseChips(
+            labels = listOf("Phone", "PIN"),
+            selected = if (mode == LoginField.PHONE) 0 else 1,
+            onSelect = { mode = if (it == 0) LoginField.PHONE else LoginField.PIN }
+        )
 
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Text(
-                        "PIN",
-                        color = DesignTokens.LocalBingwaRoles.current.textSecondary.copy(alpha = 0.6f),
-                        fontSize = DesignTokens.Typography.Caption,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    PhasePinDots(
-                        count = pin.length,
-                        active = mode == EntryMode.PIN,
-                        onTap = {
-                            mode = EntryMode.PIN
-                            focusManager.clearFocus()
-                            keyboardController?.hide()
-                        }
-                    )
+        Spacer(Modifier.height(24.dp))
 
         if (!state.isSuccess) {
             PhaseKeypad(
@@ -409,37 +343,32 @@ fun LoginScreen(
                         LoginField.PHONE -> viewModel.appendPhoneDigit(it)
                         LoginField.PIN -> viewModel.appendPinDigit(it)
                     }
-
-                    if (mode == EntryMode.PIN) {
-                        Spacer(modifier = Modifier.height(24.dp))
-                        PhaseKeypad(
-                            onDigit = { viewModel.appendPinDigit(it) },
-                            onBackspace = { viewModel.backspacePin() }
-                        )
+                },
+                onBackspace = {
+                    when (mode) {
+                        LoginField.PHONE -> viewModel.backspacePhone()
+                        LoginField.PIN -> viewModel.backspacePin()
                     }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            if (state.isSuccess) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.CheckCircle,
-                        contentDescription = "Success",
-                        tint = DesignTokens.LocalBingwaRoles.current.success,
-                        modifier = Modifier.size(32.dp)
-                    )
-                    Spacer(modifier = Modifier.width(10.dp))
+                },
+                onClear = {
+                    if (mode == LoginField.PHONE) viewModel.updatePhone("") else viewModel.updatePin("")
+                },
+                onSubmit = { viewModel.signIn(onSignIn) },
+                onNext = { mode = if (mode == LoginField.PHONE) LoginField.PIN else LoginField.PHONE },
+                submitEnabled = ready,
+                onUtil = if (biometricAvailable) ({ launchBiometric() }) else null,
+                utilIcon = Icons.Rounded.Fingerprint
+            )
+        } else {
+            Box(Modifier.fillMaxWidth().height(180.dp), contentAlignment = Alignment.Center) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Rounded.CheckCircle, null, tint = PhaseSurface.Lime, modifier = Modifier.size(32.dp))
+                    Spacer(Modifier.width(8.dp))
                     Text(
                         if (state.offlineSignIn) "Signed in (offline)" else "Verified!",
-                        color = DesignTokens.LocalBingwaRoles.current.success,
-                        style = DesignTokens.Typography.Headline,
-                        fontWeight = FontWeight.Bold
+                        color = PhaseSurface.Lime,
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.ExtraBold
                     )
                 }
             }
