@@ -111,37 +111,27 @@ fun PinSetupScreen(
 
         Spacer(Modifier.height(24.dp))
 
-        AnimatedContent(
-            targetState = step,
-            transitionSpec = {
-                // SlideDirection.Start, tween(220)
-                slideInHorizontally(tween(220)) { -it }
-                    .togetherWith(slideOutHorizontally(tween(220)) { -it })
-            },
-            label = "stepTransition"
-        ) { targetStep ->
-            when (targetStep) {
-                SetupStep.IDENTITY -> IdentityStep(
-                    state = state,
-                    viewModel = viewModel,
-                    onContinue = { step = SetupStep.PHONE }
-                )
-                SetupStep.PHONE -> PhoneStep(
-                    state = state,
-                    viewModel = viewModel,
-                    onContinue = { step = SetupStep.SECURE }
-                )
-                SetupStep.SECURE -> SecureStep(
-                    state = state,
-                    viewModel = viewModel,
-                    focusedPinField = focusedPinField,
-                    onFocusedPinFieldChange = { focusedPinField = it },
-                    onSubmit = {
-                        haptics.press()
-                        viewModel.submit()
-                    }
-                )
-            }
+        when (step) {
+            SetupStep.IDENTITY -> IdentityStep(
+                state = state,
+                viewModel = viewModel,
+                onContinue = { step = SetupStep.PHONE }
+            )
+            SetupStep.PHONE -> PhoneStep(
+                state = state,
+                viewModel = viewModel,
+                onContinue = { step = SetupStep.SECURE }
+            )
+            SetupStep.SECURE -> SecureStep(
+                state = state,
+                viewModel = viewModel,
+                focusedPinField = focusedPinField,
+                onFocusedPinFieldChange = { focusedPinField = it },
+                onSubmit = {
+                    haptics.press()
+                    viewModel.submit()
+                }
+            )
         }
 
         if (state.isSuccess) {
@@ -206,6 +196,7 @@ private fun PhoneStep(
     onContinue: () -> Unit
 ) {
     val valid = isTenDigitPhone(formatPhoneToTenDigits(state.phone))
+    val utilityText = "+254"
     Column {
         PhaseDisplay(
             label = "Phone",
@@ -229,7 +220,6 @@ private fun PhoneStep(
         Spacer(Modifier.height(16.dp))
         Column(
             modifier = Modifier
-                .fillMaxWidth()
                 .navigationBarsPadding()
                 .padding(bottom = 14.dp)
         ) {
@@ -246,6 +236,7 @@ private fun SecureStep(
     onFocusedPinFieldChange: (SignUpPinField) -> Unit,
     onSubmit: () -> Unit
 ) {
+    val utilityIcon = Icons.Rounded.Fingerprint
     val activeValue = if (focusedPinField == SignUpPinField.PIN) state.pin else state.confirmPin
     val activeError = if (focusedPinField == SignUpPinField.PIN) state.pinError else state.confirmPinError
     val hint = when {
@@ -294,12 +285,11 @@ private fun SecureStep(
             onNext = { onFocusedPinFieldChange(if (focusedPinField == SignUpPinField.PIN) SignUpPinField.CONFIRM else SignUpPinField.PIN) },
             submitEnabled = state.isSubmittable,
             onUtil = null,
-            utilityIcon = null
+            utilIcon = utilityIcon
         )
         Spacer(Modifier.height(16.dp))
         Column(
             modifier = Modifier
-                .fillMaxWidth()
                 .navigationBarsPadding()
                 .padding(bottom = 14.dp)
         ) {

@@ -149,11 +149,20 @@ private fun SlideContent(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            PhaseMedallion(
-                icon = slide.icon,
-                violet = slide.accent == DesignTokens.Launch.violet,
-                accent = slide.accent
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                horizontalArrangement = Arrangement.End
+            ) {
+                Text(
+                    "Skip",
+                    color = PhaseSurface.Mut,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.clickable { scope.launch { pagerState.animateScrollToPage(slides.size - 1) } }
+                )
+            }
+            Spacer(Modifier.weight(1f))
+            PhaseMedallion(icon = slide.icon, violet = slide.accent == DesignTokens.Launch.violet)
             Spacer(Modifier.height(28.dp))
             Text(
                 slide.title,

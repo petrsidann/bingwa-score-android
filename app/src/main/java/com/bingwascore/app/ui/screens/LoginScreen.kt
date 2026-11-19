@@ -360,7 +360,7 @@ fun LoginScreen(
                 onNext = { mode = if (mode == LoginField.PHONE) LoginField.PIN else LoginField.PHONE },
                 submitEnabled = ready,
                 onUtil = if (biometricAvailable) ({ launchBiometric() }) else null,
-                utilityIcon = utilityIcon
+                utilIcon = utilityIcon
             )
         } else {
             Box(Modifier.fillMaxWidth().height(180.dp), contentAlignment = Alignment.Center) {
@@ -382,25 +382,23 @@ fun LoginScreen(
 
         Column(
             modifier = Modifier
-                .fillMaxWidth()
                 .navigationBarsPadding()
-                .padding(start = 16.dp, end = 16.dp, bottom = 14.dp)
+                .padding(bottom = 14.dp)
         ) {
             PhaseCta(
-                label = if (state.isLoading) "Verifying…" else if (state.cooldownSeconds > 0) "Cooldown (${state.cooldownSeconds}s)" else "Sign in",
+                label = if (state.isLoading) "Verifying..." else if (state.cooldownSeconds > 0) "Cooldown (${state.cooldownSeconds}s)" else "Sign in",
                 ready = ready,
                 onClick = { viewModel.signIn(onSignIn) }
             )
 
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(16.dp))
 
             Text(
                 "Create account",
                 color = PhaseSurface.Mut,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth().combinedClickable(onClick = { onCreateAccount() }, onLongClick = null)
+                modifier = Modifier.combinedClickable(onClick = { onCreateAccount() }, onLongClick = null)
             )
         }
 
