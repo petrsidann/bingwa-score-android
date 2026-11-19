@@ -39,11 +39,13 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -62,8 +64,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.roundToInt
-
-private val CsvBlue = Color(0xFF1E3A8A)
 
 private data class Slide(
     val icon: ImageVector,
@@ -97,38 +97,47 @@ fun OnboardingSlides(onCreateAccount: () -> Unit, onSignIn: () -> Unit) {
     BackHandler(enabled = pagerState.currentPage == 0) { (context as? Activity)?.finish() }
 
     Box(Modifier.fillMaxSize().background(Color.Black)) {
-        HorizontalPager(
-            state = pagerState,
-            pageSize = PageSize.Fill,
-            modifier = Modifier.fillMaxSize()
-        ) { page ->
-            SlidePage(slides[page], page, pagerState, scope, onCreateAccount, onSignIn)
+        Column(Modifier.fillMaxSize()) {
+            HorizontalPager(
+                state = pagerState,
+                pageSize = PageSize.Fill,
+                modifier = Modifier.weight(1f)
+            ) { page ->
+                SlideContent(slide = slides[page], page = page, pagerState = pagerState)
+            }
+            BottomChrome(pagerState = pagerState, scope = scope, onCreateAccount = onCreateAccount, onSignIn = onSignIn)
         }
+
+        Skip(Modifier.align(Alignment.TopEnd), pagerState, scope)
     }
 }
 
 @Composable
-private fun SlidePage(
+private fun SlideContent(
     slide: Slide,
     page: Int,
-    pagerState: PagerState,
-    scope: CoroutineScope,
-    onCreateAccount: () -> Unit,
-    onSignIn: () -> Unit
+    pagerState: PagerState
 ) {
-    val haptic = LocalHapticFeedback.current
     val density = LocalDensity.current
-    val px60 = with(density) { 60.dp.toPx() }
+    val configuration = LocalConfiguration.current
+    val pageWidthPx = with(density) { configuration.screenWidthDp.dp.toPx() }
     val off = (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
 
-    Box(Modifier.fillMaxSize()) {
+    Box(
+        Modifier.fillMaxSize()
+            .graphicsLayer {
+                alpha = (1f - abs(off) * 0.6f).coerceIn(0f, 1f)
+                translationX = -off * pageWidthPx * 0.25f
+            },
+        contentAlignment = Alignment.Center
+    ) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
                     Brush.radialGradient(
                         colors = listOf(slide.accent.copy(alpha = 0.10f), Color.Transparent),
-                        center = androidx.compose.ui.geometry.Offset(0.5f, 0.18f)
+                        center = Offset(0.5f, 0.18f)
                     )
                 )
         )
@@ -136,14 +145,9 @@ private fun SlidePage(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
-                .padding(start = 24.dp, end = 24.dp, bottom = 108.dp)
-                .graphicsLayer {
-                    alpha = (1 - abs(off) * 0.9f).coerceIn(0f, 1f)
-                    translationX = -off * px60
-                    scaleX = 1 - abs(off) * 0.06f
-                    scaleY = 1 - abs(off) * 0.06f
-                },
-            horizontalAlignment = Alignment.CenterHorizontally
+                .padding(start = 24.dp, end = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
@@ -177,15 +181,33 @@ private fun SlidePage(
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth()
             )
-            Spacer(Modifier.weight(1f))
-            DragFollowDots(pagerState = pagerState, count = slides.size)
         }
+    }
+}
+
+@Composable
+private fun BottomChrome(
+    pagerState: PagerState,
+    scope: CoroutineScope,
+    onCreateAccount: () -> Unit,
+    onSignIn: () -> Unit
+) {
+    val haptic = LocalHapticFeedback.current
+    val page = pagerState.currentPage
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .navigationBarsPadding(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        DragFollowDots(pagerState = pagerState, count = slides.size)
+        Spacer(Modifier.height(12.dp))
         Row(
             modifier = Modifier
-                .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .navigationBarsPadding()
-                .padding(start = 16.dp, end = 16.dp, bottom = 14.dp),
+                .padding(bottom = 14.dp),
             horizontalArrangement = if (page < 3) Arrangement.Center else Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -214,6 +236,24 @@ private fun SlidePage(
             }
         }
     }
+}
+
+@Composable
+private fun Skip(
+    modifier: Modifier = Modifier,
+    pagerState: PagerState,
+    scope: CoroutineScope
+) {
+    Text(
+        "Skip",
+        color = PhaseSurface.Mut,
+        fontSize = 14.sp,
+        fontWeight = FontWeight.SemiBold,
+        modifier = modifier
+            .statusBarsPadding()
+            .padding(top = 12.dp, end = 24.dp)
+            .clickable { scope.launch { pagerState.animateScrollToPage(slides.size - 1) } }
+    )
 }
 
 @Composable

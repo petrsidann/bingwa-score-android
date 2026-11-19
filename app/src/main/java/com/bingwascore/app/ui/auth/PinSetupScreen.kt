@@ -1,5 +1,10 @@
 package com.bingwascore.app.ui.auth
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -210,7 +215,7 @@ private fun PhoneStep(
             onNext = onContinue,
             submitEnabled = valid,
             onUtil = null,
-            utilIcon = null
+            utilityIcon = null
         )
         Spacer(Modifier.height(16.dp))
         Column(
