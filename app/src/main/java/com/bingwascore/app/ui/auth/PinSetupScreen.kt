@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Check
@@ -80,16 +79,12 @@ fun PinSetupScreen(
                 contentDescription = "Back",
                 tint = PhaseSurface.Ink,
                 modifier = Modifier.size(24.dp).clickable {
-                    if (step == SetupStep.IDENTITY) onBack() else {
-                        step = SetupStep.values()[step.ordinal - 1]
-                    }
+                    if (step == SetupStep.IDENTITY) onBack() else step = SetupStep.values()[step.ordinal - 1]
                 }
             )
-            Box(
-                Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-            ) {
+            Box(Modifier.padding(horizontal = 10.dp, vertical = 6.dp)) {
                 Text(
-                    step.name,
+                    step.name.uppercase(),
                     color = PhaseSurface.Mut,
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Black,
@@ -111,27 +106,19 @@ fun PinSetupScreen(
 
         Spacer(Modifier.height(24.dp))
 
-        when (step) {
-            SetupStep.IDENTITY -> IdentityStep(
-                state = state,
-                viewModel = viewModel,
-                onContinue = { step = SetupStep.PHONE }
-            )
-            SetupStep.PHONE -> PhoneStep(
-                state = state,
-                viewModel = viewModel,
-                onContinue = { step = SetupStep.SECURE }
-            )
-            SetupStep.SECURE -> SecureStep(
-                state = state,
-                viewModel = viewModel,
-                focusedPinField = focusedPinField,
-                onFocusedPinFieldChange = { focusedPinField = it },
-                onSubmit = {
-                    haptics.press()
-                    viewModel.submit()
-                }
-            )
+        AnimatedContent(
+            targetState = step,
+            transitionSpec = {
+                slideInHorizontally(tween(220)) { -it }
+                    .togetherWith(slideOutHorizontally(tween(220)) { -it })
+            },
+            label = "stepTransition"
+        ) { targetStep ->
+            when (targetStep) {
+                SetupStep.IDENTITY -> IdentityStep(state, viewModel) { step = SetupStep.PHONE }
+                SetupStep.PHONE -> PhoneStep(state, viewModel) { step = SetupStep.SECURE }
+                SetupStep.SECURE -> SecureStep(state, viewModel, focusedPinField) { focusedPinField = it }
+            }
         }
 
         if (state.isSuccess) {
@@ -161,6 +148,19 @@ private fun IdentityStep(
     onContinue: () -> Unit
 ) {
     Column {
+        Text(
+            "Create Account",
+            color = PhaseSurface.Ink,
+            fontSize = 23.sp,
+            fontWeight = FontWeight.ExtraBold
+        )
+        Spacer(Modifier.height(6.dp))
+        Text(
+            "Sign up as an agent. Your PIN unlocks transactions on this device.",
+            color = PhaseSurface.Mut,
+            fontSize = 13.sp
+        )
+        Spacer(Modifier.height(24.dp))
         PhaseTextField(
             label = "Name or business name",
             value = state.name,
@@ -196,7 +196,6 @@ private fun PhoneStep(
     onContinue: () -> Unit
 ) {
     val valid = isTenDigitPhone(formatPhoneToTenDigits(state.phone))
-    val utilityText = "+254"
     Column {
         PhaseDisplay(
             label = "Phone",
@@ -215,13 +214,15 @@ private fun PhoneStep(
             onNext = onContinue,
             submitEnabled = valid,
             onUtil = null,
-            utilityIcon = null
+            utilityIcon = null,
+            utilityText = "+254"
         )
         Spacer(Modifier.height(16.dp))
         Column(
             modifier = Modifier
+                .fillMaxWidth()
                 .navigationBarsPadding()
-                .padding(bottom = 14.dp)
+                .padding(bottom = 16.dp)
         ) {
             PhaseCta(label = "Continue", ready = valid, onClick = onContinue)
         }
@@ -233,10 +234,8 @@ private fun SecureStep(
     state: PinSetupState,
     viewModel: PinSetupViewModel,
     focusedPinField: SignUpPinField,
-    onFocusedPinFieldChange: (SignUpPinField) -> Unit,
-    onSubmit: () -> Unit
+    onFocusedPinFieldChange: (SignUpPinField) -> Unit
 ) {
-    val utilityIcon = Icons.Rounded.Fingerprint
     val activeValue = if (focusedPinField == SignUpPinField.PIN) state.pin else state.confirmPin
     val activeError = if (focusedPinField == SignUpPinField.PIN) state.pinError else state.confirmPinError
     val hint = when {
@@ -258,7 +257,10 @@ private fun SecureStep(
         PhaseChips(
             labels = listOf("PIN", "Confirm"),
             selected = if (focusedPinField == SignUpPinField.PIN) 0 else 1,
-            onSelect = { onFocusedPinFieldChange(if (it == 0) SignUpPinField.PIN else SignUpPinField.CONFIRM) }
+            onSelect = {
+                viewModel.clearPinErrors()
+                onFocusedPinFieldChange(if (it == 0) SignUpPinField.PIN else SignUpPinField.CONFIRM)
+            }
         )
         Spacer(Modifier.height(24.dp))
         PhaseKeypad(
@@ -281,22 +283,23 @@ private fun SecureStep(
                     repeat(state.confirmPin.length) { viewModel.backspaceConfirmPin() }
                 }
             },
-            onSubmit = onSubmit,
+            onSubmit = { viewModel.submit() },
             onNext = { onFocusedPinFieldChange(if (focusedPinField == SignUpPinField.PIN) SignUpPinField.CONFIRM else SignUpPinField.PIN) },
             submitEnabled = state.isSubmittable,
             onUtil = null,
-            utilIcon = utilityIcon
+            utilityIcon = Icons.Rounded.Fingerprint
         )
         Spacer(Modifier.height(16.dp))
         Column(
             modifier = Modifier
+                .fillMaxWidth()
                 .navigationBarsPadding()
-                .padding(bottom = 14.dp)
+                .padding(bottom = 16.dp)
         ) {
             PhaseCta(
                 label = if (state.isLoading) "Creating Account..." else "Create account",
                 ready = state.isSubmittable && !state.isLoading,
-                onClick = onSubmit
+                onClick = { viewModel.submit() }
             )
         }
     }

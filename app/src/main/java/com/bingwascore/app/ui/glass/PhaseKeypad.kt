@@ -35,7 +35,6 @@ import androidx.compose.material.icons.rounded.Backspace
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Fingerprint
 import androidx.compose.material3.Icon
-import androidx.compose.ui.draw.shadow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -45,7 +44,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -107,18 +109,24 @@ private fun PhaseKeyCell(
     val pressed by source.collectIsPressedAsState()
     val scale by animateFloatAsState(
         targetValue = if (pressed) 0.92f else 1f,
-        animationSpec = spring(dampingRatio = 0.6f, stiffness = 600f),
+        animationSpec = spring(dampingRatio = 0.86f, stiffness = 400f),
         label = "phaseKeyScale"
+    )
+    val baseFill = if (cream) PhaseSurface.Cream else Color.White.copy(alpha = 0.05f)
+    val fill by animateColorAsState(
+        targetValue = if (pressed) Color.White.copy(alpha = 0.10f) else baseFill,
+        animationSpec = spring(dampingRatio = 0.86f, stiffness = 400f),
+        label = "phaseKeyFill"
     )
     Box(modifier.height(PhaseSurface.KeySize), contentAlignment = Alignment.Center) {
         Box(
             Modifier.size(PhaseSurface.KeySize)
                 .graphicsLayer { scaleX = scale; scaleY = scale }
                 .clip(CircleShape)
-                .background(if (cream) PhaseSurface.Cream else PhaseSurface.Key)
+                .background(fill)
                 .border(
                     width = 1.dp,
-                    color = if (cream) Color.Transparent else Color.White.copy(alpha = 0.09f),
+                    color = if (cream && !pressed) Color.Transparent else Color.White.copy(alpha = 0.08f),
                     shape = CircleShape
                 )
                 .then(if (enabled) Modifier.clickable(source, null, onClick = onClick) else Modifier),
@@ -142,7 +150,20 @@ fun PhaseKeypad(
 ) {
     val keyText = TextStyle(fontSize = 21.sp, fontWeight = FontWeight.SemiBold, color = PhaseSurface.Ink)
     Column(
-        modifier.phaseCard().padding(16.dp),
+        modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(24.dp))
+            .background(Color.White.copy(alpha = 0.06f))
+            .border(1.dp, Color.White.copy(alpha = 0.10f), RoundedCornerShape(24.dp))
+            .drawBehind {
+                drawLine(
+                    color = Color.White.copy(alpha = 0.14f),
+                    start = Offset(0f, 0f),
+                    end = Offset(size.width, 0f),
+                    strokeWidth = 1.dp.toPx()
+                )
+            }
+            .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(PhaseSurface.KeyGap)
     ) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(PhaseSurface.KeyGap)) {
@@ -200,21 +221,22 @@ fun PhaseKeypad(
             }
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(PhaseSurface.KeyGap)) {
-            val utilKeyContent: @Composable () -> Unit = {
+            PhaseKeyCell(
+                onClick = onUtil ?: {},
+                modifier = Modifier.weight(1f),
+                cream = true,
+                enabled = onUtil != null
+            ) {
                 when {
                     utilityIcon != null -> Icon(utilityIcon, "Utility", tint = PhaseSurface.KeyInk, modifier = Modifier.size(20.dp))
                     !utilityText.isNullOrBlank() -> Text(utilityText, style = keyText.copy(color = PhaseSurface.KeyInk))
                     else -> Icon(Icons.Rounded.Fingerprint, "Utility", tint = PhaseSurface.KeyInk, modifier = Modifier.size(20.dp))
                 }
             }
-            PhaseKeyCell(onUtil ?: {}, Modifier.weight(1f), cream = true, enabled = onUtil != null) {
-                utilKeyContent()
-            }
             PhaseKeyCell({ onDigit('0') }, Modifier.weight(1f)) { Text("0", style = keyText) }
             PhaseKeyCell(onNext, Modifier.weight(1f)) {
                 Icon(Icons.Rounded.ArrowForward, "Next field", tint = PhaseSurface.Ink, modifier = Modifier.size(20.dp))
             }
-            Spacer(Modifier.weight(1f).height(PhaseSurface.KeySize))
         }
     }
 }
@@ -366,20 +388,14 @@ fun PhaseGrantRow(
 }
 
 @Composable
-fun PhaseMedallion(
-    icon: ImageVector,
-    violet: Boolean,
-    modifier: Modifier = Modifier,
-    accent: Color? = null
-) {
-    val tint = accent ?: if (violet) PhaseSurface.Violet else PhaseSurface.Lime
+fun PhaseMedallion(icon: ImageVector, violet: Boolean, modifier: Modifier = Modifier) {
     Box(
         modifier.size(172.dp).clip(CircleShape)
-            .background(accent?.copy(alpha = 0.14f) ?: Color.White.copy(alpha = 0.05f))
-            .border(1.dp, accent?.copy(alpha = 0.5f) ?: Color.White.copy(alpha = 0.12f), CircleShape),
+            .background(Color.White.copy(alpha = 0.05f))
+            .border(1.dp, Color.White.copy(alpha = 0.12f), CircleShape),
         contentAlignment = Alignment.Center
     ) {
-        Icon(icon, null, tint = tint, modifier = Modifier.size(74.dp))
+        Icon(icon, null, tint = if (violet) PhaseSurface.Violet else PhaseSurface.Lime, modifier = Modifier.size(74.dp))
     }
 }
 

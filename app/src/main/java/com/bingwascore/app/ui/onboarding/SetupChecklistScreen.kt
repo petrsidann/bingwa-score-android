@@ -124,7 +124,7 @@ fun SetupChecklistScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
-                .padding(start = 16.dp, end = 16.dp, bottom = 14.dp)
+                .padding(bottom = 16.dp)
         ) {
             PhaseCta(
                 label = "Start earning",
