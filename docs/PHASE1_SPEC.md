@@ -106,6 +106,7 @@ Login: dark-glass keypad language, lime accents, readOnly fields + TactileKeypad
 system keyboard NEVER rises. "Verified!" only on relay Success — never on Offline.
 Create Account (PinSetup): same keypad language; system keyboard must not cover the keypad.
 Setup Checklist: 4 grant rows with ACTION/DONE chips, "Start Earning" CTA, new palette.
+Onboarding = original full-bleed colour slides (lime/violet/ink/blue) restored from history; chrome (Skip/CTA/dots) fixed outside pager; dots below CTA; CTA clears system nav.
 
 ## 10. Per-stage acceptance
 - `git diff --stat` shows only the named files.

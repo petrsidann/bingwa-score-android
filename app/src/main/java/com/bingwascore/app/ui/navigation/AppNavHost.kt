@@ -357,23 +357,19 @@ fun MainScreen(remoteHttpClient: RemoteHttpClient) {
                 ),
                 snackbarHost = { PremiumToastHost() },
                 bottomBar = {
-                    Box(
-                        Modifier
+                    LensTabBar(
+                        selectedIndex = selectedTab,
+                        onSelect = { i ->
+                            selectedTab = i
+                            drawerOpen = false
+                            showDialer = false
+                            showTransactions = false
+                        },
+                        modifier = Modifier
                             .fillMaxWidth()
                             .navigationBarsPadding()
                             .padding(start = 14.dp, end = 14.dp, bottom = 14.dp)
-                    ) {
-                        LensTabBar(
-                            selectedIndex = selectedTab,
-                            onSelect = { i ->
-                                selectedTab = i
-                                drawerOpen = false
-                                showDialer = false
-                                showTransactions = false
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
+                    )
                 }
             ) { innerPadding ->
                 val destination = when {

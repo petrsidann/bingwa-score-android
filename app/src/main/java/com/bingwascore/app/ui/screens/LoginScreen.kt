@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -18,7 +19,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.CheckCircle
-import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.rounded.Fingerprint
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -32,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.fragment.app.FragmentActivity
@@ -331,7 +332,10 @@ fun LoginScreen(
         PhaseChips(
             labels = listOf("Phone", "PIN"),
             selected = if (mode == LoginField.PHONE) 0 else 1,
-            onSelect = { mode = if (it == 0) LoginField.PHONE else LoginField.PIN }
+            onSelect = {
+                viewModel.clearError()
+                mode = if (it == 0) LoginField.PHONE else LoginField.PIN
+            }
         )
 
         Spacer(Modifier.height(24.dp))
@@ -357,7 +361,7 @@ fun LoginScreen(
                 onNext = { mode = if (mode == LoginField.PHONE) LoginField.PIN else LoginField.PHONE },
                 submitEnabled = ready,
                 onUtil = if (biometricAvailable) ({ launchBiometric() }) else null,
-                utilIcon = Icons.Rounded.Fingerprint
+                utilityIcon = Icons.Rounded.Fingerprint
             )
         } else {
             Box(Modifier.fillMaxWidth().height(180.dp), contentAlignment = Alignment.Center) {
@@ -371,62 +375,35 @@ fun LoginScreen(
                         fontWeight = FontWeight.ExtraBold
                     )
                 }
-            },
-            onSubmit = { viewModel.signIn(onSignIn) },
-            onNext = {
-                if (mode == LoginField.PHONE && state.phone.length >= AuthConstants.MIN_PHONE_DIGITS) {
-                    mode = LoginField.PIN
-                    focusManager.clearFocus()
-                    keyboardController?.hide()
-                }
-            },
-            onUtilityClick = { launchBiometric() },
-            utilityIcon = Icons.Rounded.Fingerprint,
-            submitEnabled = state.isSubmittable && state.cooldownSeconds == 0 && !state.isLoading
-        )
-
-        Spacer(Modifier.height(32.dp))
-
-        if (state.isSuccess) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.CheckCircle,
-                    contentDescription = "Success",
-                    tint = PhaseSurface.Lime,
-                    modifier = Modifier.size(32.dp)
-                )
-                Spacer(Modifier.width(10.dp))
-                Text(
-                    if (state.offlineSignIn) "Signed in (offline)" else "Verified!",
-                    color = PhaseSurface.Lime,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold
-                )
             }
             LaunchedEffect(Unit) { haptics.tick() }
         }
 
         Spacer(Modifier.height(24.dp))
 
-        PhaseCta(
-            label = if (state.isLoading) "Verifying…" else if (state.cooldownSeconds > 0) "Cooldown (${state.cooldownSeconds}s)" else "Sign in",
-            ready = state.isSubmittable && state.cooldownSeconds == 0 && !state.isLoading,
-            onClick = { viewModel.signIn(onSignIn) }
-        )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(bottom = 16.dp)
+        ) {
+            PhaseCta(
+                label = if (state.isLoading) "Verifying…" else if (state.cooldownSeconds > 0) "Cooldown (${state.cooldownSeconds}s)" else "Sign in",
+                ready = ready,
+                onClick = { viewModel.signIn(onSignIn) }
+            )
 
-        Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(10.dp))
 
-        Text(
-            "Create account",
-            color = PhaseSurface.Mut,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.combinedClickable(onClick = { onCreateAccount() }, onLongClick = null)
-        )
+            Text(
+                "Create account",
+                color = PhaseSurface.Mut,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth().combinedClickable(onClick = { onCreateAccount() }, onLongClick = null)
+            )
+        }
 
         if (showCrashReport) {
             CrashReportDialog(onDismiss = { showCrashReport = false }, context = context)

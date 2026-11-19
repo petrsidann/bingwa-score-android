@@ -44,7 +44,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -106,18 +109,24 @@ private fun PhaseKeyCell(
     val pressed by source.collectIsPressedAsState()
     val scale by animateFloatAsState(
         targetValue = if (pressed) 0.92f else 1f,
-        animationSpec = spring(dampingRatio = 0.6f, stiffness = 600f),
+        animationSpec = spring(dampingRatio = 0.86f, stiffness = 400f),
         label = "phaseKeyScale"
+    )
+    val baseFill = if (cream) PhaseSurface.Cream else Color.White.copy(alpha = 0.05f)
+    val fill by animateColorAsState(
+        targetValue = if (pressed) Color.White.copy(alpha = 0.10f) else baseFill,
+        animationSpec = spring(dampingRatio = 0.86f, stiffness = 400f),
+        label = "phaseKeyFill"
     )
     Box(modifier.height(PhaseSurface.KeySize), contentAlignment = Alignment.Center) {
         Box(
             Modifier.size(PhaseSurface.KeySize)
                 .graphicsLayer { scaleX = scale; scaleY = scale }
                 .clip(CircleShape)
-                .background(if (cream) PhaseSurface.Cream else PhaseSurface.Key)
+                .background(fill)
                 .border(
                     width = 1.dp,
-                    color = if (cream) Color.Transparent else Color.White.copy(alpha = 0.09f),
+                    color = if (cream && !pressed) Color.Transparent else Color.White.copy(alpha = 0.08f),
                     shape = CircleShape
                 )
                 .then(if (enabled) Modifier.clickable(source, null, onClick = onClick) else Modifier),
@@ -136,11 +145,25 @@ fun PhaseKeypad(
     submitEnabled: Boolean,
     modifier: Modifier = Modifier,
     onUtil: (() -> Unit)? = null,
-    utilIcon: ImageVector? = Icons.Rounded.Fingerprint
+    utilityIcon: ImageVector? = Icons.Rounded.Fingerprint,
+    utilityText: String? = null
 ) {
     val keyText = TextStyle(fontSize = 21.sp, fontWeight = FontWeight.SemiBold, color = PhaseSurface.Ink)
     Column(
-        modifier.phaseCard().padding(16.dp),
+        modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(24.dp))
+            .background(Color.White.copy(alpha = 0.06f))
+            .border(1.dp, Color.White.copy(alpha = 0.10f), RoundedCornerShape(24.dp))
+            .drawBehind {
+                drawLine(
+                    color = Color.White.copy(alpha = 0.14f),
+                    start = Offset(0f, 0f),
+                    end = Offset(size.width, 0f),
+                    strokeWidth = 1.dp.toPx()
+                )
+            }
+            .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(PhaseSurface.KeyGap)
     ) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(PhaseSurface.KeyGap)) {
@@ -163,32 +186,57 @@ fun PhaseKeypad(
             listOf('7', '8', '9').forEach { d ->
                 PhaseKeyCell({ onDigit(d) }, Modifier.weight(1f)) { Text(d.toString(), style = keyText) }
             }
+            val submitShape = RoundedCornerShape(PhaseSurface.KeySize / 2)
             Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
                 Box(
                     Modifier.width(PhaseSurface.KeySize)
                         .height(PhaseSurface.KeySize * 2 + PhaseSurface.KeyGap)
-                        .clip(RoundedCornerShape(PhaseSurface.KeySize / 2))
-                        .background(if (submitEnabled) PhaseSurface.Lime else PhaseSurface.Lime.copy(alpha = 0.32f))
+                        .then(
+                            if (submitEnabled) {
+                                Modifier.shadow(
+                                    26.dp,
+                                    submitShape,
+                                    ambientColor = PhaseSurface.Lime,
+                                    spotColor = PhaseSurface.Lime
+                                )
+                            } else Modifier
+                        )
+                        .clip(submitShape)
+                        .background(if (submitEnabled) PhaseSurface.Lime else Color.Transparent)
+                        .border(
+                            1.dp,
+                            if (submitEnabled) Color.Transparent else PhaseSurface.Lime.copy(alpha = 0.35f),
+                            submitShape
+                        )
                         .then(if (submitEnabled) Modifier.clickable(onClick = onSubmit) else Modifier),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Rounded.Check, "Submit", tint = PhaseSurface.KeyInk, modifier = Modifier.size(24.dp))
+                    Icon(
+                        Icons.Rounded.Check,
+                        "Submit",
+                        tint = if (submitEnabled) PhaseSurface.KeyInk else PhaseSurface.Lime.copy(alpha = 0.45f),
+                        modifier = Modifier.size(24.dp)
+                    )
                 }
             }
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(PhaseSurface.KeyGap)) {
-            if (onUtil != null && utilIcon != null) {
-                PhaseKeyCell(onUtil, Modifier.weight(1f), cream = true) {
-                    Icon(utilIcon, "Utility", tint = PhaseSurface.KeyInk, modifier = Modifier.size(20.dp))
+            PhaseKeyCell(
+                onClick = onUtil ?: {},
+                modifier = Modifier.weight(1f),
+                cream = true,
+                enabled = onUtil != null
+            ) {
+                when {
+                    utilityIcon != null -> Icon(utilityIcon, "Utility", tint = PhaseSurface.KeyInk, modifier = Modifier.size(20.dp))
+                    !utilityText.isNullOrBlank() -> Text(utilityText, style = keyText.copy(color = PhaseSurface.KeyInk))
+                    else -> Icon(Icons.Rounded.Fingerprint, "Utility", tint = PhaseSurface.KeyInk, modifier = Modifier.size(20.dp))
                 }
-            } else {
-                Spacer(Modifier.weight(1f).height(PhaseSurface.KeySize))
             }
             PhaseKeyCell({ onDigit('0') }, Modifier.weight(1f)) { Text("0", style = keyText) }
             PhaseKeyCell(onNext, Modifier.weight(1f)) {
                 Icon(Icons.Rounded.ArrowForward, "Next field", tint = PhaseSurface.Ink, modifier = Modifier.size(20.dp))
             }
-            Spacer(Modifier.weight(1f).height(PhaseSurface.KeySize))
         }
     }
 }
@@ -216,7 +264,7 @@ fun PhaseDisplay(
     modifier: Modifier = Modifier,
     pinCount: Int? = null
 ) {
-    Column(modifier.phaseCard().padding(18.dp)) {
+    Column(modifier.fillMaxWidth().phaseCard().padding(18.dp)) {
         Text(
             label.uppercase(), color = PhaseSurface.Mut, fontSize = 10.sp,
             fontWeight = FontWeight.Black, letterSpacing = 1.6.sp

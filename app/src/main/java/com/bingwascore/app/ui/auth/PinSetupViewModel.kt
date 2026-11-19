@@ -105,6 +105,10 @@ class PinSetupViewModel @Inject constructor(
         }
     }
 
+    fun clearPinErrors() {
+        _state.value = _state.value.copy(pinError = null, confirmPinError = null, errorMessage = null)
+    }
+
     /** Validates locally first, then asks the repository to create the account. */
     fun submit() {
         val current = _state.value
