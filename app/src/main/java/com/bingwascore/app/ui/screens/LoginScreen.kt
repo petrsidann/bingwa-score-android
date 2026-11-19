@@ -1,16 +1,9 @@
 package com.bingwascore.app.ui.screens
 
+import android.content.Context
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
-import android.content.Context
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,34 +12,20 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.focusable
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CheckCircle
-import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.rounded.Fingerprint
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.TextButton
-import com.bingwascore.app.ui.components.GlassDialog
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -63,8 +42,6 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.fragment.app.FragmentActivity
@@ -83,17 +60,14 @@ import com.bingwascore.app.ui.glass.PhasePinDots
 import com.bingwascore.app.ui.theme.DesignTokens
 import com.bingwascore.app.util.CrashHandler
 import com.bingwascore.app.util.rememberHaptics
-import com.bingwascore.app.util.screenEnter
 import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import java.util.concurrent.Executor
-import javax.inject.Inject
 
 enum class LoginField {
     PHONE,
@@ -149,9 +123,7 @@ class LoginViewModel @Inject constructor(
         val current = _state.value
         if (current.cooldownSeconds > 0 || current.isLoading || current.isSuccess) return
         if (current.phone.length < MAX_PHONE_LENGTH) {
-            _state.value = current.copy(
-                phone = current.phone + digit
-            )
+            _state.value = current.copy(phone = current.phone + digit)
         } else {
             _state.value = current.copy(errorMessage = "Phone number is 10 digits")
         }
@@ -161,19 +133,15 @@ class LoginViewModel @Inject constructor(
         val current = _state.value
         if (current.cooldownSeconds > 0 || current.isLoading || current.isSuccess) return
         if (current.phone.isNotEmpty()) {
-            _state.value = current.copy(
-                phone = current.phone.dropLast(1)
-            )
+            _state.value = current.copy(phone = current.phone.dropLast(1))
         }
     }
 
     fun appendPinDigit(digit: Char) {
         val current = _state.value
         if (current.cooldownSeconds > 0 || current.isLoading || current.isSuccess) return
-        if (current.pin.length < MAX_PIN_LENGTH) {
-            _state.value = current.copy(
-                pin = current.pin + digit
-            )
+        if (current.pin.length < AuthConstants.MIN_PIN_LENGTH) {
+            _state.value = current.copy(pin = current.pin + digit)
         } else {
             _state.value = current.copy(errorMessage = "PIN is 4 digits")
         }
@@ -183,9 +151,7 @@ class LoginViewModel @Inject constructor(
         val current = _state.value
         if (current.cooldownSeconds > 0 || current.isLoading || current.isSuccess) return
         if (current.pin.isNotEmpty()) {
-            _state.value = current.copy(
-                pin = current.pin.dropLast(1)
-            )
+            _state.value = current.copy(pin = current.pin.dropLast(1))
         }
     }
 
@@ -247,9 +213,7 @@ class LoginViewModel @Inject constructor(
         viewModelScope.launch {
             while (_state.value.cooldownSeconds > 0) {
                 delay(1000)
-                _state.value = _state.value.copy(
-                    cooldownSeconds = _state.value.cooldownSeconds - 1
-                )
+                _state.value = _state.value.copy(cooldownSeconds = _state.value.cooldownSeconds - 1)
             }
             _state.value = _state.value.copy(failedAttempts = 0)
         }
@@ -295,9 +259,7 @@ fun LoginScreen(
     val biometricAvailable = remember {
         runCatching {
             val manager = BiometricManager.from(context)
-            manager.canAuthenticate(
-                BiometricManager.Authenticators.BIOMETRIC_WEAK
-            ) == BiometricManager.BIOMETRIC_SUCCESS
+            manager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_WEAK) == BiometricManager.BIOMETRIC_SUCCESS
         }.getOrDefault(false)
     }
 
@@ -313,9 +275,7 @@ fun LoginScreen(
                         viewModel.signIn(onSignIn)
                     }
 
-                    override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
-                        // ignore error
-                    }
+                    override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {}
                 }
             )
         }
@@ -336,7 +296,6 @@ fun LoginScreen(
     }
 
     LaunchedEffect(Unit) {
-        runCatching { phoneFocusRequester.requestFocus() }
         if (biometricAvailable) launchBiometric()
     }
 
@@ -351,85 +310,56 @@ fun LoginScreen(
             }
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .screenEnter()
-            .background(DesignTokens.LocalBingwaRoles.current.bg)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .statusBarsPadding()
-                .padding(horizontal = 20.dp)
-                .navigationBarsPadding()
-                .imePadding(),
-            verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center
+    PhaseScreen {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                "Welcome back",
-                color = DesignTokens.LocalBingwaRoles.current.textPrimary,
-                style = DesignTokens.Typography.Display,
-                fontWeight = FontWeight.Bold,
+                "Bingwa Score",
+                color = PhaseSurface.Ink,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.ExtraBold,
                 modifier = Modifier.combinedClickable(onLongClick = { showCrashReport = true }, onClick = {})
             )
+            Box(
+                Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+            ) {
+                Text(
+                    if (mode == LoginField.PHONE) "PHONE" else "PIN",
+                    color = PhaseSurface.Mut,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = 1.6.sp
+                )
+            }
+        }
 
-            Spacer(modifier = Modifier.height(8.dp))
+        Spacer(Modifier.height(24.dp))
 
-            Text(
-                "Sign in to continue",
-                color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f),
-                fontSize = DesignTokens.Typography.Body
+        if (mode == LoginField.PHONE) {
+            PhaseDisplay(
+                label = "Phone",
+                value = displayPhone(state.phone),
+                placeholder = "0712345678",
+                hint = hint,
+                hintBad = state.cooldownSeconds > 0 || !state.errorMessage.isNullOrBlank(),
+                showCaret = state.phone.isNotEmpty()
             )
+        } else {
+            PhaseDisplay(
+                label = "PIN",
+                value = "",
+                placeholder = "",
+                hint = hint,
+                hintBad = state.cooldownSeconds > 0 || !state.errorMessage.isNullOrBlank(),
+                showCaret = false,
+                pinCount = state.pin.length
+            )
+        }
 
-            Spacer(modifier = Modifier.height(32.dp))
-
-            state.errorMessage?.let { msg ->
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(DesignTokens.Shape.RadiusMd))
-                        .background(DesignTokens.LocalBingwaRoles.current.error.copy(alpha = 0.1f))
-                        .border(1.dp, DesignTokens.LocalBingwaRoles.current.error, RoundedCornerShape(DesignTokens.Shape.RadiusMd))
-                        .padding(14.dp)
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Rounded.ErrorOutline,
-                            contentDescription = "Error",
-                            tint = DesignTokens.LocalBingwaRoles.current.error,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Text(
-                            msg,
-                            color = DesignTokens.LocalBingwaRoles.current.textPrimary,
-                            fontSize = DesignTokens.Typography.Caption,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-            }
-
-            if (state.cooldownSeconds > 0) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(DesignTokens.Shape.RadiusMd))
-                        .background(DesignTokens.LocalBingwaRoles.current.elevated.copy(alpha = 0.5f))
-                        .padding(14.dp)
-                ) {
-                    Text(
-                        "Too many failed attempts. Try again in ${state.cooldownSeconds}s",
-                        color = DesignTokens.LocalBingwaRoles.current.textPrimary,
-                        fontSize = DesignTokens.Typography.Caption,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-            }
+        Spacer(Modifier.height(16.dp))
 
             Box(
                 modifier = Modifier
@@ -472,29 +402,12 @@ fun LoginScreen(
                         }
                     )
 
-                    if (biometricAvailable) {
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(52.dp)
-                                    .clip(CircleShape)
-                                    .background(DesignTokens.LocalBingwaRoles.current.elevated)
-                                    .border(1.dp, DesignTokens.LocalBingwaRoles.current.border.copy(alpha = 0.3f), CircleShape)
-                                    .clickable { launchBiometric() },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Rounded.Fingerprint,
-                                    contentDescription = "Sign in with fingerprint",
-                                    tint = DesignTokens.LocalBingwaRoles.current.brand,
-                                    modifier = Modifier.size(26.dp)
-                                )
-                            }
-                        }
+        if (!state.isSuccess) {
+            PhaseKeypad(
+                onDigit = {
+                    when (mode) {
+                        LoginField.PHONE -> viewModel.appendPhoneDigit(it)
+                        LoginField.PIN -> viewModel.appendPinDigit(it)
                     }
 
                     if (mode == EntryMode.PIN) {
@@ -529,35 +442,39 @@ fun LoginScreen(
                         fontWeight = FontWeight.Bold
                     )
                 }
-                LaunchedEffect(Unit) {
-                    haptics.tick()
-                }
-            } else {
-                NeoButton(
-                    onClick = { viewModel.signIn(onSignIn) },
-                    enabled = state.isSubmittable && state.cooldownSeconds == 0 && !state.isLoading,
-                    text = if (state.isLoading) "Verifying…" else if (state.cooldownSeconds > 0) "Cooldown (${state.cooldownSeconds}s)" else "Sign In"
-                )
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text(
-                "Create account",
-                color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f),
-                fontSize = DesignTokens.Typography.Body,
-                modifier = Modifier
-                    .align(Alignment.CenterHorizontally)
-                    .clickable { onCreateAccount() }
-            )
-
-            Spacer(modifier = Modifier.height(32.dp))
+            LaunchedEffect(Unit) { haptics.tick() }
         }
+
+        Spacer(Modifier.height(24.dp))
+
+        PhaseCta(
+            label = if (state.isLoading) "Verifying..." else if (state.cooldownSeconds > 0) "Cooldown (${state.cooldownSeconds}s)" else "Sign in",
+            ready = ready,
+            onClick = { viewModel.signIn(onSignIn) }
+        )
+
+        Spacer(Modifier.height(16.dp))
+
+        Text(
+            "Create account",
+            color = PhaseSurface.Mut,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.align(Alignment.CenterHorizontally).combinedClickable(onClick = { onCreateAccount() }, onLongClick = null)
+        )
 
         if (showCrashReport) {
             CrashReportDialog(onDismiss = { showCrashReport = false }, context = context)
         }
     }
+}
+
+private fun displayPhone(digits: String): String {
+    if (digits.length <= 4) return digits
+    val first = digits.take(4)
+    val rest = digits.drop(4).chunked(3)
+    return listOf(first, *rest.toTypedArray()).joinToString(" ")
 }
 
 @Composable
@@ -571,15 +488,12 @@ private fun CrashReportDialog(onDismiss: () -> Unit, context: Context) {
             Column(modifier = Modifier.fillMaxWidth()) {
                 Text(
                     "Last CrashHandler stack",
-                    color = DesignTokens.LocalBingwaRoles.current.textPrimary,
-                    fontSize = DesignTokens.Typography.Caption,
+                    color = PhaseSurface.Ink,
+                    fontSize = 12.sp,
                     fontWeight = FontWeight.Bold
                 )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = report ?: "No crashes recorded.",
-                    style = TextStyle(fontSize = DesignTokens.Typography.Caption)
-                )
+                Spacer(Modifier.height(8.dp))
+                Text(report ?: "No crashes recorded.", color = PhaseSurface.Mut, fontSize = 12.sp)
             }
         },
         dismissLabel = "OK",

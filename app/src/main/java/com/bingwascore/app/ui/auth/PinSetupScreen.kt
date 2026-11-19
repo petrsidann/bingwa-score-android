@@ -1,31 +1,17 @@
 package com.bingwascore.app.ui.auth
 
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material3.Icon
@@ -48,6 +34,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -57,17 +44,11 @@ import com.bingwascore.app.ui.glass.PhaseKeypad
 import com.bingwascore.app.ui.glass.PhasePinDots
 import com.bingwascore.app.ui.theme.DesignTokens
 import com.bingwascore.app.util.rememberHaptics
-import com.bingwascore.app.util.screenEnter
 
-/**
- * MEGA B — create your agent account with a phone number and PIN.
- *
- * The PIN is validated (length + confirmation) before anything is written, so a
- * mismatch is reported inline instead of creating an unusable account.
- *
- * UI-only overhaul: ViewModel, Hilt injections and data fetching are unchanged.
- * All colours, typography, spacing and elevation come from DesignTokens.
- */
+private enum class SetupStep { IDENTITY, PHONE, SECURE }
+
+private enum class SignUpPinField { PIN, CONFIRM }
+
 @Composable
 fun PinSetupScreen(
     viewModel: PinSetupViewModel = hiltViewModel(),
@@ -82,59 +63,75 @@ fun PinSetupScreen(
     val keyboardController = LocalSoftwareKeyboardController.current
 
     val haptics = rememberHaptics()
+    var step by remember { mutableStateOf(SetupStep.IDENTITY) }
+    var focusedPinField by remember { mutableStateOf(SignUpPinField.PIN) }
 
-    LaunchedEffect(completed) {
-        if (completed) onComplete()
-    }
+    LaunchedEffect(completed) { if (completed) onComplete() }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .screenEnter()
-            .background(DesignTokens.LocalBingwaRoles.current.bg)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .statusBarsPadding()
-                .padding(horizontal = 20.dp)
-                .navigationBarsPadding()
-                .imePadding(),
-            verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center
+    PhaseScreen {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    "Create Account",
-                    color = DesignTokens.Color.Ink,
-                    style = DesignTokens.Typography.Display,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.weight(1f)
-                )
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(RoundedCornerShape(DesignTokens.Shape.RadiusSm))
-                        .background(DesignTokens.LocalBingwaRoles.current.elevated)
-                        .clickable { onBack() },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        "Back",
-                        color = DesignTokens.Color.Ink.copy(alpha = 0.6f),
-                        fontSize = DesignTokens.Typography.Body
-                    )
+            Icon(
+                imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                contentDescription = "Back",
+                tint = PhaseSurface.Ink,
+                modifier = Modifier.size(24.dp).clickable {
+                    if (step == SetupStep.IDENTITY) onBack() else {
+                        step = SetupStep.values()[step.ordinal - 1]
+                    }
                 }
-            }
-
-            Spacer(modifier = Modifier.height(6.dp))
-            Text(
-                "Sign up as an agent. Your PIN unlocks transactions on this device.",
-                color = DesignTokens.Color.Ink.copy(alpha = 0.5f),
-                fontSize = DesignTokens.Typography.Body
             )
+            Box(
+                Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+            ) {
+                Text(
+                    step.name,
+                    color = PhaseSurface.Mut,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = 1.6.sp
+                )
+            }
+        }
 
-            Spacer(modifier = Modifier.height(24.dp))
+        Spacer(Modifier.height(18.dp))
+
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            SetupStep.values().forEach { s ->
+                Box(
+                    Modifier.weight(1f).height(4.dp)
+                        .background(if (s.ordinal <= step.ordinal) PhaseSurface.Lime else Color.White.copy(alpha = 0.1f))
+                )
+            }
+        }
+
+        Spacer(Modifier.height(24.dp))
+
+        when (step) {
+            SetupStep.IDENTITY -> IdentityStep(
+                state = state,
+                viewModel = viewModel,
+                onContinue = { step = SetupStep.PHONE }
+            )
+            SetupStep.PHONE -> PhoneStep(
+                state = state,
+                viewModel = viewModel,
+                onContinue = { step = SetupStep.SECURE }
+            )
+            SetupStep.SECURE -> SecureStep(
+                state = state,
+                viewModel = viewModel,
+                focusedPinField = focusedPinField,
+                onFocusedPinFieldChange = { focusedPinField = it },
+                onSubmit = {
+                    haptics.press()
+                    viewModel.submit()
+                }
+            )
+        }
 
             Box(
                 modifier = Modifier
@@ -353,8 +350,7 @@ fun PinSetupScreen(
                     }
                 }
             }
-
-            Spacer(modifier = Modifier.height(24.dp))
+            LaunchedEffect(Unit) { haptics.tick() }
         }
     }
 }
@@ -382,11 +378,30 @@ private fun GlassInputField(
     val borderColor = if (focused) DesignTokens.Launch.lime else DesignTokens.LocalBingwaRoles.current.border.copy(alpha = 0.2f)
     val borderWidth = if (focused) 1.5.dp else 1.dp
     Column {
-        Text(
-            label,
-            color = DesignTokens.Color.Ink.copy(alpha = 0.6f),
-            fontSize = DesignTokens.Typography.Caption,
-            fontWeight = FontWeight.Medium
+        PhaseTextField(
+            label = "Name or business name",
+            value = state.name,
+            onValueChange = viewModel::updateName,
+            placeholder = "e.g. Jane Doe or Bingwa Telecoms",
+            isError = false,
+            errorMsg = "",
+            keyboardType = KeyboardType.Text
+        )
+        Spacer(Modifier.height(16.dp))
+        PhaseTextField(
+            label = "Email address",
+            value = state.email,
+            onValueChange = viewModel::updateEmail,
+            placeholder = "agent@example.com",
+            isError = !state.emailError.isNullOrBlank(),
+            errorMsg = state.emailError ?: "",
+            keyboardType = KeyboardType.Email
+        )
+        Spacer(Modifier.height(24.dp))
+        PhaseCta(
+            label = "Continue",
+            ready = state.name.isNotBlank() && state.isEmailValid,
+            onClick = onContinue
         )
         Spacer(modifier = Modifier.height(6.dp))
         Box(
