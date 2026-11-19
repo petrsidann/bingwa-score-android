@@ -59,14 +59,10 @@ fun PinSetupScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val completed by viewModel.completed.collectAsStateWithLifecycle()
     val haptics = rememberHaptics()
+    var step by remember { mutableStateOf(SetupStep.IDENTITY) }
+    var focusedPinField by remember { mutableStateOf(SignUpPinField.PIN) }
 
     LaunchedEffect(completed) { if (completed) onComplete() }
-
-    val title = when (step) {
-        SetupStep.IDENTITY -> "Create Account"
-        SetupStep.PHONE -> "Phone Number"
-        SetupStep.SECURE -> "Create PIN"
-    }
 
     PhaseScreen {
         Row(
@@ -79,12 +75,16 @@ fun PinSetupScreen(
                 contentDescription = "Back",
                 tint = PhaseSurface.Ink,
                 modifier = Modifier.size(24.dp).clickable {
-                    if (step == SetupStep.IDENTITY) onBack() else step = SetupStep.values()[step.ordinal - 1]
+                    if (step == SetupStep.IDENTITY) onBack() else {
+                        step = SetupStep.values()[step.ordinal - 1]
+                    }
                 }
             )
-            Box(Modifier.padding(horizontal = 10.dp, vertical = 6.dp)) {
+            Box(
+                Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+            ) {
                 Text(
-                    step.name.uppercase(),
+                    step.name,
                     color = PhaseSurface.Mut,
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Black,
@@ -107,9 +107,26 @@ fun PinSetupScreen(
         Spacer(Modifier.height(24.dp))
 
         when (step) {
-            SetupStep.IDENTITY -> IdentityStep(state, viewModel) { step = SetupStep.PHONE }
-            SetupStep.PHONE -> PhoneStep(state, viewModel) { step = SetupStep.SECURE }
-            SetupStep.SECURE -> SecureStep(state, viewModel, focusedPinField, { focusedPinField = it })
+            SetupStep.IDENTITY -> IdentityStep(
+                state = state,
+                viewModel = viewModel,
+                onContinue = { step = SetupStep.PHONE }
+            )
+            SetupStep.PHONE -> PhoneStep(
+                state = state,
+                viewModel = viewModel,
+                onContinue = { step = SetupStep.SECURE }
+            )
+            SetupStep.SECURE -> SecureStep(
+                state = state,
+                viewModel = viewModel,
+                focusedPinField = focusedPinField,
+                onFocusedPinFieldChange = { focusedPinField = it },
+                onSubmit = {
+                    haptics.press()
+                    viewModel.submit()
+                }
+            )
         }
 
         if (state.isSuccess) {
@@ -129,6 +146,8 @@ fun PinSetupScreen(
             }
             LaunchedEffect(Unit) { haptics.tick() }
         }
+    }
+}
 
 @Composable
 private fun IdentityStep(
@@ -137,26 +156,14 @@ private fun IdentityStep(
     onContinue: () -> Unit
 ) {
     Column {
-        Text(
-            "Create Account",
-            color = PhaseSurface.Ink,
-            fontSize = 23.sp,
-            fontWeight = FontWeight.ExtraBold
-        )
-        Spacer(Modifier.height(6.dp))
-        Text(
-            "Sign up as an agent. Your PIN unlocks transactions on this device.",
-            color = PhaseSurface.Mut,
-            fontSize = 13.sp
-        )
-        Spacer(Modifier.height(24.dp))
         PhaseTextField(
             label = "Name or business name",
             value = state.name,
             onValueChange = viewModel::updateName,
             placeholder = "e.g. Jane Doe or Bingwa Telecoms",
             isError = false,
-            errorMsg = ""
+            errorMsg = "",
+            keyboardType = KeyboardType.Text
         )
         Spacer(Modifier.height(16.dp))
         PhaseTextField(
@@ -184,6 +191,7 @@ private fun PhoneStep(
     onContinue: () -> Unit
 ) {
     val valid = isTenDigitPhone(formatPhoneToTenDigits(state.phone))
+    val utilityText = "+254"
     Column {
         PhaseDisplay(
             label = "Phone",
@@ -205,7 +213,13 @@ private fun PhoneStep(
             utilIcon = null
         )
         Spacer(Modifier.height(16.dp))
-        PhaseCta(label = "Continue", ready = valid, onClick = onContinue)
+        Column(
+            modifier = Modifier
+                .navigationBarsPadding()
+                .padding(bottom = 14.dp)
+        ) {
+            PhaseCta(label = "Continue", ready = valid, onClick = onContinue)
+        }
     }
 }
 
@@ -217,6 +231,7 @@ private fun SecureStep(
     onFocusedPinFieldChange: (SignUpPinField) -> Unit,
     onSubmit: () -> Unit
 ) {
+    val utilityIcon = Icons.Rounded.Fingerprint
     val activeValue = if (focusedPinField == SignUpPinField.PIN) state.pin else state.confirmPin
     val activeError = if (focusedPinField == SignUpPinField.PIN) state.pinError else state.confirmPinError
     val hint = when {
@@ -265,14 +280,20 @@ private fun SecureStep(
             onNext = { onFocusedPinFieldChange(if (focusedPinField == SignUpPinField.PIN) SignUpPinField.CONFIRM else SignUpPinField.PIN) },
             submitEnabled = state.isSubmittable,
             onUtil = null,
-            utilIcon = null
+            utilIcon = utilityIcon
         )
         Spacer(Modifier.height(16.dp))
-        PhaseCta(
-            label = if (state.isLoading) "Creating Account..." else "Create account",
-            ready = state.isSubmittable && !state.isLoading,
-            onClick = onSubmit
-        )
+        Column(
+            modifier = Modifier
+                .navigationBarsPadding()
+                .padding(bottom = 14.dp)
+        ) {
+            PhaseCta(
+                label = if (state.isLoading) "Creating Account..." else "Create account",
+                ready = state.isSubmittable && !state.isLoading,
+                onClick = onSubmit
+            )
+        }
     }
 }
 
