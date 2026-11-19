@@ -81,12 +81,6 @@ private val slides = listOf(
 
 @Composable
 fun OnboardingSlides(onCreateAccount: () -> Unit, onSignIn: () -> Unit) {
-    val slides = listOf(
-        Slide(Icons.Filled.Visibility, "Auto-pilot payments", "Bingwa Score watches for M-Pesa confirmations and dials bundles automatically.", false),
-        Slide(Icons.Rounded.Cached, "Smart retries & fallbacks", "Failed transaction? We retry with fallbacks so your customers stay happy.", true),
-        Slide(Icons.Rounded.EmojiEvents, "Score, streaks & rewards", "Earn points for every sale, build streaks and unlock achievements as you grow.", false),
-        Slide(Icons.Rounded.CloudUpload, "Import your customers", "Upload a CSV of your saved contacts to restore your customers, offers and USSD plans in one tap.", false)
-    )
     val pagerState = rememberPagerState(pageCount = { slides.size })
     val scope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
@@ -164,7 +158,7 @@ private fun SlidePage(
                 )
             }
             Spacer(Modifier.weight(1f))
-            PhaseMedallion(icon = slide.icon, accent = slide.accent)
+            PhaseMedallion(icon = slide.icon, violet = slide.accent == DesignTokens.Launch.violet)
             Spacer(Modifier.height(28.dp))
             Text(
                 slide.title,
