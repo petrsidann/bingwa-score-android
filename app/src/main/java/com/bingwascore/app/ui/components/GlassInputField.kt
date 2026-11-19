@@ -37,10 +37,16 @@ fun GlassInputField(
     isPassword: Boolean = false,
     focusRequester: FocusRequester? = null,
     onClick: () -> Unit = {},
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    focusedBorderColor: androidx.compose.ui.graphics.Color? = null
 ) {
     val roles = DesignTokens.LocalBingwaRoles.current
     val requester = remember { focusRequester ?: FocusRequester() }
+    val borderColor = if (focused) {
+        focusedBorderColor ?: roles.brand
+    } else {
+        roles.border
+    }
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -49,10 +55,10 @@ fun GlassInputField(
             .background(roles.elevated.copy(alpha = 0.6f))
             .border(
                 if (focused) 1.5.dp else 1.dp,
-                if (focused) roles.brand else roles.border,
+                borderColor,
                 RoundedCornerShape(12.dp)
             )
-            .clickable(enabled = onClick != null, onClick = onClick)
+            .clickable(enabled = onClick != {}, onClick = onClick)
     ) {
         BasicTextField(
             value = value,
