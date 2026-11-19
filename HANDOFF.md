@@ -2,7 +2,7 @@
 
 ## STEP 0 resume state (Overnight Phase 1 completion pipeline, S68–S73)
 
-- **Current state**: Autonomous overnight run started from origin/main (6c506b9, Stage 67 merged). Queue lives in `docs/overnight/QUEUE.md`. Log in `docs/overnight/LOG.md`. Report in `docs/overnight/REPORT.md`. Each stage branches from `origin/main`, implements one spec section, gates on build + targeted tests, and opens a PR. Merge authorized tonight if CI passes and diff stays inside allowed files.
+- **Current state**: Overnight runner paused after S69. S68 and S69 merged to origin/main. S70–S73 remain in `docs/overnight/QUEUE.md`; resume from S70 next session. See `docs/overnight/REPORT.md` for full status.
 - **Stages queued**: S68 Home (spec 4), S69 Transactions/Stats (spec 5), S70 Dial (spec 6), S71 Manage (spec 7), S72 Store/Settings/Community/Profile (spec 8), S73 Polish (Paparazzi/deprecation/version).
 - **Global rails**: U1/E1 engine untouched; routes unchanged; glass only via `ui/glass/`; tokens only via `DesignTokens`; no emojis; no hardcoded hex/dp/sp in screens; no version bumps except S73; no new dependencies; no MCPs; no skills beyond caveman + verification-before-completion + systematic-debugging.
 - **Reference**: `docs/PHASE1_SPEC.md` is the binding contract. `docs/preview/phase1.html` missing from workspace; rely on spec text. FROZEN screens remain untouched: LensTabBar, OnboardingSlides, PhaseKeypad, Login, PinSetup, SetupChecklist.
