@@ -1,15 +1,12 @@
 # HANDOFF — Live Session State
 
-## STEP 0 resume state (Stage 59.7 — TRUE InstanT launch: dot born from NOTHING, fast-pop + resist-bounce + spread, branch stage-59.7-born-from-nothing from origin/main)
+## STEP 0 resume state (Overnight Phase 1 completion pipeline, S68–S73)
 
-- **Current state**: Stage 59.7 applied on branch `stage-59.7-born-from-nothing` from origin/main (Stage 59.6, aecbee9 merge). PHASE 1 FILE A + FILE B byte-for-byte replaced; PHASE 2 read-back verify GREEN (`Animatable(0f)`, `1.28f`, `0.92f`, `addOval`, `s59.7` all present in LaunchActivity.kt; `addCircle` + `Animatable(1f)` absent; `launch_window.xml` has no `oval`). PHASE 3 BUILD SUCCESSFUL (`./gradlew assembleDebug assembleRelease --no-daemon`); targeted tests green (StartDestinationTest, ContrastGuardTest, Stage11LaunchCinematicTest, Stage43SplashDurationTest). PHASE 4: no adb device attached — owner must install `app/build/outputs/apk/debug/app-debug.apk`, open app, record launch. PHASE 5: commit + push pending.
-- **What changed (2 files)**:
-  - `app/src/main/java/com/bingwascore/app/ui/screens/LaunchActivity.kt` — FILE A: dot BORN FROM NOTHING (`Animatable(0f)`; keyframes 0 -> 1.28 -> 0.92 -> 1 over POP 360ms = fast expand, resist/contract, settle); `DOT_RADIUS_DP = 16f`; `s59.7` debug stamp bottom-right; starting window PLAIN LIME via FILE B so no pre-shown dot, no blink, no oval, no void-with-dot; lime wordmark clipped to the same `CircleRevealShape` (`addOval`) so the inversion rides the edge letter-by-letter; TRUE circle spreads to full-bleed.
-  - `app/src/main/res/drawable/launch_window.xml` — FILE B: layer-list single lime item `@color/launch_lime`; the 28dp violet oval dot removed (dot born in Compose only).
-- **Untouched (guard-test safe)**: themes.xml, SplashScreen.kt, both LaunchScreen.kt, AppNavHost.kt, MainActivity.kt, AndroidManifest.xml, DesignTokens.kt, Motion.kt, all tests.
-- **Verification**: PHASE 1/2 GREEN. PHASE 3 GREEN (build + targeted tests). Full `testDebugUnitTest` NOT run — pre-existing environmental executor crash (Paparazzi bridge / Robolectric SDK 34 / native executor). PHASE 4 pending (device or owner manual install).
-- **Expected motion**: lime + violet wordmark with NO dot at first; dot POPS from nothing (fast expand), RESISTS (contracts) and settles (the bounce), holds a beat, then ONE perfect circle spreads to full-bleed carrying the lime inversion letter-by-letter; full violet + lime wordmark; slides. 's59.7' stamp bottom-right (debug). No pre-shown dot, no blink, no oval, no void-with-dot.
-- **Git**: branch stage-59.7-born-from-nothing; commit "Stage 59.7: InstanT dot born-from-nothing, pop+resist-bounce+spread"; push origin stage-59.7-born-from-nothing; open PR same title; owner merges. DONE only when hash is on origin/main.
+- **Current state**: Autonomous overnight run started from origin/main (6c506b9, Stage 67 merged). Queue lives in `docs/overnight/QUEUE.md`. Log in `docs/overnight/LOG.md`. Report in `docs/overnight/REPORT.md`. Each stage branches from `origin/main`, implements one spec section, gates on build + targeted tests, and opens a PR. Merge authorized tonight if CI passes and diff stays inside allowed files.
+- **Stages queued**: S68 Home (spec 4), S69 Transactions/Stats (spec 5), S70 Dial (spec 6), S71 Manage (spec 7), S72 Store/Settings/Community/Profile (spec 8), S73 Polish (Paparazzi/deprecation/version).
+- **Global rails**: U1/E1 engine untouched; routes unchanged; glass only via `ui/glass/`; tokens only via `DesignTokens`; no emojis; no hardcoded hex/dp/sp in screens; no version bumps except S73; no new dependencies; no MCPs; no skills beyond caveman + verification-before-completion + systematic-debugging.
+- **Reference**: `docs/PHASE1_SPEC.md` is the binding contract. `docs/preview/phase1.html` missing from workspace; rely on spec text. FROZEN screens remain untouched: LensTabBar, OnboardingSlides, PhaseKeypad, Login, PinSetup, SetupChecklist.
+- **Verification gate**: `assembleDebug` + `assembleRelease` zero deprecations; targeted tests `StartDestinationTest` and `ContrastGuardTest` green. Full `testDebugUnitTest` NOT run — pre-existing environmental executor crash (Paparazzi bridge / Robolectric SDK 34 / native executor).
 
 ## Rules of Engagement
 - Anti-skip law: exactly one stage per session; never self-descope.

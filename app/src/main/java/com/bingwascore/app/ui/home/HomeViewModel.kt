@@ -9,7 +9,10 @@ import androidx.lifecycle.viewModelScope
 import com.bingwascore.app.data.local.DbNameHolder
 import com.bingwascore.app.data.local.Transaction
 import com.bingwascore.app.data.showcase.DemoCatalog
+import com.bingwascore.app.data.local.Offer
 import com.bingwascore.app.data.preferences.UserPreferences
+import com.bingwascore.app.data.repository.CustomerRepository
+import com.bingwascore.app.data.repository.OfferRepository
 import com.bingwascore.app.data.repository.TransactionRepository
 import com.bingwascore.app.domain.AppProcessingMode
 import com.bingwascore.app.domain.EngineState
@@ -40,6 +43,8 @@ import com.bingwascore.app.util.CrashHandler
 class HomeViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val transactionRepository: TransactionRepository,
+    private val offerRepository: OfferRepository,
+    private val customerRepository: CustomerRepository,
     val userPreferences: UserPreferences,
     private val transactionPipeline: TransactionPipeline
 ) : ViewModel() {
@@ -171,6 +176,54 @@ class HomeViewModel @Inject constructor(
             buckets.toList()
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), List(7) { 0.0 })
+
+    /** S68 — transactions completed today (hero big number). */
+    val completedToday: StateFlow<Int> = transactionRepository.liveTransactions
+        .map { list ->
+            val startOfDay = startOfDayMillis()
+            list.count { it.status == TransactionStatus.SUCCESSFUL.value && it.createdAt >= startOfDay }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+
+    /** S68 — failed rows that have not been seen/cleared yet. */
+    val unseenFailedCount: StateFlow<Int> = combine(
+        transactionRepository.liveTransactions,
+        userPreferences.lastClearedFailedAt
+    ) { list, clearedAt ->
+        list.count {
+            (it.status == TransactionStatus.FAILED.value || it.status == TransactionStatus.FAILED_ALREADY_RECOMMENDED.value) &&
+                it.createdAt > clearedAt
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+
+    /** S68 — active offers for the Home Offers tab. */
+    val activeOffers: StateFlow<List<Offer>> = offerRepository.activeOffers
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /** S68 — cheapest active offer price for float guard. */
+    val cheapestActiveOfferPrice: StateFlow<Double> = offerRepository.activeOffers
+        .map { list -> list.minOfOrNull { it.price.toDouble() } ?: 0.0 }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0.0)
+
+    /** S68 — active offers grouped by category. */
+    val activeOffersByCategory: StateFlow<Map<String, List<com.bingwascore.app.data.local.Offer>>> = offerRepository.activeOffers
+        .map { list -> list.groupBy { it.type } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
+
+    /** S68 — top repeat buyers by lifetime spend. */
+    val repeatBuyers: StateFlow<List<com.bingwascore.app.data.local.Customer>> = customerRepository.allCustomers
+        .map { list -> list.sortedByDescending { it.totalSpent }.take(3) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    // ── S68 — activation ladder flags ──
+    val ladderEngineArmed: StateFlow<Boolean> = userPreferences.ladderEngineArmed
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+    val ladderTestDriveDone: StateFlow<Boolean> = userPreferences.ladderTestDriveDone
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+    val ladderImportBookDone: StateFlow<Boolean> = userPreferences.ladderImportBookDone
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+    val ladderRecoverFailureDone: StateFlow<Boolean> = userPreferences.ladderRecoverFailureDone
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
     val weeklyCommission: StateFlow<Double> = weeklyCommissionByDay
         .map { it.sum() }
@@ -499,4 +552,30 @@ class HomeViewModel @Inject constructor(
         set(Calendar.MILLISECOND, 0)
         add(Calendar.DAY_OF_YEAR, -((get(Calendar.DAY_OF_WEEK) + 5) % 7))
     }.timeInMillis
+
+    // ── S68 — activation ladder mutations ──
+    fun setLadderEngineArmed(value: Boolean) {
+        viewModelScope.launch { userPreferences.setLadderEngineArmed(value) }
+    }
+
+    fun setLadderTestDriveDone(value: Boolean) {
+        viewModelScope.launch { userPreferences.setLadderTestDriveDone(value) }
+    }
+
+    fun setLadderImportBookDone(value: Boolean) {
+        viewModelScope.launch { userPreferences.setLadderImportBookDone(value) }
+    }
+
+    fun setLadderRecoverFailureDone(value: Boolean) {
+        viewModelScope.launch { userPreferences.setLadderRecoverFailureDone(value) }
+    }
+
+    fun clearUnseenFailures() {
+        viewModelScope.launch { userPreferences.setLastClearedFailedAt(System.currentTimeMillis()) }
+    }
+
+    /** S68 — add an offer from the Home Offers tab. */
+    fun addOffer(offer: Offer) {
+        viewModelScope.launch { offerRepository.insert(offer) }
+    }
 }

@@ -7,15 +7,13 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,15 +32,14 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Refresh
-import androidx.compose.material.icons.rounded.Visibility
-import androidx.compose.material.icons.rounded.VisibilityOff
-import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -55,21 +52,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.graphics.drawscope.withTransform
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
@@ -78,6 +65,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.bingwascore.app.data.local.Customer
+import com.bingwascore.app.data.local.Offer
 import com.bingwascore.app.data.local.Transaction
 import com.bingwascore.app.domain.EngineState
 import com.bingwascore.app.domain.ThemeMode
@@ -85,8 +74,6 @@ import com.bingwascore.app.domain.TransactionStatus
 import com.bingwascore.app.ui.components.GlassCard
 import com.bingwascore.app.ui.components.GlassDialog
 import com.bingwascore.app.ui.components.LocalPremiumToastManager
-import com.bingwascore.app.ui.components.NeoButton
-import com.bingwascore.app.ui.components.StatusDot
 import com.bingwascore.app.ui.components.ToastType
 import com.bingwascore.app.ui.theme.DesignTokens
 import com.bingwascore.app.util.CrashHandler
@@ -97,35 +84,22 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlin.math.max
 
-/** Masked money placeholder — six stars, never a half-drawn digit. */
 private const val MASK = "******"
-
-/**
- * Stage 22 — the clock bucket: the relative labels only need half-minute
- * resolution, and bucketing keeps every row's timestamp stable between
- * frames (so a row skips instead of recomposing for a label that did not move).
- */
 private const val CLOCK_BUCKET_MILLIS = 30_000L
-
-/**
- * U3 — the compact Home activity row. 44dp is ~30% shorter than the old padded
- * row: the numbers are the interface, and a home feed that shows four rows
- * instead of three is a better feed.
- */
 private val HOME_ROW_HEIGHT = 44.dp
 
 /**
- * Stage 19.7 — the PURE Home surface.
- *
- * Everything the screen renders comes from here: no ViewModel, no Activity, no
- * lifecycle. The wrapper ([HomeScreen]) collects the state and hands it over, so
- * a snapshot test can render the exact Home an agent sees with fake numbers.
+ * S68 — pure Home state. Everything the screen renders comes from here.
  */
 data class HomeScreenState(
     val greetingBucket: Greetings.Bucket = Greetings.Bucket.MORNING,
     val greetingLanguage: Greetings.Language = Greetings.Language.SWAHILI,
     val creditsLabel: String = "0",
+    val creditsPlanName: String = "",
+    val completedToday: Int = 0,
+    val unseenFailed: Int = 0,
     val successful: Int = 0,
     val failed: Int = 0,
     val pending: Int = 0,
@@ -137,49 +111,52 @@ data class HomeScreenState(
     val statsLoading: Boolean = false,
     val engineState: EngineState = EngineState.RUNNING,
     val transactions: List<Transaction> = emptyList(),
+    val offers: List<Offer> = emptyList(),
+    val customers: List<Customer> = emptyList(),
     val permissionsMissing: Boolean = false,
     val valuesVisible: Boolean = false,
-    val themeMode: ThemeMode = ThemeMode.PORCELAIN_DIM
+    val themeMode: ThemeMode = ThemeMode.PORCELAIN_DIM,
+    val isMeshConnected: Boolean = false,
+    val isOffline: Boolean = false,
+    val queuedCount: Int = 0,
+    val balanceBelowCheapestOffer: Boolean = false,
+    val ladderEngineArmed: Boolean = false,
+    val ladderTestDriveDone: Boolean = false,
+    val ladderImportBookDone: Boolean = false,
+    val ladderRecoverFailureDone: Boolean = false
 )
 
-/**
- * Stage 19.7 — every side effect Home can fire, as a plain callback.
- *
- * The pure content never reaches for a ViewModel or a system dialog: it asks.
- */
 data class HomeScreenCallbacks(
     val onOpenTransactions: (String?) -> Unit = {},
     val onOpenMyPlan: () -> Unit = {},
     val onOpenDiplomatics: () -> Unit = {},
+    val onOpenDial: () -> Unit = {},
+    val onOpenStats: () -> Unit = {},
+    val onOpenManage: () -> Unit = {},
     val onRequestPermissions: () -> Unit = {},
     val onPermissionNotNow: () -> Unit = {},
     val onRefreshBalance: () -> Unit = {},
     val onToggleValues: () -> Unit = {},
     val onOpenDiagnostics: () -> Unit = {},
-    val onOpenAutopilotSheet: () -> Unit = {},
-    val onAutopilotPause: () -> Unit = {},
     val onThemeToggle: () -> Unit = {},
-    val onCrashBannerTap: () -> Unit = {}
+    val onCrashBannerTap: () -> Unit = {},
+    val onClearUnseenFailures: () -> Unit = {},
+    val onLadderEngineArmed: () -> Unit = {},
+    val onLadderTestDrive: () -> Unit = {},
+    val onLadderImportBook: () -> Unit = {},
+    val onLadderRecoverFailure: () -> Unit = {}
 )
 
-/**
- * REBRAND R2 — Home, rebuilt as a trading terminal.
- *
- * Reading order is deliberate and flat: hero money glass card, three neumorphic
- * stat cards, one live commission chart in glass, then the FULL transaction list
- * down to the oldest row. Every surface binds to [DesignTokens] only — zero
- * hardcoded hex, dp, shadow or typography literals.
- */
 @Composable
 fun HomeScreen(
     onOpenTransactions: (statusFilter: String?) -> Unit = {},
     onOpenMyPlan: () -> Unit = {},
     onOpenDiplomatics: () -> Unit = {},
+    onOpenDial: () -> Unit = {},
+    onOpenStats: () -> Unit = {},
+    onOpenManage: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel()
 ) {
-    // STAGE 19.7 — the wrapper owns every platform binding: the ViewModel, the
-    // Activity context, the lifecycle and the permission launcher. The content
-    // below sees plain state and plain callbacks. ViewModel logic is untouched.
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val haptics = rememberHaptics()
@@ -195,17 +172,25 @@ fun HomeScreen(
     val balanceError by viewModel.balanceError.collectAsStateWithLifecycle()
     val statsLoading by viewModel.statsLoading.collectAsStateWithLifecycle()
     val engineState by viewModel.engineState.collectAsStateWithLifecycle()
-    val transactions by viewModel.allTransactions.collectAsStateWithLifecycle()
+    val transactions by viewModel.recentTransactions.collectAsStateWithLifecycle()
+    val offers by viewModel.activeOffers.collectAsStateWithLifecycle()
+    val customers by viewModel.repeatBuyers.collectAsStateWithLifecycle()
+    val completedToday by viewModel.completedToday.collectAsStateWithLifecycle()
+    val unseenFailed by viewModel.unseenFailedCount.collectAsStateWithLifecycle()
+    val cheapestOffer by viewModel.cheapestActiveOfferPrice.collectAsStateWithLifecycle()
 
-    // POLISH P2 — greeting, credits and the two Home sheets.
     val greeting by viewModel.greeting.collectAsStateWithLifecycle()
     val creditsLabel by viewModel.creditsLabel.collectAsStateWithLifecycle()
+    val planState by viewModel.planState.collectAsStateWithLifecycle()
     val themeMode by viewModel.userPreferences.themeMode.collectAsStateWithLifecycle(ThemeMode.PORCELAIN_DIM)
-    var showAutopilot by remember { mutableStateOf(false) }
-    var showDiagnostics by remember { mutableStateOf(false) }
-
+    val meshConnected by viewModel.userPreferences.meshConnected.collectAsStateWithLifecycle(false)
     var valuesVisible by remember { mutableStateOf(false) }
     var permissionsMissing by remember { mutableStateOf(missingPermissions(context)) }
+
+    val ladderEngineArmed by viewModel.ladderEngineArmed.collectAsStateWithLifecycle()
+    val ladderTestDriveDone by viewModel.ladderTestDriveDone.collectAsStateWithLifecycle()
+    val ladderImportBookDone by viewModel.ladderImportBookDone.collectAsStateWithLifecycle()
+    val ladderRecoverFailureDone by viewModel.ladderRecoverFailureDone.collectAsStateWithLifecycle()
 
     val snackbarHostState = remember { SnackbarHostState() }
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -215,8 +200,6 @@ fun HomeScreen(
         viewModel.refreshBalance()
     }
 
-    // POLISH P1 — the balance never raises a dialog. It explains itself once, in
-    // a dark bubble, and then it leaves the number alone.
     val toastManager = LocalPremiumToastManager.current
     LaunchedEffect(balanceError) {
         val message = balanceError ?: return@LaunchedEffect
@@ -229,9 +212,6 @@ fun HomeScreen(
         viewModel.refreshBalance()
     }
 
-    // POLISH P2 — when a sale lands while the agent is watching, the status dot
-    // lights with its 300ms fade and a single haptic tick: completion is *felt*,
-    // not just read. One tick per completed transaction, never a burst.
     var celebratedCount by remember { mutableIntStateOf(successful) }
     LaunchedEffect(successful) {
         if (successful > celebratedCount) haptics.success()
@@ -243,7 +223,6 @@ fun HomeScreen(
             if (event == Lifecycle.Event.ON_RESUME) {
                 permissionsMissing = missingPermissions(context)
                 viewModel.onForeground()
-                // POLISH P2 — the greeting follows the clock across a long shift.
                 viewModel.refreshGreeting()
             }
         }
@@ -255,6 +234,9 @@ fun HomeScreen(
         greetingBucket = greeting.first,
         greetingLanguage = greeting.second,
         creditsLabel = creditsLabel,
+        creditsPlanName = planState.displayName.ifBlank { "Credits" },
+        completedToday = completedToday,
+        unseenFailed = unseenFailed,
         successful = successful,
         failed = failed,
         pending = pending,
@@ -266,15 +248,28 @@ fun HomeScreen(
         statsLoading = statsLoading,
         engineState = engineState,
         transactions = transactions,
+        offers = offers,
+        customers = customers,
         permissionsMissing = permissionsMissing,
         valuesVisible = valuesVisible,
-        themeMode = themeMode
+        themeMode = themeMode,
+        isMeshConnected = meshConnected,
+        isOffline = !meshConnected,
+        queuedCount = pending,
+        balanceBelowCheapestOffer = (balance ?: 0.0) > 0 && (balance ?: 0.0) < cheapestOffer,
+        ladderEngineArmed = ladderEngineArmed,
+        ladderTestDriveDone = ladderTestDriveDone,
+        ladderImportBookDone = ladderImportBookDone,
+        ladderRecoverFailureDone = ladderRecoverFailureDone
     )
 
     val callbacks = HomeScreenCallbacks(
         onOpenTransactions = onOpenTransactions,
         onOpenMyPlan = onOpenMyPlan,
         onOpenDiplomatics = onOpenDiplomatics,
+        onOpenDial = onOpenDial,
+        onOpenStats = onOpenStats,
+        onOpenManage = onOpenManage,
         onRequestPermissions = { permissionLauncher.launch(REQUIRED_PERMISSION_ARRAY) },
         onPermissionNotNow = { permissionsMissing = false },
         onRefreshBalance = {
@@ -282,61 +277,22 @@ fun HomeScreen(
             viewModel.refreshBalance()
         },
         onToggleValues = { valuesVisible = !valuesVisible },
-        onOpenDiagnostics = { showDiagnostics = true },
-        onOpenAutopilotSheet = { showAutopilot = true },
-        onAutopilotPause = { viewModel.pauseEngine() },
+        onOpenDiagnostics = { },
         onThemeToggle = {
             val next = if (themeMode == ThemeMode.DARK) ThemeMode.PORCELAIN_DIM else ThemeMode.DARK
             scope.launch { viewModel.userPreferences.setThemeMode(next) }
         },
-        onCrashBannerTap = { viewModel.startEngine() }
+        onCrashBannerTap = { viewModel.startEngine() },
+        onClearUnseenFailures = { viewModel.clearUnseenFailures() },
+        onLadderEngineArmed = { viewModel.setLadderEngineArmed(true) },
+        onLadderTestDrive = { viewModel.setLadderTestDriveDone(true) },
+        onLadderImportBook = { viewModel.setLadderImportBookDone(true) },
+        onLadderRecoverFailure = { viewModel.setLadderRecoverFailureDone(true) }
     )
 
-    HomeScreenContent(
-        state = state,
-        callbacks = callbacks,
-        snackbarHostState = snackbarHostState,
-        onCrashBannerTap = callbacks.onCrashBannerTap
-    )
-
-    // The two Home surfaces that need a live platform context stay in the
-    // wrapper: the diagnostics dialog reads the device, the sheet drives the
-    // engine.
-    if (showDiagnostics) {
-        EngineDiagnosticsDialog(onDismiss = { showDiagnostics = false })
-    }
-
-    if (showAutopilot) {
-        AutopilotSheet(
-            engineState = engineState,
-            onDismiss = { showAutopilot = false },
-            onStart = {
-                showAutopilot = false
-                viewModel.startEngine()
-            },
-            onPause = {
-                showAutopilot = false
-                viewModel.pauseEngine()
-            },
-            onResume = {
-                showAutopilot = false
-                viewModel.resumeEngine()
-            },
-            onStop = {
-                showAutopilot = false
-                viewModel.stopEngine()
-            }
-        )
-    }
+    HomeScreenContent(state = state, callbacks = callbacks, snackbarHostState = snackbarHostState)
 }
 
-/**
- * Stage 19.7 — the pure Home body.
- *
- * No ViewModel, no Activity, no lifecycle: given a [HomeScreenState] and a
- * [HomeScreenCallbacks] this renders the whole screen, which is exactly what a
- * snapshot test needs to see.
- */
 @Composable
 fun HomeScreenContent(
     state: HomeScreenState,
@@ -345,661 +301,484 @@ fun HomeScreenContent(
     haptics: Haptics = rememberHaptics(),
     onCrashBannerTap: () -> Unit = {}
 ) {
-    // The credits bubble is the door to My Plan: one tap, one destination.
-    val onOpenMyPlan = callbacks.onOpenMyPlan
-
-    // Stage 22 — the lag sweep: ONE clock read per frame, bucketed to the half
-    // minute so the rows only recompose when a label would really change.
-    //
-    // The rows used to read the wall clock each, so a 200-row feed did 200
-    // clock reads (and 200 date formats) on every recomposition.
     val now = (System.currentTimeMillis() / CLOCK_BUCKET_MILLIS) * CLOCK_BUCKET_MILLIS
-
-    // STAGE 46 — latch the breaker at first composition. Home resume zeros the
-    // counter immediately after, and the banner must stay up until the agent taps.
     val showCrashBanner = remember { CrashHandler.getConsecutiveCrashes() >= 2 }
     var tapToEnable by remember { mutableStateOf(false) }
-    if (showCrashBanner && !tapToEnable) {
-        // Battery optimisation check already asked; just show the banner
-    }
+    var selectedSubtab by remember { mutableStateOf(0) }
 
-    // Stage 22 — capture only what the rows need.
-    //
-    // The item lambda used to close over the whole [HomeScreenState] (an
-    // unstable object: it holds a list), so ANY state change re-ran every
-    // visible row. The rows only care about the engine state, so that is all
-    // the lambda captures now — and a row skips when it does not change.
-    val engineState = state.engineState
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(DesignTokens.LocalBingwaRoles.current.bg)
-    ) {
+    Box(modifier = Modifier.fillMaxSize().background(DesignTokens.LocalBingwaRoles.current.bg)) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            // POLISH P2 — tighter everywhere: the old 14dp rhythm plus 30sp
-            // numerals pushed the first real row below the fold on a 5" phone.
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            item {
-                // STAGE 45 — crash circuit banner
-                if (showCrashBanner) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp)
-                            .background(
-                                DesignTokens.LocalBingwaRoles.current.brand.copy(alpha = 0.10f),
-                                shape = RoundedCornerShape(DesignTokens.Shape.RadiusMd)
-                            )
-                            .border(
-                                1.dp,
-                                DesignTokens.LocalBingwaRoles.current.brand.copy(alpha = 0.30f),
-                                RoundedCornerShape(DesignTokens.Shape.RadiusMd)
-                            )
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
-                            Text(
-                                text = "Engine paused after crashes - tap to enable",
-                                color = DesignTokens.LocalBingwaRoles.current.textPrimary,
-                                fontSize = DesignTokens.Typography.Body,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            TextButton(
-                                onClick = {
-                                    tapToEnable = true
-                                    onCrashBannerTap()
-                                }
-                            ) {
-                                Text(
-                                    "Enable",
-                                    color = DesignTokens.LocalBingwaRoles.current.textPrimary,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = DesignTokens.Typography.Caption
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
-            item {
-                HomeTopBar(
-                    bucket = state.greetingBucket,
-                    language = state.greetingLanguage,
-                    creditsLabel = state.creditsLabel,
-                    onCreditsClick = onOpenMyPlan,
-                    onThemeToggle = callbacks.onThemeToggle
-                )
-            }
-
-            item {
-                // Stage 19 — Home has zero score UI; autopilot pill owns this slot.
-                AutopilotPill(
-                    engineState = state.engineState,
-                    onOpenSheet = callbacks.onOpenAutopilotSheet,
-                    onPause = callbacks.onAutopilotPause
-                )
-            }
-
-            item {
-                // Stage 12/15 — the language label opens Diplomatics (rotation,
-                // pinning, cadence); it is a door, not decoration.
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = state.greetingLanguage.endonym,
-                        color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f),
-                        fontSize = DesignTokens.Typography.Caption,
-                        modifier = Modifier.clickable {
-                            haptics.tick()
-                            callbacks.onOpenDiplomatics()
-                        }
-                    )
-                }
-            }
-
-            if (state.permissionsMissing) {
+            if (showCrashBanner && !tapToEnable) {
                 item {
-                    PermissionCard {
-                        haptics.press()
-                        callbacks.onRequestPermissions()
-                    }
+                    CrashBanner(onTap = {
+                        tapToEnable = true
+                        onCrashBannerTap()
+                    })
                 }
             }
 
-            // PHASE 1 — Hero: glass-morphic balance card with gradient background,
-            // Display typography and an eye-icon mask toggle.
             item {
-                HeroBar(
-                    airtimeToday = state.airtimeToday,
-                    balance = state.balance,
-                    loading = state.balanceLoading,
-                    valuesVisible = state.valuesVisible,
-                    onToggleVisibility = {
-                        haptics.tick()
-                        callbacks.onToggleValues()
-                    },
-                    onRefresh = {
-                        haptics.tick()
-                        callbacks.onRefreshBalance()
-                    },
-                    onOpenDiagnostics = callbacks.onOpenDiagnostics
-                )
+                HeroSection(state = state, callbacks = callbacks)
             }
 
-            // PHASE 2 — Stats cards: three equal-width neumorphic glass cards.
+            if (state.isOffline) {
+                item { OfflineMeshBanner(queuedCount = state.queuedCount, onFlush = {}) }
+            }
+
+            if (state.balanceBelowCheapestOffer) {
+                item { FloatGuardBanner(onTopUp = callbacks.onOpenMyPlan) }
+            }
+
             item {
-                StatsRow(
-                    completed = state.successful,
-                    failed = state.failed,
-                    pending = state.pending,
-                    onOpenTransactions = callbacks.onOpenTransactions
+                ActivationLadder(
+                    engineArmed = state.ladderEngineArmed,
+                    testDriveDone = state.ladderTestDriveDone,
+                    importBookDone = state.ladderImportBookDone,
+                    recoverFailureDone = state.ladderRecoverFailureDone,
+                    onEngineArmedClick = callbacks.onLadderEngineArmed,
+                    onTestDriveClick = callbacks.onLadderTestDrive,
+                    onImportBookClick = callbacks.onLadderImportBook,
+                    onRecoverFailureClick = callbacks.onLadderRecoverFailure
                 )
             }
 
             item {
-                // PHASE 2 — commission graph wrapped in GlassCard, line in Brand.Primary.
-                GlassCard(modifier = Modifier.fillMaxWidth()) {
-                    CommissionChartCard(series = state.commission)
-                }
+                Subtabs(selected = selectedSubtab, onSelect = { selectedSubtab = it })
             }
 
-            item { SectionHeader("Transactions", "${state.transactions.size} total") }
-
-            // R6 — shimmer ONLY where a list is actually loading.
-            if (state.statsLoading) {
-                items(4, key = { "skeleton-$it" }) { HomeRowSkeleton() }
-            } else if (state.transactions.isEmpty()) {
-                item {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 4.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            when (state.engineState) {
-                                EngineState.STOPPED ->
-                                    "Autopilot stopped — history lives in Transactions."
-                                else -> "Nothing yet — every bundle you dial lands here."
-                            },
-                            color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f),
-                            fontSize = DesignTokens.Typography.Caption,
-                            modifier = Modifier.weight(1f)
-                        )
-                        if (state.engineState == EngineState.STOPPED) {
-                            Text(
-                                "Start",
-                                color = DesignTokens.LocalBingwaRoles.current.brand,
-                                fontSize = DesignTokens.Typography.Caption,
-                                fontWeight = FontWeight.SemiBold,
-                                modifier = Modifier.clickable {
-                                    callbacks.onOpenAutopilotSheet()
-                                }
-                            )
-                        }
-                    }
-                }
-            } else {
-                itemsIndexed(state.transactions, key = { _, tx -> tx.id }) { index, tx ->
-                    HomeTransactionRow(
-                        tx = tx,
-                        engineState = engineState,
-                        now = now,
-                        showDivider = index < state.transactions.size - 1
-                    )
+            when (selectedSubtab) {
+                0 -> offersSection(state = state, callbacks = callbacks, now = now)
+                else -> settingsSection(callbacks = callbacks)
             }
         }
-        }
-
     }
-// POLISH P1 — permissions are requested behind a themed prompt instead of
-    // ambushing the agent with a system sheet they did not ask for.
-    if (state.permissionsMissing) {
-        PhoneAccessPrompt(
-            onGrant = {
-                haptics.press()
-                callbacks.onRequestPermissions()
-            },
-            onNotNow = callbacks.onPermissionNotNow
+}
+
+@Composable
+private fun HeroSection(state: HomeScreenState, callbacks: HomeScreenCallbacks) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(26.dp))
+            .background(DesignTokens.Hero.surface)
+            .padding(16.dp)
+    ) {
+        Column {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                AutopilotEye(engineState = state.engineState)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Good ${state.greetingBucket.name.lowercase().replaceFirstChar { it.uppercase() }}",
+                    color = DesignTokens.Hero.ink.copy(alpha = 0.7f),
+                    fontSize = 14.sp
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                CreditsBox(label = state.creditsLabel, planName = state.creditsPlanName, onClick = callbacks.onOpenMyPlan)
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Row(verticalAlignment = Alignment.Bottom) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "${state.completedToday}",
+                        color = DesignTokens.Hero.ink,
+                        fontSize = 40.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        letterSpacing = (-1.5).sp
+                    )
+                    Text(
+                        text = "completed today",
+                        color = DesignTokens.Hero.ink.copy(alpha = 0.6f),
+                        fontSize = 14.sp
+                    )
+                }
+                FailedBulb(count = state.unseenFailed, onClick = {
+                    callbacks.onClearUnseenFailures()
+                    callbacks.onOpenTransactions("FAILED")
+                })
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                QuickActionTile(icon = {}, label = "Dial", onClick = callbacks.onOpenDial)
+                QuickActionTile(icon = {}, label = "Stats", onClick = callbacks.onOpenStats)
+                QuickActionTile(icon = {}, label = "Manage", onClick = callbacks.onOpenManage)
+            }
+        }
+    }
+}
+
+@Composable
+private fun AutopilotEye(engineState: EngineState) {
+    val on = engineState == EngineState.RUNNING
+    Box(
+        modifier = Modifier
+            .size(36.dp)
+            .clip(CircleShape)
+            .background(if (on) DesignTokens.Semantic.complete else DesignTokens.Semantic.failed)
+            .border(2.dp, DesignTokens.Hero.ink.copy(alpha = 0.2f), CircleShape),
+        contentAlignment = Alignment.Center
+    ) {
+        Box(
+            modifier = Modifier
+                .size(12.dp)
+                .clip(CircleShape)
+                .background(DesignTokens.Hero.ink.copy(alpha = if (on) 1f else 0.5f))
         )
     }
 }
 
-/** Hero money card: glass surface, brand gradient, Display balance, eye-mask toggle. */
 @Composable
-private fun HeroBar(
-    airtimeToday: Double,
-    balance: Double?,
-    loading: Boolean,
-    valuesVisible: Boolean,
-    onToggleVisibility: () -> Unit,
-    onRefresh: () -> Unit,
-    onOpenDiagnostics: () -> Unit
-) {
-    val density = LocalDensity.current
-    val gradient = Brush.verticalGradient(
-        colors = listOf(
-            DesignTokens.LocalBingwaRoles.current.brand.copy(alpha = 0.14f),
-            DesignTokens.LocalBingwaRoles.current.brand.copy(alpha = 0.02f)
-        ),
-        startY = 0f,
-        endY = with(density) { 120.dp.toPx() }
+private fun FailedBulb(count: Int, onClick: () -> Unit) {
+    val blinking = count > 0
+    val blinkAlpha by animateFloatAsState(
+        targetValue = if (blinking) 1f else 0.4f,
+        animationSpec = if (blinking) infiniteRepeatable(
+            animation = tween(500, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ) else tween(200),
+        label = "FailedBulbBlink"
     )
-
     Box(
         modifier = Modifier
-            .fillMaxWidth()
-            .height(150.dp)
-            .background(gradient)
+            .size(30.dp)
+            .clip(CircleShape)
+            .background(DesignTokens.Semantic.failed.copy(alpha = blinkAlpha))
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
     ) {
-        GlassCard(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(112.dp)
-                .align(Alignment.BottomCenter)
-                .padding(horizontal = 4.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    MoneyLine(
-                        label = "Airtime used today",
-                        value = if (valuesVisible) "Ksh ${money(airtimeToday)}" else MASK,
-                        valueColor = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.7f)
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    // E1 — NEVER a fake number: null balance shows unavailable + link.
-                    val balanceScale by animateFloatAsState(
-                        targetValue = if (valuesVisible) 1f else 0.92f,
-                        animationSpec = spring(
-                            stiffness = DesignTokens.Motion.SpringStiffness,
-                            dampingRatio = DesignTokens.Motion.SpringDamping
-                        ),
-                        label = "HeroBalanceScale"
-                    )
-                    Box(
-                        modifier = Modifier
-                            .graphicsLayer {
-                                scaleX = balanceScale
-                                scaleY = balanceScale
-                                alpha = if (valuesVisible) 1f else 0.5f
-                            }
-                    ) {
-                        if (balance == null && valuesVisible) {
-                            MoneyLine(label = "Current balance", value = "Unavailable")
-                            Text(
-                                "run Diagnostics",
-                                color = DesignTokens.LocalBingwaRoles.current.brand,
-                                fontSize = DesignTokens.Typography.Caption,
-                                fontWeight = FontWeight.SemiBold,
-                                modifier = Modifier.clickable(onClick = onOpenDiagnostics)
-                            )
-                        } else {
-                            MoneyLine(
-                                label = "Current balance",
-                                value = if (valuesVisible) "Ksh ${money(balance ?: 0.0)}" else MASK,
-                                valueColor = DesignTokens.LocalBingwaRoles.current.textPrimary,
-                                valueSize = DesignTokens.Typography.Display.fontSize ?: 32.sp,
-                                valueWeight = FontWeight.Bold
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.width(10.dp))
-
-                Box(
-                    modifier = Modifier
-                        .size(34.dp)
-                        .clip(CircleShape)
-                        .clickable(onClick = onToggleVisibility),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = if (valuesVisible) Icons.Rounded.VisibilityOff
-                        else Icons.Rounded.Visibility,
-                        contentDescription = if (valuesVisible) "Hide amounts" else "Show amounts",
-                        tint = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f),
-                        modifier = Modifier.size(19.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.width(6.dp))
-                RefreshButton(loading = loading, onClick = onRefresh)
-            }
-        }
-    }
-}
-
-/** Three counters. Each one is a neumorphic glass card you can drill into. */
-@Composable
-private fun StatsRow(
-    completed: Int,
-    failed: Int,
-    pending: Int,
-    onOpenTransactions: (String?) -> Unit
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        StatCard(completed, "Done", DesignTokens.LocalBingwaRoles.current.success, Modifier.weight(1f)) {
-            onOpenTransactions("SUCCESSFUL")
-        }
-        StatCard(failed, "Failed", DesignTokens.LocalBingwaRoles.current.error, Modifier.weight(1f)) {
-            onOpenTransactions("FAILED")
-        }
-        StatCard(pending, "Queued", DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.45f), Modifier.weight(1f)) {
-            onOpenTransactions("PENDING")
-        }
-    }
-}
-
-/**
- * POLISH P2 — one compact neumorphic stat card.
- *
- * Glass surface with Level1 soft shadow, spring press scale (0.98) and mandatory
- * long-press haptic feedback. Every visual token comes from [DesignTokens].
- */
-@Composable
-private fun StatCard(
-    value: Int,
-    label: String,
-    accent: Color,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit
-) {
-    val hapticFeedback = LocalHapticFeedback.current
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.98f else 1f,
-        animationSpec = spring(
-            stiffness = DesignTokens.Motion.SpringStiffness,
-            dampingRatio = DesignTokens.Motion.SpringDamping
-        ),
-        label = "StatCardScale"
-    )
-    val density = LocalDensity.current
-    val radiusPx = with(density) { DesignTokens.Shape.RadiusMd.toPx() }
-    GlassCard(
-        modifier = modifier
-            .drawBehind {
-                for (layer in DesignTokens.Elevation.Level1) {
-                    val offsetY = with(density) { layer.offsetY.toPx() }
-                    withTransform({ translate(0f, offsetY) }) {
-                        drawRoundRect(
-                            brush = SolidColor(layer.color),
-                            cornerRadius = CornerRadius(radiusPx, radiusPx)
-                        )
-                    }
-                }
-            }
-            .graphicsLayer { scaleX = scale; scaleY = scale }
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = {
-                    hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                    onClick()
-                }
-            )
-    ) {
-        Column {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                StatusDot(color = accent, lit = true, size = 8.dp)
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    "$value",
-                    color = DesignTokens.LocalBingwaRoles.current.textPrimary,
-                    fontSize = DesignTokens.Typography.Subhead,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1
-                )
-            }
-            Spacer(modifier = Modifier.height(1.dp))
-            Text(label, color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.5f), fontSize = DesignTokens.Typography.Caption, maxLines = 1)
-        }
-    }
-}
-
-@Composable
-private fun PermissionCard(onGrant: () -> Unit) {
-    GlassCard(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp)
-    ) {
-        Column {
+        if (count > 0) {
             Text(
-                "Phone permission needed",
+                text = "$count",
+                color = DesignTokens.Hero.ink,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+    }
+}
+
+@Composable
+private fun CreditsBox(label: String, planName: String, onClick: () -> Unit) {
+    GlassCard(modifier = Modifier.clickable(onClick = onClick)) {
+        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+            Text(
+                text = "CREDITS EXPIRE",
                 color = DesignTokens.LocalBingwaRoles.current.textPrimary,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.SemiBold
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold
             )
-            Spacer(modifier = Modifier.height(2.dp))
             Text(
-                "Grant call and phone access so dial and balance can work. Tap to grant.",
-                color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f),
+                text = label,
+                color = DesignTokens.Semantic.complete,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = planName.ifBlank { "Get credits" },
+                color = DesignTokens.LocalBingwaRoles.current.textSecondary,
                 fontSize = 12.sp
             )
         }
     }
-    // Keep the original click behaviour via the card's content area.
-    Box(modifier = Modifier.fillMaxSize().clickable(onClick = onGrant))
+}
+
+@Composable
+private fun QuickActionTile(icon: @Composable () -> Unit, label: String, onClick: () -> Unit) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .clip(RoundedCornerShape(DesignTokens.Shape.RadiusMd))
+            .background(DesignTokens.LocalBingwaRoles.current.card.copy(alpha = 0.3f))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 10.dp)
+    ) {
+        Box(modifier = Modifier.size(24.dp)) { icon() }
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = label,
+            color = DesignTokens.Hero.ink,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold
+        )
+    }
+}
+
+@Composable
+private fun OfflineMeshBanner(queuedCount: Int, onFlush: () -> Unit) {
+    GlassCard(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(12.dp)
+        ) {
+            Box(modifier = Modifier.size(4.dp).background(DesignTokens.Semantic.info).padding(end = 8.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = "Offline mesh", color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                Text(text = "$queuedCount queued", color = DesignTokens.LocalBingwaRoles.current.textSecondary, fontSize = 12.sp)
+            }
+            Text(
+                text = "Flush now",
+                color = DesignTokens.LocalBingwaRoles.current.brand,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.clickable(onClick = onFlush)
+            )
+        }
+    }
+}
+
+@Composable
+private fun FloatGuardBanner(onTopUp: () -> Unit) {
+    GlassCard(modifier = Modifier.fillMaxWidth(), content = {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(12.dp)
+        ) {
+            Box(modifier = Modifier.size(4.dp).background(DesignTokens.Semantic.awaiting).padding(end = 8.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = "Float guard", color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                Text(text = "Balance below cheapest enabled offer", color = DesignTokens.LocalBingwaRoles.current.textSecondary, fontSize = 12.sp)
+            }
+            Text(
+                text = "Top up",
+                color = DesignTokens.LocalBingwaRoles.current.brand,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.clickable(onClick = onTopUp)
+            )
+        }
+    })
+}
+
+@Composable
+private fun Subtabs(selected: Int, onSelect: (Int) -> Unit) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        listOf("Offers", "Settings").forEachIndexed { index, label ->
+            val active = index == selected
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(50))
+                    .background(if (active) DesignTokens.Hero.surface else Color.Transparent)
+                    .clickable { onSelect(index) }
+                    .padding(vertical = 8.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = label,
+                    color = if (active) DesignTokens.Hero.ink else DesignTokens.LocalBingwaRoles.current.textPrimary,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
+    }
+}
+
+private fun androidx.compose.foundation.lazy.LazyListScope.offersSection(
+    state: HomeScreenState,
+    callbacks: HomeScreenCallbacks,
+    now: Long
+) {
+    item { PayoutCard() }
+
+    item {
+        var selectedCategory by remember { mutableStateOf("All") }
+        val categories = listOf("All", "Data", "Minutes", "SMS")
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+            categories.forEach { cat ->
+                val active = cat == selectedCategory
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(50))
+                        .background(if (active) DesignTokens.LocalBingwaRoles.current.brand else DesignTokens.LocalBingwaRoles.current.card)
+                        .clickable { selectedCategory = cat }
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                ) {
+                    Text(
+                        text = cat,
+                        color = if (active) DesignTokens.LocalBingwaRoles.current.onBrand else DesignTokens.LocalBingwaRoles.current.textPrimary,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+        }
+    }
+
+    items(state.offers) { offer ->
+        OfferRow(offer = offer, onToggle = { })
+    }
+
+    item { RepeatBuyersCard(customers = state.customers) }
+
+    item { SectionHeader("Recent transactions", "${state.transactions.size} total") }
+
+    if (state.transactions.isEmpty()) {
+        item {
+            Text(
+                text = "Nothing yet — every bundle you dial lands here.",
+                color = DesignTokens.LocalBingwaRoles.current.textSecondary,
+                fontSize = 14.sp
+            )
+        }
+    } else {
+        itemsIndexed(state.transactions, key = { _, tx -> tx.id }) { index, tx ->
+            HomeTransactionRow(tx = tx, now = now, showDivider = index < state.transactions.size - 1)
+        }
+    }
+}
+
+@Composable
+private fun PayoutCard() {
+    GlassCard(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(text = "Payout", color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(text = "Weekly countdown + commission/goal gradient bar", color = DesignTokens.LocalBingwaRoles.current.textSecondary, fontSize = 12.sp)
+        }
+    }
+}
+
+@Composable
+private fun OfferRow(offer: Offer, onToggle: (Boolean) -> Unit) {
+    GlassCard(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(12.dp)
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = offer.name, color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                Text(text = "${offer.type} · ${offer.ussdCode}", color = DesignTokens.LocalBingwaRoles.current.textSecondary, fontSize = 12.sp)
+            }
+            Text(text = "Ksh ${offer.price}", color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.width(8.dp))
+            Box(
+                modifier = Modifier
+                    .size(40.dp, 24.dp)
+                    .clip(RoundedCornerShape(50))
+                    .background(if (offer.isActive) DesignTokens.Semantic.complete else DesignTokens.LocalBingwaRoles.current.border)
+                    .clickable { onToggle(!offer.isActive) }
+            ) {
+                Box(modifier = Modifier.size(16.dp).clip(CircleShape).background(DesignTokens.LocalBingwaRoles.current.onBrand).align(Alignment.CenterStart))
+            }
+        }
+    }
+}
+
+@Composable
+private fun RepeatBuyersCard(customers: List<Customer>) {
+    GlassCard(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(text = "Repeat buyers", color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(8.dp))
+            if (customers.isEmpty()) {
+                Text(text = "No repeat buyers yet", color = DesignTokens.LocalBingwaRoles.current.textSecondary, fontSize = 12.sp)
+            } else {
+                customers.forEach { customer ->
+                    Text(text = formatCustomerName(customer.name), color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 14.sp)
+                }
+            }
+        }
+    }
+}
+
+private fun androidx.compose.foundation.lazy.LazyListScope.settingsSection(callbacks: HomeScreenCallbacks) {
+    item {
+        GlassCard(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(text = "Settings", color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(8.dp))
+                listOf("M-Pesa", "SiteLink", "Auto-save", "Test Drive", "Processing Mode", "SIM Selection", "Server", "Backup & Restore").forEach { setting ->
+                    Text(text = setting, color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 14.sp, modifier = Modifier.padding(vertical = 8.dp))
+                }
+                Text(text = "Feature blueprint", color = DesignTokens.LocalBingwaRoles.current.brand, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(vertical = 8.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun CrashBanner(onTap: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
+            .background(DesignTokens.LocalBingwaRoles.current.brand.copy(alpha = 0.10f), shape = RoundedCornerShape(DesignTokens.Shape.RadiusMd))
+            .border(1.dp, DesignTokens.LocalBingwaRoles.current.brand.copy(alpha = 0.30f), RoundedCornerShape(DesignTokens.Shape.RadiusMd))
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+            Text(
+                text = "Engine paused after crashes - tap to enable",
+                color = DesignTokens.LocalBingwaRoles.current.textPrimary,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            TextButton(onClick = onTap) {
+                Text("Enable", color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+            }
+        }
+    }
 }
 
 @Composable
 private fun SectionHeader(title: String, trailing: String) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 6.dp),
+        modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(title, color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = DesignTokens.Typography.Subhead, fontWeight = FontWeight.Bold)
+        Text(title, color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.width(8.dp))
-        Text(trailing, color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.5f), fontSize = DesignTokens.Typography.Caption)
+        Text(trailing, color = DesignTokens.LocalBingwaRoles.current.textSecondary, fontSize = 12.sp)
     }
 }
 
-/** One label/value line inside the hero money row. */
-@Composable
-private fun MoneyLine(
-    label: String,
-    value: String,
-    valueColor: Color = DesignTokens.LocalBingwaRoles.current.textPrimary,
-    valueSize: TextUnit = DesignTokens.Typography.Body,
-    valueWeight: FontWeight = FontWeight.Bold,
-    modifier: Modifier = Modifier
-) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            label,
-            color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f),
-            fontSize = DesignTokens.Typography.Caption,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f)
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(
-            value,
-            color = valueColor,
-            fontSize = valueSize,
-            fontWeight = valueWeight,
-            maxLines = 1
-        )
-    }
-}
-
-/** Circular refresh that spins only while the balance read is in flight. Stage 21 — no always-on loop: static when idle. */
-@Composable
-private fun RefreshButton(loading: Boolean, onClick: () -> Unit) {
-    // Gated spin: one-shot rotation while loading, static icon when idle.
-    val spin = remember { Animatable(0f) }
-    LaunchedEffect(loading) {
-        if (loading) {
-            spin.animateTo(360f, animationSpec = tween(900, easing = LinearEasing))
-            spin.snapTo(0f)
-        } else {
-            spin.snapTo(0f)
-        }
-    }
-    val angle = if (loading) spin.value else 0f
-
-    Box(
-        modifier = Modifier
-            .size(34.dp)
-            .clip(CircleShape)
-            .background(DesignTokens.LocalBingwaRoles.current.card)
-            .border(1.dp, DesignTokens.LocalBingwaRoles.current.border, CircleShape)
-            .clickable(enabled = !loading, onClick = onClick),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            imageVector = Icons.Rounded.Refresh,
-            contentDescription = "Refresh balance",
-            tint = if (loading) DesignTokens.LocalBingwaRoles.current.brand else DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f),
-            modifier = Modifier
-                .size(18.dp)
-                .graphicsLayer { rotationZ = angle }
-        )
-    }
-}
-
-/**
- * One activity row: status dot, who, how much, when — plus a "Paused" badge when
- * the row is still queued and the engine is paused (U2: money accepted, not yet
- * dialed). The badge is deliberately inline with the amount so the reason the row
- * has not moved is never more than a glance away.
- *
- * Each row is a [GlassCard] with [DesignTokens.Shape.RadiusMd].
- */
 @Composable
 private fun HomeTransactionRow(
     tx: Transaction,
-    engineState: EngineState = EngineState.RUNNING,
     now: Long = System.currentTimeMillis(),
     showDivider: Boolean = false
 ) {
     val statusColor = when (tx.status) {
-        TransactionStatus.SUCCESSFUL.value -> DesignTokens.LocalBingwaRoles.current.brand
+        TransactionStatus.SUCCESSFUL.value -> DesignTokens.Semantic.complete
         TransactionStatus.FAILED.value,
         TransactionStatus.FAILED_ALREADY_RECOMMENDED.value,
         TransactionStatus.UNMATCHED.value,
-        TransactionStatus.CANCELLED.value -> DesignTokens.LocalBingwaRoles.current.error
-        else -> DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.45f)
+        TransactionStatus.CANCELLED.value -> DesignTokens.Semantic.failed
+        else -> DesignTokens.Semantic.scheduled
     }
-    val showPausedBadge = engineState == EngineState.PAUSED &&
-        tx.status == TransactionStatus.PENDING.value
-    GlassCard(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(DesignTokens.Shape.RadiusMd)
-    ) {
+    GlassCard(modifier = Modifier.fillMaxWidth()) {
         Column {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(HOME_ROW_HEIGHT)
-                    .padding(horizontal = 12.dp)
+                modifier = Modifier.fillMaxWidth().height(HOME_ROW_HEIGHT).padding(horizontal = 12.dp)
             ) {
-            // POLISH P2 — the same status dot the tiles use: lit for a finished
-            // sale, dim for queued work, red for a failure. It lights with a
-            // 300ms fade as the engine closes the row.
-            StatusDot(
-                color = statusColor,
-                lit = tx.status == TransactionStatus.SUCCESSFUL.value ||
-                    tx.status == TransactionStatus.FAILED.value ||
-                    tx.status == TransactionStatus.FAILED_ALREADY_RECOMMENDED.value ||
-                    tx.status == TransactionStatus.UNMATCHED.value ||
-                    tx.status == TransactionStatus.CANCELLED.value,
-                size = 9.dp
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    // U5 — the same formatter as the Transactions list.
-                    formatCustomerName(tx.customerName).ifBlank { tx.phoneNumber },
-                    color = DesignTokens.LocalBingwaRoles.current.textPrimary,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    "${tx.offerName} · ${timeAgo(tx.createdAt, now)}",
-                    color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f),
-                    fontSize = 12.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+                Box(modifier = Modifier.size(40.dp).clip(RoundedCornerShape(8.dp)).background(statusColor), contentAlignment = Alignment.Center) {
+                    Text(text = "●", color = DesignTokens.Hero.ink, fontSize = 10.sp)
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(text = formatCustomerName(tx.customerName).ifBlank { tx.phoneNumber }, color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(text = "${tx.offerName} · ${timeAgo(tx.createdAt, now)}", color = DesignTokens.LocalBingwaRoles.current.textSecondary, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+                Text(text = "Ksh ${money(tx.amount)}", color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 14.sp, fontWeight = FontWeight.Bold)
             }
-            if (showPausedBadge) {
-                Text(
-                    "Paused",
-                    color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.6f),
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(50))
-                        .background(DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.20f))
-                        .padding(horizontal = 7.dp, vertical = 3.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
+            if (showDivider) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(DesignTokens.LocalBingwaRoles.current.border))
             }
-            Text(
-                "Ksh ${money(tx.amount)}",
-                color = DesignTokens.LocalBingwaRoles.current.textPrimary,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold
-            )
-        }
-        if (showDivider) {
-            Spacer(modifier = Modifier.height(4.dp))
-            Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(DesignTokens.LocalBingwaRoles.current.border))
-        }
-    }
-}
-}
-
-/** R6 — a single shimmering placeholder row; only shown while the list loads. */
-@Composable
-private fun HomeRowSkeleton() {
-    GlassCard(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(DesignTokens.Shape.RadiusMd)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            com.bingwascore.app.ui.components.ShimmerBlock(
-                modifier = Modifier.width(90.dp),
-                cornerRadius = 8.dp
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            com.bingwascore.app.ui.components.ShimmerBlock(
-                modifier = Modifier.weight(1f),
-                cornerRadius = 8.dp
-            )
         }
     }
 }
 
 private val timeFormat = SimpleDateFormat("d MMM, HH:mm", Locale.getDefault())
-
-/**
- * "just now", "12m ago", "3d ago", then an absolute stamp.
- *
- * Stage 22 — [now] is passed IN: the row never reads the clock itself, so a
- * long feed costs one clock read per frame instead of one per row.
- */
 private fun timeAgo(millis: Long, now: Long = System.currentTimeMillis()): String {
     if (millis <= 0L) return "—"
     val minutes = (now - millis) / 60_000L
@@ -1012,13 +791,7 @@ private fun timeAgo(millis: Long, now: Long = System.currentTimeMillis()): Strin
     }
 }
 
-/** Scales the series to 0..1 so the chart springs instead of jumping. */
-internal fun normalize(series: List<Double>): List<Float> {
-    val padded = (series + List((7 - series.size).coerceAtLeast(0)) { 0.0 }).take(7)
-    val max = padded.maxOrNull() ?: 0.0
-    if (max <= 0.0) return padded.map { 0f }
-    return padded.map { (it / max).toFloat() }
-}
+internal fun money(value: Double): String = String.format(Locale.US, "%,.2f", value)
 
 /** Axis label: 1,200 / 45 — short enough for a 40dp gutter. */
 internal fun formatShort(value: Double): String = when {
@@ -1027,31 +800,20 @@ internal fun formatShort(value: Double): String = when {
     else -> String.format(Locale.US, "%.1f", value)
 }
 
-/** "1,234.56" — always two decimals, no locale surprises. */
-internal fun money(value: Double): String = String.format(Locale.US, "%,.2f", value)
+/** Scales the series to 0..1 so the chart springs instead of jumping. */
+internal fun normalize(series: List<Double>): List<Float> {
+    val padded = (series + List((7 - series.size).coerceAtLeast(0)) { 0.0 }).take(7)
+    val max = padded.maxOrNull() ?: 0.0
+    if (max <= 0.0) return padded.map { 0f }
+    return padded.map { (it / max).toFloat() }
+}
 
-/** Permissions the dial + balance paths genuinely need. */
 private fun missingPermissions(context: Context): Boolean =
-    REQUIRED_PERMISSIONS.any {
-        ContextCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED
-    }
+    REQUIRED_PERMISSIONS.any { ContextCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED }
 
-private val REQUIRED_PERMISSIONS = arrayOf(
-    Manifest.permission.CALL_PHONE,
-    Manifest.permission.READ_PHONE_STATE
-)
-
-/** The exact array handed to the system prompt — never a subset. */
+private val REQUIRED_PERMISSIONS = arrayOf(Manifest.permission.CALL_PHONE, Manifest.permission.READ_PHONE_STATE)
 private val REQUIRED_PERMISSION_ARRAY = REQUIRED_PERMISSIONS
 
-/**
- * POLISH P1 — the themed pre-flight for phone access.
- *
- * `*144#` and every silent dial need `CALL_PHONE` + `READ_PHONE_STATE`. Throwing
- * a system sheet at an agent who only opened the app trains them to tap Deny, so
- * the app says what the grant is *for* first, in the same vocabulary as the rest
- * of the product, and keeps a polite way out.
- */
 @Composable
 private fun PhoneAccessPrompt(onGrant: () -> Unit, onNotNow: () -> Unit) {
     GlassDialog(
