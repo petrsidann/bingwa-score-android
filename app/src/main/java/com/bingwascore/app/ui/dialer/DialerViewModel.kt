@@ -97,6 +97,63 @@ class DialerViewModel @Inject constructor(
     }
 
     /**
+     * Stage 70 — queues a dial as PENDING without starting the USSD service.
+     *
+     * The engine will pick it up on the next resume/flush, so the agent can
+     * keep taking orders while offline.
+     */
+    fun queueNow() {
+        if (_isDialing.value) return
+        val offer = offers.value.firstOrNull { it.id == _selectedOfferId.value }
+            ?: offers.value.firstOrNull()
+        val phoneValue = formatPhoneToTenDigits(_phone.value)
+
+        if (!isTenDigitPhone(phoneValue)) {
+            _feedback.value = DialerFeedback("Enter a valid customer phone number", isError = true)
+            return
+        }
+        if (offer == null) {
+            _feedback.value = DialerFeedback("No active offer to dial", isError = true)
+            return
+        }
+
+        val dialCode = BatchDialPlanner.expand(offer.ussdCode, phoneValue)
+        val transactionId = "tx_${UUID.randomUUID()}"
+
+        viewModelScope.launch {
+            _isDialing.value = true
+            try {
+                transactionRepository.insert(
+                    Transaction(
+                        id = transactionId,
+                        phoneNumber = phoneValue,
+                        customerName = null,
+                        offerId = offer.id,
+                        offerName = offer.name,
+                        ussdCode = dialCode,
+                        amount = offer.price.toDouble(),
+                        commission = offer.price * 0.1,
+                        status = TransactionStatus.PENDING.value,
+                        createdAt = System.currentTimeMillis()
+                    )
+                )
+                try {
+                    userPreferences.setLastDialPhone(phoneValue)
+                } catch (t: Throwable) {
+                    Timber.e(t, "Could not persist the last queued phone")
+                }
+                _phone.value = phoneValue
+                _feedback.value = DialerFeedback("Queued for offline dial", isError = false)
+            } catch (t: Throwable) {
+                Timber.e(t, "Queue failed")
+                _feedback.value = DialerFeedback("Queue failed: ${t.message}", isError = true)
+            } finally {
+                _isDialing.value = false
+            }
+        }
+    }
+
+    /**
      * POLISH P1 — waits for the engine to close [transactionId] and reports the
      * verdict plus the exact carrier wording.
      *
