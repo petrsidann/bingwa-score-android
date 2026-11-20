@@ -115,6 +115,7 @@ import com.bingwascore.app.ui.mesh.MeshScreen
 import com.bingwascore.app.ui.myplan.MyPlanScreen
 import com.bingwascore.app.ui.mystore.MyStoreScreen
 import com.bingwascore.app.ui.offers.OffersScreen
+import com.bingwascore.app.ui.manage.ManageScreen
 import com.bingwascore.app.ui.screens.LoginScreen
 import com.bingwascore.app.ui.screens.LaunchScreen
 import com.bingwascore.app.ui.onboarding.SetupChecklistScreen
@@ -318,6 +319,7 @@ fun MainScreen(remoteHttpClient: RemoteHttpClient) {
     var showDialer by remember { mutableStateOf(false) }
     var showReferral by remember { mutableStateOf(false) }
     var showTransactions by remember { mutableStateOf(false) }
+    var showManage by remember { mutableStateOf(false) }
     // R2: Home counters hand a status filter over to the Transactions tab.
     var transactionFilter by remember { mutableStateOf(TransactionFilter.ALL) }
     val scope = rememberCoroutineScope()
@@ -336,13 +338,14 @@ fun MainScreen(remoteHttpClient: RemoteHttpClient) {
     // Stage 25 — System back handling across sheets, drawers, secondary routes, and tabs.
     // Zero dead ends: close active drawer/sheets first, return secondary drawer routes
     // or referral back to main, or return non-Home main tabs to Home (0).
-    val hasBackAction = drawerOpen || showDialer || showReferral || showTransactions || selectedDrawerIndex != -1 || selectedTab != 0
+    val hasBackAction = drawerOpen || showDialer || showReferral || showTransactions || showManage || selectedDrawerIndex != -1 || selectedTab != 0
     BackHandler(enabled = hasBackAction) {
         when {
             drawerOpen -> drawerOpen = false
             showDialer -> showDialer = false
             showReferral -> showReferral = false
             showTransactions -> showTransactions = false
+            showManage -> showManage = false
             selectedDrawerIndex != -1 -> selectedDrawerIndex = -1
             selectedTab != 0 -> selectedTab = 0
         }
@@ -364,6 +367,7 @@ fun MainScreen(remoteHttpClient: RemoteHttpClient) {
                             drawerOpen = false
                             showDialer = false
                             showTransactions = false
+                            showManage = false
                         },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -375,6 +379,7 @@ fun MainScreen(remoteHttpClient: RemoteHttpClient) {
                 val destination = when {
                     showDialer -> "dialer"
                     showTransactions -> "transactions"
+                    showManage -> "manage"
                     selectedDrawerIndex == CUSTOMERS_DRAWER_INDEX -> "customers"
                     selectedDrawerIndex == AUTO_RENEWALS_DRAWER_INDEX -> "autorenewals"
                     selectedDrawerIndex == SMART_FOLLOW_UP_DRAWER_INDEX -> "smartfollowup"
@@ -412,6 +417,7 @@ fun MainScreen(remoteHttpClient: RemoteHttpClient) {
                         ScreenTransition(screenKey = resolved, modifier = Modifier.fillMaxSize()) {
                             when (resolved) {
                                 "dialer" -> DialerScreen(onClose = { showDialer = false })
+                                "manage" -> ManageScreen(onBack = { showManage = false })
                                 "customers" -> CustomersScreen()
                                 "autorenewals" -> AutoRenewalsScreen()
                                 "smartfollowup" -> AutoRepliesScreen()
@@ -434,7 +440,8 @@ fun MainScreen(remoteHttpClient: RemoteHttpClient) {
                                         selectedDrawerIndex = -1
                                     },
                                     onOpenMyPlan = { selectedDrawerIndex = MY_PLAN_DRAWER_INDEX },
-                                    onOpenDiplomatics = { selectedDrawerIndex = DIPLOMATICS_DRAWER_INDEX }
+                                    onOpenDiplomatics = { selectedDrawerIndex = DIPLOMATICS_DRAWER_INDEX },
+                                    onOpenManage = { showManage = true }
                                 )
                                 "offers" -> OffersScreen()
                                 "transactions" -> TransactionsScreen(initialFilter = transactionFilter)
