@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
@@ -29,7 +30,7 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.rounded.Autorenew
 import androidx.compose.material.icons.rounded.Cached
 import androidx.compose.material.icons.rounded.EmojiEvents
 import androidx.compose.material3.Icon
@@ -42,8 +43,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalConfiguration
@@ -73,7 +77,8 @@ private data class Slide(
     val text: String,
     val ctaBg: Color,
     val ctaFg: Color,
-    val header: Boolean
+    val header: Boolean,
+    val accent: Color
 )
 
 @Composable
@@ -82,10 +87,10 @@ fun OnboardingSlides(onCreateAccount: () -> Unit, onSignIn: () -> Unit) {
     val violet = DesignTokens.Launch.violet
     val ink = DesignTokens.Launch.ink
     val slides = listOf(
-        Slide(lime, violet, violet.copy(alpha = 0.7f), "Auto-pilot payments", "Bingwa Score watches for M-Pesa confirmations and dials bundles automatically.", violet, lime, header = true),
-        Slide(violet, lime, lime.copy(alpha = 0.8f), "Smart retries & fallbacks", "Failed transaction? We retry with fallbacks so your customers stay happy.", lime, violet, header = false),
-        Slide(ink, lime, Color.White.copy(alpha = 0.7f), "Score, streaks & rewards", "Earn points for every sale, build streaks and unlock achievements as you grow.", lime, ink, header = false),
-        Slide(CsvBlue, lime, Color.White.copy(alpha = 0.7f), "Import your customers", "Upload a CSV of your saved contacts to restore your customers, offers and USSD plans in one tap.", lime, CsvBlue, header = false)
+        Slide(lime, violet, violet.copy(alpha = 0.7f), "Auto-pilot payments", "Bingwa Score watches for M-Pesa confirmations and dials bundles automatically.", violet, lime, header = true, accent = violet),
+        Slide(violet, lime, lime.copy(alpha = 0.8f), "Smart retries & fallbacks", "Failed transaction? We retry with fallbacks so your customers stay happy.", lime, violet, header = false, accent = lime),
+        Slide(ink, lime, Color.White.copy(alpha = 0.7f), "Score, streaks & rewards", "Earn points for every sale, build streaks and unlock achievements as you grow.", lime, ink, header = false, accent = lime),
+        Slide(CsvBlue, lime, Color.White.copy(alpha = 0.7f), "Import your customers", "Upload a CSV of your saved contacts to restore your customers, offers and USSD plans in one tap.", lime, CsvBlue, header = false, accent = lime)
     )
     val pagerState = rememberPagerState(pageCount = { slides.size })
     val scope = rememberCoroutineScope()
@@ -177,13 +182,7 @@ private fun SlideContentOnly(
                 Text("Your bundle business, automated.", color = slide.fg.copy(alpha = 0.7f), fontSize = 15.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
             }
             Spacer(Modifier.weight(1f))
-            when (page) {
-                0 -> EyeToggleIcon(bgColor = DesignTokens.Launch.violet, fgColor = DesignTokens.Launch.lime)
-                3 -> CsvUploadIcon(circleColor = DesignTokens.Launch.lime, docColor = Color.White, inkColor = CsvBlue)
-                else -> Box(Modifier.size(160.dp).clip(CircleShape).background(DesignTokens.Launch.lime), contentAlignment = Alignment.Center) {
-                    Icon(if (page == 1) Icons.Rounded.Cached else Icons.Rounded.EmojiEvents, contentDescription = null, tint = if (page == 1) DesignTokens.Launch.violet else Color.Black, modifier = Modifier.size(72.dp))
-                }
-            }
+            Medallion(page = page, accent = slide.accent)
             Spacer(Modifier.height(28.dp))
             Text(slide.title, color = slide.fg, fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.height(12.dp))
@@ -194,32 +193,34 @@ private fun SlideContentOnly(
 }
 
 @Composable
-private fun EyeToggleIcon(bgColor: Color, fgColor: Color) {
-    Box(Modifier.size(160.dp).clip(CircleShape).background(bgColor), contentAlignment = Alignment.Center) {
-        Box(Modifier.size(width = 96.dp, height = 52.dp).clip(RoundedCornerShape(26.dp)).background(fgColor), contentAlignment = Alignment.CenterEnd) {
-            Box(Modifier.padding(end = 4.dp).size(44.dp).clip(CircleShape).background(bgColor), contentAlignment = Alignment.Center) {
-                Icon(Icons.Filled.Visibility, contentDescription = null, tint = fgColor, modifier = Modifier.size(28.dp))
-            }
-        }
+private fun Medallion(page: Int, accent: Color, modifier: Modifier = Modifier) {
+    val icon: ImageVector = when (page) {
+        0 -> Icons.Rounded.Autorenew
+        1 -> Icons.Rounded.Cached
+        2 -> Icons.Rounded.EmojiEvents
+        3 -> Icons.Rounded.Cached
+        else -> Icons.Rounded.Autorenew
     }
-}
-
-@Composable
-private fun CsvUploadIcon(circleColor: Color, docColor: Color, inkColor: Color) {
-    Box(Modifier.size(160.dp).clip(CircleShape).background(circleColor), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Box(Modifier.size(width = 72.dp, height = 84.dp).clip(RoundedCornerShape(6.dp)).background(docColor)) {
-                Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Box(Modifier.width(44.dp).height(4.dp).background(inkColor))
-                    Box(Modifier.width(52.dp).height(4.dp).background(inkColor))
-                    Box(Modifier.width(48.dp).height(4.dp).background(inkColor))
-                    Box(Modifier.width(36.dp).height(4.dp).background(inkColor))
-                }
-            }
-            Box(Modifier.padding(top = 6.dp).clip(RoundedCornerShape(4.dp)).background(inkColor).padding(horizontal = 10.dp, vertical = 3.dp)) {
-                Text("CSV", color = circleColor, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-            }
-        }
+    Box(
+        modifier = modifier
+            .size(160.dp)
+            .clip(CircleShape)
+            .background(accent.copy(alpha = 0.14f))
+            .border(width = 1.dp, color = accent.copy(alpha = 0.5f), shape = CircleShape),
+        contentAlignment = Alignment.Center
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(accent.copy(alpha = 0.10f), Color.Transparent),
+                        center = Offset(0.5f, 0f),
+                        radius = 0.8f
+                    )
+                )
+        )
+        Icon(icon, contentDescription = null, tint = accent, modifier = Modifier.size(72.dp))
     }
 }
 
