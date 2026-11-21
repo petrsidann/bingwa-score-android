@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PageSize
@@ -31,6 +30,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.rounded.Cached
+import androidx.compose.material.icons.rounded.CloudUpload
 import androidx.compose.material.icons.rounded.EmojiEvents
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -63,29 +63,50 @@ import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
-private val CsvBlue = Color(0xFF1E3A8A)
-
 private data class Slide(
     val bg: Color,
     val fg: Color,
-    val body: Color,
     val title: String,
     val text: String,
     val ctaBg: Color,
-    val ctaFg: Color,
-    val header: Boolean
+    val ctaFg: Color
 )
 
 @Composable
 fun OnboardingSlides(onCreateAccount: () -> Unit, onSignIn: () -> Unit) {
-    val lime = DesignTokens.Launch.lime
-    val violet = DesignTokens.Launch.violet
-    val ink = DesignTokens.Launch.ink
     val slides = listOf(
-        Slide(lime, violet, violet.copy(alpha = 0.7f), "Auto-pilot payments", "Bingwa Score watches for M-Pesa confirmations and dials bundles automatically.", violet, lime, header = true),
-        Slide(violet, lime, lime.copy(alpha = 0.8f), "Smart retries & fallbacks", "Failed transaction? We retry with fallbacks so your customers stay happy.", lime, violet, header = false),
-        Slide(ink, lime, Color.White.copy(alpha = 0.7f), "Score, streaks & rewards", "Earn points for every sale, build streaks and unlock achievements as you grow.", lime, ink, header = false),
-        Slide(CsvBlue, lime, Color.White.copy(alpha = 0.7f), "Import your customers", "Upload a CSV of your saved contacts to restore your customers, offers and USSD plans in one tap.", lime, CsvBlue, header = false)
+        Slide(
+            bg = DesignTokens.Onboarding.slideBg[0],
+            fg = DesignTokens.Onboarding.medallionFill[0],
+            title = "Auto-pilot payments",
+            text = "Bingwa Score watches for M-Pesa confirmations and dials bundles automatically.",
+            ctaBg = DesignTokens.Onboarding.medallionFill[0],
+            ctaFg = DesignTokens.Onboarding.iconTint[0]
+        ),
+        Slide(
+            bg = DesignTokens.Onboarding.slideBg[1],
+            fg = DesignTokens.Onboarding.medallionFill[1],
+            title = "Smart retries & fallbacks",
+            text = "Failed transaction? We retry with fallbacks so your customers stay happy.",
+            ctaBg = DesignTokens.Onboarding.medallionFill[1],
+            ctaFg = DesignTokens.Onboarding.iconTint[1]
+        ),
+        Slide(
+            bg = DesignTokens.Onboarding.slideBg[2],
+            fg = DesignTokens.Onboarding.medallionFill[2],
+            title = "Score, streaks & rewards",
+            text = "Earn points for every sale, build streaks and unlock achievements as you grow.",
+            ctaBg = DesignTokens.Onboarding.medallionFill[2],
+            ctaFg = DesignTokens.Onboarding.iconTint[2]
+        ),
+        Slide(
+            bg = DesignTokens.Onboarding.slideBg[3],
+            fg = DesignTokens.Onboarding.medallionFill[3],
+            title = "Import your customers",
+            text = "Upload a CSV of your saved contacts to restore your customers, offers and USSD plans in one tap.",
+            ctaBg = DesignTokens.Onboarding.medallionFill[3],
+            ctaFg = DesignTokens.Onboarding.iconTint[3]
+        )
     )
     val pagerState = rememberPagerState(pageCount = { slides.size })
     val scope = rememberCoroutineScope()
@@ -170,24 +191,41 @@ private fun SlideContentOnly(
                 .padding(start = 32.dp, end = 32.dp, bottom = 108.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            if (slide.header) {
-                Spacer(Modifier.height(24.dp))
-                Text("Bingwa Score", color = slide.fg, fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = (-0.5).sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
-                Spacer(Modifier.height(8.dp))
-                Text("Your bundle business, automated.", color = slide.fg.copy(alpha = 0.7f), fontSize = 15.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
-            }
             Spacer(Modifier.weight(1f))
             when (page) {
-                0 -> EyeToggleIcon(bgColor = DesignTokens.Launch.violet, fgColor = DesignTokens.Launch.lime)
-                3 -> CsvUploadIcon(circleColor = DesignTokens.Launch.lime, docColor = Color.White, inkColor = CsvBlue)
-                else -> Box(Modifier.size(160.dp).clip(CircleShape).background(DesignTokens.Launch.lime), contentAlignment = Alignment.Center) {
-                    Icon(if (page == 1) Icons.Rounded.Cached else Icons.Rounded.EmojiEvents, contentDescription = null, tint = if (page == 1) DesignTokens.Launch.violet else Color.Black, modifier = Modifier.size(72.dp))
+                0 -> EyeToggleIcon(
+                    bgColor = DesignTokens.Onboarding.medallionFill[0],
+                    fgColor = DesignTokens.Onboarding.iconTint[0]
+                )
+                3 -> Box(
+                    Modifier.size(160.dp).clip(CircleShape)
+                        .background(DesignTokens.Onboarding.medallionFill[3]),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.CloudUpload,
+                        contentDescription = null,
+                        tint = DesignTokens.Onboarding.iconTint[3],
+                        modifier = Modifier.size(72.dp)
+                    )
+                }
+                else -> Box(
+                    Modifier.size(160.dp).clip(CircleShape)
+                        .background(DesignTokens.Onboarding.medallionFill[page]),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = if (page == 1) Icons.Rounded.Cached else Icons.Rounded.EmojiEvents,
+                        contentDescription = null,
+                        tint = DesignTokens.Onboarding.iconTint[page],
+                        modifier = Modifier.size(72.dp)
+                    )
                 }
             }
             Spacer(Modifier.height(28.dp))
             Text(slide.title, color = slide.fg, fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.height(12.dp))
-            Text(slide.text, color = slide.body, fontSize = 15.sp, lineHeight = 24.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+            Text(slide.text, color = slide.fg.copy(alpha = 0.7f), fontSize = 15.sp, lineHeight = 24.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.weight(1f))
         }
     }
@@ -199,25 +237,6 @@ private fun EyeToggleIcon(bgColor: Color, fgColor: Color) {
         Box(Modifier.size(width = 96.dp, height = 52.dp).clip(RoundedCornerShape(26.dp)).background(fgColor), contentAlignment = Alignment.CenterEnd) {
             Box(Modifier.padding(end = 4.dp).size(44.dp).clip(CircleShape).background(bgColor), contentAlignment = Alignment.Center) {
                 Icon(Icons.Filled.Visibility, contentDescription = null, tint = fgColor, modifier = Modifier.size(28.dp))
-            }
-        }
-    }
-}
-
-@Composable
-private fun CsvUploadIcon(circleColor: Color, docColor: Color, inkColor: Color) {
-    Box(Modifier.size(160.dp).clip(CircleShape).background(circleColor), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Box(Modifier.size(width = 72.dp, height = 84.dp).clip(RoundedCornerShape(6.dp)).background(docColor)) {
-                Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Box(Modifier.width(44.dp).height(4.dp).background(inkColor))
-                    Box(Modifier.width(52.dp).height(4.dp).background(inkColor))
-                    Box(Modifier.width(48.dp).height(4.dp).background(inkColor))
-                    Box(Modifier.width(36.dp).height(4.dp).background(inkColor))
-                }
-            }
-            Box(Modifier.padding(top = 6.dp).clip(RoundedCornerShape(4.dp)).background(inkColor).padding(horizontal = 10.dp, vertical = 3.dp)) {
-                Text("CSV", color = circleColor, fontSize = 12.sp, fontWeight = FontWeight.Bold)
             }
         }
     }

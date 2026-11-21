@@ -90,6 +90,8 @@ class UserPreferences @Inject constructor(
         val PLAN_PULLS_LEFT = intPreferencesKey("plan_pulls_left")
         val PLAN_UNLIMITED = booleanPreferencesKey("plan_unlimited")
         val PLAN_EXPIRES_AT = longPreferencesKey("plan_expires_at")
+        // ── O3 — credits expiry countdown ──
+        val CREDITS_EXPIRES_AT = longPreferencesKey("credits_expires_at")
         // ── S68 — activation ladder flags (DataStore-persisted) ──
         val LADDER_ENGINE_ARMED = booleanPreferencesKey("ladder_engine_armed")
         val LADDER_TEST_DRIVE_DONE = booleanPreferencesKey("ladder_test_drive_done")
@@ -219,6 +221,11 @@ class UserPreferences @Inject constructor(
         p[Keys.PLAN_UNLIMITED] = state.unlimited
         p[Keys.PLAN_EXPIRES_AT] = state.expiresAtMillis
     }
+
+    // ── O3 — credits expiry read/write ──
+    val creditsExpiry: Flow<Long> = context.dataStore.data.map { it[Keys.CREDITS_EXPIRES_AT] ?: (System.currentTimeMillis() + 229_320_000L) }
+
+    suspend fun setCreditsExpiry(value: Long) = edit { it[Keys.CREDITS_EXPIRES_AT] = value }
 
     // ── Stage 14 — customers autosave book ──
 

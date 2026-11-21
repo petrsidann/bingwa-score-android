@@ -42,6 +42,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -96,6 +97,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import com.bingwascore.app.BuildConfig
 import com.bingwascore.app.ui.autorenewals.AutoRenewalsScreen
 import com.bingwascore.app.ui.autoreplies.AutoRepliesScreen
@@ -197,7 +200,13 @@ fun AppNavHost(remoteHttpClient: RemoteHttpClient) {
                 }
             })
         }
-        composable(Routes.ONBOARDING) {
+        composable(
+            Routes.ONBOARDING,
+            enterTransition = { slideInHorizontally(tween(260)) { it } },
+            exitTransition = { slideOutHorizontally(tween(260)) { -it } },
+            popEnterTransition = { slideInHorizontally(tween(260)) { -it } },
+            popExitTransition = { slideOutHorizontally(tween(260)) { it } }
+        ) {
             OnboardingSlides(
                 onCreateAccount = {
                     scope.launch { splashViewModel.markOnboardingDone() }
@@ -213,7 +222,13 @@ fun AppNavHost(remoteHttpClient: RemoteHttpClient) {
                 }
             )
         }
-        composable(Routes.LOGIN) {
+        composable(
+            Routes.LOGIN,
+            enterTransition = { slideInHorizontally(tween(260)) { it } },
+            exitTransition = { slideOutHorizontally(tween(260)) { -it } },
+            popEnterTransition = { slideInHorizontally(tween(260)) { -it } },
+            popExitTransition = { slideOutHorizontally(tween(260)) { it } }
+        ) {
             LoginScreen(
                 onSignIn = {
                     // After sign-in the user lands on the setup checklist, which
@@ -241,7 +256,13 @@ fun AppNavHost(remoteHttpClient: RemoteHttpClient) {
             )
         }
 
-        composable(Routes.PIN_SETUP) {
+        composable(
+            Routes.PIN_SETUP,
+            enterTransition = { slideInHorizontally(tween(260)) { it } },
+            exitTransition = { slideOutHorizontally(tween(260)) { -it } },
+            popEnterTransition = { slideInHorizontally(tween(260)) { -it } },
+            popExitTransition = { slideOutHorizontally(tween(260)) { it } }
+        ) {
             PinSetupScreen(
                 onComplete = {
                     navController.navigate(Routes.SETUP_CHECKLIST) {
@@ -251,7 +272,13 @@ fun AppNavHost(remoteHttpClient: RemoteHttpClient) {
                 onBack = { navController.popBackStack() }
             )
         }
-        composable(Routes.SETUP_CHECKLIST) {
+        composable(
+            Routes.SETUP_CHECKLIST,
+            enterTransition = { slideInHorizontally(tween(260)) { it } },
+            exitTransition = { slideOutHorizontally(tween(260)) { -it } },
+            popEnterTransition = { slideInHorizontally(tween(260)) { -it } },
+            popExitTransition = { slideOutHorizontally(tween(260)) { it } }
+        ) {
             SetupChecklistScreen(
                 onSetupComplete = {
                     navController.navigate(Routes.MAIN) {
@@ -353,29 +380,15 @@ fun MainScreen(remoteHttpClient: RemoteHttpClient) {
 
     Box(modifier = Modifier.fillMaxSize()) {
         CompositionLocalProvider(LocalGlassBackdrop provides glassBackdrop) {
-            Scaffold(
-                modifier = Modifier.fillMaxSize().background(DesignTokens.LocalBingwaRoles.current.bg),
-                contentWindowInsets = WindowInsets.safeDrawing.only(
-                    WindowInsetsSides.Top + WindowInsetsSides.Horizontal
-                ),
-                snackbarHost = { PremiumToastHost() },
-                bottomBar = {
-                    LensTabBar(
-                        selectedIndex = selectedTab,
-                        onSelect = { i ->
-                            selectedTab = i
-                            drawerOpen = false
-                            showDialer = false
-                            showTransactions = false
-                            showManage = false
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .navigationBarsPadding()
-                            .padding(start = 14.dp, end = 14.dp, bottom = 14.dp)
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .windowInsetsPadding(
+                        WindowInsets.safeDrawing.only(
+                            WindowInsetsSides.Top + WindowInsetsSides.Horizontal
+                        )
                     )
-                }
-            ) { innerPadding ->
+            ) {
                 val destination = when {
                     showDialer -> "dialer"
                     showTransactions -> "transactions"
@@ -409,10 +422,7 @@ fun MainScreen(remoteHttpClient: RemoteHttpClient) {
                 // pill/drawer blur passes replay (transactions move blurred behind).
                 Box(modifier = Modifier.glassSource(glassBackdrop).fillMaxSize().background(DesignTokens.LocalBingwaRoles.current.bg)) {
                     Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(innerPadding)
-                            .padding(bottom = DesignTokens.Spacing.Md * 5)
+                        modifier = Modifier.fillMaxSize()
                     ) {
                         ScreenTransition(screenKey = resolved, modifier = Modifier.fillMaxSize()) {
                             when (resolved) {
@@ -462,6 +472,28 @@ fun MainScreen(remoteHttpClient: RemoteHttpClient) {
                     }
                 }
             }
+
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(start = 14.dp, end = 14.dp, bottom = 14.dp)
+            ) {
+                LensTabBar(
+                    selectedIndex = selectedTab,
+                    onSelect = { i ->
+                        selectedTab = i
+                        drawerOpen = false
+                        showDialer = false
+                        showTransactions = false
+                        showManage = false
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            PremiumToastHost()
         }
 
         // Stage 50 — liquid glass side drawer: frosted-glass sheet behind a

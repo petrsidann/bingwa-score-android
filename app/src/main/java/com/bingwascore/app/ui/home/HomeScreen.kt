@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -34,7 +35,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.GridView
+import androidx.compose.material.icons.rounded.HourglassTop
+import androidx.compose.material.icons.rounded.Phone
 import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.Schedule
+import androidx.compose.material.icons.rounded.BarChart
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
@@ -45,6 +53,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -52,9 +61,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -82,9 +94,11 @@ import com.bingwascore.app.util.formatCustomerName
 import com.bingwascore.app.util.rememberHaptics
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import kotlin.math.max
+import kotlinx.coroutines.delay
 
 private const val MASK = "******"
 private const val CLOCK_BUCKET_MILLIS = 30_000L
@@ -98,6 +112,8 @@ data class HomeScreenState(
     val greetingLanguage: Greetings.Language = Greetings.Language.SWAHILI,
     val creditsLabel: String = "0",
     val creditsPlanName: String = "",
+    val creditsExpiry: Long = 0L,
+    val payoutCommission: Double = 0.0,
     val completedToday: Int = 0,
     val unseenFailed: Int = 0,
     val successful: Int = 0,
@@ -181,6 +197,8 @@ fun HomeScreen(
 
     val greeting by viewModel.greeting.collectAsStateWithLifecycle()
     val creditsLabel by viewModel.creditsLabel.collectAsStateWithLifecycle()
+    val creditsExpiry by viewModel.creditsExpiry.collectAsStateWithLifecycle(0L)
+    val weeklyCommission by viewModel.weeklyCommission.collectAsStateWithLifecycle()
     val planState by viewModel.planState.collectAsStateWithLifecycle()
     val themeMode by viewModel.userPreferences.themeMode.collectAsStateWithLifecycle(ThemeMode.PORCELAIN_DIM)
     val meshConnected by viewModel.userPreferences.meshConnected.collectAsStateWithLifecycle(false)
@@ -235,6 +253,8 @@ fun HomeScreen(
         greetingLanguage = greeting.second,
         creditsLabel = creditsLabel,
         creditsPlanName = planState.displayName.ifBlank { "Credits" },
+        creditsExpiry = creditsExpiry,
+        payoutCommission = weeklyCommission,
         completedToday = completedToday,
         unseenFailed = unseenFailed,
         successful = successful,
@@ -325,6 +345,10 @@ fun HomeScreenContent(
                 HeroSection(state = state, callbacks = callbacks)
             }
 
+            item {
+                Subtabs(selected = selectedSubtab, onSelect = { selectedSubtab = it })
+            }
+
             if (state.isOffline) {
                 item { OfflineMeshBanner(queuedCount = state.queuedCount, onFlush = {}) }
             }
@@ -334,7 +358,7 @@ fun HomeScreenContent(
             }
 
             item {
-                ActivationLadder(
+                ActivationLadderCard(
                     engineArmed = state.ladderEngineArmed,
                     testDriveDone = state.ladderTestDriveDone,
                     importBookDone = state.ladderImportBookDone,
@@ -344,10 +368,6 @@ fun HomeScreenContent(
                     onImportBookClick = callbacks.onLadderImportBook,
                     onRecoverFailureClick = callbacks.onLadderRecoverFailure
                 )
-            }
-
-            item {
-                Subtabs(selected = selectedSubtab, onSelect = { selectedSubtab = it })
             }
 
             when (selectedSubtab) {
@@ -377,7 +397,7 @@ private fun HeroSection(state: HomeScreenState, callbacks: HomeScreenCallbacks) 
                     fontSize = 14.sp
                 )
                 Spacer(modifier = Modifier.weight(1f))
-                CreditsBox(label = state.creditsLabel, planName = state.creditsPlanName, onClick = callbacks.onOpenMyPlan)
+                CreditsBox(expiry = state.creditsExpiry, planName = state.creditsPlanName, onClick = callbacks.onOpenMyPlan)
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -406,9 +426,9 @@ private fun HeroSection(state: HomeScreenState, callbacks: HomeScreenCallbacks) 
             Spacer(modifier = Modifier.height(16.dp))
 
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                QuickActionTile(icon = {}, label = "Dial", onClick = callbacks.onOpenDial)
-                QuickActionTile(icon = {}, label = "Stats", onClick = callbacks.onOpenStats)
-                QuickActionTile(icon = {}, label = "Manage", onClick = callbacks.onOpenManage)
+                QuickActionTile(icon = Icons.Rounded.Phone, label = "Dial", onClick = callbacks.onOpenDial)
+                QuickActionTile(icon = Icons.Rounded.BarChart, label = "Stats", onClick = callbacks.onOpenStats)
+                QuickActionTile(icon = Icons.Rounded.GridView, label = "Manage", onClick = callbacks.onOpenManage)
             }
         }
     }
@@ -465,7 +485,21 @@ private fun FailedBulb(count: Int, onClick: () -> Unit) {
 }
 
 @Composable
-private fun CreditsBox(label: String, planName: String, onClick: () -> Unit) {
+private fun CreditsBox(expiry: Long, planName: String, onClick: () -> Unit) {
+    var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(1_000L)
+            now = System.currentTimeMillis()
+        }
+    }
+    val remaining = (expiry - now).coerceAtLeast(0L)
+    val days = remaining / 86_400_000L
+    val hours = (remaining % 86_400_000L) / 3_600_000L
+    val minutes = (remaining % 3_600_000L) / 60_000L
+    val seconds = (remaining % 60_000L) / 1_000L
+    val countdown = String.format(Locale.US, "%dd %02dh %02dm %02ds", days, hours, minutes, seconds)
+
     GlassCard(modifier = Modifier.clickable(onClick = onClick)) {
         Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
             Text(
@@ -475,10 +509,11 @@ private fun CreditsBox(label: String, planName: String, onClick: () -> Unit) {
                 fontWeight = FontWeight.Bold
             )
             Text(
-                text = label,
+                text = countdown,
                 color = DesignTokens.Semantic.complete,
                 fontSize = 18.sp,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                fontFamily = FontFamily.Monospace
             )
             Text(
                 text = planName.ifBlank { "Get credits" },
@@ -490,23 +525,31 @@ private fun CreditsBox(label: String, planName: String, onClick: () -> Unit) {
 }
 
 @Composable
-private fun QuickActionTile(icon: @Composable () -> Unit, label: String, onClick: () -> Unit) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
+private fun QuickActionTile(icon: ImageVector, label: String, onClick: () -> Unit) {
+    GlassCard(
         modifier = Modifier
-            .clip(RoundedCornerShape(DesignTokens.Shape.RadiusMd))
-            .background(DesignTokens.LocalBingwaRoles.current.card.copy(alpha = 0.3f))
+            .size(width = 56.dp, height = 44.dp)
             .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 10.dp)
     ) {
-        Box(modifier = Modifier.size(24.dp)) { icon() }
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = label,
-            color = DesignTokens.Hero.ink,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.SemiBold
-        )
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+            modifier = Modifier.fillMaxSize()
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                tint = DesignTokens.Hero.ink,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = label,
+                color = DesignTokens.Hero.ink,
+                fontSize = 9.5.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
     }
 }
 
@@ -581,12 +624,161 @@ private fun Subtabs(selected: Int, onSelect: (Int) -> Unit) {
     }
 }
 
+@Composable
+private fun ActivationLadderCard(
+    engineArmed: Boolean,
+    testDriveDone: Boolean,
+    importBookDone: Boolean,
+    recoverFailureDone: Boolean,
+    onEngineArmedClick: () -> Unit,
+    onTestDriveClick: () -> Unit,
+    onImportBookClick: () -> Unit,
+    onRecoverFailureClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val tasks = listOf(
+        LadderItem("Arm the engine", "Grant SMS + Phone so the autopilot can dial.", engineArmed, onEngineArmedClick),
+        LadderItem("Test drive a payment", "Run one sandbox payment end-to-end.", testDriveDone, onTestDriveClick),
+        LadderItem("Import your book", "Upload CSV or link to existing customers.", importBookDone, onImportBookClick),
+        LadderItem("Recover a failure", "Retry one failed transaction with one tap.", recoverFailureDone, onRecoverFailureClick)
+    )
+    val completed = tasks.count { it.done }
+    val allDone = completed == tasks.size
+
+    GlassCard(modifier = modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                ProgressRing(completed = completed, total = tasks.size)
+                Spacer(modifier = Modifier.width(12.dp))
+                Column {
+                    Text(
+                        text = "Activation ladder",
+                        color = DesignTokens.LocalBingwaRoles.current.textPrimary,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "$completed/${tasks.size} complete",
+                        color = DesignTokens.LocalBingwaRoles.current.textSecondary,
+                        fontSize = 12.sp
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            tasks.forEach { task ->
+                TaskRow(task = task)
+                Spacer(modifier = Modifier.height(10.dp))
+            }
+
+            if (allDone) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(DesignTokens.Shape.RadiusMd))
+                        .background(DesignTokens.Semantic.complete)
+                        .padding(horizontal = 12.dp, vertical = 10.dp)
+                ) {
+                    Text(
+                        text = "Autopilot armed · streak day 1 · retry queue active",
+                        color = DesignTokens.LocalBingwaRoles.current.onSuccess,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+        }
+    }
+}
+
+private data class LadderItem(val title: String, val caption: String, val done: Boolean, val onClick: () -> Unit)
+
+@Composable
+private fun TaskRow(task: LadderItem) {
+    val tileShape = RoundedCornerShape(9.dp)
+    val tileColor = if (task.done) DesignTokens.Semantic.complete else Color.Transparent
+    val iconTint = if (task.done) DesignTokens.LocalBingwaRoles.current.onSuccess else DesignTokens.LocalBingwaRoles.current.textSecondary
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = task.onClick)
+            .padding(vertical = 4.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(26.dp)
+                .clip(tileShape)
+                .background(tileColor)
+                .border(1.dp, if (task.done) DesignTokens.Semantic.complete else DesignTokens.LocalBingwaRoles.current.border, tileShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = if (task.done) Icons.Rounded.Check else Icons.Rounded.Add,
+                contentDescription = if (task.done) "Done" else "Pending",
+                tint = iconTint,
+                modifier = Modifier.size(16.dp)
+            )
+        }
+        Spacer(modifier = Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = task.title,
+                color = DesignTokens.LocalBingwaRoles.current.textPrimary,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = task.caption,
+                color = DesignTokens.LocalBingwaRoles.current.textSecondary,
+                fontSize = 12.sp
+            )
+        }
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(50))
+                .background(if (task.done) DesignTokens.Semantic.complete else DesignTokens.LocalBingwaRoles.current.brand)
+                .padding(horizontal = 12.dp, vertical = 6.dp)
+        ) {
+            Text(
+                text = if (task.done) "DONE" else "ACTION",
+                color = if (task.done) DesignTokens.LocalBingwaRoles.current.onSuccess else DesignTokens.LocalBingwaRoles.current.onBrand,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+    }
+}
+
+@Composable
+private fun ProgressRing(completed: Int, total: Int) {
+    val allDone = completed == total
+    val progress = completed.toFloat() / total.toFloat().coerceAtLeast(1f)
+    Box(contentAlignment = Alignment.Center) {
+        CircularProgressIndicator(
+            progress = { progress },
+            modifier = Modifier.size(52.dp),
+            color = if (allDone) DesignTokens.Semantic.complete else DesignTokens.LocalBingwaRoles.current.brand,
+            trackColor = DesignTokens.LocalBingwaRoles.current.border,
+            strokeWidth = 6.dp
+        )
+        Text(
+            text = "$completed",
+            color = DesignTokens.LocalBingwaRoles.current.textPrimary,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
+
 private fun androidx.compose.foundation.lazy.LazyListScope.offersSection(
     state: HomeScreenState,
     callbacks: HomeScreenCallbacks,
     now: Long
 ) {
-    item { PayoutCard() }
+    item { PayoutCard(state.payoutCommission) }
 
     item {
         var selectedCategory by remember { mutableStateOf("All") }
@@ -612,8 +804,21 @@ private fun androidx.compose.foundation.lazy.LazyListScope.offersSection(
         }
     }
 
-    items(state.offers) { offer ->
-        OfferRow(offer = offer, onToggle = { })
+    if (state.offers.isNotEmpty()) {
+        item {
+            GlassCard(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    state.offers.forEachIndexed { index, offer ->
+                        OfferRow(offer = offer, onToggle = { })
+                        if (index < state.offers.size - 1) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(DesignTokens.LocalBingwaRoles.current.border))
+                            Spacer(modifier = Modifier.height(8.dp))
+                        }
+                    }
+                }
+            }
+        }
     }
 
     item { RepeatBuyersCard(customers = state.customers) }
@@ -629,45 +834,109 @@ private fun androidx.compose.foundation.lazy.LazyListScope.offersSection(
             )
         }
     } else {
-        itemsIndexed(state.transactions, key = { _, tx -> tx.id }) { index, tx ->
-            HomeTransactionRow(tx = tx, now = now, showDivider = index < state.transactions.size - 1)
+        item {
+            GlassCard(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    state.transactions.forEachIndexed { index, tx ->
+                        HomeTransactionRow(tx = tx, now = now, showDivider = index < state.transactions.size - 1)
+                    }
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun PayoutCard() {
+private fun PayoutCard(commission: Double) {
+    var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(1_000L)
+            now = System.currentTimeMillis()
+        }
+    }
+    val calendar = java.util.Calendar.getInstance()
+    calendar.timeInMillis = now
+    val daysUntilFriday = ((Calendar.FRIDAY - calendar.get(Calendar.DAY_OF_WEEK) + 7) % 7).coerceAtLeast(1)
+    val target = calendar.apply {
+        add(Calendar.DAY_OF_WEEK, daysUntilFriday)
+        set(Calendar.HOUR_OF_DAY, 17)
+        set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
+    }.timeInMillis
+    val remaining = (target - now).coerceAtLeast(0L)
+    val days = remaining / 86_400_000L
+    val hours = (remaining % 86_400_000L) / 3_600_000L
+    val minutes = (remaining % 3_600_000L) / 60_000L
+    val seconds = (remaining % 60_000L) / 1_000L
+    val countdown = String.format(Locale.US, "%dd %02dh %02dm %02ds", days, hours, minutes, seconds)
+    val goal = 1000.0
+    val progress = (commission / goal).toFloat().coerceIn(0f, 1f)
+
     GlassCard(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(text = "Payout", color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(8.dp))
-            Text(text = "Weekly countdown + commission/goal gradient bar", color = DesignTokens.LocalBingwaRoles.current.textSecondary, fontSize = 12.sp)
+            Text(
+                text = countdown,
+                color = DesignTokens.LocalBingwaRoles.current.brand,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = FontFamily.Monospace
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Commission this week Ksh ${money(commission)} / ${money(goal)}",
+                color = DesignTokens.LocalBingwaRoles.current.textPrimary,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(8.dp)
+                    .clip(RoundedCornerShape(50))
+                    .background(DesignTokens.LocalBingwaRoles.current.border)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth(progress)
+                        .background(
+                            Brush.horizontalGradient(
+                                listOf(DesignTokens.LocalBingwaRoles.current.brand, DesignTokens.Semantic.complete)
+                            )
+                        )
+                )
+            }
         }
     }
 }
 
 @Composable
 private fun OfferRow(offer: Offer, onToggle: (Boolean) -> Unit) {
-    GlassCard(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(12.dp)
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(text = offer.name, color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+            Text(text = "${offer.type} · ${offer.ussdCode}", color = DesignTokens.LocalBingwaRoles.current.textSecondary, fontSize = 12.sp)
+        }
+        Text(text = "Ksh ${offer.price}", color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.width(8.dp))
+        Box(
+            modifier = Modifier
+                .size(40.dp, 24.dp)
+                .clip(RoundedCornerShape(50))
+                .background(if (offer.isActive) DesignTokens.Semantic.complete else DesignTokens.LocalBingwaRoles.current.border)
+                .clickable { onToggle(!offer.isActive) }
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = offer.name, color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-                Text(text = "${offer.type} · ${offer.ussdCode}", color = DesignTokens.LocalBingwaRoles.current.textSecondary, fontSize = 12.sp)
-            }
-            Text(text = "Ksh ${offer.price}", color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.width(8.dp))
-            Box(
-                modifier = Modifier
-                    .size(40.dp, 24.dp)
-                    .clip(RoundedCornerShape(50))
-                    .background(if (offer.isActive) DesignTokens.Semantic.complete else DesignTokens.LocalBingwaRoles.current.border)
-                    .clickable { onToggle(!offer.isActive) }
-            ) {
-                Box(modifier = Modifier.size(16.dp).clip(CircleShape).background(DesignTokens.LocalBingwaRoles.current.onBrand).align(Alignment.CenterStart))
-            }
+            Box(modifier = Modifier.size(16.dp).clip(CircleShape).background(DesignTokens.LocalBingwaRoles.current.onBrand).align(Alignment.CenterStart))
         }
     }
 }
@@ -682,10 +951,73 @@ private fun RepeatBuyersCard(customers: List<Customer>) {
                 Text(text = "No repeat buyers yet", color = DesignTokens.LocalBingwaRoles.current.textSecondary, fontSize = 12.sp)
             } else {
                 customers.forEach { customer ->
-                    Text(text = formatCustomerName(customer.name), color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 14.sp)
+                    val atRisk = customer.txCount <= 2
+                    val chipColor = if (atRisk) DesignTokens.Semantic.failed else DesignTokens.Semantic.complete
+                    val chipText = if (atRisk) "at risk" else "loyal"
+                    val chipTextColor = if (atRisk) DesignTokens.LocalBingwaRoles.current.onError else DesignTokens.LocalBingwaRoles.current.onSuccess
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 6.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(CircleShape)
+                                .background(DesignTokens.LocalBingwaRoles.current.brand),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = initials(formatCustomerName(customer.name)),
+                                color = DesignTokens.LocalBingwaRoles.current.onBrand,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = formatCustomerName(customer.name),
+                                color = DesignTokens.LocalBingwaRoles.current.textPrimary,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                text = "Ksh ${money(customer.totalSpent)} · ${customer.txCount} purchases",
+                                color = DesignTokens.LocalBingwaRoles.current.textSecondary,
+                                fontSize = 12.sp
+                            )
+                        }
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(50))
+                                .background(chipColor)
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Text(text = chipText, color = chipTextColor, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Follow up",
+                            color = DesignTokens.LocalBingwaRoles.current.brand,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.clickable { }
+                        )
+                    }
                 }
             }
         }
+    }
+}
+
+private fun initials(name: String): String {
+    val parts = name.trim().split(" ").filter { it.isNotBlank() }
+    return when {
+        parts.size >= 2 -> "${parts.first().first().uppercaseChar()}${parts.last().first().uppercaseChar()}"
+        parts.isNotEmpty() -> parts.first().take(2).uppercase()
+        else -> "?"
     }
 }
 
@@ -746,34 +1078,47 @@ private fun HomeTransactionRow(
     now: Long = System.currentTimeMillis(),
     showDivider: Boolean = false
 ) {
-    val statusColor = when (tx.status) {
-        TransactionStatus.SUCCESSFUL.value -> DesignTokens.Semantic.complete
-        TransactionStatus.FAILED.value,
-        TransactionStatus.FAILED_ALREADY_RECOMMENDED.value,
-        TransactionStatus.UNMATCHED.value,
-        TransactionStatus.CANCELLED.value -> DesignTokens.Semantic.failed
-        else -> DesignTokens.Semantic.scheduled
+    val status = TransactionStatus.fromValue(tx.status)
+    val (statusColor, statusIcon, statusLabel) = when (status) {
+        TransactionStatus.SUCCESSFUL -> Triple(DesignTokens.Semantic.complete, Icons.Rounded.Check, "Completed")
+        TransactionStatus.FAILED,
+        TransactionStatus.FAILED_ALREADY_RECOMMENDED,
+        TransactionStatus.CANCELLED,
+        TransactionStatus.UNMATCHED -> Triple(DesignTokens.Semantic.failed, Icons.Rounded.Close, "Failed")
+        TransactionStatus.PENDING,
+        TransactionStatus.PROCESSING -> Triple(DesignTokens.Semantic.scheduled, Icons.Rounded.HourglassTop, "Queued")
+        else -> Triple(DesignTokens.Semantic.info, Icons.Rounded.Schedule, "Awaiting")
     }
-    GlassCard(modifier = Modifier.fillMaxWidth()) {
-        Column {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth().height(HOME_ROW_HEIGHT).padding(horizontal = 12.dp)
+    Column {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth().height(HOME_ROW_HEIGHT).padding(horizontal = 12.dp)
+        ) {
+            Box(
+                modifier = Modifier.size(40.dp).clip(RoundedCornerShape(8.dp)).background(statusColor),
+                contentAlignment = Alignment.Center
             ) {
-                Box(modifier = Modifier.size(40.dp).clip(RoundedCornerShape(8.dp)).background(statusColor), contentAlignment = Alignment.Center) {
-                    Text(text = "●", color = DesignTokens.Hero.ink, fontSize = 10.sp)
-                }
-                Spacer(modifier = Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(text = formatCustomerName(tx.customerName).ifBlank { tx.phoneNumber }, color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text(text = "${tx.offerName} · ${timeAgo(tx.createdAt, now)}", color = DesignTokens.LocalBingwaRoles.current.textSecondary, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                }
-                Text(text = "Ksh ${money(tx.amount)}", color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                Icon(imageVector = statusIcon, contentDescription = statusLabel, tint = DesignTokens.Hero.ink, modifier = Modifier.size(20.dp))
             }
-            if (showDivider) {
-                Spacer(modifier = Modifier.height(4.dp))
-                Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(DesignTokens.LocalBingwaRoles.current.border))
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = formatCustomerName(tx.customerName).ifBlank { tx.phoneNumber }, color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(text = "${tx.offerName} · ${timeAgo(tx.createdAt, now)}", color = DesignTokens.LocalBingwaRoles.current.textSecondary, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
+            Text(text = "Ksh ${money(tx.amount)}", color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.width(8.dp))
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(50))
+                    .background(statusColor)
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
+            ) {
+                Text(text = statusLabel, color = DesignTokens.Hero.ink, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+        if (showDivider) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(DesignTokens.LocalBingwaRoles.current.border))
         }
     }
 }
