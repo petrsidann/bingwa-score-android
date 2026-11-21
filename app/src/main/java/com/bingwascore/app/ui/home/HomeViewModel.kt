@@ -213,10 +213,20 @@ class HomeViewModel @Inject constructor(
         .map { list -> list.groupBy { it.type } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
 
-    /** S68 — top repeat buyers by lifetime spend. */
-    val repeatBuyers: StateFlow<List<com.bingwascore.app.data.local.Customer>> = customerRepository.allCustomers
-        .map { list -> list.sortedByDescending { it.totalSpent }.take(3) }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    /** S68 — top repeat buyers by lifetime spend, computed from successful transactions so seeded demo rows are non-zero. */
+    val repeatBuyers: StateFlow<List<com.bingwascore.app.data.local.Customer>> = combine(
+        customerRepository.allCustomers,
+        transactionRepository.liveTransactions
+    ) { customers, transactions ->
+        val spendByPhone = transactions
+            .filter { it.status == TransactionStatus.SUCCESSFUL.value }
+            .groupBy { it.phoneNumber }
+            .mapValues { entry -> entry.value.sumOf { it.amount } to entry.value.size }
+        customers.map { customer ->
+            val (spend, count) = spendByPhone[customer.phoneNumber] ?: (0.0 to 0)
+            customer.copy(totalSpent = spend, txCount = count)
+        }.sortedByDescending { it.totalSpent }.take(3)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     // ── S68 — activation ladder flags ──
     val ladderEngineArmed: StateFlow<Boolean> = userPreferences.ladderEngineArmed

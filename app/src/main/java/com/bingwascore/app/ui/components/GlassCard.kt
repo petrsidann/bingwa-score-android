@@ -2,6 +2,7 @@ package com.bingwascore.app.ui.components
 
 import android.os.Build
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -22,6 +23,7 @@ import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.bingwascore.app.ui.theme.DesignTokens
+import com.bingwascore.app.ui.theme.isPorcelain
 
 /**
  * Stage 48 — Glass card.
@@ -29,6 +31,9 @@ import com.bingwascore.app.ui.theme.DesignTokens
  * A blurred, elevated surface with a top highlight (Vercel-style layered shadow
  * stack, Level 2). Blur is gated behind API 31 (RenderEffect); older APIs fall
  * back to the flat card surface so the card never crashes on minSdk 26.
+ *
+ * H2 — on Dim a 1dp white 60% hairline border is added so the card reads as
+ * elevated glass instead of flat grey.
  */
 @Composable
 fun GlassCard(
@@ -37,9 +42,15 @@ fun GlassCard(
     content: @Composable () -> Unit
 ) {
     val density = LocalDensity.current
+    val borderModifier = if (isPorcelain) {
+        Modifier.border(1.dp, Color.White.copy(alpha = 0.6f), shape)
+    } else {
+        Modifier
+    }
     Box(
         modifier = modifier
             .clip(shape)
+            .then(borderModifier)
             .drawBehind {
                 val radiusPx = with(density) { DesignTokens.Shape.RadiusMd.toPx() }
                 for (layer in DesignTokens.Elevation.Level2) {
