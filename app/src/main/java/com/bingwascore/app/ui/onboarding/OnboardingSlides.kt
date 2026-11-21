@@ -2,16 +2,18 @@ package com.bingwascore.app.ui.onboarding
 
 import android.app.Activity
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.collectIsDraggedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -34,8 +36,10 @@ import androidx.compose.material.icons.rounded.Autorenew
 import androidx.compose.material.icons.rounded.Cached
 import androidx.compose.material.icons.rounded.EmojiEvents
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
@@ -66,8 +70,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.roundToInt
+import kotlin.math.sin
 
 private val CsvBlue = Color(0xFF1E3A8A)
+private val DarkOlive = Color(0xFF4D7C0F)
 
 private data class Slide(
     val bg: Color,
@@ -97,6 +103,7 @@ fun OnboardingSlides(onCreateAccount: () -> Unit, onSignIn: () -> Unit) {
     val haptic = LocalHapticFeedback.current
     val view = LocalView.current
     val context = LocalContext.current
+
     SideEffect {
         (view.context as? Activity)?.window?.let { w ->
             WindowCompat.getInsetsController(w, view).isAppearanceLightStatusBars = pagerState.currentPage != 0
@@ -108,6 +115,14 @@ fun OnboardingSlides(onCreateAccount: () -> Unit, onSignIn: () -> Unit) {
     BackHandler(enabled = pagerState.currentPage == 0) { (context as? Activity)?.finish() }
 
     val slide = slides[pagerState.currentPage]
+
+    val rawPage = pagerState.currentPage + pagerState.currentPageOffsetFraction
+    val roundedPage = rawPage.roundToInt().coerceIn(0, slides.lastIndex)
+    val chromeInk by animateColorAsState(
+        targetValue = if (roundedPage == 0) DarkOlive else Color.White,
+        animationSpec = tween(durationMillis = 300),
+        label = "chromeInk"
+    )
 
     Box(Modifier.fillMaxSize().background(slide.bg)) {
         HorizontalPager(
@@ -122,28 +137,30 @@ fun OnboardingSlides(onCreateAccount: () -> Unit, onSignIn: () -> Unit) {
             modifier = Modifier.align(Alignment.TopEnd),
             pagerState = pagerState,
             scope = scope,
-            color = slide.fg
+            color = chromeInk
         )
 
-        Column(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .navigationBarsPadding()
-                .padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            CtaRow(
-                slide = slide,
-                page = pagerState.currentPage,
-                scope = scope,
-                pagerState = pagerState,
-                haptic = haptic,
-                onCreateAccount = onCreateAccount,
-                onSignIn = onSignIn
-            )
-            Spacer(Modifier.height(10.dp))
-            DragFollowDots(pagerState = pagerState, count = slides.size, dotColor = slide.fg)
+        CompositionLocalProvider(LocalContentColor provides chromeInk) {
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(start = 16.dp, end = 16.dp, bottom = 18.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                CtaRow(
+                    slide = slide,
+                    page = pagerState.currentPage,
+                    scope = scope,
+                    pagerState = pagerState,
+                    haptic = haptic,
+                    onCreateAccount = onCreateAccount,
+                    onSignIn = onSignIn
+                )
+                Spacer(Modifier.height(12.dp))
+                Dots(pagerState = pagerState)
+            }
         }
     }
 }
@@ -163,8 +180,8 @@ private fun SlideContentOnly(
         Modifier
             .fillMaxSize()
             .graphicsLayer {
-                alpha = (1f - abs(off) * 0.7f).coerceIn(0f, 1f)
-                translationX = -off * pageWidthPx * 0.25f
+                alpha = 1f
+                translationX = -off * pageWidthPx * 0.10f
             },
         contentAlignment = Alignment.Center
     ) {
@@ -239,7 +256,14 @@ private fun Skip(
         modifier = modifier
             .statusBarsPadding()
             .padding(top = 12.dp, end = 24.dp)
-            .clickable { scope.launch { pagerState.animateScrollToPage(pagerState.pageCount - 1) } }
+            .clickable {
+                scope.launch {
+                    pagerState.animateScrollToPage(
+                        pagerState.pageCount - 1,
+                        animationSpec = spring(dampingRatio = 0.86f, stiffness = 300f)
+                    )
+                }
+            }
     )
 }
 
@@ -270,7 +294,12 @@ private fun CtaRow(
                     .background(ctaBg)
                     .clickable {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        scope.launch { pagerState.animateScrollToPage(page + 1) }
+                        scope.launch {
+                            pagerState.animateScrollToPage(
+                                page + 1,
+                                animationSpec = spring(dampingRatio = 0.86f, stiffness = 300f)
+                            )
+                        }
                     },
                 contentAlignment = Alignment.Center
             ) {
@@ -279,7 +308,7 @@ private fun CtaRow(
         } else {
             Text(
                 "Sign in",
-                color = slide.fg.copy(alpha = 0.8f),
+                color = LocalContentColor.current.copy(alpha = 0.8f),
                 fontSize = 16.sp,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.padding(8.dp).clickable { onSignIn() }
@@ -303,42 +332,50 @@ private fun CtaRow(
 }
 
 @Composable
-private fun DragFollowDots(pagerState: PagerState, count: Int, dotColor: Color) {
-    val density = LocalDensity.current
-    val slot = 24.dp
-    val gap = 8.dp
-    val dotSize = 7.dp
-    val isDragged by pagerState.interactionSource.collectIsDraggedAsState()
-    val rawFrac = pagerState.currentPage + pagerState.currentPageOffsetFraction
-    val animatedFrac by animateFloatAsState(
-        targetValue = rawFrac,
-        animationSpec = spring(dampingRatio = 0.86f, stiffness = 300f),
-        label = "dotFrac"
-    )
-    val frac = if (isDragged) rawFrac else animatedFrac
-    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+private fun Dots(pagerState: PagerState) {
+    val lime = DesignTokens.Launch.lime
+    val violet = DesignTokens.Launch.violet
+    val rawPage = pagerState.currentPage + pagerState.currentPageOffsetFraction
+    val roundedPage = rawPage.roundToInt().coerceIn(0, 3)
+    val pillColor = if (roundedPage == 0) violet else lime
+    val frac = abs(pagerState.currentPageOffsetFraction)
+    val pillWidth = (24 + 10 * sin(Math.PI * frac)).dp
+    val prog = rawPage
+
+    Box(
+        modifier = Modifier
+            .width(72.dp)
+            .height(8.dp),
+        contentAlignment = Alignment.CenterStart
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxHeight()
+                .padding(start = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            repeat(4) {
+                Box(
+                    Modifier
+                        .size(8.dp)
+                        .clip(CircleShape)
+                        .background(LocalContentColor.current.copy(alpha = 0.35f))
+                )
+            }
+        }
+
+        val density = LocalDensity.current
         Box(
             modifier = Modifier
                 .offset {
-                    val x = frac * (slot + gap).value * density.density
+                    val x = with(density) { (prog * 16).dp.toPx() }
                     IntOffset(x.roundToInt(), 0)
                 }
-                .size(slot, dotSize),
-            contentAlignment = Alignment.CenterStart
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(slot, dotSize)
-                    .clip(RoundedCornerShape(50))
-                    .background(DesignTokens.Launch.lime)
-            )
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(gap), verticalAlignment = Alignment.CenterVertically) {
-            repeat(count) {
-                Box(Modifier.size(slot, dotSize), contentAlignment = Alignment.Center) {
-                    Box(Modifier.size(dotSize).clip(CircleShape).background(dotColor.copy(alpha = 0.35f)))
-                }
-            }
-        }
+                .width(pillWidth)
+                .height(8.dp)
+                .clip(RoundedCornerShape(99.dp))
+                .background(pillColor)
+        )
     }
 }
