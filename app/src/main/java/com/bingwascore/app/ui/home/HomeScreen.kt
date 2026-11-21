@@ -16,6 +16,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -392,7 +393,7 @@ private fun HeroSection(state: HomeScreenState, callbacks: HomeScreenCallbacks) 
                 AutopilotEye(engineState = state.engineState)
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Good ${state.greetingBucket.name.lowercase().replaceFirstChar { it.uppercase() }}",
+                    text = greetingText(state.greetingBucket),
                     color = DesignTokens.Hero.ink.copy(alpha = 0.7f),
                     fontSize = 14.sp
                 )
@@ -526,30 +527,30 @@ private fun CreditsBox(expiry: Long, planName: String, onClick: () -> Unit) {
 
 @Composable
 private fun QuickActionTile(icon: ImageVector, label: String, onClick: () -> Unit) {
-    GlassCard(
+    val shape = RoundedCornerShape(14.dp)
+    Column(
         modifier = Modifier
             .size(width = 56.dp, height = 44.dp)
-            .clickable(onClick = onClick)
+            .clip(shape)
+            .background(Color.White.copy(alpha = 0.07f))
+            .border(1.dp, Color.White.copy(alpha = 0.14f), shape)
+            .clickable(onClick = onClick),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-            modifier = Modifier.fillMaxSize()
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = label,
-                tint = DesignTokens.Hero.ink,
-                modifier = Modifier.size(18.dp)
-            )
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                text = label,
-                color = DesignTokens.Hero.ink,
-                fontSize = 9.5.sp,
-                fontWeight = FontWeight.SemiBold
-            )
-        }
+        Icon(
+            imageVector = icon,
+            contentDescription = label,
+            tint = DesignTokens.Hero.ink,
+            modifier = Modifier.size(18.dp)
+        )
+        Spacer(modifier = Modifier.height(2.dp))
+        Text(
+            text = label,
+            color = DesignTokens.Hero.ink,
+            fontSize = 9.5.sp,
+            fontWeight = FontWeight.SemiBold
+        )
     }
 }
 
@@ -893,24 +894,40 @@ private fun PayoutCard(commission: Double) {
                 fontWeight = FontWeight.SemiBold
             )
             Spacer(modifier = Modifier.height(8.dp))
-            Box(
+            BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(8.dp)
                     .clip(RoundedCornerShape(50))
                     .background(DesignTokens.LocalBingwaRoles.current.border)
             ) {
+                val barWidth = (progress * maxWidth.value).dp.coerceAtLeast(4.dp)
                 Box(
                     modifier = Modifier
+                        .width(barWidth)
                         .fillMaxHeight()
-                        .fillMaxWidth(progress)
                         .background(
                             Brush.horizontalGradient(
                                 listOf(DesignTokens.LocalBingwaRoles.current.brand, DesignTokens.Semantic.complete)
                             )
                         )
                 )
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .width(2.dp)
+                        .fillMaxHeight()
+                        .background(Color.White.copy(alpha = 0.6f))
+                )
             }
+            Text(
+                text = "goal Ksh 1,000",
+                color = DesignTokens.LocalBingwaRoles.current.textSecondary,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                textAlign = androidx.compose.ui.text.style.TextAlign.End
+            )
         }
     }
 }
@@ -1019,6 +1036,17 @@ private fun initials(name: String): String {
         parts.isNotEmpty() -> parts.first().take(2).uppercase()
         else -> "?"
     }
+}
+
+/** Maps a greeting bucket to a plain English sentence — never the enum name. */
+private fun greetingText(bucket: Greetings.Bucket): String = when (bucket) {
+    Greetings.Bucket.EARLY_MORNING,
+    Greetings.Bucket.MORNING,
+    Greetings.Bucket.MID_MORNING -> "Good morning"
+    Greetings.Bucket.AFTERNOON,
+    Greetings.Bucket.LATE_AFTERNOON -> "Good afternoon"
+    Greetings.Bucket.EVENING -> "Good evening"
+    Greetings.Bucket.NIGHT -> "Good night"
 }
 
 private fun androidx.compose.foundation.lazy.LazyListScope.settingsSection(callbacks: HomeScreenCallbacks) {

@@ -144,7 +144,6 @@ import androidx.compose.material.icons.rounded.EmojiEvents
 import com.bingwascore.app.ui.theme.DesignTokens
 import com.bingwascore.app.ui.theme.BingwaType
 import com.bingwascore.app.ui.showcase.DemoChip
-import com.bingwascore.app.ui.theme.Motion
 import com.bingwascore.app.ui.theme.DisplayModeState
 import com.bingwascore.app.domain.ThemeMode
 import com.bingwascore.app.ui.theme.Raised
@@ -178,13 +177,11 @@ fun AppNavHost(remoteHttpClient: RemoteHttpClient) {
     NavHost(
         navController = navController,
         startDestination = Routes.LAUNCH,
-        // Stage 11 — 200ms crossfade on every hand-off: the outgoing route
-        // fades out while the incoming one fades in, so no frame ever renders
-        // between two destinations (the sign-in → home black gap, gone).
-        enterTransition = { fadeIn(tween(Motion.NAV_CROSSFADE)) },
-        exitTransition = { fadeOut(tween(Motion.NAV_CROSSFADE)) },
-        popEnterTransition = { fadeIn(tween(Motion.NAV_CROSSFADE)) },
-        popExitTransition = { fadeOut(tween(Motion.NAV_CROSSFADE)) }
+        // H2 — every route slides horizontally (260ms) with a short fade (120ms).
+        enterTransition = { slideInHorizontally(tween(260)) { it } + fadeIn(tween(120)) },
+        exitTransition = { slideOutHorizontally(tween(260)) { -it } + fadeOut(tween(120)) },
+        popEnterTransition = { slideInHorizontally(tween(260)) { -it } + fadeIn(tween(120)) },
+        popExitTransition = { slideOutHorizontally(tween(260)) { it } + fadeOut(tween(120)) }
     ) {
         composable(Routes.LAUNCH) {
             LaunchScreen(onFinished = {
@@ -200,13 +197,7 @@ fun AppNavHost(remoteHttpClient: RemoteHttpClient) {
                 }
             })
         }
-        composable(
-            Routes.ONBOARDING,
-            enterTransition = { slideInHorizontally(tween(260)) { it } },
-            exitTransition = { slideOutHorizontally(tween(260)) { -it } },
-            popEnterTransition = { slideInHorizontally(tween(260)) { -it } },
-            popExitTransition = { slideOutHorizontally(tween(260)) { it } }
-        ) {
+        composable(Routes.ONBOARDING) {
             OnboardingSlides(
                 onCreateAccount = {
                     scope.launch { splashViewModel.markOnboardingDone() }
@@ -222,13 +213,7 @@ fun AppNavHost(remoteHttpClient: RemoteHttpClient) {
                 }
             )
         }
-        composable(
-            Routes.LOGIN,
-            enterTransition = { slideInHorizontally(tween(260)) { it } },
-            exitTransition = { slideOutHorizontally(tween(260)) { -it } },
-            popEnterTransition = { slideInHorizontally(tween(260)) { -it } },
-            popExitTransition = { slideOutHorizontally(tween(260)) { it } }
-        ) {
+        composable(Routes.LOGIN) {
             LoginScreen(
                 onSignIn = {
                     // After sign-in the user lands on the setup checklist, which
@@ -256,13 +241,7 @@ fun AppNavHost(remoteHttpClient: RemoteHttpClient) {
             )
         }
 
-        composable(
-            Routes.PIN_SETUP,
-            enterTransition = { slideInHorizontally(tween(260)) { it } },
-            exitTransition = { slideOutHorizontally(tween(260)) { -it } },
-            popEnterTransition = { slideInHorizontally(tween(260)) { -it } },
-            popExitTransition = { slideOutHorizontally(tween(260)) { it } }
-        ) {
+        composable(Routes.PIN_SETUP) {
             PinSetupScreen(
                 onComplete = {
                     navController.navigate(Routes.SETUP_CHECKLIST) {
@@ -272,13 +251,7 @@ fun AppNavHost(remoteHttpClient: RemoteHttpClient) {
                 onBack = { navController.popBackStack() }
             )
         }
-        composable(
-            Routes.SETUP_CHECKLIST,
-            enterTransition = { slideInHorizontally(tween(260)) { it } },
-            exitTransition = { slideOutHorizontally(tween(260)) { -it } },
-            popEnterTransition = { slideInHorizontally(tween(260)) { -it } },
-            popExitTransition = { slideOutHorizontally(tween(260)) { it } }
-        ) {
+        composable(Routes.SETUP_CHECKLIST) {
             SetupChecklistScreen(
                 onSetupComplete = {
                     navController.navigate(Routes.MAIN) {

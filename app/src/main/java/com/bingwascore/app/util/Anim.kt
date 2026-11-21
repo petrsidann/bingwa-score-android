@@ -2,6 +2,7 @@ package com.bingwascore.app.util
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
@@ -32,7 +33,7 @@ fun Modifier.screenEnter(delayMs: Int = 0): Modifier {
 
     LaunchedEffect(delayMs) {
         if (delayMs > 0) delay(delayMs.toLong())
-        launch { alphaAnim.animateTo(1f, spring(dampingRatio = Motion.DAMPING)) }
+        launch { alphaAnim.animateTo(1f, tween(120)) }
         launch { offsetAnim.animateTo(0f, spring(dampingRatio = Motion.DAMPING)) }
     }
 
