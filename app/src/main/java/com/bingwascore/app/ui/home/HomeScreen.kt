@@ -6,16 +6,26 @@ import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -25,6 +35,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -42,6 +53,8 @@ import androidx.compose.material.icons.rounded.HourglassTop
 import androidx.compose.material.icons.rounded.Phone
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Schedule
+import androidx.compose.material.icons.rounded.Visibility
+import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material.icons.rounded.BarChart
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -62,6 +75,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -111,6 +126,7 @@ private val HOME_ROW_HEIGHT = 44.dp
 data class HomeScreenState(
     val greetingBucket: Greetings.Bucket = Greetings.Bucket.MORNING,
     val greetingLanguage: Greetings.Language = Greetings.Language.SWAHILI,
+    val userName: String = "",
     val creditsLabel: String = "0",
     val creditsPlanName: String = "",
     val creditsExpiry: Long = 0L,
@@ -137,10 +153,12 @@ data class HomeScreenState(
     val isOffline: Boolean = false,
     val queuedCount: Int = 0,
     val balanceBelowCheapestOffer: Boolean = false,
+    val cheapestOfferPrice: Double = 0.0,
     val ladderEngineArmed: Boolean = false,
     val ladderTestDriveDone: Boolean = false,
     val ladderImportBookDone: Boolean = false,
-    val ladderRecoverFailureDone: Boolean = false
+    val ladderRecoverFailureDone: Boolean = false,
+    val ladderHidden: Boolean = false
 )
 
 data class HomeScreenCallbacks(
@@ -161,7 +179,8 @@ data class HomeScreenCallbacks(
     val onLadderEngineArmed: () -> Unit = {},
     val onLadderTestDrive: () -> Unit = {},
     val onLadderImportBook: () -> Unit = {},
-    val onLadderRecoverFailure: () -> Unit = {}
+    val onLadderRecoverFailure: () -> Unit = {},
+    val onLadderHide: () -> Unit = {}
 )
 
 @Composable
@@ -210,6 +229,8 @@ fun HomeScreen(
     val ladderTestDriveDone by viewModel.ladderTestDriveDone.collectAsStateWithLifecycle()
     val ladderImportBookDone by viewModel.ladderImportBookDone.collectAsStateWithLifecycle()
     val ladderRecoverFailureDone by viewModel.ladderRecoverFailureDone.collectAsStateWithLifecycle()
+    val ladderHidden by viewModel.ladderHidden.collectAsStateWithLifecycle()
+    val userName by viewModel.userName.collectAsStateWithLifecycle()
 
     val snackbarHostState = remember { SnackbarHostState() }
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -252,6 +273,7 @@ fun HomeScreen(
     val state = HomeScreenState(
         greetingBucket = greeting.first,
         greetingLanguage = greeting.second,
+        userName = userName,
         creditsLabel = creditsLabel,
         creditsPlanName = planState.displayName.ifBlank { "Credits" },
         creditsExpiry = creditsExpiry,
@@ -278,10 +300,12 @@ fun HomeScreen(
         isOffline = !meshConnected,
         queuedCount = pending,
         balanceBelowCheapestOffer = (balance ?: 0.0) > 0 && (balance ?: 0.0) < cheapestOffer,
+        cheapestOfferPrice = cheapestOffer,
         ladderEngineArmed = ladderEngineArmed,
         ladderTestDriveDone = ladderTestDriveDone,
         ladderImportBookDone = ladderImportBookDone,
-        ladderRecoverFailureDone = ladderRecoverFailureDone
+        ladderRecoverFailureDone = ladderRecoverFailureDone,
+        ladderHidden = ladderHidden
     )
 
     val callbacks = HomeScreenCallbacks(
@@ -308,7 +332,8 @@ fun HomeScreen(
         onLadderEngineArmed = { viewModel.setLadderEngineArmed(true) },
         onLadderTestDrive = { viewModel.setLadderTestDriveDone(true) },
         onLadderImportBook = { viewModel.setLadderImportBookDone(true) },
-        onLadderRecoverFailure = { viewModel.setLadderRecoverFailureDone(true) }
+        onLadderRecoverFailure = { viewModel.setLadderRecoverFailureDone(true) },
+        onLadderHide = { viewModel.setLadderHidden(true) }
     )
 
     HomeScreenContent(state = state, callbacks = callbacks, snackbarHostState = snackbarHostState)
@@ -355,7 +380,7 @@ fun HomeScreenContent(
             }
 
             if (state.balanceBelowCheapestOffer) {
-                item { FloatGuardBanner(onTopUp = callbacks.onOpenMyPlan) }
+                item { FloatGuardBanner(balance = state.balance ?: 0.0, cheapestPrice = state.cheapestOfferPrice, onTopUp = callbacks.onOpenMyPlan) }
             }
 
             item {
@@ -364,10 +389,12 @@ fun HomeScreenContent(
                     testDriveDone = state.ladderTestDriveDone,
                     importBookDone = state.ladderImportBookDone,
                     recoverFailureDone = state.ladderRecoverFailureDone,
+                    ladderHidden = state.ladderHidden,
                     onEngineArmedClick = callbacks.onLadderEngineArmed,
                     onTestDriveClick = callbacks.onLadderTestDrive,
                     onImportBookClick = callbacks.onLadderImportBook,
-                    onRecoverFailureClick = callbacks.onLadderRecoverFailure
+                    onRecoverFailureClick = callbacks.onLadderRecoverFailure,
+                    onHide = callbacks.onLadderHide
                 )
             }
 
@@ -381,55 +408,88 @@ fun HomeScreenContent(
 
 @Composable
 private fun HeroSection(state: HomeScreenState, callbacks: HomeScreenCallbacks) {
+    val heroShape = RoundedCornerShape(DesignTokens.HomeTokens.HeroRadius)
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(26.dp))
-            .background(DesignTokens.Hero.surface)
-            .padding(16.dp)
+            .clip(heroShape)
+            .background(DesignTokens.HomeTokens.HeroBackground)
+            .drawBehind {
+                drawCircle(
+                    color = Color(0xFF7C3AED).copy(alpha = 0.38f),
+                    radius = size.width * 0.45f,
+                    center = Offset(size.width * 0.9f, size.height * 0.02f)
+                )
+                drawCircle(
+                    color = Color(0xFFA4F510).copy(alpha = 0.16f),
+                    radius = size.width * 0.38f,
+                    center = Offset(size.width * 0.02f, size.height * 0.98f)
+                )
+            }
+            .padding(DesignTokens.HomeTokens.HeroPadding)
     ) {
         Column {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(DesignTokens.HomeTokens.HRowGap),
+                verticalAlignment = Alignment.Top
+            ) {
                 AutopilotEye(engineState = state.engineState)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = greetingText(state.greetingBucket),
-                    color = DesignTokens.Hero.ink.copy(alpha = 0.7f),
-                    fontSize = 14.sp
-                )
-                Spacer(modifier = Modifier.weight(1f))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = greetingText(state.greetingBucket),
+                        color = DesignTokens.HomeTokens.TileInk.copy(alpha = DesignTokens.HomeTokens.GreetingOpacity),
+                        fontSize = 12.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = state.userName,
+                        color = DesignTokens.HomeTokens.TileInk,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        letterSpacing = DesignTokens.HomeTokens.GreetingNLetterSpacing,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
                 CreditsBox(expiry = state.creditsExpiry, planName = state.creditsPlanName, onClick = callbacks.onOpenMyPlan)
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
-            Row(verticalAlignment = Alignment.Bottom) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "${state.completedToday}",
-                        color = DesignTokens.Hero.ink,
-                        fontSize = 40.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        letterSpacing = (-1.5).sp
-                    )
-                    Text(
-                        text = "completed today",
-                        color = DesignTokens.Hero.ink.copy(alpha = 0.6f),
-                        fontSize = 14.sp
-                    )
-                }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(DesignTokens.HomeTokens.BalrowGap),
+                modifier = Modifier.padding(bottom = 2.dp)
+            ) {
+                Text(
+                    text = "${state.completedToday}",
+                    color = DesignTokens.HomeTokens.TileInk,
+                    fontSize = DesignTokens.HomeTokens.BignumSize,
+                    fontWeight = FontWeight.ExtraBold,
+                    letterSpacing = DesignTokens.HomeTokens.BignumLetterSpacing,
+                    lineHeight = 34.5.sp
+                )
                 FailedBulb(count = state.unseenFailed, onClick = {
                     callbacks.onClearUnseenFailures()
                     callbacks.onOpenTransactions("FAILED")
                 })
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = "completed today",
+                color = DesignTokens.HomeTokens.TileInk.copy(alpha = DesignTokens.HomeTokens.SublblOpacity),
+                fontSize = 12.sp,
+                modifier = Modifier.padding(bottom = DesignTokens.HomeTokens.SublblMarginBottom)
+            )
 
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                QuickActionTile(icon = Icons.Rounded.Phone, label = "Dial", onClick = callbacks.onOpenDial)
-                QuickActionTile(icon = Icons.Rounded.BarChart, label = "Stats", onClick = callbacks.onOpenStats)
-                QuickActionTile(icon = Icons.Rounded.GridView, label = "Manage", onClick = callbacks.onOpenManage)
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(DesignTokens.HomeTokens.TilesGap),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                QuickActionTile(icon = Icons.Rounded.Phone, label = "Dial", onClick = callbacks.onOpenDial, modifier = Modifier.weight(1f))
+                QuickActionTile(icon = Icons.Rounded.BarChart, label = "Stats", onClick = callbacks.onOpenStats, modifier = Modifier.weight(1f))
+                QuickActionTile(icon = Icons.Rounded.GridView, label = "Manage", onClick = callbacks.onOpenManage, modifier = Modifier.weight(1f))
             }
         }
     }
@@ -438,19 +498,20 @@ private fun HeroSection(state: HomeScreenState, callbacks: HomeScreenCallbacks) 
 @Composable
 private fun AutopilotEye(engineState: EngineState) {
     val on = engineState == EngineState.RUNNING
+    val shape = RoundedCornerShape(DesignTokens.HomeTokens.EyeRadius)
     Box(
         modifier = Modifier
-            .size(36.dp)
-            .clip(CircleShape)
-            .background(if (on) DesignTokens.Semantic.complete else DesignTokens.Semantic.failed)
-            .border(2.dp, DesignTokens.Hero.ink.copy(alpha = 0.2f), CircleShape),
+            .size(DesignTokens.HomeTokens.EyeSize)
+            .clip(shape)
+            .background(if (on) DesignTokens.HomeTokens.EyeOnFill else DesignTokens.HomeTokens.EyeOffFill)
+            .border(1.dp, if (on) DesignTokens.HomeTokens.EyeOnBorder else DesignTokens.HomeTokens.EyeOffBorder, shape),
         contentAlignment = Alignment.Center
     ) {
-        Box(
-            modifier = Modifier
-                .size(12.dp)
-                .clip(CircleShape)
-                .background(DesignTokens.Hero.ink.copy(alpha = if (on) 1f else 0.5f))
+        Icon(
+            imageVector = if (on) Icons.Rounded.Visibility else Icons.Rounded.VisibilityOff,
+            contentDescription = if (on) "Autopilot on" else "Autopilot off",
+            tint = if (on) DesignTokens.HomeTokens.EyeOnBorder else DesignTokens.HomeTokens.EyeOffBorder,
+            modifier = Modifier.size(19.dp)
         )
     }
 }
@@ -458,26 +519,30 @@ private fun AutopilotEye(engineState: EngineState) {
 @Composable
 private fun FailedBulb(count: Int, onClick: () -> Unit) {
     val blinking = count > 0
-    val blinkAlpha by animateFloatAsState(
-        targetValue = if (blinking) 1f else 0.4f,
-        animationSpec = if (blinking) infiniteRepeatable(
-            animation = tween(500, easing = LinearEasing),
+    val infiniteTransition = rememberInfiniteTransition(label = "bulbBlink")
+    val glow by infiniteTransition.animateFloat(
+        initialValue = 0.28f,
+        targetValue = 0.55f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = LinearEasing),
             repeatMode = RepeatMode.Reverse
-        ) else tween(200),
-        label = "FailedBulbBlink"
+        ),
+        label = "bulbGlow"
     )
+    val alpha = if (blinking) glow else DesignTokens.HomeTokens.BulbColdOpacity
     Box(
         modifier = Modifier
-            .size(30.dp)
+            .size(DesignTokens.HomeTokens.BulbSize)
             .clip(CircleShape)
-            .background(DesignTokens.Semantic.failed.copy(alpha = blinkAlpha))
+            .background(DesignTokens.HomeTokens.BulbHotFill.copy(alpha = alpha))
+            .border(1.dp, DesignTokens.HomeTokens.BulbHotBorder, CircleShape)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         if (count > 0) {
             Text(
                 text = "$count",
-                color = DesignTokens.Hero.ink,
+                color = DesignTokens.HomeTokens.TileInk,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -490,7 +555,7 @@ private fun CreditsBox(expiry: Long, planName: String, onClick: () -> Unit) {
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(Unit) {
         while (true) {
-            delay(1_000L)
+            delay(60_000L)
             now = System.currentTimeMillis()
         }
     }
@@ -498,57 +563,77 @@ private fun CreditsBox(expiry: Long, planName: String, onClick: () -> Unit) {
     val days = remaining / 86_400_000L
     val hours = (remaining % 86_400_000L) / 3_600_000L
     val minutes = (remaining % 3_600_000L) / 60_000L
-    val seconds = (remaining % 60_000L) / 1_000L
-    val countdown = String.format(Locale.US, "%dd %02dh %02dm %02ds", days, hours, minutes, seconds)
+    val countdown = String.format(Locale.US, "%dd %02dh %02dm", days, hours, minutes)
+    val shape = RoundedCornerShape(DesignTokens.HomeTokens.CredboxRadius)
 
-    GlassCard(modifier = Modifier.clickable(onClick = onClick)) {
-        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
-            Text(
-                text = "CREDITS EXPIRE",
-                color = DesignTokens.LocalBingwaRoles.current.textPrimary,
-                fontSize = 10.sp,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = countdown,
-                color = DesignTokens.Semantic.complete,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                fontFamily = FontFamily.Monospace
-            )
-            Text(
-                text = planName.ifBlank { "Get credits" },
-                color = DesignTokens.LocalBingwaRoles.current.textSecondary,
-                fontSize = 12.sp
-            )
-        }
+    Column(
+        modifier = Modifier
+            .width(DesignTokens.HomeTokens.CredboxWidth)
+            .clip(shape)
+            .background(Color(0x1AFFFFFF))
+            .border(1.dp, DesignTokens.HomeTokens.CredboxBorder, shape)
+            .clickable(onClick = onClick)
+            .padding(horizontal = DesignTokens.HomeTokens.CredboxPaddingHorizontal, vertical = DesignTokens.HomeTokens.CredboxPaddingVertical)
+    ) {
+        Text(
+            text = "CREDITS EXPIRE",
+            color = DesignTokens.HomeTokens.TileInk.copy(alpha = DesignTokens.HomeTokens.CredboxLabelOpacity),
+            fontSize = 9.sp,
+            fontWeight = FontWeight.ExtraBold,
+            letterSpacing = 0.5.sp,
+            maxLines = 1
+        )
+        Text(
+            text = countdown,
+            color = DesignTokens.HomeTokens.CredboxCountdownColor,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold,
+            fontFamily = FontFamily.Monospace,
+            maxLines = 1
+        )
+        Text(
+            text = planName.ifBlank { "Starter plan" },
+            color = DesignTokens.HomeTokens.TileInk.copy(alpha = DesignTokens.HomeTokens.CredboxPlanOpacity),
+            fontSize = 11.sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
 
 @Composable
-private fun QuickActionTile(icon: ImageVector, label: String, onClick: () -> Unit) {
-    val shape = RoundedCornerShape(14.dp)
+private fun QuickActionTile(icon: ImageVector, label: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val scope = rememberCoroutineScope()
+    val scale = remember { Animatable(1f) }
+    val shape = RoundedCornerShape(DesignTokens.HomeTokens.TileRadius)
     Column(
-        modifier = Modifier
-            .size(width = 56.dp, height = 44.dp)
+        modifier = modifier
+            .height(48.dp)
             .clip(shape)
-            .background(Color.White.copy(alpha = 0.07f))
-            .border(1.dp, Color.White.copy(alpha = 0.14f), shape)
-            .clickable(onClick = onClick),
+            .background(DesignTokens.HomeTokens.TileFill)
+            .border(1.dp, DesignTokens.HomeTokens.TileBorder, shape)
+            .clickable {
+                scope.launch {
+                    scale.animateTo(DesignTokens.HomeTokens.TilePressScale, tween(DesignTokens.HomeTokens.TilePressDuration, easing = FastOutLinearInEasing))
+                    scale.animateTo(1f, spring(stiffness = 400f, dampingRatio = 0.5f))
+                }
+                onClick()
+            }
+            .graphicsLayer { scaleX = scale.value; scaleY = scale.value }
+            .padding(vertical = DesignTokens.HomeTokens.TilePaddingVertical, horizontal = DesignTokens.HomeTokens.TilePaddingHorizontal),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        verticalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterVertically)
     ) {
         Icon(
             imageVector = icon,
             contentDescription = label,
-            tint = DesignTokens.Hero.ink,
-            modifier = Modifier.size(18.dp)
+            tint = DesignTokens.HomeTokens.TileInk,
+            modifier = Modifier.size(DesignTokens.HomeTokens.TileIconSize)
         )
-        Spacer(modifier = Modifier.height(2.dp))
         Text(
             text = label,
-            color = DesignTokens.Hero.ink,
-            fontSize = 9.5.sp,
+            color = DesignTokens.HomeTokens.TileInk,
+            fontSize = DesignTokens.HomeTokens.TileLabelSize,
             fontWeight = FontWeight.SemiBold
         )
     }
@@ -559,64 +644,81 @@ private fun OfflineMeshBanner(queuedCount: Int, onFlush: () -> Unit) {
     GlassCard(modifier = Modifier.fillMaxWidth()) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(DesignTokens.HomeTokens.BannerGap),
+            modifier = Modifier.padding(DesignTokens.HomeTokens.BannerPadding)
         ) {
-            Box(modifier = Modifier.size(4.dp).background(DesignTokens.Semantic.info).padding(end = 8.dp))
+            Box(modifier = Modifier.width(DesignTokens.HomeTokens.BannerLeftRule).fillMaxHeight().background(DesignTokens.HomeTokens.BannerInfoColor))
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = "Offline mesh", color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-                Text(text = "$queuedCount queued", color = DesignTokens.LocalBingwaRoles.current.textSecondary, fontSize = 12.sp)
+                Text(text = "$queuedCount queued locally - they send on reconnect", color = DesignTokens.LocalBingwaRoles.current.textSecondary, fontSize = 12.sp)
             }
-            Text(
-                text = "Flush now",
-                color = DesignTokens.LocalBingwaRoles.current.brand,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.clickable(onClick = onFlush)
-            )
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(DesignTokens.HomeTokens.HeroBackground)
+                    .clickable(onClick = onFlush)
+                    .padding(horizontal = 12.dp, vertical = 7.dp)
+            ) {
+                Text(
+                    text = "Flush now",
+                    color = DesignTokens.HomeTokens.TileInk,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun FloatGuardBanner(onTopUp: () -> Unit) {
-    GlassCard(modifier = Modifier.fillMaxWidth(), content = {
+private fun FloatGuardBanner(balance: Double, cheapestPrice: Double, onTopUp: () -> Unit) {
+    GlassCard(modifier = Modifier.fillMaxWidth()) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(DesignTokens.HomeTokens.BannerGap),
+            modifier = Modifier.padding(DesignTokens.HomeTokens.BannerPadding)
         ) {
-            Box(modifier = Modifier.size(4.dp).background(DesignTokens.Semantic.awaiting).padding(end = 8.dp))
+            Box(modifier = Modifier.width(DesignTokens.HomeTokens.BannerLeftRule).fillMaxHeight().background(DesignTokens.Semantic.failed))
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = "Float guard", color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-                Text(text = "Balance below cheapest enabled offer", color = DesignTokens.LocalBingwaRoles.current.textSecondary, fontSize = 12.sp)
+                Text(text = "Float too low to dial", color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                Text(text = "Ksh ${money(balance)} left - cheapest offer needs Ksh ${money(cheapestPrice)}", color = DesignTokens.LocalBingwaRoles.current.textSecondary, fontSize = 12.sp)
             }
-            Text(
-                text = "Top up",
-                color = DesignTokens.LocalBingwaRoles.current.brand,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.clickable(onClick = onTopUp)
-            )
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(DesignTokens.HomeTokens.HeroBackground)
+                    .clickable(onClick = onTopUp)
+                    .padding(horizontal = 12.dp, vertical = 7.dp)
+            ) {
+                Text(
+                    text = "Top up",
+                    color = DesignTokens.HomeTokens.TileInk,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
         }
-    })
+    }
 }
 
 @Composable
 private fun Subtabs(selected: Int, onSelect: (Int) -> Unit) {
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    Row(horizontalArrangement = Arrangement.spacedBy(DesignTokens.HomeTokens.SubtabsGap), modifier = Modifier.fillMaxWidth()) {
         listOf("Offers", "Settings").forEachIndexed { index, label ->
             val active = index == selected
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .clip(RoundedCornerShape(50))
-                    .background(if (active) DesignTokens.Hero.surface else Color.Transparent)
+                    .clip(RoundedCornerShape(DesignTokens.HomeTokens.SubtabsButtonRadius))
+                    .background(if (active) DesignTokens.HomeTokens.SubtabsActiveFill else DesignTokens.HomeTokens.SubtabsInactiveFill)
+                    .border(1.dp, if (active) DesignTokens.HomeTokens.SubtabsActiveFill else DesignTokens.LocalBingwaRoles.current.border, RoundedCornerShape(DesignTokens.HomeTokens.SubtabsButtonRadius))
                     .clickable { onSelect(index) }
-                    .padding(vertical = 8.dp),
+                    .padding(vertical = DesignTokens.HomeTokens.SubtabsButtonPaddingVertical),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = label,
-                    color = if (active) DesignTokens.Hero.ink else DesignTokens.LocalBingwaRoles.current.textPrimary,
+                    color = if (active) DesignTokens.HomeTokens.SubtabsActiveInk else DesignTokens.HomeTokens.SubtabsInactiveInk,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -631,62 +733,79 @@ private fun ActivationLadderCard(
     testDriveDone: Boolean,
     importBookDone: Boolean,
     recoverFailureDone: Boolean,
+    ladderHidden: Boolean,
     onEngineArmedClick: () -> Unit,
     onTestDriveClick: () -> Unit,
     onImportBookClick: () -> Unit,
     onRecoverFailureClick: () -> Unit,
+    onHide: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val tasks = listOf(
-        LadderItem("Arm the engine", "Grant SMS + Phone so the autopilot can dial.", engineArmed, onEngineArmedClick),
-        LadderItem("Test drive a payment", "Run one sandbox payment end-to-end.", testDriveDone, onTestDriveClick),
-        LadderItem("Import your book", "Upload CSV or link to existing customers.", importBookDone, onImportBookClick),
-        LadderItem("Recover a failure", "Retry one failed transaction with one tap.", recoverFailureDone, onRecoverFailureClick)
+        LadderItem("Arm the engine", "Grant SMS + Phone so autopilot can dial.", engineArmed, onEngineArmedClick),
+        LadderItem("Test drive a payment", "One sandbox credit, zero real money.", testDriveDone, onTestDriveClick),
+        LadderItem("Import your book", "CSV or link existing customers.", importBookDone, onImportBookClick),
+        LadderItem("Recover a failure", "Retry one failed transaction.", recoverFailureDone, onRecoverFailureClick)
     )
     val completed = tasks.count { it.done }
     val allDone = completed == tasks.size
+    var showArmed by remember { mutableStateOf(false) }
+    LaunchedEffect(allDone) {
+        if (allDone) {
+            showArmed = true
+            delay(2500L)
+            showArmed = false
+            onHide()
+        }
+    }
 
-    GlassCard(modifier = modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                ProgressRing(completed = completed, total = tasks.size)
-                Spacer(modifier = Modifier.width(12.dp))
-                Column {
-                    Text(
-                        text = "Activation ladder",
-                        color = DesignTokens.LocalBingwaRoles.current.textPrimary,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = "$completed/${tasks.size} complete",
-                        color = DesignTokens.LocalBingwaRoles.current.textSecondary,
-                        fontSize = 12.sp
-                    )
+    AnimatedVisibility(
+        visible = !ladderHidden,
+        exit = shrinkVertically(animationSpec = tween(220)) + fadeOut(animationSpec = tween(220)),
+        modifier = modifier
+    ) {
+        GlassCard(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    ProgressRing(completed = completed, total = tasks.size)
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            text = "Activation ladder",
+                            color = DesignTokens.LocalBingwaRoles.current.textPrimary,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "Four first wins arm the autopilot",
+                            color = DesignTokens.LocalBingwaRoles.current.textSecondary,
+                            fontSize = 12.sp
+                        )
+                    }
                 }
-            }
 
-            Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
-            tasks.forEach { task ->
-                TaskRow(task = task)
-                Spacer(modifier = Modifier.height(10.dp))
-            }
+                tasks.forEach { task ->
+                    TaskRow(task = task)
+                    Spacer(modifier = Modifier.height(10.dp))
+                }
 
-            if (allDone) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(DesignTokens.Shape.RadiusMd))
-                        .background(DesignTokens.Semantic.complete)
-                        .padding(horizontal = 12.dp, vertical = 10.dp)
-                ) {
-                    Text(
-                        text = "Autopilot armed · streak day 1 · retry queue active",
-                        color = DesignTokens.LocalBingwaRoles.current.onSuccess,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
+                AnimatedVisibility(visible = showArmed, enter = fadeIn() + expandVertically()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(DesignTokens.HomeTokens.ArmedRadius))
+                            .background(DesignTokens.HomeTokens.ArmedFill)
+                            .padding(horizontal = DesignTokens.HomeTokens.ArmedPaddingHorizontal, vertical = DesignTokens.HomeTokens.ArmedPaddingVertical)
+                    ) {
+                        Text(
+                            text = "Autopilot armed · streak day 1 · retry queue active",
+                            color = DesignTokens.HomeTokens.ArmedInk,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.ExtraBold
+                        )
+                    }
                 }
             }
         }
@@ -697,9 +816,9 @@ private data class LadderItem(val title: String, val caption: String, val done: 
 
 @Composable
 private fun TaskRow(task: LadderItem) {
-    val tileShape = RoundedCornerShape(9.dp)
-    val tileColor = if (task.done) DesignTokens.Semantic.complete else Color.Transparent
-    val iconTint = if (task.done) DesignTokens.LocalBingwaRoles.current.onSuccess else DesignTokens.LocalBingwaRoles.current.textSecondary
+    val tileShape = RoundedCornerShape(DesignTokens.HomeTokens.LadderTaskTileRadius)
+    val tileColor = if (task.done) DesignTokens.HomeTokens.LadderTaskDoneFill else Color.Transparent
+    val iconTint = if (task.done) DesignTokens.HomeTokens.ArmedInk else DesignTokens.LocalBingwaRoles.current.textSecondary
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -710,10 +829,10 @@ private fun TaskRow(task: LadderItem) {
     ) {
         Box(
             modifier = Modifier
-                .size(26.dp)
+                .size(DesignTokens.HomeTokens.LadderTaskTileSize)
                 .clip(tileShape)
                 .background(tileColor)
-                .border(1.dp, if (task.done) DesignTokens.Semantic.complete else DesignTokens.LocalBingwaRoles.current.border, tileShape),
+                .border(1.dp, if (task.done) DesignTokens.HomeTokens.LadderTaskDoneFill else DesignTokens.LocalBingwaRoles.current.border, tileShape),
             contentAlignment = Alignment.Center
         ) {
             Icon(
@@ -740,12 +859,12 @@ private fun TaskRow(task: LadderItem) {
         Box(
             modifier = Modifier
                 .clip(RoundedCornerShape(50))
-                .background(if (task.done) DesignTokens.Semantic.complete else DesignTokens.LocalBingwaRoles.current.brand)
-                .padding(horizontal = 12.dp, vertical = 6.dp)
+                .background(if (task.done) DesignTokens.HomeTokens.ApillDoneFill else DesignTokens.HomeTokens.ApillActionFill)
+                .padding(horizontal = DesignTokens.HomeTokens.ApillPaddingHorizontal, vertical = DesignTokens.HomeTokens.ApillPaddingVertical)
         ) {
             Text(
                 text = if (task.done) "DONE" else "ACTION",
-                color = if (task.done) DesignTokens.LocalBingwaRoles.current.onSuccess else DesignTokens.LocalBingwaRoles.current.onBrand,
+                color = if (task.done) DesignTokens.HomeTokens.ArmedInk else DesignTokens.HomeTokens.TileInk,
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -760,10 +879,10 @@ private fun ProgressRing(completed: Int, total: Int) {
     Box(contentAlignment = Alignment.Center) {
         CircularProgressIndicator(
             progress = { progress },
-            modifier = Modifier.size(52.dp),
-            color = if (allDone) DesignTokens.Semantic.complete else DesignTokens.LocalBingwaRoles.current.brand,
-            trackColor = DesignTokens.LocalBingwaRoles.current.border,
-            strokeWidth = 6.dp
+            modifier = Modifier.size(DesignTokens.HomeTokens.LadderRingSize),
+            color = if (allDone) DesignTokens.HomeTokens.LadderRingAllDone else DesignTokens.HomeTokens.LadderRingProgress,
+            trackColor = DesignTokens.HomeTokens.LadderRingTrack,
+            strokeWidth = DesignTokens.HomeTokens.LadderRingStroke
         )
         Text(
             text = "$completed",
@@ -784,19 +903,23 @@ private fun androidx.compose.foundation.lazy.LazyListScope.offersSection(
     item {
         var selectedCategory by remember { mutableStateOf("All") }
         val categories = listOf("All", "Data", "Minutes", "SMS")
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(DesignTokens.HomeTokens.CatsGap),
+            modifier = Modifier.fillMaxWidth()
+        ) {
             categories.forEach { cat ->
                 val active = cat == selectedCategory
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(50))
-                        .background(if (active) DesignTokens.LocalBingwaRoles.current.brand else DesignTokens.LocalBingwaRoles.current.card)
+                        .clip(RoundedCornerShape(DesignTokens.HomeTokens.CatsButtonRadius))
+                        .background(if (active) DesignTokens.HomeTokens.CatsActiveFill else DesignTokens.HomeTokens.CatsInactiveFill)
+                        .border(1.dp, if (active) DesignTokens.HomeTokens.CatsActiveFill else DesignTokens.LocalBingwaRoles.current.border, RoundedCornerShape(DesignTokens.HomeTokens.CatsButtonRadius))
                         .clickable { selectedCategory = cat }
-                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                        .padding(horizontal = DesignTokens.HomeTokens.CatsButtonPaddingHorizontal, vertical = DesignTokens.HomeTokens.CatsButtonPaddingVertical)
                 ) {
                     Text(
                         text = cat,
-                        color = if (active) DesignTokens.LocalBingwaRoles.current.onBrand else DesignTokens.LocalBingwaRoles.current.textPrimary,
+                        color = if (active) DesignTokens.HomeTokens.CatsActiveInk else DesignTokens.HomeTokens.CatsInactiveInk,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -806,6 +929,18 @@ private fun androidx.compose.foundation.lazy.LazyListScope.offersSection(
     }
 
     if (state.offers.isNotEmpty()) {
+        item {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text(text = "My offers", color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold)
+                Text(
+                    text = "+ Add",
+                    color = DesignTokens.HomeTokens.LinkColor,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    modifier = Modifier.clickable { }
+                )
+            }
+        }
         item {
             GlassCard(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(12.dp)) {
@@ -852,7 +987,7 @@ private fun PayoutCard(commission: Double) {
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(Unit) {
         while (true) {
-            delay(1_000L)
+            delay(60_000L)
             now = System.currentTimeMillis()
         }
     }
@@ -870,70 +1005,70 @@ private fun PayoutCard(commission: Double) {
     val days = remaining / 86_400_000L
     val hours = (remaining % 86_400_000L) / 3_600_000L
     val minutes = (remaining % 3_600_000L) / 60_000L
-    val seconds = (remaining % 60_000L) / 1_000L
-    val countdown = String.format(Locale.US, "%dd %02dh %02dm %02ds", days, hours, minutes, seconds)
+    val countdown = String.format(Locale.US, "%dd %02dh %02dm", days, hours, minutes)
     val goal = 1000.0
     val progress = (commission / goal).toFloat().coerceIn(0f, 1f)
 
     GlassCard(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(text = "Payout", color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = countdown,
-                color = DesignTokens.LocalBingwaRoles.current.brand,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                fontFamily = FontFamily.Monospace
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "Commission this week Ksh ${money(commission)} / ${money(goal)}",
-                color = DesignTokens.LocalBingwaRoles.current.textPrimary,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold
-            )
-            Spacer(modifier = Modifier.height(8.dp))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(text = "Payout day", color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold)
+                Text(
+                    text = countdown,
+                    color = DesignTokens.LocalBingwaRoles.current.brand,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace
+                )
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(
+                    text = "Commission this week Ksh ${money(commission)}",
+                    color = DesignTokens.LocalBingwaRoles.current.textSecondary,
+                    fontSize = 12.sp
+                )
+                Text(
+                    text = "goal Ksh 1,000",
+                    color = DesignTokens.LocalBingwaRoles.current.textSecondary,
+                    fontSize = 12.sp
+                )
+            }
+            Spacer(modifier = Modifier.height(10.dp))
             BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(8.dp)
-                    .clip(RoundedCornerShape(50))
+                    .height(DesignTokens.HomeTokens.PayoutBarHeight)
+                    .clip(RoundedCornerShape(DesignTokens.HomeTokens.PayoutBarRadius))
                     .background(DesignTokens.LocalBingwaRoles.current.border)
             ) {
-                val barWidth = (progress * maxWidth.value).dp.coerceAtLeast(4.dp)
+                val barWidth = (progress * maxWidth.value).dp.coerceAtLeast(DesignTokens.HomeTokens.PayoutBarMinWidth)
                 Box(
                     modifier = Modifier
                         .width(barWidth)
                         .fillMaxHeight()
                         .background(
                             Brush.horizontalGradient(
-                                listOf(DesignTokens.LocalBingwaRoles.current.brand, DesignTokens.Semantic.complete)
+                                listOf(DesignTokens.HomeTokens.PayoutBarGradientStart, DesignTokens.HomeTokens.PayoutBarGradientEnd)
                             )
                         )
                 )
                 Box(
                     modifier = Modifier
                         .align(Alignment.CenterEnd)
-                        .width(2.dp)
+                        .width(DesignTokens.HomeTokens.PayoutBarGoalTickWidth)
                         .fillMaxHeight()
-                        .background(Color.White.copy(alpha = 0.6f))
+                        .background(Color(0xFF0B0B10).copy(alpha = 0.5f))
                 )
             }
-            Text(
-                text = "goal Ksh 1,000",
-                color = DesignTokens.LocalBingwaRoles.current.textSecondary,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-                textAlign = androidx.compose.ui.text.style.TextAlign.End
-            )
         }
     }
 }
 
 @Composable
 private fun OfferRow(offer: Offer, onToggle: (Boolean) -> Unit) {
+    var active by remember { mutableStateOf(offer.isActive) }
+    val knobOffset = if (active) DesignTokens.HomeTokens.TglWidth - DesignTokens.HomeTokens.TglKnobSize - 3.dp else 3.dp
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
@@ -942,18 +1077,25 @@ private fun OfferRow(offer: Offer, onToggle: (Boolean) -> Unit) {
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(text = offer.name, color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-            Text(text = "${offer.type} · ${offer.ussdCode}", color = DesignTokens.LocalBingwaRoles.current.textSecondary, fontSize = 12.sp)
+            Text(text = "${offer.type.uppercase()} · ${offer.ussdCode}", color = DesignTokens.LocalBingwaRoles.current.textSecondary, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
         }
         Text(text = "Ksh ${offer.price}", color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 14.sp, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.width(8.dp))
         Box(
             modifier = Modifier
-                .size(40.dp, 24.dp)
-                .clip(RoundedCornerShape(50))
-                .background(if (offer.isActive) DesignTokens.Semantic.complete else DesignTokens.LocalBingwaRoles.current.border)
-                .clickable { onToggle(!offer.isActive) }
+                .size(width = DesignTokens.HomeTokens.TglWidth, height = DesignTokens.HomeTokens.TglHeight)
+                .clip(RoundedCornerShape(DesignTokens.HomeTokens.TglRadius))
+                .background(if (active) DesignTokens.HomeTokens.TglOnFill else DesignTokens.HomeTokens.TglOffFill)
+                .clickable { active = !active; onToggle(active) }
         ) {
-            Box(modifier = Modifier.size(16.dp).clip(CircleShape).background(DesignTokens.LocalBingwaRoles.current.onBrand).align(Alignment.CenterStart))
+            Box(
+                modifier = Modifier
+                    .size(DesignTokens.HomeTokens.TglKnobSize)
+                    .offset(x = knobOffset)
+                    .clip(CircleShape)
+                    .background(Color(0xFF0B0B10))
+                    .align(Alignment.CenterStart)
+            )
         }
     }
 }
@@ -969,9 +1111,6 @@ private fun RepeatBuyersCard(customers: List<Customer>) {
             } else {
                 customers.forEach { customer ->
                     val atRisk = customer.txCount <= 2
-                    val chipColor = if (atRisk) DesignTokens.Semantic.failed else DesignTokens.Semantic.complete
-                    val chipText = if (atRisk) "at risk" else "loyal"
-                    val chipTextColor = if (atRisk) DesignTokens.LocalBingwaRoles.current.onError else DesignTokens.LocalBingwaRoles.current.onSuccess
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
@@ -980,14 +1119,14 @@ private fun RepeatBuyersCard(customers: List<Customer>) {
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(32.dp)
+                                .size(DesignTokens.HomeTokens.CustAvatarSize)
                                 .clip(CircleShape)
-                                .background(DesignTokens.LocalBingwaRoles.current.brand),
+                                .background(DesignTokens.HomeTokens.CustAvatarFill),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 text = initials(formatCustomerName(customer.name)),
-                                color = DesignTokens.LocalBingwaRoles.current.onBrand,
+                                color = DesignTokens.HomeTokens.TileInk,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -1006,22 +1145,24 @@ private fun RepeatBuyersCard(customers: List<Customer>) {
                                 fontSize = 12.sp
                             )
                         }
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(50))
-                                .background(chipColor)
-                                .padding(horizontal = 8.dp, vertical = 4.dp)
-                        ) {
-                            Text(text = chipText, color = chipTextColor, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        if (atRisk) {
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(50))
+                                    .background(DesignTokens.HomeTokens.RiskFill)
+                                    .padding(horizontal = 10.dp, vertical = 5.dp)
+                            ) {
+                                Text(text = "at risk", color = DesignTokens.HomeTokens.RiskInk, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Follow up",
+                                color = DesignTokens.HomeTokens.LinkColor,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier.clickable { }
+                            )
                         }
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Follow up",
-                            color = DesignTokens.LocalBingwaRoles.current.brand,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.clickable { }
-                        )
                     }
                 }
             }
@@ -1050,16 +1191,105 @@ private fun greetingText(bucket: Greetings.Bucket): String = when (bucket) {
 }
 
 private fun androidx.compose.foundation.lazy.LazyListScope.settingsSection(callbacks: HomeScreenCallbacks) {
+    item { GroupHeader("MESSAGE PROCESSING") }
     item {
-        GlassCard(modifier = Modifier.fillMaxWidth()) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(text = "Settings", color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                Spacer(modifier = Modifier.height(8.dp))
-                listOf("M-Pesa", "SiteLink", "Auto-save", "Test Drive", "Processing Mode", "SIM Selection", "Server", "Backup & Restore").forEach { setting ->
-                    Text(text = setting, color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 14.sp, modifier = Modifier.padding(vertical = 8.dp))
-                }
-                Text(text = "Feature blueprint", color = DesignTokens.LocalBingwaRoles.current.brand, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(vertical = 8.dp))
+        SettingsCard {
+            ToggleRow(title = "Process M-Pesa messages")
+            ToggleRow(title = "Process SiteLink messages")
+        }
+    }
+    item { GroupHeader("CUSTOMERS BOOK") }
+    item {
+        SettingsCard {
+            ToggleRow(title = "Auto-save customers", caption = "Add every completed buyer to the book")
+        }
+    }
+    item { GroupHeader("PREFERENCES") }
+    item {
+        SettingsCard {
+            LinkRow(title = "Appearance", caption = "Light, dark or follow system")
+            LinkRow(title = "Processing mode", caption = "How transactions execute")
+            LinkRow(title = "SIM selection", caption = "Line used for dialing")
+            LinkRow(title = "Test Drive", caption = "Sandbox credits, zero real money")
+            LinkRow(title = "Server", caption = "Backend base URL")
+        }
+    }
+    item { GroupHeader("ACCOUNT & DATA") }
+    item {
+        SettingsCard {
+            LinkRow(title = "Backup & Restore", caption = "Export or import your data as JSON")
+            LinkRow(title = "Feature blueprint", caption = "Trigger - surface - metric map")
+            LinkRow(title = "Activation", caption = "Armed · 4/4 complete")
+        }
+    }
+}
+
+@Composable
+private fun GroupHeader(label: String) {
+    Text(
+        text = label,
+        color = DesignTokens.HomeTokens.GrouphColor,
+        fontSize = 11.sp,
+        fontWeight = FontWeight.Bold,
+        letterSpacing = DesignTokens.HomeTokens.GrouphLetterSpacing,
+        modifier = Modifier.padding(start = DesignTokens.HomeTokens.GrouphMarginHorizontal, top = DesignTokens.HomeTokens.GrouphMarginTop, bottom = DesignTokens.HomeTokens.GrouphMarginBottom)
+    )
+}
+
+@Composable
+private fun SettingsCard(content: @Composable ColumnScope.() -> Unit) {
+    GlassCard(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp)) { content() }
+    }
+}
+
+@Composable
+private fun LinkRow(title: String, caption: String, onClick: () -> Unit = {}) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 8.dp)
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(text = title, color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+            Text(text = caption, color = DesignTokens.LocalBingwaRoles.current.textSecondary, fontSize = 12.sp)
+        }
+        Text(text = "Open", color = DesignTokens.HomeTokens.LinkColor, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
+private fun ToggleRow(title: String, caption: String? = null) {
+    var on by remember { mutableStateOf(true) }
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { on = !on }
+            .padding(vertical = 8.dp)
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(text = title, color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+            if (caption != null) {
+                Text(text = caption, color = DesignTokens.LocalBingwaRoles.current.textSecondary, fontSize = 12.sp)
             }
+        }
+        Box(
+            modifier = Modifier
+                .size(width = DesignTokens.HomeTokens.TglWidth, height = DesignTokens.HomeTokens.TglHeight)
+                .clip(RoundedCornerShape(DesignTokens.HomeTokens.TglRadius))
+                .background(if (on) DesignTokens.HomeTokens.TglOnFill else DesignTokens.HomeTokens.TglOffFill)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(DesignTokens.HomeTokens.TglKnobSize)
+                    .offset(x = if (on) DesignTokens.HomeTokens.TglWidth - DesignTokens.HomeTokens.TglKnobSize - 3.dp else 3.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFF0B0B10))
+                    .align(Alignment.CenterStart)
+            )
         }
     }
 }

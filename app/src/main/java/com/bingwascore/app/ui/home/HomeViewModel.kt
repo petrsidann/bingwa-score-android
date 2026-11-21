@@ -237,6 +237,8 @@ class HomeViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
     val ladderRecoverFailureDone: StateFlow<Boolean> = userPreferences.ladderRecoverFailureDone
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+    val ladderHidden: StateFlow<Boolean> = userPreferences.ladderHidden
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
     val weeklyCommission: StateFlow<Double> = weeklyCommissionByDay
         .map { it.sum() }
@@ -585,6 +587,10 @@ class HomeViewModel @Inject constructor(
 
     fun setLadderRecoverFailureDone(value: Boolean) {
         viewModelScope.launch { userPreferences.setLadderRecoverFailureDone(value) }
+    }
+
+    fun setLadderHidden(value: Boolean) {
+        viewModelScope.launch { userPreferences.setLadderHidden(value) }
     }
 
     fun clearUnseenFailures() {
