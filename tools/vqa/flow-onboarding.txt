@@ -1,0 +1,21 @@
+# launch settles
+wait 4200
+shot 01-launch-landed
+# slide 1 settled
+shot 02-slide1
+# mid-swipe ghost check (long slow swipe, capture halfway)
+swipe 360 540 120 540 1400
+wait 650
+shot 03-midswipe
+wait 900
+shot 04-slide2
+tap 240 985
+wait 500
+shot 05-slide2-after-next
+swipe 360 540 120 540 1400
+wait 650
+shot 06-midswipe2
+wait 900
+swipe 360 540 120 540 1400
+wait 1600
+shot 07-slide4
