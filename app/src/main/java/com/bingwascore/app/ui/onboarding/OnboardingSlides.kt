@@ -10,6 +10,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -21,8 +22,8 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PageSize
@@ -31,7 +32,7 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Autorenew
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.rounded.Cached
 import androidx.compose.material.icons.rounded.CloudUpload
 import androidx.compose.material.icons.rounded.EmojiEvents
@@ -77,22 +78,19 @@ private val DarkOlive = Color(0xFF4D7C0F)
 
 private data class Slide(
     val bg: Color,
-    val fg: Color,
+    val medallion: Color,
+    val iconTint: Color,
     val title: String,
-    val text: String,
-    val ctaBg: Color,
-    val ctaFg: Color,
-    val header: Boolean,
-    val accent: Color
+    val text: String
 )
 
 @Composable
 fun OnboardingSlides(onCreateAccount: () -> Unit, onSignIn: () -> Unit) {
     val slides = listOf(
-        Slide(lime, violet, violet.copy(alpha = 0.7f), "Auto-pilot payments", "Bingwa Score watches for M-Pesa confirmations and dials bundles automatically.", violet, lime, header = true, accent = violet),
-        Slide(violet, lime, lime.copy(alpha = 0.8f), "Smart retries & fallbacks", "Failed transaction? We retry with fallbacks so your customers stay happy.", lime, violet, header = false, accent = lime),
-        Slide(ink, lime, Color.White.copy(alpha = 0.7f), "Score, streaks & rewards", "Earn points for every sale, build streaks and unlock achievements as you grow.", lime, ink, header = false, accent = lime),
-        Slide(CsvBlue, lime, Color.White.copy(alpha = 0.7f), "Import your customers", "Upload a CSV of your saved contacts to restore your customers, offers and USSD plans in one tap.", lime, CsvBlue, header = false, accent = lime)
+        Slide(DesignTokens.Onboarding.slideBg[0], DesignTokens.Onboarding.medallionFill[0], DesignTokens.Onboarding.iconTint[0], "Auto-pilot payments", "Bingwa Score watches for M-Pesa confirmations and dials bundles automatically."),
+        Slide(DesignTokens.Onboarding.slideBg[1], DesignTokens.Onboarding.medallionFill[1], DesignTokens.Onboarding.iconTint[1], "Smart retries & fallbacks", "Failed transaction? We retry with fallbacks so your customers stay happy."),
+        Slide(DesignTokens.Onboarding.slideBg[2], DesignTokens.Onboarding.medallionFill[2], DesignTokens.Onboarding.iconTint[2], "Score, streaks & rewards", "Earn points for every sale, build streaks and unlock achievements as you grow."),
+        Slide(DesignTokens.Onboarding.slideBg[3], DesignTokens.Onboarding.medallionFill[3], DesignTokens.Onboarding.iconTint[3], "Import your customers", "Upload a CSV of your saved contacts to restore your customers, offers and USSD plans in one tap.")
     )
     val pagerState = rememberPagerState(pageCount = { slides.size })
     val scope = rememberCoroutineScope()
@@ -167,67 +165,57 @@ private fun SlideContentOnly(
     page: Int,
     pagerState: PagerState
 ) {
-    val density = LocalDensity.current
-    val configuration = LocalConfiguration.current
-    val pageWidthPx = with(density) { configuration.screenWidthDp.dp.toPx() }
     val off = (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
 
-    Box(
-        Modifier
-            .fillMaxSize()
-            .graphicsLayer {
-                alpha = 1f
-                translationX = -off * pageWidthPx * 0.10f
-            },
-        contentAlignment = Alignment.Center
+    BoxWithConstraints(
+        Modifier.fillMaxSize()
     ) {
-        Column(
-            modifier = Modifier
+        val pageWidthPx = with(LocalDensity.current) { maxWidth.toPx() }
+        Box(
+            Modifier
                 .fillMaxSize()
-                .statusBarsPadding()
-                .padding(start = 32.dp, end = 32.dp, bottom = 108.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .graphicsLayer {
+                    alpha = 1f
+                    translationX = -off * pageWidthPx * 0.10f
+                },
+            contentAlignment = Alignment.Center
         ) {
-            Spacer(Modifier.weight(1f))
-            Medallion(page = page, accent = slide.accent)
-            Spacer(Modifier.height(28.dp))
-            Text(slide.title, color = slide.fg, fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
-            Spacer(Modifier.height(12.dp))
-            Text(slide.text, color = slide.fg.copy(alpha = 0.7f), fontSize = 15.sp, lineHeight = 24.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
-            Spacer(Modifier.weight(1f))
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .statusBarsPadding()
+                    .padding(start = 32.dp, end = 32.dp, bottom = 108.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Spacer(Modifier.weight(1f))
+                Medallion(page = page, fill = slide.medallion, iconTint = slide.iconTint)
+                Spacer(Modifier.height(28.dp))
+                Text(slide.title, color = slide.medallion, fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+                Spacer(Modifier.height(12.dp))
+                Text(slide.text, color = slide.medallion.copy(alpha = 0.7f), fontSize = 15.sp, lineHeight = 24.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+                Spacer(Modifier.weight(1f))
+            }
         }
     }
 }
 
 @Composable
-private fun Medallion(page: Int, accent: Color, modifier: Modifier = Modifier) {
+private fun Medallion(page: Int, fill: Color, iconTint: Color, modifier: Modifier = Modifier) {
     val icon: ImageVector = when (page) {
-        0 -> Icons.Rounded.Autorenew
+        0 -> Icons.Filled.Visibility
         1 -> Icons.Rounded.Cached
         2 -> Icons.Rounded.EmojiEvents
-        3 -> Icons.Rounded.Cached
-        else -> Icons.Rounded.Autorenew
+        3 -> Icons.Rounded.CloudUpload
+        else -> Icons.Filled.Visibility
     }
     Box(
         modifier = modifier
             .size(160.dp)
             .clip(CircleShape)
-            .background(accent.copy(alpha = 0.14f))
-            .border(width = 1.dp, color = accent.copy(alpha = 0.5f), shape = CircleShape),
+            .background(fill),
         contentAlignment = Alignment.Center
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.radialGradient(
-                        colors = listOf(accent.copy(alpha = 0.10f), Color.Transparent),
-                        center = Offset(0.5f, 0f),
-                        radius = 0.8f
-                    )
-                )
-        )
-        Icon(icon, contentDescription = null, tint = accent, modifier = Modifier.size(72.dp))
+        Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(72.dp))
     }
 }
 
@@ -267,8 +255,8 @@ private fun CtaRow(
     onCreateAccount: () -> Unit,
     onSignIn: () -> Unit
 ) {
-    val ctaBg = slide.ctaBg
-    val ctaFg = slide.ctaFg
+    val ctaBg = slide.medallion
+    val ctaFg = slide.iconTint
 
     Row(
         modifier = Modifier.fillMaxWidth(),
