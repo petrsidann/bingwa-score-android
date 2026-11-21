@@ -120,3 +120,16 @@ PhaseEntryKit components: PhaseScreen, PhaseDisplay, PhasePinReadout, PhaseKeypa
 - Invariant: numeric fields are never text fields; IME and keypad are mutually exclusive per step. Text fields (name/email) only appear in the identity step of create-account and always use the system keyboard; all phone/PIN entry uses the custom keypad.
 - No em dashes in user copy.
 - Nothing loops forever: no infinite chevron march, no blinking caret.
+
+## 11. Stage O3 amendments (colour/icon matrix, home glass, plaque)
+- Onboarding colour/icon matrix lives in `DesignTokens.Onboarding`. Slide backgrounds, medallion fills and icon tints are token-driven; no per-slide hex literals in `OnboardingSlides.kt`.
+- Slide 4 uses the original CSV/cloud-upload icon (not retry arrows). The per-page "Bingwa Score" header block is removed from the pager; chrome is Skip + CTA + dots only.
+- Entry route transitions (onboarding ↔ login ↔ pin_setup ↔ setup_checklist) use `slideInHorizontally` / `slideOutHorizontally` only (260 ms). No alpha crossfade between these screens.
+- Home cards (offline mesh, ladder, payout, offers container, repeat buyers, recent transactions) are wrapped in `GlassCard`. Hero stays solid black.
+- Home hero quick-action tiles are 44 dp glass tiles with 18 dp vector icons and 9.5 sp labels.
+- Home credits box shows a live `d:h:m:s` countdown in lime from `UserPreferences.creditsExpiry`; plan name below.
+- Home activation ladder uses 26 dp rounded-9 tiles: check glyph (lime fill, ink glyph) when done, plus glyph (muted) otherwise; progress ring is violet while incomplete and lime at 4/4.
+- Home subtabs (Offers / Settings) appear as the LazyColumn item immediately after the hero card.
+- Payout card shows real weekly commission, a countdown to Friday 17:00 (mono violet) and a gradient bar whose width is `commission / 1,000`.
+- Recent-transaction rows show a 40 dp status tile with the appropriate glyph and a right-aligned status chip; amounts carry no +/− sign.
+- Plaque prohibition: no ancestor of `LensTabBar` may carry a background. `MainScreen` lays out content and the black pill directly inside a root `Box`; the pill sits on page content with only its drop shadow.

@@ -186,6 +186,29 @@ object DesignTokens {
         val ink = ComposeColor(0xFF101014)
     }
 
+    // ─── Onboarding (Stage O3) ─────────────────────────────────────────────
+
+    object Onboarding {
+        val slideBg = listOf(
+            ComposeColor(0xFFA4F510),
+            ComposeColor(0xFF5B21D6),
+            ComposeColor(0xFF101014),
+            ComposeColor(0xFF1E3A8A)
+        )
+        val medallionFill = listOf(
+            ComposeColor(0xFF5B21D6),
+            ComposeColor(0xFFA4F510),
+            ComposeColor(0xFFA4F510),
+            ComposeColor(0xFFA4F510)
+        )
+        val iconTint = listOf(
+            ComposeColor(0xFFA4F510),
+            ComposeColor(0xFF5B21D6),
+            ComposeColor(0xFF101014),
+            ComposeColor(0xFF1E3A8A)
+        )
+    }
+
     // ─── Hero surface (Phase 1 spec 4) ───────────────────────────────────────
 
     object Hero {

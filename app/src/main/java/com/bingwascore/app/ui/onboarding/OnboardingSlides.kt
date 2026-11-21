@@ -23,7 +23,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PageSize
@@ -34,6 +33,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Autorenew
 import androidx.compose.material.icons.rounded.Cached
+import androidx.compose.material.icons.rounded.CloudUpload
 import androidx.compose.material.icons.rounded.EmojiEvents
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
@@ -78,7 +78,6 @@ private val DarkOlive = Color(0xFF4D7C0F)
 private data class Slide(
     val bg: Color,
     val fg: Color,
-    val body: Color,
     val title: String,
     val text: String,
     val ctaBg: Color,
@@ -89,9 +88,6 @@ private data class Slide(
 
 @Composable
 fun OnboardingSlides(onCreateAccount: () -> Unit, onSignIn: () -> Unit) {
-    val lime = DesignTokens.Launch.lime
-    val violet = DesignTokens.Launch.violet
-    val ink = DesignTokens.Launch.ink
     val slides = listOf(
         Slide(lime, violet, violet.copy(alpha = 0.7f), "Auto-pilot payments", "Bingwa Score watches for M-Pesa confirmations and dials bundles automatically.", violet, lime, header = true, accent = violet),
         Slide(violet, lime, lime.copy(alpha = 0.8f), "Smart retries & fallbacks", "Failed transaction? We retry with fallbacks so your customers stay happy.", lime, violet, header = false, accent = lime),
@@ -192,18 +188,12 @@ private fun SlideContentOnly(
                 .padding(start = 32.dp, end = 32.dp, bottom = 108.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            if (slide.header) {
-                Spacer(Modifier.height(24.dp))
-                Text("Bingwa Score", color = slide.fg, fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = (-0.5).sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
-                Spacer(Modifier.height(8.dp))
-                Text("Your bundle business, automated.", color = slide.fg.copy(alpha = 0.7f), fontSize = 15.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
-            }
             Spacer(Modifier.weight(1f))
             Medallion(page = page, accent = slide.accent)
             Spacer(Modifier.height(28.dp))
             Text(slide.title, color = slide.fg, fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.height(12.dp))
-            Text(slide.text, color = slide.body, fontSize = 15.sp, lineHeight = 24.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+            Text(slide.text, color = slide.fg.copy(alpha = 0.7f), fontSize = 15.sp, lineHeight = 24.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.weight(1f))
         }
     }

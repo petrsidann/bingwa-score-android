@@ -50,6 +50,9 @@ class HomeViewModel @Inject constructor(
 ) : ViewModel() {
 
     companion object {
+        /** O3 — default credits expiry offset (2d 15h 42m). */
+        const val DEFAULT_CREDITS_OFFSET_MS = 229_320_000L
+
         /** R5 — shared logcat tag for the whole USSD surface. */
         const val USSD_TAG = BalanceReader.TAG
 
@@ -228,6 +231,10 @@ class HomeViewModel @Inject constructor(
     val weeklyCommission: StateFlow<Double> = weeklyCommissionByDay
         .map { it.sum() }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0.0)
+
+    /** O3 — credits expiry used by the home countdown. */
+    val creditsExpiry: StateFlow<Long> = userPreferences.creditsExpiry
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), System.currentTimeMillis() + DEFAULT_CREDITS_OFFSET_MS)
 
     // ── POLISH P2 — credits + greeting ────────────────────────────────────────
 
