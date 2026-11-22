@@ -97,6 +97,7 @@ class UserPreferences @Inject constructor(
         val LADDER_TEST_DRIVE_DONE = booleanPreferencesKey("ladder_test_drive_done")
         val LADDER_IMPORT_BOOK_DONE = booleanPreferencesKey("ladder_import_book_done")
         val LADDER_RECOVER_FAILURE_DONE = booleanPreferencesKey("ladder_recover_failure_done")
+        val LADDER_HIDDEN = booleanPreferencesKey("ladder_hidden")
         val LAST_CLEARED_FAILED_AT = longPreferencesKey("last_cleared_failed_at")
 
         // ── Stage 14 — customers autosave book ──
@@ -244,12 +245,14 @@ class UserPreferences @Inject constructor(
     val ladderTestDriveDone: Flow<Boolean> = context.dataStore.data.map { it[Keys.LADDER_TEST_DRIVE_DONE] ?: false }
     val ladderImportBookDone: Flow<Boolean> = context.dataStore.data.map { it[Keys.LADDER_IMPORT_BOOK_DONE] ?: false }
     val ladderRecoverFailureDone: Flow<Boolean> = context.dataStore.data.map { it[Keys.LADDER_RECOVER_FAILURE_DONE] ?: false }
+    val ladderHidden: Flow<Boolean> = context.dataStore.data.map { it[Keys.LADDER_HIDDEN] ?: false }
     val lastClearedFailedAt: Flow<Long> = context.dataStore.data.map { it[Keys.LAST_CLEARED_FAILED_AT] ?: 0L }
 
     suspend fun setLadderEngineArmed(value: Boolean) = edit { it[Keys.LADDER_ENGINE_ARMED] = value }
     suspend fun setLadderTestDriveDone(value: Boolean) = edit { it[Keys.LADDER_TEST_DRIVE_DONE] = value }
     suspend fun setLadderImportBookDone(value: Boolean) = edit { it[Keys.LADDER_IMPORT_BOOK_DONE] = value }
     suspend fun setLadderRecoverFailureDone(value: Boolean) = edit { it[Keys.LADDER_RECOVER_FAILURE_DONE] = value }
+    suspend fun setLadderHidden(value: Boolean) = edit { it[Keys.LADDER_HIDDEN] = value }
     suspend fun setLastClearedFailedAt(value: Long) = edit { it[Keys.LAST_CLEARED_FAILED_AT] = value }
 
     /**
