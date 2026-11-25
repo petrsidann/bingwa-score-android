@@ -1,11 +1,14 @@
-"mobile-mcp": { "command": "npx", "args": ["-y", "@mobile-next/mobile-mcp@latest"] }
 {
   "mcpServers": {
+    "mobile-mcp": {
+      "command": "npx",
+      "args": ["-y", "@mobile-next/mobile-mcp@latest"]
+    },
     "rea": {
       "command": "node",
-      "args": ["/absolute/path/to/rea/dist/index.js"],
+      "args": ["C:\\Users\\User\\rea\\dist\\index.js"],
       "env": {
-        "ANDROID_HOME": "/path/to/android/sdk"
+        "ANDROID_HOME": "C:\\Users\\User\\AppData\\Local\\Android\\Sdk"
       }
     }
   }
