@@ -3,6 +3,14 @@
     "mobile-mcp": {
       "command": "cmd",
       "args": ["/c", "npx", "-y", "mobile-mcp"]
+    },
+    "rea": {
+      "command": "cmd",
+      "args": ["/c", "npx", "-y", "@modelcontextprotocol/server-reverse-engineering-agents"],
+      "env": {
+        "REA_APKTOOL_COMMAND": "C:\\recon\\apktool.cmd",
+        "REA_JADX_MCP_JAR": "C:\\recon\\jadx-headless-mcp-0.7.1-all.jar"
+      }
     }
   },
   "$version": 4
