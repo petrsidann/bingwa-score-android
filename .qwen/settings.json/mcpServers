@@ -1,8 +1,8 @@
 {
   "mcpServers": {
     "rea": {
-      "command": "C:\\node22\\node.exe",
-      "args": ["C:\\Users\\User\\rea\\scripts\\rea.mjs"],
+      "command": "C:\\node22\\rea-agents.cmd",
+      "args": ["--mcp"],
       "env": {
         "ANDROID_HOME": "C:\\Users\\User\\AppData\\Local\\Android\\Sdk"
       }
