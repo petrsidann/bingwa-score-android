@@ -1,0 +1,1 @@
+"mobile-mcp": { "command": "npx", "args": ["-y", "@mobile-next/mobile-mcp@latest"] }
