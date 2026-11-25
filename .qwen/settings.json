@@ -1,4 +1,4 @@
-{
+﻿{
   "mcpServers": {
     "rea": {
       "command": "C:\\node22\\rea-agents.cmd",
@@ -9,5 +9,6 @@
         "REA_APKTOOL_COMMAND": "C:\\recon\\apktool.cmd"
       }
     }
-  }
+  },
+  "$version": 4
 }
