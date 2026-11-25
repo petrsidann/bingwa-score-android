@@ -84,9 +84,9 @@ import com.bingwascore.app.domain.AppProcessingMode
 import com.bingwascore.app.domain.ThemeMode
 import com.bingwascore.app.ui.components.BubbleCard
 import com.bingwascore.app.ui.components.ExplanationDialog
-import com.bingwascore.app.ui.components.GlassCard
 import com.bingwascore.app.ui.components.PrimaryButton
 import com.bingwascore.app.ui.components.SecondaryButton
+import com.bingwascore.app.ui.glass.GlassCard
 import com.bingwascore.app.ui.theme.DesignTokens
 import com.bingwascore.app.ui.home.ThemeToggle
 import com.bingwascore.app.updates.UpdateDownloader
@@ -281,6 +281,61 @@ private fun SettingsSwitchRow(
 }
 
 /**
+ * S3.3 — simple nav row with "Open" link, no icon.
+ */
+@Composable
+private fun SettingsNavRow(
+    title: String,
+    onClick: () -> Unit,
+    last: Boolean = false
+) {
+    PressableGlassRow(onClick = onClick) {
+        Text(
+            title,
+            color = DesignTokens.LocalBingwaRoles.current.textPrimary,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.weight(1f)
+        )
+        Text(
+            text = "Open",
+            color = DesignTokens.LocalBingwaRoles.current.brand,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold
+        )
+    }
+    if (!last) GroupSeparator()
+}
+
+/**
+ * S3.3 — Activation ladder status row.
+ */
+@Composable
+private fun ActivationRow(
+    current: Int,
+    total: Int,
+    onClick: () -> Unit,
+    last: Boolean = false
+) {
+    PressableGlassRow(onClick = onClick) {
+        Text(
+            text = "Activation",
+            color = DesignTokens.LocalBingwaRoles.current.textPrimary,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.weight(1f)
+        )
+        Text(
+            text = "$current/$total",
+            color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.5f),
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold
+        )
+    }
+    if (!last) GroupSeparator()
+}
+
+/**
  * Stage 51 — a navigable glass row: icon, title, subtitle, optional trailing,
  * chevron tinted Obsidian.Ink at 0.4 alpha.
  */
@@ -426,22 +481,22 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
                 )
             }
 
-            // Message Processing — grouped glass card with PremiumToggle rows.
+            // S3.2 MESSAGE PROCESSING group
             GlassCard(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp)
             ) {
                 Column {
-                    SectionLabel("Message Processing")
+                    SectionLabel("MESSAGE PROCESSING")
                     SettingsSwitchRow(
-                        title = "Process M-Pesa Messages",
-                        subtitle = "Read inbound M-Pesa payment alerts and auto-dial offers",
+                        title = "Process M-Pesa messages",
+                        subtitle = "",
                         checked = processMpesaMessages,
                         onCheckedChange = viewModel::setProcessMpesaMessages,
                         last = false
                     )
                     SettingsSwitchRow(
-                        title = "Process SiteLink Messages",
-                        subtitle = "Handle SiteLink storefront order messages",
+                        title = "Process SiteLink messages",
+                        subtitle = "",
                         checked = processSitelinkMessages,
                         onCheckedChange = viewModel::setProcessSitelinkMessages,
                         last = true
@@ -450,15 +505,15 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
             }
             Spacer(modifier = Modifier.height(18.dp))
 
-            // Customers book — grouped glass card.
+            // S3.2 CUSTOMERS BOOK group
             GlassCard(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp)
             ) {
                 Column {
-                    SectionLabel("Customers Book")
+                    SectionLabel("CUSTOMERS BOOK")
                     SettingsSwitchRow(
-                        title = "Auto-save Customers",
-                        subtitle = "Add every completed bundle's buyer to the Customers book",
+                        title = "Auto-save customers",
+                        subtitle = "Add every completed buyer to the book",
                         checked = customersAutosave,
                         onCheckedChange = viewModel::setCustomersAutosave,
                         last = true
@@ -467,48 +522,34 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
             }
             Spacer(modifier = Modifier.height(18.dp))
 
-            // Preferences — grouped glass card.
+            // S3.2 PREFERENCES group
             GlassCard(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp)
             ) {
                 Column {
-                    SectionLabel("Preferences")
-                    SettingsRow(
-                        icon = Icons.Rounded.Palette,
+                    SectionLabel("PREFERENCES")
+                    SettingsNavRow(
                         title = "Appearance",
-                        subtitle = "Light, dark or follow system",
-                        trailing = {
-                            ThemeIconPreview(isDark = themeMode == ThemeMode.DARK)
-                        },
                         onClick = { currentPage = SettingsPage.APPEARANCE },
                         last = false
                     )
-                    SettingsRow(
-                        icon = Icons.Rounded.Bolt,
-                        title = "Processing Mode",
-                        subtitle = "How transactions are executed",
+                    SettingsNavRow(
+                        title = "Processing mode",
                         onClick = { currentPage = SettingsPage.PROCESSING_MODE },
                         last = false
                     )
-                    SettingsRow(
-                        icon = Icons.Rounded.SimCard,
-                        title = "SIM Selection",
-                        subtitle = "Line used for dialing and balance checks",
+                    SettingsNavRow(
+                        title = "SIM selection",
                         onClick = { currentPage = SettingsPage.SIM_SELECTION },
                         last = false
                     )
-                    SettingsRow(
-                        icon = Icons.Rounded.Bolt,
+                    SettingsNavRow(
                         title = "Test Drive",
-                        subtitle = "Sandbox: simulate an M-Pesa credit, zero real money",
-                        trailing = { DevChip() },
                         onClick = { currentPage = SettingsPage.SIMULATE_PAYMENT },
                         last = false
                     )
-                    SettingsRow(
-                        icon = Icons.Rounded.Link,
+                    SettingsNavRow(
                         title = "Server",
-                        subtitle = "Backend base URL — $effectiveServerUrl",
                         onClick = { currentPage = SettingsPage.SERVER },
                         last = true
                     )
@@ -516,69 +557,26 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
             }
             Spacer(modifier = Modifier.height(18.dp))
 
-            // Account & Data — grouped glass card.
+            // S3.2 ACCOUNT & DATA group
             GlassCard(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp)
             ) {
                 Column {
-                    SectionLabel("Account & Data")
-                    SettingsRow(
-                        icon = Icons.Rounded.SaveAlt,
+                    SectionLabel("ACCOUNT & DATA")
+                    SettingsNavRow(
                         title = "Backup & Restore",
-                        subtitle = "Export or import your data as JSON",
                         onClick = { currentPage = SettingsPage.BACKUP_RESTORE },
                         last = false
                     )
-                    SettingsRow(
-                        icon = Icons.Rounded.SystemUpdateAlt,
-                        title = "Check for updates",
-                        subtitle = "Compare this build against the latest release",
-                        onClick = {
-                            updateDialogOpen = true
-                            viewModel.checkForUpdates()
-                        },
+                    SettingsNavRow(
+                        title = "Feature blueprint",
+                        onClick = { /* Open feature blueprint */ },
                         last = false
                     )
-                    SettingsRow(
-                        icon = Icons.Rounded.Description,
-                        title = "Last crash report",
-                        subtitle = "Copy the most recent uncaught-exception stack to share",
-                        onClick = {
-                            crashReportText = CrashHandler.readLatestCrashReport(context)
-                            crashDialogOpen = true
-                        },
-                        last = false
-                    )
-                    SettingsRow(
-                        icon = Icons.Rounded.Info,
-                        title = "About",
-                        subtitle = "Version and app information",
-                        onClick = { currentPage = SettingsPage.ABOUT },
-                        last = false
-                    )
-                    SettingsRow(
-                        icon = Icons.Rounded.Description,
-                        title = "Terms",
-                        subtitle = "Terms of service",
-                        onClick = { currentPage = SettingsPage.TERMS },
-                        last = false
-                    )
-                    SettingsRow(
-                        icon = Icons.Rounded.PrivacyTip,
-                        title = "Privacy",
-                        subtitle = "How your data is handled",
-                        onClick = { currentPage = SettingsPage.PRIVACY },
-                        last = false
-                    )
-                    SettingsRow(
-                        icon = Icons.Rounded.Bolt,
-                        title = "Showcase Mode",
-                        subtitle = if (DbNameHolder.showcaseMode) {
-                            "On — running on live demo data"
-                        } else {
-                            "Explore with a separate demo database"
-                        },
-                        onClick = { currentPage = SettingsPage.SHOWCASE },
+                    ActivationRow(
+                        current = 0,
+                        total = 4,
+                        onClick = { /* Ladder state from HomeViewModel */ },
                         last = true
                     )
                 }
