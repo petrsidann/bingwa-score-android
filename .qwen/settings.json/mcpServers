@@ -4,7 +4,8 @@
       "command": "C:\\node22\\rea-agents.cmd",
       "args": ["--mcp"],
       "env": {
-        "ANDROID_HOME": "C:\\Users\\User\\AppData\\Local\\Android\\Sdk"
+        "ANDROID_HOME": "C:\\Users\\User\\AppData\\Local\\Android\\Sdk",
+        "REA_JADX_MCP_JAR": "C:\\recon\\jadx-headless-mcp-0.7.1-all.jar"
       }
     }
   }
