@@ -1270,7 +1270,7 @@ private fun ShowcasePage() {
             "live simulator. Your real data is never touched."
     )
 
-    GlassCard(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp)) {
+    GlassCard(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp))) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
