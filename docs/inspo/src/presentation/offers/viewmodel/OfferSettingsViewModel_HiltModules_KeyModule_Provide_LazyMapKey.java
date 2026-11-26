@@ -1,0 +1,7 @@
+package com.example.bingwahybrid.presentation.offers.viewmodel;
+
+/* JADX INFO: loaded from: classes3.dex */
+public final class OfferSettingsViewModel_HiltModules_KeyModule_Provide_LazyMapKey {
+    static OfferSettingsViewModel keepFieldType = null;
+    public static String lazyClassKeyName = "com.example.bingwahybrid.presentation.offers.viewmodel.OfferSettingsViewModel";
+}

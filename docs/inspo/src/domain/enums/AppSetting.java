@@ -1,0 +1,42 @@
+package com.example.bingwahybrid.domain.enums;
+
+import kotlin.Metadata;
+import kotlin.enums.EnumEntries;
+import kotlin.enums.EnumEntriesKt;
+
+/* JADX INFO: compiled from: AppSetting.kt */
+/* JADX INFO: loaded from: classes3.dex */
+@Metadata(d1 = {"\u0000\f\n\u0002\u0018\u0002\n\u0002\u0010\u0010\n\u0002\b\u001c\b\u0086\u0081\u0002\u0018\u00002\b\u0012\u0004\u0012\u00020\u00000\u0001B\t\b\u0002¢\u0006\u0004\b\u0002\u0010\u0003j\u0002\b\u0004j\u0002\b\u0005j\u0002\b\u0006j\u0002\b\u0007j\u0002\b\bj\u0002\b\tj\u0002\b\nj\u0002\b\u000bj\u0002\b\fj\u0002\b\rj\u0002\b\u000ej\u0002\b\u000fj\u0002\b\u0010j\u0002\b\u0011j\u0002\b\u0012j\u0002\b\u0013j\u0002\b\u0014j\u0002\b\u0015j\u0002\b\u0016j\u0002\b\u0017j\u0002\b\u0018j\u0002\b\u0019j\u0002\b\u001aj\u0002\b\u001bj\u0002\b\u001c¨\u0006\u001d"}, d2 = {"Lcom/example/bingwahybrid/domain/enums/AppSetting;", "", "<init>", "(Ljava/lang/String;I)V", "DB_INITIALIZED", "RECEIVE_PAYMENTS_VIA_SIM_1", "RECEIVE_PAYMENTS_VIA_SIM_2", "DIAL_USSD_VIA_SIM_1", "DIAL_USSD_VIA_SIM_2", "SEND_SMS_VIA_SIM_1", "SEND_SMS_VIA_SIM_2", "PROCESS_MPESA_MESSAGES", "PROCESS_TILL_MESSAGES", "PROCESS_PAY_BILL_MESSAGES", "PROCESS_SITE_LINK_MESSAGES", "AGENT_ID", "ADMIN_PAYMENT_NUMBER", "ADMIN_SITE_LINK_NUMBER", "APP_CONNECT_ID", "APP_STATE", "APP_PROCESSING_MODE", "APP_UPDATE_REQUIRED", "STATS_TRANSACTED_AMOUNT", "STATS_AIRTIME_BALANCE", "AUTO_SAVE_CONTACTS", "AUTO_SAVE_CONTACTS_SUFFIX", "ENHANCED_AUTO_REPLIES_INITIALIZED", "HYBRID_PORTAL_ACTIVE", "ENGAGE_BOT_ACTIVE", "app_debug"}, k = 1, mv = {2, 2, 0}, xi = 48)
+public enum AppSetting {
+    DB_INITIALIZED,
+    RECEIVE_PAYMENTS_VIA_SIM_1,
+    RECEIVE_PAYMENTS_VIA_SIM_2,
+    DIAL_USSD_VIA_SIM_1,
+    DIAL_USSD_VIA_SIM_2,
+    SEND_SMS_VIA_SIM_1,
+    SEND_SMS_VIA_SIM_2,
+    PROCESS_MPESA_MESSAGES,
+    PROCESS_TILL_MESSAGES,
+    PROCESS_PAY_BILL_MESSAGES,
+    PROCESS_SITE_LINK_MESSAGES,
+    AGENT_ID,
+    ADMIN_PAYMENT_NUMBER,
+    ADMIN_SITE_LINK_NUMBER,
+    APP_CONNECT_ID,
+    APP_STATE,
+    APP_PROCESSING_MODE,
+    APP_UPDATE_REQUIRED,
+    STATS_TRANSACTED_AMOUNT,
+    STATS_AIRTIME_BALANCE,
+    AUTO_SAVE_CONTACTS,
+    AUTO_SAVE_CONTACTS_SUFFIX,
+    ENHANCED_AUTO_REPLIES_INITIALIZED,
+    HYBRID_PORTAL_ACTIVE,
+    ENGAGE_BOT_ACTIVE;
+
+    private static final /* synthetic */ EnumEntries $ENTRIES = EnumEntriesKt.enumEntries(values());
+
+    public static EnumEntries<AppSetting> getEntries() {
+        return $ENTRIES;
+    }
+}
