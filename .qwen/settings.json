@@ -1,4 +1,7 @@
-﻿{
-  "$version": 4,
+@'
+{
   "mcpServers": {}
 }
+'@ | Set-Content -Path .qwen\settings.json -Encoding UTF8
+Get-Content .qwen\settings.json -Raw | ConvertFrom-Json   # must parse
+git status --short                                        # expect: M .qwen/settings.json only — leave it uncommitted
