@@ -26,9 +26,9 @@ import com.bingwascore.app.ui.theme.isPorcelain
 @Composable
 fun GlassCard(
     modifier: Modifier = Modifier,
+    shape: androidx.compose.foundation.shape.CornerBasedShape = RoundedCornerShape(DesignTokens.Shape.RadiusLg),
     content: @Composable () -> Unit
 ) {
-    val shape = RoundedCornerShape(DesignTokens.Shape.RadiusLg)
     val isPorcelainTheme = isPorcelain
     val scrim = GlassSpec.scrimColor(isPorcelainTheme)
     val borderColor = DesignTokens.LocalBingwaRoles.current.border.copy(alpha = 0.6f)

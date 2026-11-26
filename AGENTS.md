@@ -46,6 +46,7 @@
 ## 8. KNOWN ENVIRONMENTAL ISSUES (do not chase)
 - The FULL `testDebugUnitTest` suite can crash the Gradle test executor on this machine (Paparazzi bridge / Robolectric SDK 34 / native executor). This is PRE-EXISTING and environmental. Gate on TARGETED tests + assembleDebug/assembleRelease instead. Do not "fix" the executor.
 - Paparazzi golden recording may stall (daemon CPU flatline). Do not block a stage on re-recording goldens unless the stage explicitly adds a new golden.
+- A local Gradle timeout is not a completion blocker and not a skip license. It switches verification to CI-as-compiler: push the branch, read the PR run conclusion via gh run view <databaseId> --json conclusion, fix, re-push, maximum 3 cycles. A stage is complete ONLY when a CI run on its branch reports conclusion=success, pasted raw in the report. 'CI will verify' is not a status. All file writes use UTF-8 without BOM.
 
 ## 9. LAUNCH ARCHITECTURE (Stage 59)
 - Launcher = ui/screens/LaunchActivity (lime -> violet true-circle reveal, ~1.94s) -> MainActivity (violet window) -> LAUNCH bridge (350ms) -> decideStartDestination -> Onboarding/Login/SetupChecklist/Main.
