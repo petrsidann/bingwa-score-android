@@ -632,8 +632,8 @@ private fun QuickActionTile(icon: ImageVector, label: String, onClick: () -> Uni
         )
         Text(
             text = label,
-            color = DesignTokens.HomeTokens.TileInk,
-            fontSize = DesignTokens.HomeTokens.TileLabelSize,
+            color = Color(0xFFF8FAFC),
+            fontSize = 10.sp,
             fontWeight = FontWeight.SemiBold
         )
     }

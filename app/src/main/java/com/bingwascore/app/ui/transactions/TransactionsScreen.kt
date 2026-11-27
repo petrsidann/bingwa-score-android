@@ -1275,26 +1275,30 @@ private fun StatsTiles(transactions: List<Transaction>) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .height(96.dp)
             .padding(horizontal = 20.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        SemanticTile(value = completed, label = "Completed", color = DesignTokens.Semantic.complete, modifier = Modifier.weight(1f))
-        SemanticTile(value = pending, label = "Queued", color = DesignTokens.Semantic.scheduled, modifier = Modifier.weight(1f))
-        SemanticTile(value = failed, label = "Failed", color = DesignTokens.Semantic.failed, modifier = Modifier.weight(1f))
+        StatGlassCard(value = completed, label = "Completed", color = DesignTokens.Semantic.complete, modifier = Modifier.weight(1f))
+        StatGlassCard(value = pending, label = "Queued", color = DesignTokens.Semantic.scheduled, modifier = Modifier.weight(1f))
+        StatGlassCard(value = failed, label = "Failed", color = DesignTokens.Semantic.failed, modifier = Modifier.weight(1f))
     }
 }
 
 @Composable
-private fun SemanticTile(value: Int, label: String, color: Color, modifier: Modifier = Modifier) {
+private fun StatGlassCard(value: Int, label: String, color: Color, modifier: Modifier = Modifier) {
     GlassCard(modifier = modifier) {
-        Column(modifier = Modifier.padding(12.dp)) {
+        Column(
+            modifier = Modifier.fillMaxSize().padding(12.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
             Text(
                 text = "$value",
                 color = color,
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Bold
             )
-            Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = label,
                 color = DesignTokens.LocalBingwaRoles.current.textPrimary,
