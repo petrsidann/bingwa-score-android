@@ -54,3 +54,8 @@ config.yaml
 # Stage 46 local build logs and the owner compile script
 compile_errors.txt
 build46.ps1
+
+# Recon APKs and decompiled output
+tools/recon/*.apk
+tools/recon/sokoni-src/
+tools/recon/sokoni-res/
