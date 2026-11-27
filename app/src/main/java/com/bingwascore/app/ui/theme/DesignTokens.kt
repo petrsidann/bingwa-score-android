@@ -247,7 +247,7 @@ object DesignTokens {
         val Lg = 24.dp
         val Xl = 32.dp
         // ─── Stage 55 — Standing Design Law spacing ───────────────────────
-        val ToastBottomOffset = 96.dp
+        val ToastBottomOffset = 104.dp
         val ToastHorizontalMargin = 16.dp
         val EmptyIconSize = 64.dp
         val EmptyIconAlpha = 0.25f
