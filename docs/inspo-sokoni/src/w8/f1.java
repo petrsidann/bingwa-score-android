@@ -1,0 +1,38 @@
+package w8;
+
+import android.content.Intent;
+import android.os.Binder;
+import android.os.Process;
+import android.util.Log;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
+
+/* JADX INFO: loaded from: classes.dex */
+public class f1 extends Binder {
+
+    /* JADX INFO: renamed from: a, reason: collision with root package name */
+    public final a f17729a;
+
+    public interface a {
+        Task<Void> a(Intent intent);
+    }
+
+    public f1(a aVar) {
+        this.f17729a = aVar;
+    }
+
+    public void c(final i1.a aVar) {
+        if (Binder.getCallingUid() != Process.myUid()) {
+            throw new SecurityException("Binding only allowed within app");
+        }
+        if (Log.isLoggable("FirebaseMessaging", 3)) {
+            Log.d("FirebaseMessaging", "service received new intent via bind strategy");
+        }
+        this.f17729a.a(aVar.f17757a).addOnCompleteListener(new x1.b(), new OnCompleteListener() { // from class: w8.e1
+            @Override // com.google.android.gms.tasks.OnCompleteListener
+            public final void onComplete(Task task) {
+                aVar.d();
+            }
+        });
+    }
+}
