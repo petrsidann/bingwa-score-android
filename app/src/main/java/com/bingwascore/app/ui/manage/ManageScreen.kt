@@ -86,7 +86,7 @@ fun ManageScreen(
 
 @Composable
 internal fun ManageScreenContent(
-    tab: ManageTab = ManageTab.CUSTOMERS,
+    tab: ManageTab = ManageTab.OVERVIEW,
     onTabChange: (ManageTab) -> Unit = {},
     customers: List<Customer> = emptyList(),
     query: String = "",
@@ -113,13 +113,16 @@ internal fun ManageScreenContent(
         Spacer(modifier = Modifier.height(DesignTokens.Spacing.Md))
 
         when (tab) {
+            ManageTab.OVERVIEW -> OverviewTab()
+            ManageTab.OFFERS -> EmptyTab(title = "Offers", message = "No offers configured yet")
             ManageTab.CUSTOMERS -> CustomersTab(
                 customers = customers,
                 query = query,
                 onQueryChange = onQueryChange,
                 onSelect = onSelectCustomer
             )
-            ManageTab.CREDITS -> CreditsTab(plan = plan, allPlans = allPlans)
+            ManageTab.RENEWALS -> EmptyTab(title = "Renewals", message = "No auto-renewals set up yet")
+            ManageTab.REPLIES -> EmptyTab(title = "Replies", message = "No auto-replies configured yet")
         }
     }
 
@@ -162,7 +165,13 @@ private fun TopBar(title: String, onBack: () -> Unit) {
 
 @Composable
 private fun Subtabs(tab: ManageTab, onSelect: (ManageTab) -> Unit) {
-    val tabs = listOf(ManageTab.CUSTOMERS to "Customers", ManageTab.CREDITS to "Credits")
+    val tabs = listOf(
+        ManageTab.OVERVIEW to "Overview",
+        ManageTab.OFFERS to "Offers",
+        ManageTab.CUSTOMERS to "Customers",
+        ManageTab.RENEWALS to "Renewals",
+        ManageTab.REPLIES to "Replies"
+    )
     Row(
         horizontalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.Sm),
         modifier = Modifier
@@ -608,3 +617,47 @@ private fun initialsOf(name: String): String {
 
 private fun money(value: Double): String =
     String.format(Locale.US, "%,.2f", value)
+
+@Composable
+private fun OverviewTab() {
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = DesignTokens.Spacing.Md),
+        contentPadding = PaddingValues(vertical = DesignTokens.Spacing.Md)
+    ) {
+        item {
+            Text(
+                text = "Overview — previous Home content moves here in next stage",
+                color = DesignTokens.LocalBingwaRoles.current.textSecondary,
+                fontSize = DesignTokens.Typography.Body,
+                modifier = Modifier.padding(vertical = DesignTokens.Spacing.Lg)
+            )
+        }
+    }
+}
+
+@Composable
+private fun EmptyTab(title: String, message: String) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(DesignTokens.Spacing.Md),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = title,
+                color = DesignTokens.LocalBingwaRoles.current.textPrimary,
+                fontSize = DesignTokens.Typography.Headline.fontSize,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(DesignTokens.Spacing.Sm))
+            Text(
+                text = message,
+                color = DesignTokens.LocalBingwaRoles.current.textSecondary,
+                fontSize = DesignTokens.Typography.Body
+            )
+        }
+    }
+}

@@ -6,6 +6,8 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.bingwascore.app.data.autorenewal.AutoRenewalDao
+import com.bingwascore.app.data.autorenewal.AutoRenewalEntity
 
 /**
  * SHOWCASE S1 — which database file this process talks to.
@@ -69,9 +71,9 @@ object DbNameHolder {
 @Database(
     entities = [
         Transaction::class, Offer::class, Customer::class, AutoReply::class,
-        AgentCommission::class
+        AgentCommission::class, AutoRenewalEntity::class
     ],
-    version = 7,
+    version = 8,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -81,6 +83,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun customerDao(): CustomerDao
     abstract fun autoReplyDao(): AutoReplyDao
     abstract fun agentCommissionDao(): AgentCommissionDao
+    abstract fun autoRenewalDao(): AutoRenewalDao
 
     companion object {
         @Volatile
@@ -255,6 +258,36 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * v7 → v8 (Stage P2F1 — auto-renewals table). Creates the auto_renewals
+         * table for scheduled recurring transactions:
+         * - `id` — UUID primary key.
+         * - `offerId`, `customerId` — foreign references.
+         * - `interval` — DAILY/WEEKLY/BIWEEKLY/MONTHLY text enum.
+         * - `nextRenewalAtMillis` — next renewal timestamp.
+         * - `isActive` — toggle state.
+         * - `createdAtMillis` — creation timestamp.
+         */
+        private val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `auto_renewals` (" +
+                        "`id` TEXT NOT NULL, " +
+                        "`offerId` TEXT NOT NULL, " +
+                        "`customerId` TEXT NOT NULL, " +
+                        "`interval` TEXT NOT NULL, " +
+                        "`nextRenewalAtMillis` INTEGER NOT NULL, " +
+                        "`isActive` INTEGER NOT NULL, " +
+                        "`createdAtMillis` INTEGER NOT NULL, " +
+                        "PRIMARY KEY(`id`))"
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_auto_renewals_nextRenewalAtMillis` " +
+                        "ON `auto_renewals` (`nextRenewalAtMillis`)"
+                )
+            }
+        }
+
         fun getDatabase(context: Context): AppDatabase =
             INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -264,7 +297,7 @@ abstract class AppDatabase : RoomDatabase() {
                 )
                     .addMigrations(
                         MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6,
-                        MIGRATION_6_7
+                        MIGRATION_6_7, MIGRATION_7_8
                     )
                     .fallbackToDestructiveMigration()
                     .build()

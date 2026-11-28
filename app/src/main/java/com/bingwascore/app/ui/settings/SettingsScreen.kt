@@ -31,6 +31,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Autorenew
 import androidx.compose.material.icons.rounded.Bolt
 import androidx.compose.material.icons.rounded.Brightness2
 import androidx.compose.material.icons.rounded.CheckCircle
@@ -101,9 +102,6 @@ import kotlinx.coroutines.launch
 import java.io.File
 
 private enum class SettingsPage(val title: String) {
-    APPEARANCE("Appearance"),
-    PROCESSING_MODE("Processing Mode"),
-    SERVER("Server"),
     SIM_SELECTION("SIM Selection"),
     SIMULATE_PAYMENT("Test Drive"),
     BACKUP_RESTORE("Backup & Restore"),
@@ -401,7 +399,10 @@ private fun DevChip() {
 
 /** Settings hub with glass rows plus its own sub-pages. */
 @Composable
-fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
+fun SettingsScreen(
+    onAutoRenewalsClick: (() -> Unit)? = null,
+    viewModel: SettingsViewModel = hiltViewModel()
+) {
     var currentPage by remember { mutableStateOf<SettingsPage?>(null) }
 
     val showAdvancedExplanation by viewModel.showAdvancedExplanation.collectAsStateWithLifecycle()
@@ -441,9 +442,6 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
                     .padding(horizontal = 20.dp)
             ) {
                 when (page) {
-                    SettingsPage.APPEARANCE -> AppearancePage(viewModel)
-                    SettingsPage.PROCESSING_MODE -> ProcessingModePage(viewModel)
-                    SettingsPage.SERVER -> ServerPage(viewModel)
                     SettingsPage.SIM_SELECTION -> SimSelectionPage(viewModel)
                     SettingsPage.SIMULATE_PAYMENT -> SimulatePaymentPage(viewModel)
                     SettingsPage.BACKUP_RESTORE -> BackupRestorePage(viewModel)
@@ -499,8 +497,20 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
                         subtitle = "",
                         checked = processSitelinkMessages,
                         onCheckedChange = viewModel::setProcessSitelinkMessages,
-                        last = true
+                        last = onAutoRenewalsClick == null
                     )
+                    if (onAutoRenewalsClick != null) {
+                        SettingsRow(
+                            icon = Icons.Rounded.Autorenew,
+                            title = "Auto-renewals",
+                            subtitle = "Schedule recurring transactions",
+                            trailing = {
+                                Text("Open", color = DesignTokens.LocalBingwaRoles.current.brand, fontSize = 11.sp)
+                            },
+                            onClick = onAutoRenewalsClick,
+                            last = true
+                        )
+                    }
                 }
             }
             Spacer(modifier = Modifier.height(18.dp))
@@ -522,22 +532,42 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
             }
             Spacer(modifier = Modifier.height(18.dp))
 
-            // S3.2 PREFERENCES group
+            // S3.2 MESSAGE PROCESSING group
+            GlassCard(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp)
+            ) {
+                Column {
+                    SectionLabel("MESSAGE PROCESSING")
+                    SettingsNavRow(
+                        title = "Auto-renewals",
+                        onClick = { /* Navigate to auto-renewals */ },
+                        last = true
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(18.dp))
+
+            // CUSTOMERS BOOK group
+            GlassCard(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp)
+            ) {
+                Column {
+                    SectionLabel("CUSTOMERS BOOK")
+                    SettingsNavRow(
+                        title = "Blacklist",
+                        onClick = { /* Open blacklist */ },
+                        last = true
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(18.dp))
+
+            // PREFERENCES group
             GlassCard(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp)
             ) {
                 Column {
                     SectionLabel("PREFERENCES")
-                    SettingsNavRow(
-                        title = "Appearance",
-                        onClick = { currentPage = SettingsPage.APPEARANCE },
-                        last = false
-                    )
-                    SettingsNavRow(
-                        title = "Processing mode",
-                        onClick = { currentPage = SettingsPage.PROCESSING_MODE },
-                        last = false
-                    )
                     SettingsNavRow(
                         title = "SIM selection",
                         onClick = { currentPage = SettingsPage.SIM_SELECTION },
@@ -546,11 +576,6 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
                     SettingsNavRow(
                         title = "Test Drive",
                         onClick = { currentPage = SettingsPage.SIMULATE_PAYMENT },
-                        last = false
-                    )
-                    SettingsNavRow(
-                        title = "Server",
-                        onClick = { currentPage = SettingsPage.SERVER },
                         last = true
                     )
                 }
@@ -757,136 +782,6 @@ private fun PolicyBody(title: String, paragraphs: List<String>) {
         paragraphs.forEachIndexed { index, paragraph ->
             if (index > 0) Spacer(modifier = Modifier.height(10.dp))
             Text(paragraph, color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.7f), fontSize = 13.sp)
-        }
-    }
-}
-
-@Composable
-private fun AppearancePage(viewModel: SettingsViewModel) {
-    val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
-    val haptics = rememberHaptics()
-    val isDark = themeMode == ThemeMode.DARK
-
-    PageTitle("Appearance")
-    PageIntro("Obsidian by night, Porcelain Dim by day. The switch persists and repaints the app instantly.")
-
-    BubbleCard(modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(
-                text = "Theme",
-                color = DesignTokens.LocalBingwaRoles.current.textPrimary,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.SemiBold
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            Text(
-                text = themeMode.label,
-                color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.5f),
-                fontSize = 13.sp
-            )
-            Spacer(modifier = Modifier.weight(1f))
-            ThemeToggle(onToggle = {
-                haptics.tick()
-                viewModel.setThemeMode(
-                    if (isDark) ThemeMode.PORCELAIN_DIM else ThemeMode.DARK
-                )
-            })
-        }
-    }
-}
-
-@Composable
-private fun ProcessingModePage(viewModel: SettingsViewModel) {
-    val processingMode by viewModel.processingMode.collectAsStateWithLifecycle()
-
-    PageTitle("Processing Mode")
-    PageIntro("How transactions are executed when you dial an offer.")
-    OptionCard(
-        title = "Express",
-        description = "Fast single-pass dialing for busy agents",
-        selected = processingMode == AppProcessingMode.EXPRESS,
-        onClick = { viewModel.setProcessingMode(AppProcessingMode.EXPRESS) }
-    )
-    OptionCard(
-        title = "Advanced",
-        description = "Extra verification steps and retries",
-        selected = processingMode == AppProcessingMode.ADVANCED,
-        onClick = { viewModel.requestAdvancedMode() }
-    )
-}
-
-@Composable
-private fun ServerPage(viewModel: SettingsViewModel) {
-    val haptics = rememberHaptics()
-    val serverUrl by viewModel.serverUrl.collectAsStateWithLifecycle()
-    val effectiveUrl by viewModel.effectiveServerUrl.collectAsStateWithLifecycle()
-    val errorState = viewModel.serverUrlError.collectAsStateWithLifecycle()
-    var input by remember(serverUrl) { mutableStateOf(serverUrl) }
-
-    PageTitle("Server")
-    PageIntro(
-        "Backend base URL. Must use https and overrides the build-time default. " +
-            "Changes apply to the next network call."
-    )
-    BubbleCard(modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)) {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(DesignTokens.LocalBingwaRoles.current.card)
-                    .border(1.dp, if (errorState.value != null) DesignTokens.LocalBingwaRoles.current.error else DesignTokens.LocalBingwaRoles.current.border, RoundedCornerShape(16.dp))
-                    .padding(horizontal = 14.dp, vertical = 13.dp)
-            ) {
-                BasicTextField(
-                    value = input,
-                    onValueChange = { input = it },
-                    singleLine = true,
-                    textStyle = TextStyle(color = DesignTokens.LocalBingwaRoles.current.textPrimary, fontSize = 14.sp),
-                    cursorBrush = SolidColor(DesignTokens.LocalBingwaRoles.current.brand),
-                    modifier = Modifier.fillMaxWidth()
-                )
-                if (input.isEmpty()) {
-                    Text(
-                        text = "https://api.example.com",
-                        color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.5f),
-                        fontSize = 14.sp
-                    )
-                }
-            }
-            if (errorState.value != null) {
-                Text(
-                    text = errorState.value!!,
-                    color = DesignTokens.LocalBingwaRoles.current.error,
-                    fontSize = 12.sp,
-                    modifier = Modifier.padding(horizontal = 14.dp).padding(top = 6.dp)
-                )
-            }
-            Spacer(modifier = Modifier.height(10.dp))
-            PrimaryButton(
-                text = "Save",
-                onClick = {
-                    haptics.tick()
-                    viewModel.setServerUrl(input.trim())
-                }
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            androidx.compose.material3.TextButton(onClick = {
-                haptics.tick()
-                input = serverUrl
-                viewModel.resetServerUrl()
-            }) {
-                Text("Reset to default", color = DesignTokens.LocalBingwaRoles.current.brand, fontWeight = FontWeight.SemiBold)
-            }
-            Spacer(modifier = Modifier.height(10.dp))
-            Text(
-                text = "Effective URL: $effectiveUrl",
-                color = DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.5f),
-                fontSize = 12.sp
-            )
         }
     }
 }
