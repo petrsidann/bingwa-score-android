@@ -31,6 +31,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Autorenew
 import androidx.compose.material.icons.rounded.Bolt
 import androidx.compose.material.icons.rounded.Brightness2
 import androidx.compose.material.icons.rounded.CheckCircle
@@ -401,7 +402,10 @@ private fun DevChip() {
 
 /** Settings hub with glass rows plus its own sub-pages. */
 @Composable
-fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
+fun SettingsScreen(
+    onAutoRenewalsClick: (() -> Unit)? = null,
+    viewModel: SettingsViewModel = hiltViewModel()
+) {
     var currentPage by remember { mutableStateOf<SettingsPage?>(null) }
 
     val showAdvancedExplanation by viewModel.showAdvancedExplanation.collectAsStateWithLifecycle()
@@ -499,8 +503,20 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
                         subtitle = "",
                         checked = processSitelinkMessages,
                         onCheckedChange = viewModel::setProcessSitelinkMessages,
-                        last = true
+                        last = onAutoRenewalsClick == null
                     )
+                    if (onAutoRenewalsClick != null) {
+                        SettingsRow(
+                            icon = Icons.Rounded.Autorenew,
+                            title = "Auto-renewals",
+                            subtitle = "Schedule recurring transactions",
+                            trailing = {
+                                Text("Open", color = DesignTokens.LocalBingwaRoles.current.brand, fontSize = 11.sp)
+                            },
+                            onClick = onAutoRenewalsClick,
+                            last = true
+                        )
+                    }
                 }
             }
             Spacer(modifier = Modifier.height(18.dp))

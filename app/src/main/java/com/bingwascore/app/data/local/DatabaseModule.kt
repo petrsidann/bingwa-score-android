@@ -1,6 +1,7 @@
 package com.bingwascore.app.data.local
 
 import android.content.Context
+import com.bingwascore.app.data.autorenewal.AutoRenewalDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -32,4 +33,7 @@ object DatabaseModule {
     @Provides
     fun provideAgentCommissionDao(database: AppDatabase): AgentCommissionDao =
         database.agentCommissionDao()
+
+    @Provides
+    fun provideAutoRenewalDao(database: AppDatabase): AutoRenewalDao = database.autoRenewalDao()
 }

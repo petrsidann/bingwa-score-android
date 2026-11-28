@@ -100,6 +100,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import com.bingwascore.app.BuildConfig
+import com.bingwascore.app.ui.autorenewals.AddAutoRenewalScreen
 import com.bingwascore.app.ui.autorenewals.AutoRenewalsScreen
 import com.bingwascore.app.ui.autoreplies.AutoRepliesScreen
 import com.bingwascore.app.ui.glass.LensTabBar
@@ -320,6 +321,7 @@ fun MainScreen(remoteHttpClient: RemoteHttpClient) {
     var showReferral by remember { mutableStateOf(false) }
     var showTransactions by remember { mutableStateOf(false) }
     var showManage by remember { mutableStateOf(false) }
+    var showAddAutoRenewal by remember { mutableStateOf(false) }
     // R2: Home counters hand a status filter over to the Transactions tab.
     var transactionFilter by remember { mutableStateOf(TransactionFilter.ALL) }
     val scope = rememberCoroutineScope()
@@ -338,7 +340,7 @@ fun MainScreen(remoteHttpClient: RemoteHttpClient) {
     // Stage 25 — System back handling across sheets, drawers, secondary routes, and tabs.
     // Zero dead ends: close active drawer/sheets first, return secondary drawer routes
     // or referral back to main, or return non-Home main tabs to Home (0).
-    val hasBackAction = drawerOpen || showDialer || showReferral || showTransactions || showManage || selectedDrawerIndex != -1 || selectedTab != 0
+    val hasBackAction = drawerOpen || showDialer || showReferral || showTransactions || showManage || showAddAutoRenewal || selectedDrawerIndex != -1 || selectedTab != 0
     BackHandler(enabled = hasBackAction) {
         when {
             drawerOpen -> drawerOpen = false
@@ -346,6 +348,7 @@ fun MainScreen(remoteHttpClient: RemoteHttpClient) {
             showReferral -> showReferral = false
             showTransactions -> showTransactions = false
             showManage -> showManage = false
+            showAddAutoRenewal -> showAddAutoRenewal = false
             selectedDrawerIndex != -1 -> selectedDrawerIndex = -1
             selectedTab != 0 -> selectedTab = 0
         }
@@ -388,7 +391,11 @@ fun MainScreen(remoteHttpClient: RemoteHttpClient) {
                     }
                 }
 
-                val resolved = if (showReferral) "referral" else destination
+                val resolved = when {
+                    showAddAutoRenewal -> "add-auto-renewal"
+                    showReferral -> "referral"
+                    else -> destination
+                }
 
                 // Stage 10 — flat canvas, no orbs: grouped cards carry the design.
                 // Stage 18 — glassSource records this content as the backdrop the
@@ -402,13 +409,22 @@ fun MainScreen(remoteHttpClient: RemoteHttpClient) {
                                 "dialer" -> DialerScreen(onClose = { showDialer = false })
                                 "manage" -> ManageScreen(onBack = { showManage = false })
                                 "customers" -> CustomersScreen()
-                                "autorenewals" -> AutoRenewalsScreen()
+                                "autorenewals" -> AutoRenewalsScreen(
+                                    navController = rememberNavController(),
+                                    onAddClick = { showAddAutoRenewal = true }
+                                )
+                                "add-auto-renewal" -> AddAutoRenewalScreen(
+                                    navController = rememberNavController(),
+                                    onNavigateBack = { showAddAutoRenewal = false }
+                                )
                                 "smartfollowup" -> AutoRepliesScreen()
                                 "autopilot" -> EngageBotScreen()
                                 "agentportal" -> MyStoreScreen()
                                 "mesh" -> MeshScreen()
                                 "coupon" -> RedeemCouponScreen()
-                                "settings" -> SettingsScreen()
+                                "settings" -> SettingsScreen(
+                                    onAutoRenewalsClick = { selectedDrawerIndex = AUTO_RENEWALS_DRAWER_INDEX }
+                                )
                                 "announcements" -> AnnouncementsScreen()
                                 "myscore" -> ScoreScreen()
                                 "community" -> CommunityScreen()
