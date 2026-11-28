@@ -32,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
@@ -97,7 +98,7 @@ fun AutoRenewalsScreen(
                     Column {
                         Text(
                             text = "Active",
-                            style = DesignTokens.Typography.Caption.copy(color = roles.textSecondary)
+                            style = TextStyle(fontSize = DesignTokens.Typography.Caption).copy(color = roles.textSecondary)
                         )
                         Text(
                             text = "${renewals.count { it.isActive }}",
@@ -107,14 +108,14 @@ fun AutoRenewalsScreen(
                     Column(horizontalAlignment = Alignment.End) {
                         Text(
                             text = "Next renewal",
-                            style = DesignTokens.Typography.Caption.copy(color = roles.textSecondary)
+                            style = TextStyle(fontSize = DesignTokens.Typography.Caption).copy(color = roles.textSecondary)
                         )
                         val nextRenewal = renewals
                             .filter { it.isActive }
                             .minByOrNull { it.nextRenewalAt.toEpochMilli() }
                         Text(
                             text = nextRenewal?.let { formatRelativeTime(it.nextRenewalAt) } ?: "—",
-                            style = DesignTokens.Typography.Subhead.copy(color = roles.brand)
+                            style = TextStyle(fontSize = DesignTokens.Typography.Subhead).copy(color = roles.brand)
                         )
                     }
                 }
@@ -148,7 +149,7 @@ fun AutoRenewalsScreen(
                 ) {
                     Text(
                         text = "No auto-renewals yet",
-                        style = DesignTokens.Typography.Body.copy(color = roles.textSecondary)
+                        style = TextStyle(fontSize = DesignTokens.Typography.Body).copy(color = roles.textSecondary)
                     )
                 }
             } else {
@@ -192,11 +193,11 @@ private fun AutoRenewalCard(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = "Customer ${renewal.customerId.takeLast(4)}",
-                    style = DesignTokens.Typography.Subhead.copy(color = roles.textPrimary)
+                    style = TextStyle(fontSize = DesignTokens.Typography.Subhead).copy(color = roles.textPrimary)
                 )
                 Text(
                     text = "Offer ${renewal.offerId.takeLast(4)}",
-                    style = DesignTokens.Typography.Body.copy(color = roles.textSecondary)
+                    style = TextStyle(fontSize = DesignTokens.Typography.Body).copy(color = roles.textSecondary)
                 )
                 Spacer(modifier = Modifier.height(DesignTokens.Spacing.Xs))
                 // Interval chip
@@ -208,13 +209,13 @@ private fun AutoRenewalCard(
                 ) {
                     Text(
                         text = renewal.interval.label,
-                        style = DesignTokens.Typography.Caption.copy(color = roles.textPrimary)
+                        style = TextStyle(fontSize = DesignTokens.Typography.Caption).copy(color = roles.textPrimary)
                     )
                 }
                 Spacer(modifier = Modifier.height(DesignTokens.Spacing.Xs))
                 Text(
                     text = "Next: ${formatRelativeTime(renewal.nextRenewalAt)}",
-                    style = DesignTokens.Typography.Caption.copy(color = roles.brand)
+                    style = TextStyle(fontSize = DesignTokens.Typography.Caption).copy(color = roles.brand)
                 )
             }
 

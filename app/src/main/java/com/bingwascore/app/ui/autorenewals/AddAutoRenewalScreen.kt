@@ -32,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
@@ -149,7 +150,7 @@ private fun StepSelectCustomer(
     ) {
         Text(
             text = "Step 1: Customer Phone",
-            style = DesignTokens.Typography.Subhead.copy(color = roles.textPrimary)
+            style = TextStyle(fontSize = DesignTokens.Typography.Subhead).copy(color = roles.textPrimary)
         )
         GlassInputField(
             value = customerPhone,
@@ -192,7 +193,7 @@ private fun StepSelectOffer(
     ) {
         Text(
             text = "Step 2: Select Offer",
-            style = DesignTokens.Typography.Subhead.copy(color = roles.textPrimary)
+            style = TextStyle(fontSize = DesignTokens.Typography.Subhead).copy(color = roles.textPrimary)
         )
         // Placeholder offer list (would be filtered by customer's SiteLink in production)
         val offers = listOf("Offer A", "Offer B", "Offer C")
@@ -222,7 +223,7 @@ private fun StepSelectOffer(
                         Spacer(modifier = Modifier.width(DesignTokens.Spacing.Sm))
                         Text(
                             text = offer,
-                            style = DesignTokens.Typography.Body.copy(color = roles.textPrimary)
+                            style = TextStyle(fontSize = DesignTokens.Typography.Body).copy(color = roles.textPrimary)
                         )
                     }
                 }
@@ -243,7 +244,7 @@ private fun StepSelectOffer(
             ) {
                 Text(
                     text = "Back",
-                    style = DesignTokens.Typography.Subhead.copy(color = roles.textPrimary)
+                    style = TextStyle(fontSize = DesignTokens.Typography.Subhead).copy(color = roles.textPrimary)
                 )
             }
             Box(
@@ -283,7 +284,7 @@ private fun StepChooseInterval(
     ) {
         Text(
             text = "Step 3: Choose Interval",
-            style = DesignTokens.Typography.Subhead.copy(color = roles.textPrimary)
+            style = TextStyle(fontSize = DesignTokens.Typography.Subhead).copy(color = roles.textPrimary)
         )
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -329,7 +330,7 @@ private fun StepChooseInterval(
             ) {
                 Text(
                     text = "Back",
-                    style = DesignTokens.Typography.Subhead.copy(color = roles.textPrimary)
+                    style = TextStyle(fontSize = DesignTokens.Typography.Subhead).copy(color = roles.textPrimary)
                 )
             }
             Box(
@@ -369,7 +370,7 @@ private fun StepConfirm(
     ) {
         Text(
             text = "Step 4: Confirm",
-            style = DesignTokens.Typography.Subhead.copy(color = roles.textPrimary)
+            style = TextStyle(fontSize = DesignTokens.Typography.Subhead).copy(color = roles.textPrimary)
         )
         GlassCard(
             modifier = Modifier.fillMaxWidth()
@@ -400,7 +401,7 @@ private fun StepConfirm(
             ) {
                 Text(
                     text = "Back",
-                    style = DesignTokens.Typography.Subhead.copy(color = roles.textPrimary)
+                    style = TextStyle(fontSize = DesignTokens.Typography.Subhead).copy(color = roles.textPrimary)
                 )
             }
             Box(
@@ -433,11 +434,11 @@ private fun ConfirmRow(label: String, value: String) {
     ) {
         Text(
             text = label,
-            style = DesignTokens.Typography.Caption.copy(color = roles.textSecondary)
+            style = TextStyle(fontSize = DesignTokens.Typography.Caption).copy(color = roles.textSecondary)
         )
         Text(
             text = value,
-            style = DesignTokens.Typography.Caption.copy(color = roles.textPrimary)
+            style = TextStyle(fontSize = DesignTokens.Typography.Caption).copy(color = roles.textPrimary)
         )
     }
 }
