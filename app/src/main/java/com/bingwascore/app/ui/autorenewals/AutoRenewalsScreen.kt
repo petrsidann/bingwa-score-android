@@ -243,7 +243,7 @@ private fun AutoRenewalCard(
     }
 }
 
-private fun RenewInterval.label: String = when (this) {
+private val RenewInterval.label: String get() = when (this) {
     RenewInterval.DAILY -> "Daily"
     RenewInterval.WEEKLY -> "Weekly"
     RenewInterval.BIWEEKLY -> "Biweekly"
