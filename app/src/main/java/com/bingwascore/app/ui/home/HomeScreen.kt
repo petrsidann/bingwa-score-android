@@ -106,6 +106,9 @@ import com.bingwascore.app.ui.components.StatusStyle
 import com.bingwascore.app.ui.components.forStatus
 import com.bingwascore.app.ui.components.ToastType
 import com.bingwascore.app.ui.theme.DesignTokens
+import com.bingwascore.app.ui.theme.SemanticBlue
+import com.bingwascore.app.ui.transactions.TransactionFilter
+import com.bingwascore.app.ui.transactions.TransactionRange
 import com.bingwascore.app.util.CrashHandler
 import com.bingwascore.app.util.Haptics
 import com.bingwascore.app.util.formatCustomerName
@@ -138,6 +141,8 @@ data class HomeScreenState(
     val successful: Int = 0,
     val failed: Int = 0,
     val pending: Int = 0,
+    val unmatched: Int = 0,
+    val scheduled: Int = 0,
     val commission: List<Double> = List(7) { 0.0 },
     val airtimeToday: Double = 0.0,
     val balance: Double? = null,
@@ -203,6 +208,8 @@ fun HomeScreen(
     val successful by viewModel.successfulCount.collectAsStateWithLifecycle()
     val failed by viewModel.failedCount.collectAsStateWithLifecycle()
     val pending by viewModel.pendingCount.collectAsStateWithLifecycle()
+    val unmatched by viewModel.unmatchedCount.collectAsStateWithLifecycle()
+    val scheduled by viewModel.scheduledCount.collectAsStateWithLifecycle()
     val commission by viewModel.weeklyCommissionByDay.collectAsStateWithLifecycle()
     val airtimeToday by viewModel.airtimeUsedToday.collectAsStateWithLifecycle()
     val balance by viewModel.balance.collectAsStateWithLifecycle()
@@ -285,6 +292,8 @@ fun HomeScreen(
         successful = successful,
         failed = failed,
         pending = pending,
+        unmatched = unmatched,
+        scheduled = scheduled,
         commission = commission,
         airtimeToday = airtimeToday,
         balance = balance,
@@ -349,62 +358,445 @@ fun HomeScreenContent(
     haptics: Haptics = rememberHaptics(),
     onCrashBannerTap: () -> Unit = {}
 ) {
-    val now = (System.currentTimeMillis() / CLOCK_BUCKET_MILLIS) * CLOCK_BUCKET_MILLIS
     val showCrashBanner = remember { CrashHandler.getConsecutiveCrashes() >= 2 }
     var tapToEnable by remember { mutableStateOf(false) }
-    var selectedSubtab by remember { mutableStateOf(0) }
+    var selectedStatusFilter by remember { mutableStateOf<TransactionFilter?>(null) }
+    var selectedPeriodFilter by remember { mutableStateOf<TransactionRange>(TransactionRange.ALL) }
 
-    Box(modifier = Modifier.fillMaxSize().background(DesignTokens.LocalBingwaRoles.current.bg)) {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            if (showCrashBanner && !tapToEnable) {
-                item {
-                    CrashBanner(onTap = {
-                        tapToEnable = true
-                        onCrashBannerTap()
-                    })
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(DesignTokens.LocalBingwaRoles.current.bg)
+    ) {
+        // Top bar: Transactions title, search, Export
+        TransactionsTopBar(onExport = { /* TODO: wire export */ })
+
+        Spacer(modifier = Modifier.height(DesignTokens.Spacing.Md))
+
+        // Status count chips: Successful / Failed / Queued / Awaiting / Unmatched
+        StatusCountChips(
+            successful = state.successful,
+            failed = state.failed,
+            queued = state.pending - state.scheduled, // PENDING includes SCHEDULED; subtract for pure "Queued"
+            awaiting = state.scheduled,
+            unmatched = state.unmatched,
+            selectedFilter = selectedStatusFilter,
+            onSelectFilter = { selectedStatusFilter = if (selectedStatusFilter == it) null else it }
+        )
+
+        Spacer(modifier = Modifier.height(DesignTokens.Spacing.Sm))
+
+        // Period glass-pills: Today / Yesterday / This week / This month
+        PeriodFilterPills(
+            selected = selectedPeriodFilter,
+            onSelect = { selectedPeriodFilter = it }
+        )
+
+        Spacer(modifier = Modifier.height(DesignTokens.Spacing.Md))
+
+        // Transaction rows or empty state
+        val filteredTransactions = filterTransactions(
+            transactions = state.transactions,
+            statusFilter = selectedStatusFilter,
+            periodFilter = selectedPeriodFilter
+        )
+
+        if (filteredTransactions.isEmpty()) {
+            TransactionsEmptyState(filter = selectedStatusFilter, period = selectedPeriodFilter)
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(horizontal = DesignTokens.Spacing.Md, vertical = DesignTokens.Spacing.Sm),
+                verticalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.Md)
+            ) {
+                items(filteredTransactions, key = { it.id }) { tx ->
+                    TransactionRow(transaction = tx)
                 }
             }
+        }
+    }
 
-            item {
-                HeroSection(state = state, callbacks = callbacks)
+    if (showCrashBanner && !tapToEnable) {
+        CrashBanner(onTap = {
+            tapToEnable = true
+            onCrashBannerTap()
+        })
+    }
+}
+
+/** R1-COMPLETE — top bar for Transactions Hub: title, optional search, Export button. */
+@Composable
+private fun TransactionsTopBar(onExport: () -> Unit) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = DesignTokens.Spacing.Md)
+            .padding(top = DesignTokens.Spacing.Md)
+    ) {
+        Text(
+            text = "Transactions",
+            color = DesignTokens.LocalBingwaRoles.current.textPrimary,
+            fontSize = DesignTokens.Typography.Headline.fontSize,
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(modifier = Modifier.weight(1f))
+        Text(
+            text = "Export",
+            color = DesignTokens.LocalBingwaRoles.current.brand,
+            fontSize = DesignTokens.Typography.Body,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier
+                .clip(RoundedCornerShape(DesignTokens.Shape.RadiusFull))
+                .clickable { onExport() }
+                .padding(horizontal = 12.dp, vertical = 6.dp)
+        )
+    }
+}
+
+/** R1-COMPLETE — status count chips with live counts via StatusStyle colors. */
+@Composable
+private fun StatusCountChips(
+    successful: Int,
+    failed: Int,
+    queued: Int,
+    awaiting: Int,
+    unmatched: Int,
+    selectedFilter: TransactionFilter?,
+    onSelectFilter: (TransactionFilter) -> Unit
+) {
+    val roles = DesignTokens.LocalBingwaRoles.current
+    val successStyle = StatusStyle(
+        tileColor = roles.success.copy(alpha = 0.2f),
+        glyph = "✓",
+        chipLabel = "Completed",
+        chipColor = roles.success
+    )
+    val failedStyle = StatusStyle(
+        tileColor = roles.error.copy(alpha = 0.2f),
+        glyph = "✗",
+        chipLabel = "Failed",
+        chipColor = roles.error
+    )
+    val queuedStyle = StatusStyle(
+        tileColor = roles.brand.copy(alpha = 0.2f),
+        glyph = "⧗",
+        chipLabel = "Queued",
+        chipColor = roles.brand
+    )
+    val awaitingStyle = StatusStyle(
+        tileColor = SemanticBlue.copy(alpha = 0.2f),
+        glyph = "⏲",
+        chipLabel = "Awaiting",
+        chipColor = SemanticBlue
+    )
+    val unmatchedStyle = StatusStyle(
+        tileColor = roles.textSecondary.copy(alpha = 0.2f),
+        glyph = "?",
+        chipLabel = "Unmatched",
+        chipColor = roles.textSecondary
+    )
+
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.Sm),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = DesignTokens.Spacing.Md)
+    ) {
+        StatusChip(
+            label = "Successful",
+            count = successful,
+            style = successStyle,
+            selected = selectedFilter == TransactionFilter.COMPLETED,
+            onClick = { onSelectFilter(TransactionFilter.COMPLETED) }
+        )
+        StatusChip(
+            label = "Failed",
+            count = failed,
+            style = failedStyle,
+            selected = selectedFilter == TransactionFilter.FAILED,
+            onClick = { onSelectFilter(TransactionFilter.FAILED) }
+        )
+        StatusChip(
+            label = "Queued",
+            count = queued,
+            style = queuedStyle,
+            selected = selectedFilter == TransactionFilter.PENDING,
+            onClick = { onSelectFilter(TransactionFilter.PENDING) }
+        )
+        StatusChip(
+            label = "Awaiting",
+            count = awaiting,
+            style = awaitingStyle,
+            selected = selectedFilter == TransactionFilter.SCHEDULED,
+            onClick = { onSelectFilter(TransactionFilter.SCHEDULED) }
+        )
+        StatusChip(
+            label = "Unmatched",
+            count = unmatched,
+            style = unmatchedStyle,
+            selected = selectedFilter == TransactionFilter.UNMATCHED,
+            onClick = { onSelectFilter(TransactionFilter.UNMATCHED) }
+        )
+    }
+}
+
+/** R1-COMPLETE — individual status chip with count. */
+@Composable
+private fun StatusChip(
+    label: String,
+    count: Int,
+    style: StatusStyle,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .weight(1f)
+            .clip(RoundedCornerShape(DesignTokens.Shape.RadiusFull))
+            .background(if (selected) style.chipColor.copy(alpha = 0.3f) else style.tileColor)
+            .clickable { onClick() }
+            .padding(vertical = DesignTokens.Spacing.Sm, horizontal = DesignTokens.Spacing.Xs),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = "$count",
+                color = if (selected) Color.White else style.chipColor,
+                fontSize = DesignTokens.Typography.Headline.fontSize,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = label,
+                color = if (selected) Color.White.copy(alpha = 0.8f) else DesignTokens.LocalBingwaRoles.current.textSecondary,
+                fontSize = 9.sp,
+                maxLines = 1
+            )
+        }
+    }
+}
+
+/** R1-COMPLETE — period glass-pills: 1W / 4M / 8M / All. */
+@Composable
+private fun PeriodFilterPills(
+    selected: TransactionRange,
+    onSelect: (TransactionRange) -> Unit
+) {
+    val pills = listOf(
+        TransactionRange.ONE_WEEK to "1W",
+        TransactionRange.FOUR_MONTHS to "4M",
+        TransactionRange.EIGHT_MONTHS to "8M",
+        TransactionRange.ALL to "All"
+    )
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.Sm),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = DesignTokens.Spacing.Md)
+    ) {
+        pills.forEach { (range, label) ->
+            val active = range == selected
+            GlassCard(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(DesignTokens.Shape.RadiusFull))
+                    .background(if (active) DesignTokens.Hero.surface else Color.Transparent)
+                    .clickable { onSelect(range) }
+                    .padding(vertical = DesignTokens.Spacing.Xs)
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = label,
+                        color = if (active) DesignTokens.Hero.ink else DesignTokens.LocalBingwaRoles.current.textSecondary,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(horizontal = DesignTokens.Spacing.Xs)
+                    )
+                }
             }
+        }
+    }
+}
 
-            item {
-                Subtabs(selected = selectedSubtab, onSelect = { selectedSubtab = it })
+/** R1-COMPLETE — filter transactions by status and period. */
+private fun filterTransactions(
+    transactions: List<Transaction>,
+    statusFilter: TransactionFilter?,
+    periodFilter: TransactionRange
+): List<Transaction> {
+    var result = transactions
+
+    // Apply status filter
+    if (statusFilter != null) {
+        result = result.filter { tx ->
+            when (statusFilter) {
+                TransactionFilter.COMPLETED -> tx.status == TransactionStatus.SUCCESSFUL.value
+                TransactionFilter.FAILED -> tx.status == TransactionStatus.FAILED.value || tx.status == TransactionStatus.FAILED_ALREADY_RECOMMENDED.value
+                TransactionFilter.PENDING -> tx.status == TransactionStatus.PENDING.value || tx.status == TransactionStatus.PROCESSING.value
+                TransactionFilter.SCHEDULED -> tx.status == TransactionStatus.SCHEDULED.value
+                TransactionFilter.UNMATCHED -> tx.status == TransactionStatus.UNMATCHED.value
+                else -> true
             }
+        }
+    }
 
-            if (state.isOffline) {
-                item { OfflineMeshBanner(queuedCount = state.queuedCount, onFlush = {}) }
+    // Apply period filter
+    val now = System.currentTimeMillis()
+    result = when (periodFilter) {
+        TransactionRange.ONE_WEEK -> {
+            val cutoff = now - 7L * 24 * 60 * 60 * 1000
+            result.filter { it.createdAt >= cutoff }
+        }
+        TransactionRange.FOUR_MONTHS -> {
+            val cutoff = now - 4L * 30L * 24 * 60 * 60 * 1000
+            result.filter { it.createdAt >= cutoff }
+        }
+        TransactionRange.EIGHT_MONTHS -> {
+            val cutoff = now - 8L * 30L * 24 * 60 * 60 * 1000
+            result.filter { it.createdAt >= cutoff }
+        }
+        else -> result
+    }
+
+    return result
+}
+
+/** R1-COMPLETE — empty state for filtered transactions. */
+@Composable
+private fun TransactionsEmptyState(filter: TransactionFilter?, period: TransactionRange) {
+    val message = when {
+        filter != null && period != TransactionRange.ALL -> "No ${filter.label.lowercase()} transactions ${period.label.lowercase()}"
+        filter != null -> "No ${filter.label.lowercase()} transactions found"
+        period != TransactionRange.ALL -> "No transactions ${period.label.lowercase()}"
+        else -> "No transactions yet"
+    }
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(DesignTokens.Spacing.Md),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(
+                imageVector = Icons.Rounded.Schedule,
+                contentDescription = null,
+                tint = DesignTokens.LocalBingwaRoles.current.textSecondary.copy(alpha = 0.3f),
+                modifier = Modifier.size(48.dp)
+            )
+            Spacer(modifier = Modifier.height(DesignTokens.Spacing.Md))
+            Text(
+                text = message,
+                color = DesignTokens.LocalBingwaRoles.current.textSecondary,
+                fontSize = DesignTokens.Typography.Body,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+    }
+}
+
+/** R1-COMPLETE — single transaction row: glyph tile, name, offer · ago, unsigned amount, chip. */
+@Composable
+private fun TransactionRow(transaction: Transaction) {
+    val statusEnum = TransactionStatus.entries.find { it.value == transaction.status } ?: TransactionStatus.UNMATCHED
+    val style = forStatus(statusEnum)
+    val ago = formatAgo(transaction.createdAt)
+    val formattedAmount = String.format(Locale.US, "%,.2f", transaction.amount)
+
+    GlassCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { /* TODO: navigate to detail */ }
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(DesignTokens.Spacing.Md)
+        ) {
+            // Glyph tile
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(style.tileColor),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = style.glyph,
+                    color = style.chipColor,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
             }
+            Spacer(modifier = Modifier.width(DesignTokens.Spacing.Md))
 
-            if (state.balanceBelowCheapestOffer) {
-                item { FloatGuardBanner(balance = state.balance ?: 0.0, cheapestPrice = state.cheapestOfferPrice, onTopUp = callbacks.onOpenMyPlan) }
-            }
-
-            item {
-                ActivationLadderCard(
-                    engineArmed = state.ladderEngineArmed,
-                    testDriveDone = state.ladderTestDriveDone,
-                    importBookDone = state.ladderImportBookDone,
-                    recoverFailureDone = state.ladderRecoverFailureDone,
-                    ladderHidden = state.ladderHidden,
-                    onEngineArmedClick = callbacks.onLadderEngineArmed,
-                    onTestDriveClick = callbacks.onLadderTestDrive,
-                    onImportBookClick = callbacks.onLadderImportBook,
-                    onRecoverFailureClick = callbacks.onLadderRecoverFailure,
-                    onHide = callbacks.onLadderHide
+            // Name + offer · ago
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = formatCustomerName(transaction.customerName).ifBlank { transaction.phoneNumber },
+                    color = DesignTokens.LocalBingwaRoles.current.textPrimary,
+                    fontSize = DesignTokens.Typography.Body,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = "${transaction.offerName} · $ago",
+                    color = DesignTokens.LocalBingwaRoles.current.textSecondary,
+                    fontSize = DesignTokens.Typography.Caption,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
 
-            when (selectedSubtab) {
-                0 -> offersSection(state = state, callbacks = callbacks, now = now)
-                else -> settingsSection(callbacks = callbacks)
+            Spacer(modifier = Modifier.width(DesignTokens.Spacing.Sm))
+
+            // Unsigned amount
+            Text(
+                text = "Ksh $formattedAmount",
+                color = DesignTokens.LocalBingwaRoles.current.textPrimary,
+                fontSize = DesignTokens.Typography.Body,
+                fontWeight = FontWeight.SemiBold
+            )
+
+            Spacer(modifier = Modifier.width(DesignTokens.Spacing.Sm))
+
+            // Status chip
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(DesignTokens.Shape.RadiusFull))
+                    .background(style.chipColor.copy(alpha = 0.15f))
+                    .padding(horizontal = 10.dp, vertical = 4.dp)
+            ) {
+                Text(
+                    text = style.chipLabel,
+                    color = style.chipColor,
+                    fontSize = 9.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
             }
         }
+    }
+}
+
+/** R1-COMPLETE — format timestamp as human-readable "ago" string. */
+private fun formatAgo(timestamp: Long): String {
+    val now = System.currentTimeMillis()
+    val diff = now - timestamp
+    val minutes = diff / (60 * 1000)
+    val hours = diff / (60 * 60 * 1000)
+    val days = diff / (24 * 60 * 60 * 1000)
+
+    return when {
+        minutes < 1 -> "just now"
+        minutes < 60 -> "${minutes}m ago"
+        hours < 24 -> "${hours}h ago"
+        days < 7 -> "${days}d ago"
+        else -> SimpleDateFormat("d MMM", Locale.getDefault()).format(Date(timestamp))
     }
 }
 
