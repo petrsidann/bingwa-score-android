@@ -23,7 +23,7 @@ import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 
 enum class ManageTab {
-    CUSTOMERS, CREDITS
+    OVERVIEW, OFFERS, CUSTOMERS, RENEWALS, REPLIES
 }
 
 @HiltViewModel
@@ -33,7 +33,7 @@ class ManageViewModel @Inject constructor(
     private val userPreferences: UserPreferences
 ) : ViewModel() {
 
-    private val _selectedTab = MutableStateFlow(ManageTab.CUSTOMERS)
+    private val _selectedTab = MutableStateFlow(ManageTab.OVERVIEW)
     val selectedTab: StateFlow<ManageTab> = _selectedTab.asStateFlow()
 
     private val _query = MutableStateFlow("")

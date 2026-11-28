@@ -384,9 +384,10 @@ fun MainScreen(remoteHttpClient: RemoteHttpClient) {
                     selectedDrawerIndex == DIPLOMATICS_DRAWER_INDEX -> "diplomatics"
                     else -> when (selectedTab) {
                         0 -> "home"
-                        1 -> "agentportal"
-                        2 -> "settings"
-                        3 -> "community"
+                        1 -> "manage"
+                        2 -> "agentportal"
+                        3 -> "settings"
+                        4 -> "community"
                         else -> "home"
                     }
                 }

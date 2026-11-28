@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Dashboard
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Link
 import androidx.compose.material.icons.rounded.People
@@ -60,6 +61,7 @@ data class LensTab(val label: String, val icon: ImageVector)
 
 val BingwaLensTabs = listOf(
     LensTab("Home", Icons.Rounded.Home),
+    LensTab("Manage", Icons.Rounded.Dashboard),
     LensTab("Store", Icons.Rounded.Link),
     LensTab("Settings", Icons.Rounded.Settings),
     LensTab("Community", Icons.Rounded.People)
