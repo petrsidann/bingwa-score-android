@@ -106,6 +106,8 @@ import com.bingwascore.app.ui.components.GlassPill
 import com.bingwascore.app.ui.components.PrimaryButton
 import com.bingwascore.app.ui.components.SecondaryButton
 import com.bingwascore.app.ui.components.ShimmerBlock
+import com.bingwascore.app.ui.components.StatusStyle
+import com.bingwascore.app.ui.components.forStatus
 import com.bingwascore.app.ui.components.pressScale
 import com.bingwascore.app.ui.components.rememberAction
 import com.bingwascore.app.ui.showcase.DemoChip
@@ -1066,21 +1068,9 @@ private fun TransactionRow(
     onClick: () -> Unit,
     onLongClick: () -> Unit
 ) {
-    val status = transaction.status
-    val isFailed = status == TransactionStatus.FAILED.value || status == TransactionStatus.FAILED_ALREADY_RECOMMENDED.value
-    val isQueued = status == TransactionStatus.PENDING.value || status == TransactionStatus.PROCESSING.value
-    val statusColor = when {
-        status == TransactionStatus.SUCCESSFUL.value -> DesignTokens.LocalBingwaRoles.current.success
-        isFailed -> DesignTokens.LocalBingwaRoles.current.error
-        isQueued || status == TransactionStatus.SCHEDULED.value -> DesignTokens.LocalBingwaRoles.current.brand
-        else -> DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.5f)
-    }
-    val statusIcon = when {
-        status == TransactionStatus.SUCCESSFUL.value -> Icons.Rounded.CheckCircle
-        isFailed -> Icons.Rounded.Close
-        isQueued || status == TransactionStatus.SCHEDULED.value -> Icons.Rounded.HourglassTop
-        else -> Icons.AutoMirrored.Rounded.HelpOutline
-    }
+    val status = TransactionStatus.fromValue(transaction.status)
+    val style = forStatus(status)
+    val isQueued = status == TransactionStatus.PENDING || status == TransactionStatus.PROCESSING
 
     val checkIn by animateFloatAsState(
         targetValue = if (selecting) 1f else 0f,
@@ -1098,7 +1088,7 @@ private fun TransactionRow(
         label = "rowFill"
     )
 
-    val amountColor = if (isFailed || transaction.amount < 0) DesignTokens.LocalBingwaRoles.current.error else DesignTokens.LocalBingwaRoles.current.success
+    val amountColor = if (style.chipLabel == "Failed" || transaction.amount < 0) DesignTokens.LocalBingwaRoles.current.error else DesignTokens.LocalBingwaRoles.current.success
 
     val pulseTarget = if (isQueued) 1.1f else 1f
     val pulse by animateFloatAsState(
@@ -1166,21 +1156,21 @@ private fun TransactionRow(
                         modifier = Modifier
                             .size(48.dp)
                             .clip(CircleShape)
-                            .background(statusColor.copy(alpha = 0.2f)),
+                            .background(style.tileColor),
                         contentAlignment = Alignment.Center
                     ) {
                         Box(
                             modifier = Modifier
                                 .size(ROW_AVATAR)
                                 .clip(CircleShape)
-                                .background(statusColor)
+                                .background(style.chipColor)
                                 .graphicsLayer { scaleX = pulse; scaleY = pulse }
                         ) {
-                            Icon(
-                                imageVector = statusIcon,
-                                contentDescription = null,
-                                tint = DesignTokens.LocalBingwaRoles.current.textPrimary,
-                                modifier = Modifier.size(20.dp)
+                            Text(
+                                text = style.glyph,
+                                color = DesignTokens.LocalBingwaRoles.current.textPrimary,
+                                fontSize = BingwaType.Label,
+                                maxLines = 1
                             )
                         }
                     }
@@ -1215,8 +1205,8 @@ private fun TransactionRow(
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            StatusColors.label(transaction.status),
-                            color = statusColor,
+                            style.chipLabel,
+                            color = style.chipColor,
                             fontSize = DesignTokens.Typography.Caption
                         )
                     }

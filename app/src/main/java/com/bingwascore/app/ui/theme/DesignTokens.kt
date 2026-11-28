@@ -80,7 +80,12 @@ object DesignTokens {
             val error: ComposeColor,
             val onError: ComposeColor,
             val keypadKey: ComposeColor,
-            val keypadDigit: ComposeColor
+            val keypadDigit: ComposeColor,
+            // Stage P2A — D4: Obsidian surface ladder for nested card depth
+            val surfaceLowest: ComposeColor,
+            val surfaceLow: ComposeColor,
+            val surfaceHigh: ComposeColor,
+            val surfaceHighest: ComposeColor
         )
 
         val Obsidian = ThemeRoles(
@@ -97,7 +102,12 @@ object DesignTokens {
             error = ComposeColor(0xFFBE123C),
             onError = ComposeColor(0xFFFFFFFF),
             keypadKey = ComposeColor(0xFF334155),
-            keypadDigit = ComposeColor(0xFFF8FAFC)
+            keypadDigit = ComposeColor(0xFFF8FAFC),
+            // Stage P2A — D4: Obsidian surface ladder (dark theme)
+            surfaceLowest = ComposeColor(0xFF0B0F0B),
+            surfaceLow = ComposeColor(0xFF101510),
+            surfaceHigh = ComposeColor(0xFF161B16),
+            surfaceHighest = ComposeColor(0xFF1C211C)
         )
 
         val Dim = ThemeRoles(
@@ -114,7 +124,12 @@ object DesignTokens {
             error = ComposeColor(0xFF7F0D2F),
             onError = ComposeColor(0xFFFFFFFF),
             keypadKey = ComposeColor(0xFFFFFFFF),
-            keypadDigit = ComposeColor(0xFF0B0B10)
+            keypadDigit = ComposeColor(0xFF0B0B10),
+            // Stage P2A — D4: Porcelain surface ladder (light theme)
+            surfaceLowest = ComposeColor(0xFFF8FAFC),
+            surfaceLow = ComposeColor(0xFFF1F5F9),
+            surfaceHigh = ComposeColor(0xFFE2E8F0),
+            surfaceHighest = ComposeColor(0xFFCBD5E1)
         )
     }
 

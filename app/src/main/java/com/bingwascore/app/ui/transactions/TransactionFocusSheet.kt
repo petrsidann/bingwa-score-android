@@ -30,7 +30,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
+import com.bingwascore.app.data.local.Transaction
+import com.bingwascore.app.domain.TransactionStatus
 import com.bingwascore.app.ui.components.GlassDialog
+import com.bingwascore.app.ui.components.StatusStyle
+import com.bingwascore.app.ui.components.forStatus
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -46,7 +50,6 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.bingwascore.app.data.local.Transaction
 import com.bingwascore.app.util.formatCustomerName
 import com.bingwascore.app.util.rememberHaptics
 import com.bingwascore.app.ui.theme.DesignTokens
@@ -84,7 +87,8 @@ fun TransactionFocusSheet(
     val clipboard = LocalClipboardManager.current
     var editingUssd by remember { mutableStateOf(false) }
     val haptics = rememberHaptics()
-    val statusColor = StatusColors.color(transaction.status)
+    val status = TransactionStatus.fromValue(transaction.status)
+    val style = forStatus(status)
     // U5 — one formatter, and the write actions follow the status rules.
     val rules = rulesFor(transaction.status)
     val name = formatCustomerName(transaction.customerName).ifBlank { transaction.phoneNumber }
@@ -168,17 +172,17 @@ fun TransactionFocusSheet(
                 .padding(14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = StatusColors.icon(transaction.status),
-                contentDescription = null,
-                tint = statusColor,
-                modifier = Modifier.size(22.dp)
+            Text(
+                text = style.glyph,
+                color = style.chipColor,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    StatusColors.label(transaction.status),
-                    color = statusColor,
+                    style.chipLabel,
+                    color = style.chipColor,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold
                 )

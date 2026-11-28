@@ -71,6 +71,7 @@ import com.bingwascore.app.data.local.Customer
 import com.bingwascore.app.domain.CustomerBook
 import com.bingwascore.app.ui.components.GlassCard
 import com.bingwascore.app.ui.components.GlassSearchBar
+import com.bingwascore.app.ui.components.CircularHead
 import com.bingwascore.app.util.formatCustomerName
 import com.bingwascore.app.util.screenEnter
 import com.bingwascore.app.ui.glass.LocalGlassBackdrop
@@ -278,22 +279,15 @@ private fun CustomerRow(
                 modifier = Modifier
                     .size(44.dp)
                     .clip(CircleShape)
-                    .background(ringBrush)
+                    .background(ringBrush),
+                contentAlignment = Alignment.Center
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(30.dp)
-                        .clip(CircleShape)
-                        .background(DesignTokens.LocalBingwaRoles.current.card),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        initialsOf(customer.name ?: customer.phoneNumber),
-                        color = DesignTokens.LocalBingwaRoles.current.textPrimary,
-                        fontSize = DesignTokens.Typography.Body,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+                CircularHead(
+                    initials = initialsOf(customer.name ?: customer.phoneNumber),
+                    backgroundColor = DesignTokens.LocalBingwaRoles.current.card,
+                    textColor = DesignTokens.LocalBingwaRoles.current.textPrimary,
+                    size = 30.dp
+                )
             }
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {

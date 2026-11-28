@@ -102,6 +102,8 @@ import com.bingwascore.app.domain.TransactionStatus
 import com.bingwascore.app.ui.components.GlassCard
 import com.bingwascore.app.ui.components.GlassDialog
 import com.bingwascore.app.ui.components.LocalPremiumToastManager
+import com.bingwascore.app.ui.components.StatusStyle
+import com.bingwascore.app.ui.components.forStatus
 import com.bingwascore.app.ui.components.ToastType
 import com.bingwascore.app.ui.theme.DesignTokens
 import com.bingwascore.app.util.CrashHandler
@@ -1337,26 +1339,17 @@ private fun HomeTransactionRow(
     showDivider: Boolean = false
 ) {
     val status = TransactionStatus.fromValue(tx.status)
-    val (statusColor, statusIcon, statusLabel) = when (status) {
-        TransactionStatus.SUCCESSFUL -> Triple(DesignTokens.Semantic.complete, Icons.Rounded.Check, "Completed")
-        TransactionStatus.FAILED,
-        TransactionStatus.FAILED_ALREADY_RECOMMENDED,
-        TransactionStatus.CANCELLED,
-        TransactionStatus.UNMATCHED -> Triple(DesignTokens.Semantic.failed, Icons.Rounded.Close, "Failed")
-        TransactionStatus.PENDING,
-        TransactionStatus.PROCESSING -> Triple(DesignTokens.Semantic.scheduled, Icons.Rounded.HourglassTop, "Queued")
-        else -> Triple(DesignTokens.Semantic.info, Icons.Rounded.Schedule, "Awaiting")
-    }
+    val style = forStatus(status)
     Column {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth().height(HOME_ROW_HEIGHT).padding(horizontal = 12.dp)
         ) {
             Box(
-                modifier = Modifier.size(40.dp).clip(RoundedCornerShape(8.dp)).background(statusColor),
+                modifier = Modifier.size(40.dp).clip(RoundedCornerShape(8.dp)).background(style.chipColor),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(imageVector = statusIcon, contentDescription = statusLabel, tint = DesignTokens.Hero.ink, modifier = Modifier.size(20.dp))
+                Text(text = style.glyph, color = DesignTokens.Hero.ink, fontSize = 16.sp, fontWeight = FontWeight.Bold)
             }
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
@@ -1368,10 +1361,10 @@ private fun HomeTransactionRow(
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(50))
-                    .background(statusColor)
+                    .background(style.chipColor)
                     .padding(horizontal = 8.dp, vertical = 4.dp)
             ) {
-                Text(text = statusLabel, color = DesignTokens.Hero.ink, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                Text(text = style.chipLabel, color = DesignTokens.Hero.ink, fontSize = 10.sp, fontWeight = FontWeight.Bold)
             }
         }
         if (showDivider) {
