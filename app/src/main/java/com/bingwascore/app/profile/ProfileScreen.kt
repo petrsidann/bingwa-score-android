@@ -60,6 +60,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bingwascore.app.domain.EngineState
 import com.bingwascore.app.ui.components.GlassCard
 import com.bingwascore.app.ui.components.NeoButton
+import com.bingwascore.app.ui.components.CircularHead
 import com.bingwascore.app.ui.theme.Bronze
 import com.bingwascore.app.ui.theme.DesignTokens
 import com.bingwascore.app.ui.theme.Gold
@@ -233,20 +234,13 @@ fun ProfileScreenContent(
                                     ),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(50.dp)
-                                        .clip(CircleShape)
-                                        .background(DesignTokens.Color.Bg)
-                                ) {
-                                    Text(
-                                        text = (if (state.editState.isEditing) state.editState.name else state.userName)
-                                            .ifBlank { "B" }.take(1).uppercase(),
-                                        color = DesignTokens.Color.Ink,
-                                        fontSize = 22.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
+                                CircularHead(
+                                    initials = (if (state.editState.isEditing) state.editState.name else state.userName)
+                                        .ifBlank { "B" }.take(1).uppercase(),
+                                    backgroundColor = DesignTokens.Color.Bg,
+                                    textColor = DesignTokens.Color.Ink,
+                                    size = 50.dp
+                                )
                             }
                             Spacer(modifier = Modifier.height(8.dp))
                             TierBadge(levelName = state.levelName)

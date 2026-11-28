@@ -75,6 +75,8 @@ import com.bingwascore.app.ui.components.EmptyState
 import com.bingwascore.app.ui.components.PrimaryButton
 import com.bingwascore.app.ui.components.HapticSwitch
 import com.bingwascore.app.ui.components.ShimmerBlock
+import com.bingwascore.app.ui.components.StatusStyle
+import com.bingwascore.app.ui.components.forStatus
 import com.bingwascore.app.ui.components.pressScale
 import com.bingwascore.app.ui.components.rememberAction
 import com.bingwascore.app.util.Haptics
@@ -1187,6 +1189,7 @@ private fun OfferActionsSheet(
 
 @Composable
 private fun StatusChip(status: TransactionStatus, selected: Boolean, onClick: () -> Unit) {
+    val style = forStatus(status)
     val shape = RoundedCornerShape(12.dp)
     val base = if (selected) {
         Modifier
@@ -1199,9 +1202,8 @@ private fun StatusChip(status: TransactionStatus, selected: Boolean, onClick: ()
             .border(1.dp, DesignTokens.LocalBingwaRoles.current.border, shape)
     }
     Text(
-        status.value.replace('_', ' ').lowercase()
-            .replaceFirstChar { it.uppercase() },
-        color = if (selected) DesignTokens.LocalBingwaRoles.current.bg else DesignTokens.LocalBingwaRoles.current.textPrimary.copy(alpha = 0.75f),
+        style.chipLabel,
+        color = if (selected) DesignTokens.LocalBingwaRoles.current.bg else style.chipColor,
         fontSize = 11.sp,
         fontWeight = FontWeight.SemiBold,
         modifier = base.clickable(onClick = onClick).padding(horizontal = 10.dp, vertical = 8.dp)

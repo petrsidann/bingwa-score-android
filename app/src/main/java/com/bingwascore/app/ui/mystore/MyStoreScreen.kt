@@ -37,6 +37,8 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bingwascore.app.ui.glass.GlassCard
+import com.bingwascore.app.ui.components.StatusStyle
+import com.bingwascore.app.ui.components.forStatus
 import com.bingwascore.app.ui.theme.DesignTokens
 import com.bingwascore.app.util.screenEnter
 
@@ -225,24 +227,7 @@ private fun OfferRow(offer: StoreOffer, onToggle: () -> Unit) {
 
 @Composable
 private fun OrderRow(order: StoreOrder) {
-    val statusGlyph = when (order.status) {
-        OrderStatus.COMPLETED -> Icons.Rounded.Check
-        OrderStatus.FAILED -> Icons.Rounded.Close
-        OrderStatus.QUEUED -> Icons.Rounded.HourglassTop
-        OrderStatus.AWAITING -> Icons.Rounded.Schedule
-    }
-    val statusColor = when (order.status) {
-        OrderStatus.COMPLETED -> DesignTokens.LocalBingwaRoles.current.success
-        OrderStatus.FAILED -> DesignTokens.LocalBingwaRoles.current.error
-        OrderStatus.QUEUED -> Color(0xFF8B5CF6)
-        OrderStatus.AWAITING -> Color(0xFFFDE68A)
-    }
-    val statusLabel = when (order.status) {
-        OrderStatus.COMPLETED -> "Completed"
-        OrderStatus.FAILED -> "Failed"
-        OrderStatus.QUEUED -> "Queued"
-        OrderStatus.AWAITING -> "Awaiting"
-    }
+    val style = forStatus(order.status)
 
     Row(
         modifier = Modifier
@@ -255,14 +240,14 @@ private fun OrderRow(order: StoreOrder) {
             modifier = Modifier
                 .size(40.dp)
                 .clip(RoundedCornerShape(12.dp))
-                .background(statusColor.copy(alpha = 0.16f)),
+                .background(style.tileColor),
             contentAlignment = Alignment.Center
         ) {
-            Icon(
-                imageVector = statusGlyph,
-                contentDescription = null,
-                tint = statusColor,
-                modifier = Modifier.size(18.dp)
+            Text(
+                text = style.glyph,
+                color = style.chipColor,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold
             )
         }
         Spacer(modifier = Modifier.width(12.dp))
@@ -288,13 +273,13 @@ private fun OrderRow(order: StoreOrder) {
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = statusLabel,
-                color = statusColor,
+                text = style.chipLabel,
+                color = style.chipColor,
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier
                     .clip(RoundedCornerShape(999.dp))
-                    .background(statusColor.copy(alpha = 0.16f))
+                    .background(style.chipColor.copy(alpha = 0.16f))
                     .padding(horizontal = 8.dp, vertical = 3.dp)
             )
         }

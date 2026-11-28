@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bingwascore.app.ui.glass.GlassCard
+import com.bingwascore.app.ui.components.CircularHead
 import com.bingwascore.app.ui.theme.DesignTokens
 import com.bingwascore.app.util.screenEnter
 
@@ -153,20 +154,12 @@ private fun PostRow(post: CommunityPost, onLike: () -> Unit) {
         verticalAlignment = Alignment.Top
     ) {
         // 36dp violet initials avatar
-        Box(
-            modifier = Modifier
-                .size(36.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(Color(0xFF7C3AED).copy(alpha = 0.14f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = post.initials,
-                color = Color(0xFF7C3AED),
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold
-            )
-        }
+        CircularHead(
+            initials = post.initials,
+            backgroundColor = Color(0xFF7C3AED).copy(alpha = 0.14f),
+            textColor = Color(0xFF7C3AED),
+            size = 36.dp
+        )
         Spacer(modifier = Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
