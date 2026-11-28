@@ -508,35 +508,40 @@ private fun StatusCountChips(
             count = successful,
             style = successStyle,
             selected = selectedFilter == TransactionFilter.COMPLETED,
-            onClick = { onSelectFilter(TransactionFilter.COMPLETED) }
+            onClick = { onSelectFilter(TransactionFilter.COMPLETED) },
+            modifier = Modifier.weight(1f)
         )
         StatusChip(
             label = "Failed",
             count = failed,
             style = failedStyle,
             selected = selectedFilter == TransactionFilter.FAILED,
-            onClick = { onSelectFilter(TransactionFilter.FAILED) }
+            onClick = { onSelectFilter(TransactionFilter.FAILED) },
+            modifier = Modifier.weight(1f)
         )
         StatusChip(
             label = "Queued",
             count = queued,
             style = queuedStyle,
             selected = selectedFilter == TransactionFilter.PENDING,
-            onClick = { onSelectFilter(TransactionFilter.PENDING) }
+            onClick = { onSelectFilter(TransactionFilter.PENDING) },
+            modifier = Modifier.weight(1f)
         )
         StatusChip(
             label = "Awaiting",
             count = awaiting,
             style = awaitingStyle,
             selected = selectedFilter == TransactionFilter.SCHEDULED,
-            onClick = { onSelectFilter(TransactionFilter.SCHEDULED) }
+            onClick = { onSelectFilter(TransactionFilter.SCHEDULED) },
+            modifier = Modifier.weight(1f)
         )
         StatusChip(
             label = "Unmatched",
             count = unmatched,
             style = unmatchedStyle,
             selected = selectedFilter == TransactionFilter.UNMATCHED,
-            onClick = { onSelectFilter(TransactionFilter.UNMATCHED) }
+            onClick = { onSelectFilter(TransactionFilter.UNMATCHED) },
+            modifier = Modifier.weight(1f)
         )
     }
 }
@@ -548,11 +553,11 @@ private fun StatusChip(
     count: Int,
     style: StatusStyle,
     selected: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Box(
-        modifier = Modifier
-            .weight(1f)
+        modifier = modifier
             .clip(RoundedCornerShape(DesignTokens.Shape.RadiusFull))
             .background(if (selected) style.chipColor.copy(alpha = 0.3f) else style.tileColor)
             .clickable { onClick() }
