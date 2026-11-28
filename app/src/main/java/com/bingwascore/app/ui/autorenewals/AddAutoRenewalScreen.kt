@@ -169,7 +169,7 @@ private fun StepSelectCustomer(
         ) {
             Text(
                 text = "Next",
-                style = DesignTokens.Typography.Subhead.copy(
+                style = TextStyle(fontSize = DesignTokens.Typography.Subhead).copy(
                     color = roles.onBrand,
                     fontWeight = FontWeight.Bold
                 )
@@ -258,7 +258,7 @@ private fun StepSelectOffer(
             ) {
                 Text(
                     text = "Next",
-                    style = DesignTokens.Typography.Subhead.copy(
+                    style = TextStyle(fontSize = DesignTokens.Typography.Subhead).copy(
                         color = if (selectedOfferId != null) roles.onBrand else roles.textSecondary,
                         fontWeight = FontWeight.Bold
                     )
@@ -307,7 +307,7 @@ private fun StepChooseInterval(
                     ) {
                         Text(
                             text = interval.label,
-                            style = DesignTokens.Typography.Caption.copy(
+                            style = TextStyle(fontSize = DesignTokens.Typography.Caption).copy(
                                 color = if (isSelected) roles.brand else roles.textPrimary
                             )
                         )
@@ -344,7 +344,7 @@ private fun StepChooseInterval(
             ) {
                 Text(
                     text = "Next",
-                    style = DesignTokens.Typography.Subhead.copy(
+                    style = TextStyle(fontSize = DesignTokens.Typography.Subhead).copy(
                         color = if (selectedInterval != null) roles.onBrand else roles.textSecondary,
                         fontWeight = FontWeight.Bold
                     )
@@ -415,7 +415,7 @@ private fun StepConfirm(
             ) {
                 Text(
                     text = "Schedule",
-                    style = DesignTokens.Typography.Subhead.copy(
+                    style = TextStyle(fontSize = DesignTokens.Typography.Subhead).copy(
                         color = roles.onBrand,
                         fontWeight = FontWeight.Bold
                     )

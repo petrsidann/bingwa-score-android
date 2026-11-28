@@ -134,7 +134,7 @@ fun AutoRenewalsScreen(
             ) {
                 Text(
                     text = "+ Add",
-                    style = DesignTokens.Typography.Subhead.copy(
+                    style = TextStyle(fontSize = DesignTokens.Typography.Subhead).copy(
                         color = roles.brand,
                         fontWeight = FontWeight.Bold
                     )
