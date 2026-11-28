@@ -624,15 +624,107 @@ private fun OverviewTab() {
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = DesignTokens.Spacing.Md),
-        contentPadding = PaddingValues(vertical = DesignTokens.Spacing.Md)
+        contentPadding = PaddingValues(vertical = DesignTokens.Spacing.Md),
+        verticalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.Md)
     ) {
         item {
             Text(
-                text = "Overview — previous Home content moves here in next stage",
-                color = DesignTokens.LocalBingwaRoles.current.textSecondary,
-                fontSize = DesignTokens.Typography.Body,
-                modifier = Modifier.padding(vertical = DesignTokens.Spacing.Lg)
+                text = "Overview",
+                color = DesignTokens.LocalBingwaRoles.current.textPrimary,
+                fontSize = DesignTokens.Typography.Headline.fontSize,
+                fontWeight = FontWeight.Bold
             )
+            Spacer(modifier = Modifier.height(DesignTokens.Spacing.Sm))
+            Text(
+                text = "Dashboard metrics and quick actions moved here from Home.",
+                color = DesignTokens.LocalBingwaRoles.current.textSecondary,
+                fontSize = DesignTokens.Typography.Body
+            )
+        }
+        
+        // Placeholder cards for migrated Home sections
+        item {
+            GlassCard(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(DesignTokens.Spacing.Md)) {
+                    Text(
+                        text = "Hero section — greeting, credits, autopilot eye, completed today, failed bulb, quick action tiles",
+                        color = DesignTokens.LocalBingwaRoles.current.textPrimary,
+                        fontSize = DesignTokens.Typography.Body,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(modifier = Modifier.height(DesignTokens.Spacing.Xs))
+                    Text(
+                        text = "To be restored from pre-R1 HomeScreen in next iteration.",
+                        color = DesignTokens.LocalBingwaRoles.current.textSecondary,
+                        fontSize = DesignTokens.Typography.Caption
+                    )
+                }
+            }
+        }
+        
+        item {
+            GlassCard(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(DesignTokens.Spacing.Md)) {
+                    Text(
+                        text = "Activation Ladder — engine armed, test drive, import book, recover failure steps",
+                        color = DesignTokens.LocalBingwaRoles.current.textPrimary,
+                        fontSize = DesignTokens.Typography.Body,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(modifier = Modifier.height(DesignTokens.Spacing.Xs))
+                    Text(
+                        text = "To be restored from pre-R1 HomeScreen in next iteration.",
+                        color = DesignTokens.LocalBingwaRoles.current.textSecondary,
+                        fontSize = DesignTokens.Typography.Caption
+                    )
+                }
+            }
+        }
+        
+        item {
+            GlassCard(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(DesignTokens.Spacing.Md)) {
+                    Text(
+                        text = "Payout & Offers — weekly commission, active offers with toggles",
+                        color = DesignTokens.LocalBingwaRoles.current.textPrimary,
+                        fontSize = DesignTokens.Typography.Body,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(modifier = Modifier.height(DesignTokens.Spacing.Xs))
+                    Text(
+                        text = "To be restored from pre-R1 HomeScreen in next iteration.",
+                        color = DesignTokens.LocalBingwaRoles.current.textSecondary,
+                        fontSize = DesignTokens.Typography.Caption
+                    )
+                }
+            }
+        }
+        
+        item {
+            GlassCard(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(DesignTokens.Spacing.Md)) {
+                    Text(
+                        text = "Repeat Buyers — customer list with initials, phone, total spent",
+                        color = DesignTokens.LocalBingwaRoles.current.textPrimary,
+                        fontSize = DesignTokens.Typography.Body,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(modifier = Modifier.height(DesignTokens.Spacing.Xs))
+                    Text(
+                        text = "To be restored from pre-R1 HomeScreen in next iteration.",
+                        color = DesignTokens.LocalBingwaRoles.current.textSecondary,
+                        fontSize = DesignTokens.Typography.Caption
+                    )
+                }
+            }
         }
     }
 }

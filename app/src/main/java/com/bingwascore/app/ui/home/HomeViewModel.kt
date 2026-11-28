@@ -155,6 +155,18 @@ class HomeViewModel @Inject constructor(
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
+    /** R1-COMPLETE — unmatched transactions (no matching offer found). */
+    val unmatchedCount: StateFlow<Int> = transactionRepository
+        .liveTransactions
+        .map { list -> list.count { it.status == TransactionStatus.UNMATCHED.value } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+
+    /** R1-COMPLETE — scheduled/awaiting transactions (separate from PENDING/PROCESSING). */
+    val scheduledCount: StateFlow<Int> = transactionRepository
+        .liveTransactions
+        .map { list -> list.count { it.status == TransactionStatus.SCHEDULED.value } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+
     val airtimeUsedToday: StateFlow<Double> = transactionRepository.liveTransactions
         .map { list ->
             val startOfDay = startOfDayMillis()
